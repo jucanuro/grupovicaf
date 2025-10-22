@@ -1,0 +1,249 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+{% block content %}
+<style>
+    /* ... Estilos CSS ... */
+    .animated-gradient-text {
+        background: linear-gradient(to right, #6EE7B7, #3B82F6, #8B5CF6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+        background-size: 200% auto;
+        animation: text-gradient 3s linear infinite alternate;
+    }
+    @keyframes text-gradient {
+        to {
+            background-position: 200% center;
+        }
+    }
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 0.75rem;
+    }
+    .status-badge.pendiente {
+        background-color: rgba(251, 191, 36, 0.1); /* bg-amber-500/10 */
+        color: #FBBF24; /* text-amber-500 */
+    }
+    .status-badge.aceptada {
+        background-color: rgba(34, 197, 94, 0.1); /* bg-green-500/10 */
+        color: #22C55E; /* text-green-500 */
+    }
+    .status-badge.rechazada {
+        background-color: rgba(239, 68, 68, 0.1); /* bg-red-500/10 */
+        color: #EF4444; /* text-red-500 */
+    }
+    /* ... Asegúrese de tener el estilo glass-card si lo usa en base_vicafpro.html ... */
+    .glass-card {
+        background: rgba(15, 23, 42, 0.7); 
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(51, 65, 85, 0.5); 
+    }
+</style>
+
+<div class="space-y-6 bg-blue-950 min-h-screen p-8 md:p-12">
+    <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-up">
+        <h1 class="text-2xl font-extrabold animated-gradient-text">
+            Cotizaciones
+            <i data-lucide="file-signature" class="inline-block w-6 h-6 ml-2 text-blue-500"></i>
+        </h1>
+        <div class="flex items-center gap-4 w-full md:w-auto">
+            <div class="relative w-full">
+                <input type="text" id="searchInput" placeholder="Buscar cotizaciones..." 
+                        value="{{ query|default:'' }}"
+                        class="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-full text-white focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
+            </div>
+            <a href="{% url 'servicios:crear_cotizacion' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-accent text-white font-semibold rounded-full hover:bg-blue-600 transition-all duration-300 shadow-lg flex-shrink-0">
+                <i data-lucide="plus" class="w-5 h-5"></i>
+                Nueva Cotización
+            </a>
+        </div>
+    </header>
+
+    <div class="glass-card p-6 rounded-2xl shadow-xl animate-fade-in-up">
+        {% if cotizaciones.object_list %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left table-auto">
+                <thead class="bg-slate-700/50">
+                    <tr class="text-slate-200">
+                        <th class="py-3 px-4 font-bold text-sm">N° de Oferta</th>
+                        <th class="py-3 px-4 font-bold text-sm">Cliente</th>
+                        <th class="py-3 px-4 font-bold text-sm">Monto Total</th>
+                        <th class="py-3 px-4 font-bold text-sm hidden lg:table-cell">Estado</th>
+                        <th class="py-3 px-4 font-bold text-sm text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="cotizaciones-table-body">
+                    {% for cotizacion in cotizaciones %}
+                    <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors duration-200" data-pk="{{ cotizacion.pk }}">
+                        <td class="py-4 px-4 font-medium text-white">{{ cotizacion.numero_oferta }}</td>
+                        <td class="py-4 px-4">{{ cotizacion.cliente.razon_social }}</td>
+                        <td class="py-4 px-4">S/. {{ cotizacion.monto_total }}</td>
+                        <td class="py-4 px-4 hidden lg:table-cell">
+                            <span class="status-badge {{ cotizacion.estado|lower }}">
+                                {{ cotizacion.get_estado_display }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-4 text-right whitespace-nowrap">
+                            <a href="{% url 'servicios:ver_pdf_cotizacion' pk=cotizacion.pk %}" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-green-300 bg-green-500/10 hover:bg-green-500/20 mr-2 transition-colors" target="_blank">
+                                <i data-lucide="file-text" class="w-4 h-4 mr-1"></i> Ver PDF
+                            </a>
+                            {% if cotizacion.estado == 'Pendiente' and request.user.is_superuser %}
+                                <a href="{% url 'servicios:aprobar_cotizacion' pk=cotizacion.pk %}" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-lime-300 bg-lime-500/10 hover:bg-lime-500/20 mr-2 transition-colors">
+                                    <i data-lucide="check-circle" class="w-4 h-4 mr-1"></i> Aprobar
+                                </a>
+                            {% endif %}
+                            <a href="{% url 'servicios:editar_cotizacion' pk=cotizacion.pk %}" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 mr-2 transition-colors">
+                                <i data-lucide="edit" class="w-4 h-4 mr-1"></i> Editar
+                            </a>
+                            <a href="{% url 'servicios:eliminar_cotizacion' pk=cotizacion.pk %}" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 transition-colors">
+                                <i data-lucide="trash-2" class="w-4 h-4 mr-1"></i> Eliminar
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="pagination-controls" class="flex justify-center items-center mt-6 space-x-2">
+            {% if cotizaciones.has_previous %}
+            <a href="?page={{ cotizaciones.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" class="px-4 py-2 rounded-full text-slate-400 hover:bg-slate-700/50 transition-colors duration-200">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            </a>
+            {% endif %}
+
+            {% for i in cotizaciones.paginator.page_range %}
+            {% if cotizaciones.number == i %}
+            <span class="px-4 py-2 rounded-full font-semibold bg-primary-accent text-white">
+                {{ i }}
+            </span>
+            {% else %}
+            <a href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}"
+               class="px-4 py-2 rounded-full font-semibold transition-colors duration-200
+               bg-slate-700/50 text-slate-300 hover:bg-slate-600/50">
+                {{ i }}
+            </a>
+            {% endif %}
+            {% endfor %}
+
+            {% if cotizaciones.has_next %}
+            <a href="?page={{ cotizaciones.next_page_number }}{% if query %}&q={{ query }}{% endif %}" class="px-4 py-2 rounded-full text-slate-400 hover:bg-slate-700/50 transition-colors duration-200">
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div id="no-results-message" class="p-6 text-center text-slate-500 {% if cotizaciones.object_list %}hidden{% endif %}">
+            <i data-lucide="file-x" class="w-12 h-12 mx-auto mb-4"></i>
+            <p>No se encontraron cotizaciones.</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+        const searchInput = document.getElementById('searchInput');
+        const cotizacionesTableBody = document.getElementById('cotizaciones-table-body');
+        const paginationControls = document.getElementById('pagination-controls');
+        const noResultsMessage = document.getElementById('no-results-message');
+
+        searchInput.addEventListener('keyup', async (e) => {
+            const query = e.target.value;
+
+            // Si hay una consulta, usamos AJAX. Si está vacía, recargamos la página para mostrar la paginación normal.
+            if (query.length > 0) {
+                // Endpoint API (Debe ser implementado en views.py para búsqueda AJAX)
+                const url = `{% url 'servicios:buscar_cotizaciones_api' %}?q=${query}`;
+                try {
+                    const response = await fetch(url);
+                    const cotizaciones = await response.json();
+                    
+                    cotizacionesTableBody.innerHTML = '';
+                    if (paginationControls) {
+                        paginationControls.classList.add('hidden');
+                    }
+                    noResultsMessage.classList.add('hidden');
+
+                    if (cotizaciones.length === 0) {
+                        noResultsMessage.classList.remove('hidden');
+                        noResultsMessage.textContent = "No se encontraron cotizaciones que coincidan con la búsqueda.";
+                    } else {
+                        cotizaciones.forEach(cotizacion => {
+                            // Crear URL dinámicas usando la PK
+                            const editUrl = `{% url 'servicios:editar_cotizacion' pk=0 %}`.replace('0', cotizacion.pk);
+                            const deleteUrl = `{% url 'servicios:eliminar_cotizacion' pk=0 %}`.replace('0', cotizacion.pk);
+                            const pdfUrl = `{% url 'servicios:ver_pdf_cotizacion' pk=0 %}`.replace('0', cotizacion.pk);
+                            const approveUrl = `{% url 'servicios:aprobar_cotizacion' pk=0 %}`.replace('0', cotizacion.pk);
+                            
+                            const estadoClase = cotizacion.estado.toLowerCase();
+                            const isSuperuser = {{ request.user.is_superuser|yesno:"true,false" }};
+                            
+                            let approveLink = '';
+                            if (cotizacion.estado === 'Pendiente' && isSuperuser) {
+                                approveLink = `
+                                    <a href="${approveUrl}" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-lime-300 bg-lime-500/10 hover:bg-lime-500/20 mr-2 transition-colors">
+                                        <i data-lucide="check-circle" class="w-4 h-4 mr-1"></i> Aprobar
+                                    </a>`;
+                            }
+
+                            // ----------------------------------------------------------------------------------
+                            // ✅ ZONA CORREGIDA (Monto Total y Nombre del Cliente)
+                            // ----------------------------------------------------------------------------------
+                            const row = `
+                            <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors duration-200" data-pk="${cotizacion.pk}">
+                                <td class="py-4 px-4 font-medium text-white">${cotizacion.numero_oferta}</td>
+                                <td class="py-4 px-4">${cotizacion.cliente_razon_social || cotizacion.cliente}</td> 
+                                <td class="py-4 px-4">S/. ${parseFloat(cotizacion.monto_total).toFixed(2)}</td>
+                                <td class="py-4 px-4 hidden lg:table-cell">
+                                    <span class="status-badge ${estadoClase}">
+                                        ${cotizacion.estado_display || cotizacion.estado}
+                                    </span>
+                                </td>
+                                <td class="py-4 px-4 text-right whitespace-nowrap">
+                                    <a href="${pdfUrl}" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-green-300 bg-green-500/10 hover:bg-green-500/20 mr-2 transition-colors">
+                                        <i data-lucide="file-text" class="w-4 h-4 mr-1"></i> Ver PDF
+                                    </a>
+                                    ${approveLink}
+                                    <a href="${editUrl}" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 mr-2 transition-colors">
+                                        <i data-lucide="edit" class="w-4 h-4 mr-1"></i> Editar
+                                    </a>
+                                    <a href="${deleteUrl}" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 transition-colors">
+                                        <i data-lucide="trash-2" class="w-4 h-4 mr-1"></i> Eliminar
+                                    </a>
+                                </td>
+                            </tr>
+                            `;
+                            // ----------------------------------------------------------------------------------
+                            
+                            cotizacionesTableBody.innerHTML += row;
+                            // Crear los íconos de Lucide en las nuevas filas generadas
+                            if (typeof lucide !== 'undefined') {
+                                lucide.createIcons();
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error al buscar cotizaciones:', error);
+                }
+            } else {
+                // Si la búsqueda se vacía, recargamos para volver al estado normal con paginación
+                window.location.href = "{% url 'servicios:lista_cotizaciones' %}";
+            }
+        });
+    });
+</script>
+{% endblock %}

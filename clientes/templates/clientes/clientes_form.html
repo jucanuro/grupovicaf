@@ -1,0 +1,108 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+{% block content %}
+
+<div class="space-y-6">
+    <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-up">
+        <h1 class="text-2xl font-extrabold text-white">
+            {% if cliente %}Editar Cliente{% else %}Crear Nuevo Cliente{% endif %}
+        </h1>
+        <a href="{% url 'clientes:lista_clientes' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-slate-700 text-white font-semibold rounded-full hover:bg-slate-600 transition-all duration-300">
+            <i data-lucide="list" class="w-5 h-5"></i>
+            Regresar a la Lista
+        </a>
+    </header>
+
+    <div class="glass-card p-6 rounded-2xl shadow-xl">
+        <form id="cliente-form" method="post" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-white border-b border-slate-700/50 pb-2">Información Fiscal</h3>
+                    
+                    <div>
+                        <label for="id_razon_social" class="block text-sm font-medium text-slate-400">Razón Social</label>
+                        <input type="text" name="razon_social" id="id_razon_social" value="{{ cliente.razon_social|default_if_none:'' }}" 
+                               class="mt-1 block w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200">
+                    </div>
+                    
+                    <div>
+                        <label for="id_ruc" class="block text-sm font-medium text-slate-400">RUC</label>
+                        <input type="text" name="ruc" id="id_ruc" value="{{ cliente.ruc|default_if_none:'' }}" 
+                               class="mt-1 block w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200">
+                    </div>
+                    
+                    <div>
+                        <label for="id_direccion" class="block text-sm font-medium text-slate-400">Dirección</label>
+                        <input type="text" name="direccion" id="id_direccion" value="{{ cliente.direccion|default_if_none:'' }}" 
+                               class="mt-1 block w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200">
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-white border-b border-slate-700/50 pb-2">Información de Contacto</h3>
+                    
+                    <div>
+                        <label for="id_persona_contacto" class="block text-sm font-medium text-slate-400">Persona de Contacto</label>
+                        <input type="text" name="persona_contacto" id="id_persona_contacto" value="{{ cliente.persona_contacto|default_if_none:'' }}" 
+                               class="mt-1 block w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200">
+                    </div>
+                    
+                    <div>
+                        <label for="id_cargo_contacto" class="block text-sm font-medium text-slate-400">Cargo del Contacto</label>
+                        <input type="text" name="cargo_contacto" id="id_cargo_contacto" value="{{ cliente.cargo_contacto|default_if_none:'' }}" 
+                               class="mt-1 block w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200">
+                    </div>
+                    
+                    <div>
+                        <label for="id_celular_contacto" class="block text-sm font-medium text-slate-400">Celular del Contacto</label>
+                        <input type="text" name="celular_contacto" id="id_celular_contacto" value="{{ cliente.celular_contacto|default_if_none:'' }}" 
+                               class="mt-1 block w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200">
+                    </div>
+                    
+                    <div>
+                        <label for="id_correo_contacto" class="block text-sm font-medium text-slate-400">Correo Electrónico</label>
+                        <input type="email" name="correo_contacto" id="id_correo_contacto" value="{{ cliente.correo_contacto|default_if_none:'' }}" 
+                               class="mt-1 block w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200">
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <h3 class="text-lg font-semibold text-white border-b border-slate-700/50 pb-2">Otros Detalles</h3>
+                
+                <div>
+                    <label for="id_firma_electronica" class="block text-sm font-medium text-slate-400">Firma Electrónica</label>
+                    <input type="file" name="firma_electronica" id="id_firma_electronica"
+                           class="mt-1 block w-full text-sm text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-accent/20 file:text-primary-accent hover:file:bg-primary-accent/30">
+                </div>
+                
+                {% if cliente and cliente.firma_electronica %}
+                <div class="mt-4">
+                    <p class="text-sm text-slate-400">Firma actual:</p>
+                    <img src="{{ cliente.firma_electronica.url }}" alt="Firma actual" class="w-32 h-auto mt-2 rounded-lg border border-slate-700 shadow-lg">
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="flex justify-end pt-4 border-t border-slate-700/50">
+                <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 text-white font-semibold rounded-full hover:bg-emerald-600 transition-all duration-300 shadow-lg">
+                    <i data-lucide="save" class="w-5 h-5"></i>
+                    Guardar Cliente
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    });
+</script>
+{% endblock %}

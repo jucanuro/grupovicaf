@@ -1,0 +1,330 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+{% block content %}
+
+<style>
+    /* Estilos del Título Animado */
+    .animated-gradient-text {
+        background: linear-gradient(to right, #6EE7B7, #3B82F6, #8B5CF6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+        background-size: 200% auto;
+        animation: text-gradient 3s linear infinite alternate;
+    }
+
+    @keyframes text-gradient {
+        to {
+            background-position: 200% center;
+        }
+    }
+    
+    /* Estilos para el modal de Detalle */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.75);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 50;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+    }
+
+    .modal-overlay.open {
+        display: flex;
+        opacity: 1;
+    }
+
+    .modal-container {
+        position: relative;
+        background-color: #1a202c;
+        padding: 2.5rem;
+        border-radius: 1.5rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        max-width: 900px;
+        width: 90%;
+        color: white;
+        transform: translateY(-20px);
+        transition: transform 0.3s ease-in-out;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-overlay.open .modal-container {
+        transform: translateY(0);
+    }
+    
+    .modal-close-btn {
+        position: absolute;
+        top: 1rem;
+        right: 1.5rem;
+        background: none;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        font-size: 1.5rem;
+        line-height: 1;
+    }
+
+    .modal-content-area img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+    }
+</style>
+
+<div class="space-y-6">
+    <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-up">
+        <h1 class="text-2xl font-extrabold animated-gradient-text">Gestión de Servicios</h1>
+        <div class="flex items-center gap-4 w-full md:w-auto">
+            <div class="relative w-full">
+                <input type="text" id="searchInput" placeholder="Buscar servicios..." 
+                        class="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-full text-white focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
+            </div>
+            <a href="{% url 'servicios:crear_servicio' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-accent text-white font-semibold rounded-full hover:bg-blue-600 transition-all duration-300 shadow-lg flex-shrink-0">
+                <i data-lucide="plus" class="w-5 h-5"></i>
+                Nuevo Servicio
+            </a>
+        </div>
+    </header>
+
+    <div class="glass-card p-6 rounded-2xl shadow-xl animate-fade-in-up">
+        {% if servicios %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left table-auto">
+                <thead class="bg-slate-700/50">
+                    <tr class="text-slate-200">
+                        <th class="py-3 px-4 font-bold text-sm">Nombre</th>
+                        <th class="py-3 px-4 font-bold text-sm">Descripción</th>
+                        <th class="py-3 px-4 font-bold text-sm hidden lg:table-cell">Orden</th>
+                        <th class="py-3 px-4 font-bold text-sm text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="servicios-table-body">
+                    {% for servicio in servicios %}
+                    <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors duration-200" data-pk="{{ servicio.pk }}">
+                        <td class="py-4 px-4 font-medium text-white">{{ servicio.nombre }}</td>
+                        <td class="py-4 px-4">{{ servicio.descripcion|truncatewords:10 }}</td>
+                        <td class="py-4 px-4 hidden lg:table-cell">{{ servicio.orden }}</td>
+                        <td class="py-4 px-4 text-right whitespace-nowrap">
+                            <button class="ver-detalle-btn inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-green-300 bg-green-500/10 hover:bg-green-500/20 mr-2 transition-colors">
+                                <i data-lucide="eye" class="w-4 h-4 mr-1"></i> Ver
+                            </button>
+                            <a href="{% url 'servicios:editar_servicio' pk=servicio.pk %}" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 mr-2 transition-colors">
+                                <i data-lucide="edit" class="w-4 h-4 mr-1"></i> Editar
+                            </a>
+                            <a href="{% url 'servicios:eliminar_servicio' pk=servicio.pk %}" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 transition-colors">
+                                <i data-lucide="trash-2" class="w-4 h-4 mr-1"></i> Eliminar
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="pagination-controls" class="flex justify-center items-center mt-6 space-x-2">
+            {% if servicios.has_previous %}
+            <a href="?page={{ servicios.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" class="px-4 py-2 rounded-full text-slate-400 hover:bg-slate-700/50 transition-colors duration-200">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            </a>
+            {% endif %}
+
+            {% for i in servicios.paginator.page_range %}
+            <a href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}"
+               class="px-4 py-2 rounded-full font-semibold transition-colors duration-200
+               {% if servicios.number == i %}
+                   bg-primary-accent text-white
+               {% else %}
+                   bg-slate-700/50 text-slate-300 hover:bg-slate-600/50
+               {% endif %}">
+                {{ i }}
+            </a>
+            {% endfor %}
+
+            {% if servicios.has_next %}
+            <a href="?page={{ servicios.next_page_number }}{% if query %}&q={{ query }}{% endif %}" class="px-4 py-2 rounded-full text-slate-400 hover:bg-slate-700/50 transition-colors duration-200">
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div id="no-results-message" class="p-6 text-center text-slate-500 {% if servicios %}hidden{% endif %}">
+            <i data-lucide="file-x" class="w-12 h-12 mx-auto mb-4"></i>
+            <p>No se encontraron servicios.</p>
+        </div>
+    </div>
+</div>
+
+<div id="detalle-modal-overlay" class="modal-overlay">
+    <div id="detalle-modal-container" class="modal-container">
+        <button id="close-modal-btn" class="modal-close-btn">&times;</button>
+        <div id="modal-content-area" class="space-y-6">
+            </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Inicializa los íconos de Lucide
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+        const searchInput = document.getElementById('searchInput');
+        const serviciosTableBody = document.getElementById('servicios-table-body');
+        const paginationControls = document.getElementById('pagination-controls');
+        const noResultsMessage = document.getElementById('no-results-message');
+
+        const modalOverlay = document.getElementById('detalle-modal-overlay');
+        const modalContentArea = document.getElementById('modal-content-area');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+
+        // Función para abrir el modal y cargar datos vía API
+        const openModal = async (servicePk) => {
+            try {
+                const url = `{% url 'servicios:obtener_detalle_servicio_api' pk=0 %}`.replace('0', servicePk); 
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const servicio = await response.json();
+
+                // Llenar el contenido del modal
+                modalContentArea.innerHTML = `
+                    <h2 class="text-2xl font-bold text-white mb-4">${servicio.nombre}</h2>
+                    <p class="text-slate-400">${servicio.descripcion}</p>
+                    ${servicio.imagen_url ? `<img src="${servicio.imagen_url}" alt="${servicio.nombre}" class="mt-4 rounded-lg shadow-md w-full max-w-sm">` : ''}
+
+                    <div class="mt-6">
+                        <h3 class="text-xl font-bold text-white mb-2">Normas y Métodos</h3>
+                        <div class="flex flex-wrap gap-2">
+                            ${servicio.normas.map(norma => `<span class="px-4 py-2 rounded-full text-sm font-semibold text-blue-300 bg-blue-500/10">${norma}</span>`).join('')}
+                            ${servicio.metodos.map(metodo => `<span class="px-4 py-2 rounded-full text-sm font-semibold text-purple-300 bg-purple-500/10">${metodo}</span>`).join('')}
+                        </div>
+                    </div>
+
+                    ${servicio.detalle ? `
+                    <div class="mt-6 p-4 rounded-lg bg-slate-800/60 border border-slate-700">
+                        <h3 class="text-xl font-bold text-white mb-2">Detalles Adicionales</h3>
+                        <p class="text-lg font-semibold text-slate-300">${servicio.detalle.titulo}</p>
+                        <p class="text-slate-400">${servicio.detalle.descripcion}</p>
+                        ${servicio.detalle.imagen_url ? `<img src="${servicio.detalle.imagen_url}" alt="${servicio.detalle.titulo}" class="mt-4 rounded-lg shadow-md w-full max-w-sm">` : ''}
+                    </div>
+                    ` : `<p class="text-slate-500 italic mt-6">Este servicio no tiene detalles adicionales.</p>`}
+                `;
+
+                // Mostrar el modal
+                modalOverlay.classList.add('open');
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons(); // Vuelve a crear los íconos dentro del modal
+                }
+            } catch (error) {
+                console.error('Error al obtener los detalles del servicio:', error);
+                alert('No se pudo cargar el detalle del servicio. Asegúrate de que la API esté funcionando correctamente.');
+            }
+        };
+
+        // Función para cerrar el modal
+        const closeModal = () => {
+            modalOverlay.classList.remove('open');
+            setTimeout(() => {
+                modalContentArea.innerHTML = '';
+            }, 300);
+        };
+
+        // Event Listeners para el modal
+        closeModalBtn.addEventListener('click', closeModal);
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target.id === 'detalle-modal-overlay') {
+                closeModal();
+            }
+        });
+
+        // Event listener para los botones "Ver" de la lista (Delegación de eventos)
+        serviciosTableBody.addEventListener('click', (e) => {
+            const verBtn = e.target.closest('.ver-detalle-btn');
+            if (verBtn) {
+                const row = verBtn.closest('tr');
+                const pk = row.dataset.pk;
+                openModal(pk);
+            }
+        });
+        
+        // Lógica de búsqueda asíncrona
+        let searchTimer;
+        searchInput.addEventListener('keyup', async (e) => {
+            clearTimeout(searchTimer);
+            const query = e.target.value;
+
+            searchTimer = setTimeout(async () => {
+                if (query.length > 2 || query.length === 0) {
+                    if (query.length === 0) {
+                        // Recargar la página si se borra la búsqueda (para mostrar la paginación original)
+                        window.location.href = "{% url 'servicios:lista_servicios' %}";
+                        return; 
+                    }
+
+                    const url = `{% url 'servicios:buscar_servicios_api' %}?q=${query}`;
+                    try {
+                        const response = await fetch(url);
+                        const servicios = await response.json();
+                        
+                        serviciosTableBody.innerHTML = '';
+                        if (paginationControls) {
+                            paginationControls.classList.add('hidden');
+                        }
+                        noResultsMessage.classList.add('hidden');
+
+                        if (servicios.length === 0) {
+                            noResultsMessage.classList.remove('hidden');
+                            noResultsMessage.textContent = "No se encontraron servicios que coincidan con la búsqueda.";
+                        } else {
+                            servicios.forEach(servicio => {
+                                // Asegurar que las URLs de la tabla usen el nombre de URL de Django
+                                const row = `
+                                <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors duration-200" data-pk="${servicio.pk}">
+                                    <td class="py-4 px-4 font-medium text-white">${servicio.nombre}</td>
+                                    <td class="py-4 px-4">${servicio.descripcion}</td>
+                                    <td class="py-4 px-4 hidden lg:table-cell">${servicio.orden}</td>
+                                    <td class="py-4 px-4 text-right whitespace-nowrap">
+                                        <button class="ver-detalle-btn inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-green-300 bg-green-500/10 hover:bg-green-500/20 mr-2 transition-colors">
+                                            <i data-lucide="eye" class="w-4 h-4 mr-1"></i> Ver
+                                        </button>
+                                        <a href="{% url 'servicios:editar_servicio' pk=0 %}".replace('0', servicio.pk) class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 mr-2 transition-colors">
+                                            <i data-lucide="edit" class="w-4 h-4 mr-1"></i> Editar
+                                        </a>
+                                        <a href="{% url 'servicios:eliminar_servicio' pk=0 %}".replace('0', servicio.pk) class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 transition-colors">
+                                            <i data-lucide="trash-2" class="w-4 h-4 mr-1"></i> Eliminar
+                                        </a>
+                                    </td>
+                                </tr>
+                                `;
+                                serviciosTableBody.innerHTML += row;
+                            });
+                            if (typeof lucide !== 'undefined') {
+                                lucide.createIcons();
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error al buscar servicios:', error);
+                    }
+                }
+            }, 300); // Pequeño debounce para evitar llamadas excesivas a la API
+        });
+    });
+</script>
+{% endblock %}

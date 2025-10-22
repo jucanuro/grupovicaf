@@ -1,0 +1,140 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+{% block content %}
+
+<div class="space-y-4 max-w-4xl mx-auto">
+    
+    <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-up">
+        <h1 class="text-xl font-extrabold text-white">
+            Confirmación de Aprobación
+        </h1>
+        <a href="{% url 'servicios:lista_cotizaciones' %}" 
+           class="inline-flex items-center gap-2 px-6 py-2 bg-slate-800 text-white font-semibold rounded-full border border-slate-700 hover:bg-slate-700 transition-all duration-300 transform hover:scale-[1.02]">
+            <i data-lucide="list" class="w-5 h-5"></i>
+            Lista de Cotizaciones
+        </a>
+    </header>
+
+    {# Usaremos clases directas en lugar de 'glass-card' para asegurar el estilo si no está en el base #}
+    <div class="p-8 rounded-3xl shadow-2xl border border-slate-700/50 animate-fade-in-up 
+                bg-slate-800/90 backdrop-blur-sm"> 
+        
+        <h2 class="text-2xl font-extrabold mb-1 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
+            Cotización: {{ cotizacion.numero_oferta }}
+        </h2>
+        <p class="mb-6 text-slate-400 border-b border-slate-700 pb-4">
+            <span class="font-bold text-slate-300">Cliente:</span> {{ cotizacion.cliente.razon_social }} | 
+            <span class="font-bold text-slate-300">Monto Total:</span> S/. {{ cotizacion.monto_total|floatformat:2 }}
+        </p>
+
+        {% if error %}
+        <div class="bg-rose-500/20 text-rose-300 p-4 rounded-xl mb-6 flex items-start gap-3 border border-rose-500/50 shadow-md">
+            <i data-lucide="alert-triangle" class="w-6 h-6 flex-shrink-0 mt-0.5 text-rose-400"></i>
+            <p class="font-semibold">{{ error }}</p>
+        </div>
+        {% endif %}
+
+        <div class="bg-yellow-500/10 text-yellow-300 p-4 rounded-xl mb-8 flex items-start gap-3 border border-yellow-500/30">
+            <i data-lucide="info" class="w-5 h-5 flex-shrink-0 mt-0.5"></i>
+            <p class="text-sm">
+                Al confirmar, se registrará el pago, el estado pasará a **ACEPTADA** y se **creará automáticamente el proyecto** asociado para iniciar la ejecución.
+            </p>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" id="approvalForm">
+            {% csrf_token %}
+            
+            <div class="space-y-6"> 
+                
+                <div>
+                    {# LABEL: Aplicamos estilos de Label (vicaf-label) #}
+                    <label for="id_codigo_voucher" 
+                           class="block text-sm font-semibold text-slate-300 mb-2 mt-5 flex items-center">
+                        <i data-lucide="key-round" class="w-4 h-4 inline-block mr-2 text-slate-400"></i>
+                        Código de Operación o N° de Orden <span class="text-rose-400 ml-1">*</span> 
+                    </label>
+                    {# INPUT TEXT/NUMBER: Aplicamos estilos de Input (vicaf-input) #}
+                    <input type="text" id="id_codigo_voucher" name="codigo_voucher" 
+                           class="w-full px-4 py-3 bg-slate-700 text-white rounded-xl border-2 border-slate-600 transition-all duration-200 shadow-inner 
+                                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                           placeholder="Ej: 202509-ABC-1234" required>
+                </div>
+                
+                <div>
+                    <label for="id_monto_pagado" 
+                           class="block text-sm font-semibold text-slate-300 mb-2 mt-5 flex items-center">
+                        <i data-lucide="dollar-sign" class="w-4 h-4 inline-block mr-2 text-slate-400"></i>
+                        Monto Pagado (S/.)
+                    </label>
+                    <input type="number" step="0.01" id="id_monto_pagado" name="monto_pagado" 
+                           value="{{ cotizacion.monto_total|floatformat:2 }}" 
+                           class="w-full px-4 py-3 bg-slate-700 text-white rounded-xl border-2 border-slate-600 transition-all duration-200 shadow-inner 
+                                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                           placeholder="Monto exacto de la transferencia">
+                    <p class="text-xs text-slate-500 mt-2">Sugerencia: S/. {{ cotizacion.monto_total|floatformat:2 }}</p> 
+                </div>
+                
+                <div>
+                    <label for="id_imagen_voucher" 
+                           class="block text-sm font-semibold text-slate-300 mb-2 mt-5 flex items-center">
+                        <i data-lucide="file-check-2" class="w-4 h-4 inline-block mr-2 text-slate-400"></i>
+                        Voucher / Comprobante de Pago <span class="text-rose-400 ml-1">*</span>
+                    </label>
+                    
+                    {# INPUT FILE: Clases aplicadas al input y al ::file-selector-button (navegador) #}
+                    <input type="file" id="id_imagen_voucher" name="imagen_voucher" 
+                           accept="image/*,application/pdf" 
+                           class="w-full py-3 bg-slate-700 text-white rounded-xl border-2 border-slate-600 transition-all duration-200 shadow-inner 
+                                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer 
+                                  file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold 
+                                  file:bg-blue-500/20 file:text-blue-300 hover:file:bg-blue-500/30" 
+                           required> 
+                    <p class="text-xs text-slate-500 mt-2">Formatos aceptados: JPG, PNG, PDF (Máx. 5MB)</p>
+                </div>
+
+            </div>
+
+            <button type="submit" id="submitBtn" 
+                    class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 mt-8 text-white font-bold rounded-xl transition-all duration-300 transform hover:scale-[1.01] shadow-xl 
+                           bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 shadow-green-500/30">
+                <i data-lucide="check-circle" class="w-5 h-5"></i>
+                Aprobar Cotización y Crear Proyecto
+            </button>
+            
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Inicializar iconos de Lucide
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+
+        const approvalForm = document.getElementById('approvalForm');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // Prevenir doble clic al enviar el formulario y dar feedback visual
+        if (approvalForm && submitBtn) {
+            approvalForm.addEventListener('submit', () => {
+                // Deshabilitar el botón y cambiar su texto/apariencia al enviar
+                submitBtn.disabled = true;
+                // Eliminamos las clases de gradiente y sombra y ponemos fondo plano de estado
+                submitBtn.classList.remove('bg-gradient-to-r', 'from-green-500', 'to-green-700', 'hover:from-green-600', 'hover:to-green-800', 'shadow-green-500/30');
+                submitBtn.classList.add('bg-slate-600', 'cursor-not-allowed', 'shadow-none');
+                
+                submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 inline-block mr-2 animate-spin"></i> Procesando...';
+                
+                // Si usas Lucide, recrea los iconos después de cambiar el innerHTML
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

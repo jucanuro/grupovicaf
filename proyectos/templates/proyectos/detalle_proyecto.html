@@ -1,0 +1,310 @@
+{% extends "base_vicafpro.html" %} 
+{% block title %}Gestión de Muestras: {{ proyecto.nombre }}{% endblock %}
+
+{% block content %}
+
+<div id="samples-view" class="container mx-auto p-4 max-w-7xl">
+    <a href="{% url 'proyectos:lista_proyectos' %}" class="mb-6 inline-flex items-center text-blue-400 hover:text-blue-200 transition-colors">
+        <i data-lucide="arrow-left" class="w-5 h-5 mr-2"></i> Volver a la Lista de Proyectos
+    </a> 
+
+    <h1 class="text-3xl font-bold text-white mb-6" id="samples-project-name">{{ proyecto.nombre }}</h1>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div class="bg-gray-700/50 p-4 rounded-lg text-center border border-gray-600/50">
+            <p class="text-xs text-slate-400">Total Requeridas</p>
+            <p class="text-2xl font-bold text-yellow-300 mt-1" id="total-samples-display">{{ proyecto.numero_muestras }}</p>
+        </div>
+        <div class="bg-gray-700/50 p-4 rounded-lg text-center border border-gray-600/50">
+            <p class="text-xs text-slate-400">Registradas</p>
+            <p class="text-2xl font-bold text-green-300 mt-1" id="registered-samples-display">0</p>
+        </div>
+        <div class="bg-gray-700/50 p-4 rounded-lg text-center border border-gray-600/50">
+            <p class="text-xs text-slate-400">Pendientes</p>
+            <p class="text-2xl font-bold text-red-300 mt-1" id="pending-samples-display">0</p>
+        </div>
+    </div>
+
+    <div class="grid md:grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2">
+            <h2 class="text-2xl font-semibold text-white mb-4 border-b border-slate-700 pb-2">Historial de Muestras</h2>
+            <ul id="samples-history-list" class="space-y-3">
+                <li class="p-4 bg-slate-700/30 rounded-lg text-center text-slate-400 text-lg">Cargando muestras...</li>
+            </ul>
+        </div>
+
+        <div class="lg:col-span-1 sticky top-4 self-start">
+            <div class="glass-card p-6 rounded-xl shadow-lg bg-gray-800/70 border border-gray-700">
+                <h2 class="text-2xl font-semibold text-white mb-4" data-original-text="Registrar Nueva Muestra">Registrar Nueva Muestra</h2>
+                <form id="register-sample-form" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" id="register-project-id" name="proyecto_id" value="{{ proyecto.id }}">
+                    
+                    <div class="mb-4">
+                        <label for="codigo_muestra" class="block text-slate-300 mb-1">Código de Muestra</label>
+                        <input type="text" id="codigo_muestra" name="codigo_muestra" required class="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500" placeholder="Ej: VCF-S-001">
+                    </div>
+                    <div class="mb-4">
+                        <label for="fecha_recepcion" class="block text-slate-300 mb-1">Fecha de Recepción (DD/MM/YYYY)</label>
+                        <input type="text" id="fecha_recepcion" name="fecha_recepcion" class="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500" placeholder="Ej: 20/10/2025">
+                    </div>
+                    <div class="mb-4">
+                        <label for="masa_aprox_kg" class="block text-slate-300 mb-1">Masa Aprox. (kg)</label>
+                        <input type="text" id="masa_aprox_kg" name="masa_aprox_kg" class="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500" placeholder="Ej: 5,2 o 5.2">
+                    </div>
+                    <div class="mb-4">
+                        <label for="observaciones" class="block text-slate-300 mb-1">Observaciones</label>
+                        <textarea id="observaciones" name="observaciones" rows="3" class="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500"></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full mt-4 px-4 py-3 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 transition-colors">
+                        <i data-lucide="plus" class="w-5 h-5 inline-block mr-2"></i> Guardar Muestra
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // =========================================================
+    // ⚙️ FUNCIÓN AUXILIAR CRÍTICA: Obtener el token CSRF para seguridad
+    // =========================================================
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Obtener el token CSRF una vez al inicio para usarlo en el POST
+    const csrftoken = getCookie('csrftoken'); 
+
+    // =========================================================
+    // LÓGICA PRINCIPAL (Ahora se ejecuta al cargar la página de detalle)
+    // =========================================================
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+        // Vistas y elementos
+        const samplesHistoryList = document.getElementById('samples-history-list');
+        const registerSampleForm = document.getElementById('register-sample-form');
+        const projectId = document.getElementById('register-project-id').value; 
+        
+        // 🟢 FUNCIÓN: Deshabilita/Habilita el formulario
+        function toggleSampleRegistrationForm(isComplete, totalSamples, registeredCount) {
+             const form = document.getElementById('register-sample-form');
+             const submitButton = form.querySelector('button[type="submit"]');
+             const inputs = form.querySelectorAll('input:not([type="hidden"]), textarea, select');
+             const header = document.querySelector('#samples-view .glass-card h2');
+
+             if (isComplete) {
+                 inputs.forEach(input => input.disabled = true);
+                 submitButton.disabled = true;
+                 submitButton.innerHTML = `<i data-lucide="lock" class="w-5 h-5 inline-block mr-2"></i> Límite (${registeredCount} de ${totalSamples}) Alcanzado`;
+                 submitButton.classList.remove('bg-green-500', 'hover:bg-green-600', 'bg-red-700'); 
+                 submitButton.classList.add('bg-gray-600', 'cursor-not-allowed');
+
+                 if (!header.dataset.originalText) {
+                     header.dataset.originalText = header.textContent;
+                 }
+                 header.textContent = 'Registro de Muestras Completado';
+
+             } else {
+                 inputs.forEach(input => input.disabled = false);
+                 submitButton.disabled = false;
+                 submitButton.innerHTML = `<i data-lucide="plus" class="w-5 h-5 inline-block mr-2"></i> Guardar Muestra`;
+                 submitButton.classList.remove('bg-gray-600', 'cursor-not-allowed', 'bg-red-700');
+                 submitButton.classList.add('bg-green-500', 'hover:bg-green-600');
+                 
+                 if (header.dataset.originalText) {
+                     header.textContent = header.dataset.originalText;
+                 } else {
+                      header.textContent = 'Registrar Nueva Muestra'; 
+                 }
+             }
+             lucide.createIcons();
+        }
+
+        // 🟢 FUNCIÓN: Renderizar Ítem (Se mantiene)
+        function renderSampleItem(sample) {
+            const newSampleItem = document.createElement('li');
+            newSampleItem.className = 'flex items-center gap-4 p-4 bg-slate-700/50 rounded-lg text-slate-300 transition-transform duration-200 hover:scale-[1.02]';
+            
+            // Asumo que la URL para ver/registrar la orden de ensayo es esta:
+            const orderUrl = sample.orden_ensayo_id ? `/proyectos/ordenes/registrar/${sample.orden_ensayo_id}/` : '#'; 
+            const isReady = sample.orden_ensayo_id !== null;
+
+            newSampleItem.innerHTML = `
+                <i data-lucide="flask-conical" class="text-purple-400 w-6 h-6 flex-shrink-0"></i>
+                <div class="flex-grow">
+                    <p class="font-semibold text-white">${sample.codigo_muestra}</p>
+                    <p class="text-sm text-slate-400">Recepción: ${sample.fecha_recepcion || 'N/A'} | Estado: ${sample.estado || 'REGISTRADA'}</p>
+                </div>
+                
+                <a href="${orderUrl}" 
+                title="${isReady ? 'Registrar/Ver Orden de Ensayo' : 'Orden pendiente'}"
+                class="p-2 rounded-full transition-colors ml-auto transform hover:scale-110 
+                ${isReady ? 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/40' : 'bg-slate-600/30 text-slate-500 cursor-not-allowed'}"
+                ${isReady ? '' : 'onclick="return false;"'}>
+                    <i data-lucide="scroll-text" class="w-5 h-5"></i>
+                </a>
+            `;
+            // Añade al inicio para que el más nuevo esté arriba
+            samplesHistoryList.prepend(newSampleItem); 
+        }
+        
+        // 🟢 FUNCIÓN: Cargar Historial (Se mantiene)
+        async function loadSamplesHistory(projectId) {
+            try {
+                // Endpoint para obtener muestras del proyecto
+                const response = await fetch(`/proyectos/muestras/${projectId}/`); 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                
+                samplesHistoryList.innerHTML = '';
+                const registeredCount = data.muestras.length;
+                const totalSamples = parseInt(document.getElementById('total-samples-display').textContent);
+                
+                if (registeredCount > 0) {
+                    // Muestras ya vienen ordenadas por fecha/ID
+                    data.muestras.forEach(sample => {
+                        renderSampleItem(sample);
+                    });
+                } else {
+                    samplesHistoryList.innerHTML = `<p class="text-slate-400 text-center text-lg">No hay muestras registradas para este proyecto aún.</p>`;
+                }
+                
+                // Actualizar contadores
+                document.getElementById('registered-samples-display').textContent = registeredCount;
+                document.getElementById('pending-samples-display').textContent = totalSamples - registeredCount;
+                
+                // Validar formulario
+                toggleSampleRegistrationForm(registeredCount >= totalSamples, totalSamples, registeredCount);
+                lucide.createIcons();
+
+            } catch (error) {
+                console.error('Error al cargar las muestras:', error);
+                samplesHistoryList.innerHTML = `<p class="text-red-400 text-center text-lg">Error al cargar el historial. Revise la consola.</p>`;
+            }
+        }
+
+        // 🟢 Lógica del Formulario (Se mantiene e incluye CSRF)
+        registerSampleForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const totalSamples = parseInt(document.getElementById('total-samples-display').textContent);
+            const projectId = document.getElementById('register-project-id').value;
+            const registeredCount = parseInt(document.getElementById('registered-samples-display').textContent);
+
+            if (registeredCount >= totalSamples) {
+                // Manejo de límite alcanzado
+                alert(`¡Ya se han registrado todas las muestras para este proyecto! (${registeredCount} de ${totalSamples}) 🚫`);
+                return;
+            }
+
+            const formData = new FormData(registerSampleForm);
+            const sampleData = Object.fromEntries(formData.entries());
+
+            // --- LÓGICA DE CONVERSIÓN DE DATOS Y FECHAS (Regional) ---
+            const masaAproxKgValue = sampleData['masa_aprox_kg'];
+            if (masaAproxKgValue && masaAproxKgValue.trim() !== '') {
+                sampleData['masa_aprox_kg'] = parseFloat(masaAproxKgValue.replace(',', '.')); 
+                if (isNaN(sampleData['masa_aprox_kg'])) {
+                    alert('Error: La masa debe ser un número válido.');
+                    return; 
+                }
+            } else {
+                delete sampleData['masa_aprox_kg'];
+            }
+
+            const dateFields = ['fecha_recepcion', 'fecha_fabricacion', 'fecha_ensayo_rotura', 'fecha_informe'];
+            let hasDateError = false;
+
+            dateFields.forEach(field => {
+                const dateValue = sampleData[field];
+                if (dateValue && dateValue.trim() !== '') {
+                    const parts = dateValue.split('/');
+                    // Convierte DD/MM/YYYY a YYYY-MM-DD para el backend
+                    if (parts.length === 3) {
+                        sampleData[field] = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                    } else if (dateValue.length !== 10 && dateValue.length !== 0) { 
+                        alert(`Error: El campo ${field} tiene un formato de fecha inválido. Debe ser DD/MM/YYYY.`);
+                        hasDateError = true;
+                        return;
+                    }
+                } else {
+                    sampleData[field] = null;
+                }
+            });
+
+            if (hasDateError) {
+                return;
+            }
+            sampleData['proyecto_id'] = projectId;
+            // --- FIN DE LA LÓGICA DE CONVERSIÓN DE DATOS Y FECHAS ---
+
+            try {
+                const response = await fetch('/proyectos/crear-muestra/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken, // 🔑 TOKEN CSRF
+                    },
+                    body: JSON.stringify(sampleData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // Si antes solo había el mensaje de "No hay muestras", lo eliminamos
+                    const placeholder = samplesHistoryList.querySelector('.text-slate-400.text-center');
+                    if (placeholder && placeholder.textContent.includes('No hay muestras registradas')) {
+                        samplesHistoryList.innerHTML = '';
+                    }
+
+                    renderSampleItem(result.muestra);
+                    
+                    const newRegisteredCount = registeredCount + 1;
+                    document.getElementById('registered-samples-display').textContent = newRegisteredCount;
+                    document.getElementById('pending-samples-display').textContent = totalSamples - newRegisteredCount;
+
+                    lucide.createIcons();
+                    registerSampleForm.reset(); // Limpia el formulario
+                    
+                    // Validar si se alcanzó el límite
+                    toggleSampleRegistrationForm(newRegisteredCount >= totalSamples, totalSamples, newRegisteredCount);
+
+                    alert(result.message);
+                } else {
+                    alert('Error al registrar: ' + (result.message || 'Error desconocido.'));
+                }
+
+            } catch (error) {
+                console.error('Error al guardar la muestra:', error);
+                alert('Hubo un error al conectar con el servidor. Por favor, intente de nuevo.');
+            }
+        });
+
+        // 🚨 PASO FINAL: Ejecutar la carga inicial al cargar la página
+        if (projectId) {
+            await loadSamplesHistory(projectId);
+        }
+    });
+</script>
+{% endblock %}

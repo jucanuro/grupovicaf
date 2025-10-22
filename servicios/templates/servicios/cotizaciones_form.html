@@ -1,0 +1,663 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
+<style>
+    /* Estilos base para un diseño limpio y oscuro */
+    :root {
+        --color-bg-main: #0F172A; /* slate-900 */
+        --color-bg-card: #1E293B; /* slate-800 */
+        --color-border: #475569; /* slate-600 */
+        --color-text-light: #F1F5F9; /* slate-100 */
+        --color-text-faded: #94A3B8; /* slate-400 */
+        --color-primary: #0EA5E9; /* sky-500 */
+        --color-secondary: #0D9488; /* teal-600 */
+        --color-accent-green: #22C55E; /* green-500 */
+        --color-accent-red: #EF4444; /* rose-500 */
+    }
+
+    body {
+        background-color: var(--color-bg-main);
+    }
+
+    /* Contenedor de cada campo */
+    .form-group-v2 {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    /* Estilo del label fijo, siempre arriba */
+    .form-label-v2 {
+        font-size: 0.8rem;
+        color: var(--color-text-faded);
+        font-weight: 500;
+        transition: all 0.2s ease-in-out;
+    }
+
+    /* Estilo del input y select - TAMAÑO Y FONDO OPTIMIZADOS */
+    .form-control-v2 {
+        width: 100%;
+        padding: 0.5rem 0.75rem; /* Menor padding para hacerlo más compacto */
+        background-color: #020617; /* slate-950 como fondo del input */
+        border: 1px solid var(--color-border); /* Borde más delgado */
+        border-radius: 0.5rem;
+        color: var(--color-text-light);
+        font-size: 0.9rem;
+        transition: all 0.2s ease-in-out;
+        outline: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-control-v2:focus {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.5); /* Sombra más sutil */
+    }
+
+    /* Estilo específico para selects */
+    .form-control-v2.form-select-v2 {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.75rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5rem;
+        padding-right: 2.5rem;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-color: #020617; /* slate-950 para los selects */
+    }
+
+    /* Estilo para el input de solo lectura */
+    .form-control-v2[readonly] {
+        cursor: not-allowed;
+        background-color: #334155; /* slate-700 */
+        color: #E2E8F0; /* slate-200 */
+    }
+
+    /* Ocultar flechas en inputs de tipo number */
+    .no-arrows::-webkit-outer-spin-button,
+    .no-arrows::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    .no-arrows {
+        -moz-appearance: textfield;
+    }
+
+    /* Nuevo estilo para la fila de items en la tabla de cotización */
+    .item-row-v2 {
+        display: grid;
+        /* Optimización del grid para que quepa en una sola fila: Servicio (2.5), Norma (1), Método (1), Und (0.5), Cant (0.5), Precio (0.8), Subtotal (1), Eliminar (0.2) */
+        grid-template-columns: 2.5fr 1fr 1fr 0.5fr 0.5fr 0.8fr 1fr 0.2fr;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background-color: rgba(30, 41, 59, 0.7);
+        border-radius: 0.5rem;
+        border: 1px solid #475569;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        transition: all 0.3s ease-in-out;
+        align-items: center;
+    }
+    
+    .item-row-v2:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    
+    .item-row-v2 .subtotal-cell {
+        min-width: 60px;
+    }
+    
+    .item-row-v2 .remove-item-btn {
+        padding: 0.5rem;
+    }
+    
+    /* Tom-select custom styles for a dark theme */
+    .ts-control {
+        background-color: #020617; /* slate-950 */
+        border-color: #475569; /* slate-600 */
+        color: var(--color-text-light);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-radius: 0.5rem;
+        transition: all 0.2s ease-in-out;
+        padding: 0.5rem 0.75rem;
+    }
+    .ts-control.focus {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.5);
+    }
+    .ts-control .ts-input {
+        background-color: transparent !important;
+        border: none !important;
+        color: var(--color-text-light);
+        padding: 0;
+        font-size: 0.9rem;
+    }
+    /* Estilo crucial para el input de búsqueda */
+    .ts-control .ts-input input {
+        background-color: #020617 !important;
+        color: #F1F5F9 !important;
+    }
+
+    .ts-dropdown {
+        background-color: #1E293B; /* slate-800 */
+        border-color: #475569;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    .ts-dropdown .option {
+        color: var(--color-text-light);
+        padding: 0.5rem 0.75rem;
+    }
+    .ts-dropdown .option.active, .ts-dropdown .option.selected {
+        background-color: #334155; /* slate-700 */
+        color: var(--color-primary);
+    }
+    .ts-control::after {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        right: 0.75rem;
+        transform: none;
+    }
+    .ts-control.single::after {
+        border-color: transparent !important;
+    }
+
+</style>
+
+<div class="space-y-8 p-4">
+    <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 animate-fade-in-up">
+        <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-cyan-300">
+            {% if cotizacion %}Editar Cotización{% else %}Crear Nueva Cotización{% endif %}
+        </h1>
+        <a href="{% url 'servicios:lista_cotizaciones' %}" class="inline-flex items-center gap-2 px-6 py-2 bg-slate-800 text-white font-semibold rounded-full hover:bg-slate-700 transition-all duration-300 transform hover:scale-105 shadow-lg">
+            <i data-lucide="list" class="w-5 h-5"></i>
+            Regresar a la Lista
+        </a>
+    </header>
+
+    {% if error %}
+    <div class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-500/30" role="alert">
+        <span class="font-medium">Error de Guardado:</span> {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="post" class="space-y-8" id="cotizacion-form">
+        {% csrf_token %}
+
+        <div class="glass-card p-6 rounded-2xl shadow-xl animate-fade-in-up bg-slate-800/50 backdrop-blur-sm border border-slate-700">
+            <h2 class="text-xl font-bold text-white mb-6">Datos de la Oferta</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                <div class="form-group-v2 md:col-span-2">
+                    <label for="id_asunto_servicio" class="form-label-v2">Asunto del Servicio / Descripción General</label>
+                    <input type="text" name="asunto_servicio" id="id_asunto_servicio" class="form-control-v2" required placeholder="Ej: Ensayo de suelos para Proyecto X" {% if cotizacion %}value="{{ cotizacion.asunto_servicio }}"{% endif %}>
+                </div>
+                <div class="form-group-v2">
+                    <label for="id_cliente_ruc" class="form-label-v2">RUC del Cliente</label>
+                    <select id="id_cliente_ruc" name="cliente" class="form-control-v2 form-select-v2 tom-select-js" required>
+                        <option value="" selected disabled>Buscar RUC o Razón Social...</option> 
+                        {% for cliente in clientes %}
+                        <option value="{{ cliente.pk }}" data-razon-social="{{ cliente.razon_social }}" data-contacto="{{ cliente.nombre_contacto }}" data-correo="{{ cliente.correo }}" data-telefono="{{ cliente.telefono }}" {% if cotizacion and cotizacion.cliente.pk == cliente.pk %}selected{% endif %}>
+                            {{ cliente.ruc }} - {{ cliente.razon_social }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group-v2">
+                    <label for="id_razon_social" class="form-label-v2">Razón Social</label>
+                    <input type="text" id="id_razon_social" class="form-control-v2 cursor-not-allowed" readonly placeholder="Razón Social">
+                </div>
+                <div class="form-group-v2">
+                    <label for="id_persona_contacto" class="form-label-v2">Persona de Contacto</label>
+                    <input type="text" name="persona_contacto" id="id_persona_contacto" class="form-control-v2" required placeholder="Persona de Contacto" {% if cotizacion %}value="{{ cotizacion.persona_contacto }}"{% endif %}>
+                </div>
+                <div class="form-group-v2">
+                    <label for="id_correo_contacto" class="form-label-v2">Correo</label>
+                    <input type="email" name="correo_contacto" id="id_correo_contacto" class="form-control-v2" required placeholder="Correo" {% if cotizacion %}value="{{ cotizacion.correo_contacto }}"{% endif %}>
+                </div>
+                <div class="form-group-v2">
+                    <label for="id_telefono_contacto" class="form-label-v2">Teléfono</label>
+                    <input type="text" name="telefono_contacto" id="id_telefono_contacto" class="form-control-v2" required placeholder="Teléfono" {% if cotizacion %}value="{{ cotizacion.telefono_contacto }}"{% endif %}>
+                </div>
+                <input type="hidden" name="tasa_igv" value="{% if cotizacion %}{{ cotizacion.tasa_igv }}{% else %}0.18{% endif %}">
+            </div>
+        </div>
+        
+        <div class="glass-card p-6 rounded-2xl shadow-xl animate-fade-in-up bg-slate-800/50 backdrop-blur-sm border border-slate-700">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-cyan-300">
+                    Detalle de la Cotización
+                </h2>
+                <button type="button" id="addItemBtn" class="mt-4 md:mt-0 inline-flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-full hover:from-green-600 hover:to-emerald-600 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                    Agregar Ítem
+                </button>
+            </div>
+            
+            <div id="cotizacion-detalles" class="space-y-6">
+                </div>
+
+            <template id="item-row-template">
+                <div class="item-row-v2 animate-fade-in-up">
+                    <div class="form-group-v2">
+                        <label class="form-label-v2">Servicio</label>
+                        <select class="form-control-v2 form-select-v2 servicio-select" required>
+                            <option value="" selected disabled>Seleccionar Servicio</option>
+                        </select>
+                        <input type="hidden" class="descripcion-input">
+                    </div>
+                    <div class="form-group-v2">
+                        <label class="form-label-v2">Norma</label>
+                        <select class="form-control-v2 form-select-v2 normas-select">
+                            <option value="">N/A</option>
+                        </select>
+                    </div>
+                    <div class="form-group-v2">
+                        <label class="form-label-v2">Método</label>
+                        <select class="form-control-v2 form-select-v2 metodos-select">
+                            <option value="">N/A</option>
+                        </select>
+                    </div>
+                    <div class="form-group-v2">
+                        <label class="form-label-v2">Unidad</label>
+                        <input type="text" class="form-control-v2 text-center und-input" required placeholder="Und.">
+                    </div>
+                    <div class="form-group-v2">
+                        <label class="form-label-v2">Cantidad</label>
+                        <input type="number" class="form-control-v2 text-center cantidad-input no-arrows" min="1" value="1" required placeholder="Cant.">
+                    </div>
+                    <div class="form-group-v2">
+                        <label class="form-label-v2">Precio</label>
+                        <input type="number" class="form-control-v2 text-center precio-input no-arrows" step="0.01" min="0.01" value="0.00" required placeholder="Precio">
+                    </div>
+                    <div class="flex flex-col items-start text-sm font-bold text-green-400">
+                        <span class="text-sm text-slate-400">Subtotal:</span>
+                        S/. <span class="subtotal-cell text-sm">0.00</span>
+                    </div>
+                    <div class="flex justify-center">
+                        <button type="button" class="remove-item-btn p-2 text-rose-400 hover:bg-rose-500/20 rounded-full transition-colors">
+                            <i data-lucide="trash-2" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <div class="glass-card p-6 rounded-2xl shadow-xl animate-fade-in-up bg-slate-800/50 backdrop-blur-sm border border-slate-700">
+            <h2 class="text-xl font-bold text-white mb-6">Condiciones y Totales</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                <div class="space-y-4">
+                    <div class="form-group-v2">
+                        <label for="id_forma_pago" class="form-label-v2">Forma de Pago</label>
+                        <select name="forma_pago" id="id_forma_pago" class="form-control-v2 form-select-v2 tom-select-js">
+                            <option value="Credito 30" {% if cotizacion and cotizacion.forma_pago == 'Credito 30' %}selected{% endif %}>Crédito 30 días</option>
+                            <option value="Contado" {% if cotizacion and cotizacion.forma_pago == 'Contado' %}selected{% endif %}>Contado</option>
+                            <option value="Anticipo 50" {% if cotizacion and cotizacion.forma_pago == 'Anticipo 50' %}selected{% endif %}>50% Anticipo, 50% Contra Entrega</option>
+                        </select>
+                    </div>
+                    <div class="form-group-v2">
+                        <label for="id_validez_oferta_dias" class="form-label-v2">Validez (días)</label>
+                        <input type="number" name="validez_oferta_dias" id="id_validez_oferta_dias" class="form-control-v2" placeholder="Validez" min="1" value="{% if cotizacion %}{{ cotizacion.validez_oferta_dias }}{% else %}30{% endif %}">
+                    </div>
+                    <div class="form-group-v2">
+                        <label for="id_plazo_entrega_dias" class="form-label-v2">Plazo de Entrega (días)</label>
+                        <input type="number" name="plazo_entrega_dias" id="id_plazo_entrega_dias" class="form-control-v2" placeholder="Plazo de Entrega" min="0" value="{% if cotizacion %}{{ cotizacion.plazo_entrega_dias }}{% else %}0{% endif %}">
+                    </div>
+                </div>
+                <div class="flex flex-col justify-end items-end space-y-4 mt-8 md:mt-0 text-right">
+                    <div class="w-full max-w-sm">
+                        <div class="flex justify-between items-center text-slate-300 font-medium text-lg">
+                            <span>Subtotal:</span>
+                            <span>S/. <span id="subtotal_cotizacion">0.00</span></span>
+                        </div>
+                        <div class="flex justify-between items-center text-slate-300 font-medium text-lg">
+                            <span>IGV (18%):</span>
+                            <span>S/. <span id="igv_cotizacion">0.00</span></span>
+                        </div>
+                        <div class="h-px bg-slate-700 my-2"></div>
+                        <div class="flex justify-between items-center text-3xl font-bold text-green-400">
+                            <span>Total:</span>
+                            <span>S/. <span id="total_final_cotizacion">0.00</span></span>
+                        </div>
+                    </div>
+                    <input type="hidden" name="monto_total" id="id_monto_total" value="0.00">
+                    <input type="hidden" name="detalles_json" id="detalles_json">
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end mt-8 animate-fade-in-up">
+            <button type="submit" class="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-500 to-sky-500 text-white font-bold rounded-full hover:from-blue-600 hover:to-sky-600 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-blue-500/30 focus:outline-none focus:ring-4 focus:ring-blue-400">
+                <i data-lucide="save" class="w-5 h-5"></i>
+                Guardar Cotización
+            </button>
+        </div>
+    </form>
+</div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+    lucide.createIcons();
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Inicializar Lucide Icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+
+    // Elementos del Encabezado y Cliente
+    const clientesSelect = document.getElementById('id_cliente_ruc');
+    const formaPagoSelect = document.getElementById('id_forma_pago');
+    const razonSocialInput = document.getElementById('id_razon_social');
+    const personaContactoInput = document.getElementById('id_persona_contacto');
+    const correoContactoInput = document.getElementById('id_correo_contacto');
+    const telefonoContactoInput = document.getElementById('id_telefono_contacto');
+
+    // Elementos de Detalle y Totales
+    const detallesContainer = document.getElementById('cotizacion-detalles'); 
+    const addItemBtn = document.getElementById('addItemBtn');
+    const cotizacionForm = document.getElementById('cotizacion-form');
+    
+    const subtotalSpan = document.getElementById('subtotal_cotizacion');
+    const igvSpan = document.getElementById('igv_cotizacion');
+    const totalFinalSpan = document.getElementById('total_final_cotizacion');
+    const montoTotalInput = document.getElementById('id_monto_total');
+    const detallesJsonInput = document.getElementById('detalles_json');
+    
+    // Función para cargar datos del cliente
+    const loadClientData = (selectedOption) => {
+        if (selectedOption) {
+            razonSocialInput.value = selectedOption.dataset.razonSocial || '';
+            personaContactoInput.value = selectedOption.dataset.contacto || '';
+            correoContactoInput.value = selectedOption.dataset.correo || '';
+            telefonoContactoInput.value = selectedOption.dataset.telefono || '';
+        } else {
+            razonSocialInput.value = '';
+            personaContactoInput.value = '';
+            correoContactoInput.value = '';
+            telefonoContactoInput.value = '';
+        }
+    };
+
+    // Función de inicialización de Tom-select
+    const initializeTomSelect = (element) => {
+        if (typeof TomSelect !== 'undefined' && element) {
+            // Evitar doble inicialización
+            if (element.tomselect) {
+                element.tomselect.destroy();
+            }
+            new TomSelect(element, {
+                create: false,
+                sortField: {
+                    field: "text",
+                    direction: "asc"
+                },
+                render: {
+                    option: function(item, escape) {
+                        return '<div>' + escape(item.text) + '</div>';
+                    },
+                    item: function(item, escape) {
+                        return '<div>' + escape(item.text) + '</div>';
+                    }
+                }
+            });
+        }
+    };
+
+    // Inicialización inicial para elementos estáticos
+    if (typeof TomSelect !== 'undefined') {
+        initializeTomSelect(clientesSelect);
+        initializeTomSelect(formaPagoSelect);
+    }
+
+    // Evento de cambio para cargar datos del cliente
+    clientesSelect.addEventListener('change', (e) => {
+        const selectedOption = clientesSelect.options[clientesSelect.selectedIndex];
+        loadClientData(selectedOption);
+    });
+
+    // Cargar datos iniciales del cliente (para edición o valor por defecto)
+    const initialSelectedOption = clientesSelect.options[clientesSelect.selectedIndex];
+    if (initialSelectedOption && initialSelectedOption.value) {
+        loadClientData(initialSelectedOption);
+    }
+    
+
+    // Función para generar el HTML de una fila de ítem (usa sintaxis de plantilla Django)
+    const createItemRowHTML = (servicioId = '', cantidad = '1', precio = '0.00', und = 'und') => {
+        return `
+            <div class="item-row-v2 animate-fade-in-up">
+                <div class="form-group-v2">
+                    <label class="form-label-v2">Servicio</label>
+                    <select class="form-control-v2 form-select-v2 servicio-select tom-select-js" required name="servicio">
+                        <option value="" disabled selected>Seleccione servicio</option>
+                        {% for servicio in servicios %}
+                            <option value="{{ servicio.pk }}" ${servicioId === '{{servicio.pk}}' ? 'selected' : ''}>{{ servicio.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group-v2">
+                    <label class="form-label-v2">Norma</label>
+                    <select class="form-control-v2 form-select-v2 normas-select" name="norma">
+                        <option value="" disabled selected>Seleccione norma</option>
+                    </select>
+                </div>
+                <div class="form-group-v2">
+                    <label class="form-label-v2">Método</label>
+                    <select class="form-control-v2 form-select-v2 metodos-select" name="metodo">
+                        <option value="" disabled selected>Seleccione método</option>
+                    </select>
+                </div>
+                <div class="form-group-v2">
+                    <label class="form-label-v2">Unidad</label>
+                    <input type="text" class="form-control-v2 text-center und-input" value="${und}" name="und" placeholder="Und.">
+                </div>
+                <div class="form-group-v2">
+                    <label class="form-label-v2">Cantidad</label>
+                    <input type="number" class="form-control-v2 text-center cantidad-input no-arrows" min="1" value="${cantidad}" required placeholder="Cant.">
+                </div>
+                <div class="form-group-v2">
+                    <label class="form-label-v2">Precio</label>
+                    <input type="number" class="form-control-v2 text-center precio-input no-arrows" step="0.01" value="${precio}" required placeholder="Precio">
+                </div>
+                <div class="flex flex-col items-end text-lg font-bold text-green-400">
+                    <span class="text-sm text-slate-400">Subtotal:</span>
+                    S/. <span class="subtotal-cell">0.00</span>
+                </div>
+                <div class="flex justify-center">
+                    <button type="button" class="remove-item-btn p-2 text-rose-400 hover:bg-rose-500/20 rounded-full transition-colors">
+                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    };
+
+    // Función para añadir una nueva fila de ítem
+    const addRow = (servicioId = '', cantidad = '1', precio = '0.00', und = 'und', normaId = '', metodoId = '') => {
+        const rowHTML = createItemRowHTML(servicioId, cantidad, precio, und);
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = rowHTML.trim();
+        const newRow = tempDiv.firstChild;
+        detallesContainer.appendChild(newRow);
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+
+        // Inicializar Tom-select para el selector de servicio
+        initializeTomSelect(newRow.querySelector('.servicio-select'));
+
+        if (servicioId) {
+            // Cargar datos del servicio si se está añadiendo una fila con datos (ej. al editar)
+            loadServiceData(newRow.querySelector('.servicio-select'), normaId, metodoId);
+        }
+        updateTotals(); // Actualizar totales después de añadir la fila
+    };
+    
+    // Función para cargar los datos del servicio seleccionado (precio, unidad, normas, métodos)
+    const loadServiceData = async (selectElement, selectedNormaId, selectedMetodoId) => {
+        const pk = selectElement.value;
+        const row = selectElement.closest('.item-row-v2'); 
+        const precioInput = row.querySelector('.precio-input');
+        const undInput = row.querySelector('.und-input');
+        const normasSelect = row.querySelector('.normas-select');
+        const metodosSelect = row.querySelector('.metodos-select');
+
+        // *** AJUSTE CLAVE: Destruir e inicializar TomSelect para campos dinámicos ***
+        if (normasSelect && normasSelect.tomselect) normasSelect.tomselect.destroy();
+        if (metodosSelect && metodosSelect.tomselect) metodosSelect.tomselect.destroy();
+
+        normasSelect.innerHTML = '<option value="" disabled selected>Seleccione norma</option>';
+        metodosSelect.innerHTML = '<option value="" disabled selected>Seleccione método</option>';
+
+        if (pk) {
+            try {
+                // NOTA: Reemplaza esta URL con la ruta correcta si no usas Django
+                const url = `{% url 'servicios:obtener_detalle_servicio_para_cotizacion_api' pk=999999 %}`.replace('999999', pk);
+                const response = await fetch(url);
+                const servicio = await response.json();
+                
+                precioInput.value = parseFloat(servicio.precio_unitario).toFixed(2);
+                undInput.value = servicio.und || '';
+
+                if (servicio.normas && servicio.normas.length > 0) {
+                    servicio.normas.forEach(norma => {
+                        const option = document.createElement('option');
+                        option.value = norma.id;
+                        option.textContent = norma.nombre;
+                        if (norma.id == selectedNormaId) option.selected = true;
+                        normasSelect.appendChild(option);
+                    });
+                }
+                if (servicio.metodos && servicio.metodos.length > 0) {
+                    servicio.metodos.forEach(metodo => {
+                        const option = document.createElement('option');
+                        option.value = metodo.id;
+                        option.textContent = metodo.nombre;
+                        if (metodo.id == selectedMetodoId) option.selected = true;
+                        metodosSelect.appendChild(option);
+                    });
+                }
+
+                // Reinicializar TomSelect para Norma y Método
+                if (typeof TomSelect !== 'undefined') {
+                    initializeTomSelect(normasSelect);
+                    initializeTomSelect(metodosSelect);
+                }
+
+            } catch (error) {
+                console.error('Error al cargar datos del servicio:', error);
+                precioInput.value = '0.00';
+                undInput.value = '';
+            }
+        } else {
+            precioInput.value = '0.00';
+            undInput.value = '';
+        }
+        updateTotals();
+    };
+
+    // Función para recalcular totales y preparar el JSON de detalles
+    const updateTotals = () => {
+        let subtotal = 0;
+        const detalles = [];
+        detallesContainer.querySelectorAll('.item-row-v2').forEach(row => { 
+            const servicioSelect = row.querySelector('.servicio-select');
+            const cantidadInput = row.querySelector('.cantidad-input');
+            const precioInput = row.querySelector('.precio-input');
+            const subtotalCell = row.querySelector('.subtotal-cell');
+            const undInput = row.querySelector('.und-input');
+            const normasSelect = row.querySelector('.normas-select');
+            const metodosSelect = row.querySelector('.metodos-select');
+
+            const servicioId = servicioSelect.value;
+            const cantidad = parseFloat(cantidadInput.value) || 0;
+            const precio = parseFloat(precioInput.value) || 0;
+            const itemSubtotal = cantidad * precio;
+
+            subtotal += itemSubtotal;
+            subtotalCell.textContent = itemSubtotal.toFixed(2);
+
+            if (servicioId) {
+                detalles.push({
+                    servicio_id: servicioId,
+                    cantidad: cantidad,
+                    precio_unitario: precio.toFixed(2),
+                    und: undInput.value,
+                    norma_id: normasSelect.value || null,
+                    metodo_id: metodosSelect.value || null
+                });
+            }
+        });
+
+        const igv = subtotal * 0.18; // Asumiendo 18% de IGV
+        const totalFinal = subtotal + igv;
+        
+        subtotalSpan.textContent = subtotal.toFixed(2);
+        igvSpan.textContent = igv.toFixed(2);
+        totalFinalSpan.textContent = totalFinal.toFixed(2);
+        montoTotalInput.value = totalFinal.toFixed(2);
+        detallesJsonInput.value = JSON.stringify(detalles);
+    };
+
+    // --- Listeners de Eventos ---
+
+    addItemBtn.addEventListener('click', () => addRow());
+    
+    // Cambio en selects (ej. servicio, norma, método)
+    detallesContainer.addEventListener('change', (e) => { 
+        if (e.target.matches('.servicio-select')) {
+            loadServiceData(e.target);
+        }
+        updateTotals();
+    });
+
+    // Input en cantidad, precio o unidad
+    detallesContainer.addEventListener('input', (e) => {
+        if (e.target.matches('.cantidad-input, .precio-input, .und-input')) {
+            updateTotals();
+        }
+    });
+    
+    // Eliminar fila
+    detallesContainer.addEventListener('click', (e) => {
+        const removeBtn = e.target.closest('.remove-item-btn');
+        if (removeBtn) {
+            removeBtn.closest('.item-row-v2').remove(); 
+            updateTotals();
+        }
+    });
+
+    // Envío del formulario
+    cotizacionForm.addEventListener('submit', (e) => {
+        updateTotals();
+        // Validar que haya al menos un ítem
+        if (!detallesJsonInput.value || JSON.parse(detallesJsonInput.value).length === 0) {
+            e.preventDefault();
+            alert('Debe agregar al menos un ítem a la cotización.');
+        }
+    });
+
+    // Inicialización para filas existentes (si se está editando una cotización)
+    detallesContainer.querySelectorAll('.item-row-v2').forEach(row => {
+        const servicioSelect = row.querySelector('.servicio-select');
+        initializeTomSelect(servicioSelect); 
+        // Recuperar IDs de datos de la fila (asumiendo que vienen de atributos data)
+        const selectedNormaId = row.dataset.normaId;
+        const selectedMetodoId = row.dataset.metodoId;
+        if (servicioSelect.value) {
+            loadServiceData(servicioSelect, selectedNormaId, selectedMetodoId);
+        }
+    });
+
+    // Asegurar que siempre haya una fila al inicio si está vacío
+    if (detallesContainer.children.length === 0) {
+        addRow();
+    }
+});
+</script>
+{% endblock %}

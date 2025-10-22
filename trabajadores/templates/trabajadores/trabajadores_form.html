@@ -1,0 +1,107 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+{% block content %}
+
+<div class="space-y-6">
+    <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-up">
+        <h1 class="text-xl font-extrabold text-white">
+            {% if trabajador %}Editar Trabajador{% else %}Crear Trabajador{% endif %}
+        </h1>
+        <a href="{% url 'trabajadores:lista_trabajadores' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-slate-700 text-white font-semibold rounded-full hover:bg-slate-600 transition-all duration-300">
+            <i data-lucide="list" class="w-5 h-5"></i>
+            Regresar a la Lista
+        </a>
+    </header>
+
+    <div class="glass-card p-6 rounded-2xl shadow-xl animate-fade-in-up">
+        {% if error %}
+        <div class="bg-red-500/10 text-red-300 p-4 rounded-lg mb-4">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="post" class="space-y-8">
+            {% csrf_token %}
+            
+            <div class="space-y-4 border-b border-slate-700 pb-6">
+                <h2 class="text-xl font-bold text-slate-200">1. Información de Acceso (Login)</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-slate-300">Nombre de Usuario (Login)</label>
+                        <input type="text" id="username" name="username" 
+                               value="{% if trabajador %}{{ trabajador.user.username }}{% else %}{{ user_username|default:'' }}{% endif %}" 
+                               class="mt-1 block w-full bg-slate-800 border-slate-700 rounded-lg shadow-sm text-white focus:border-primary-accent focus:ring focus:ring-primary-accent focus:ring-opacity-50 px-4 py-2" required>
+                    </div>
+
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-slate-300">Correo Electrónico (Login y Contacto)</label>
+                        <input type="email" id="email" name="email" 
+                               value="{% if trabajador %}{{ trabajador.user.email }}{% else %}{{ user_email|default:'' }}{% endif %}" 
+                               class="mt-1 block w-full bg-slate-800 border-slate-700 rounded-lg shadow-sm text-white focus:border-primary-accent focus:ring focus:ring-primary-accent focus:ring-opacity-50 px-4 py-2" required>
+                        <p class="mt-2 text-sm text-slate-500">Este campo es único y es la base del `username` si no se especifica.</p>
+                    </div>
+
+                    {% if not trabajador %}
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-slate-300">Contraseña Inicial</label>
+                        <input type="password" id="password" name="password" 
+                               class="mt-1 block w-full bg-slate-800 border-slate-700 rounded-lg shadow-sm text-white focus:border-primary-accent focus:ring focus:ring-primary-accent focus:ring-opacity-50 px-4 py-2" required>
+                    </div>
+                    {% endif %}
+
+                    {% if trabajador %}
+                    <div>
+                        <label for="new_password" class="block text-sm font-medium text-slate-300">Nueva Contraseña (Opcional)</label>
+                        <input type="password" id="new_password" name="new_password" 
+                               class="mt-1 block w-full bg-slate-800 border-slate-700 rounded-lg shadow-sm text-white focus:border-primary-accent focus:ring focus:ring-primary-accent focus:ring-opacity-50 px-4 py-2">
+                        <p class="mt-2 text-sm text-slate-500">Déjalo vacío para no cambiar la contraseña.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="text-xl font-bold text-slate-200">2. Información del Trabajador</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <div>
+                        <label for="nombre_completo" class="block text-sm font-medium text-slate-300">Nombre Completo</label>
+                        <input type="text" id="nombre_completo" name="nombre_completo" 
+                               value="{{ trabajador.nombre_completo|default:'' }}" 
+                               class="mt-1 block w-full bg-slate-800 border-slate-700 rounded-lg shadow-sm text-white focus:border-primary-accent focus:ring focus:ring-primary-accent focus:ring-opacity-50 px-4 py-2" required>
+                    </div>
+
+                    <div>
+                        <label for="titulo_profesional" class="block text-sm font-medium text-slate-300">Título Profesional (Ej: Ing., Bach.)</label>
+                        <input type="text" id="titulo_profesional" name="titulo_profesional" 
+                               value="{{ trabajador.titulo_profesional|default:'' }}" 
+                               class="mt-1 block w-full bg-slate-800 border-slate-700 rounded-lg shadow-sm text-white focus:border-primary-accent focus:ring focus:ring-primary-accent focus:ring-opacity-50 px-4 py-2">
+                    </div>
+
+                    <div>
+                        <label for="role" class="block text-sm font-medium text-slate-300">Rol</label>
+                        <select id="role" name="role" 
+                                class="mt-1 block w-full bg-slate-800 border-slate-700 rounded-lg shadow-sm text-white focus:border-primary-accent focus:ring focus:ring-primary-accent focus:ring-opacity-50 px-4 py-2" required>
+                            <option value="ADMIN" {% if trabajador.role == 'ADMIN' %}selected{% endif %}>Administrador de Sistema</option>
+                            <option value="JEFE_LAB" {% if trabajador.role == 'JEFE_LAB' %}selected{% endif %}>Jefe de Laboratorio</option>
+                            <option value="SUPERVISOR" {% if trabajador.role == 'SUPERVISOR' %}selected{% endif %}>Supervisor de Laboratorio</option>
+                            <option value="TECNICO" {% if trabajador.role == 'TECNICO' %}selected{% endif %}>Técnico de Laboratorio/Ejecutor</option>
+                            <option value="COMERCIAL" {% if trabajador.role == 'COMERCIAL' %}selected{% endif %}>Gerente Comercial/Administrativo</option>
+                        </select>
+                    </div>
+                    
+                    </div>
+            </div>
+
+            <div class="flex justify-end pt-4">
+                <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 border border-transparent shadow-sm text-base font-medium rounded-full text-white bg-primary-accent hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-accent transition-all duration-300">
+                    <i data-lucide="save" class="w-5 h-5"></i>
+                    {% if trabajador %}Guardar Cambios{% else %}Crear Trabajador{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

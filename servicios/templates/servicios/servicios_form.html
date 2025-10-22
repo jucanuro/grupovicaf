@@ -1,0 +1,237 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+{% block content %}
+
+<style>
+    /* Estilos base refinados para un look más corporativo (Dark & Sleek) */
+    .input-elegant {
+        transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4); 
+        border: 1px solid #334155; 
+        background-color: #0f172a; 
+        color: #e2e8f0;
+    }
+    .input-elegant:focus {
+        background-color: #0c152a;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.4);
+    }
+    .input-file-custom {
+        padding: 0.75rem 1rem;
+        background-color: #1e293b;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        border: 1px solid #334155;
+    }
+    .glass-card-main {
+        background: rgba(15, 23, 42, 0.7); 
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(51, 65, 85, 0.5); 
+    }
+
+    /* Estilos para el SELECT MÚLTIPLE (Simula un componente de lista) */
+    .multi-select-professional {
+        height: 200px; 
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        
+        padding: 0.5rem;
+        border-radius: 0.75rem;
+        font-size: 1rem;
+        overflow-y: auto;
+    }
+    /* Estilo de la opción seleccionada */
+    .multi-select-professional option {
+        padding: 0.5rem 0.75rem;
+        margin: 0.25rem 0;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .multi-select-professional option:checked {
+        background-color: #3b82f6; /* Azul de énfasis */
+        color: white;
+        text-shadow: 0 0 5px rgba(0, 0, 0, 0.3); /* Sombra sutil */
+    }
+</style>
+
+<div class="space-y-12 bg-blue-950 min-h-screen p-8 md:p-12">
+    <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 animate-fade-in-up">
+        <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
+            <i data-lucide="wrench" class="inline-block w-8 h-8 mr-2 align-top"></i>
+            {% if servicio %}Editar Servicio{% else %}Crear Nuevo Servicio{% endif %}
+        </h1>
+        <a href="{% url 'servicios:lista_servicios' %}" class="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-800 text-white font-semibold rounded-xl shadow-lg hover:bg-slate-700 transition-all duration-300 transform hover:scale-[1.02] border border-slate-700">
+            <i data-lucide="list" class="w-5 h-5"></i>
+            Regresar a la Lista
+        </a>
+    </header>
+
+    <div class="glass-card-main p-8 rounded-3xl shadow-2xl animate-fade-in-up">
+        {% if error %}
+        <div class="bg-red-500/10 text-red-300 p-4 rounded-lg mb-6 border border-red-500">
+            <p class="font-medium flex items-center gap-2"><i data-lucide="alert-triangle" class="w-5 h-5"></i> {{ error }}</p>
+        </div>
+        {% endif %}
+
+        <form method="post" class="space-y-12" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="space-y-6">
+                <h2 class="text-2xl font-bold text-slate-200 border-b-2 border-slate-700/50 pb-3">
+                    <i data-lucide="info" class="inline-block w-5 h-5 mr-2 text-blue-400"></i>
+                    Datos Generales y Comerciales
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                    <div class="space-y-6">
+                        <div>
+                            <label for="id_nombre" class="block text-sm font-medium text-slate-300">Nombre del Servicio</label>
+                            <input type="text" id="id_nombre" name="nombre" value="{{ servicio.nombre|default:'' }}" 
+                                   class="mt-2 block w-full rounded-xl text-white px-4 py-3 input-elegant" required>
+                        </div>
+                        <div>
+                            <label for="id_descripcion" class="block text-sm font-medium text-slate-300">Descripción General (Resumen)</label>
+                            <textarea id="id_descripcion" name="descripcion" rows="4"
+                                      class="mt-2 block w-full rounded-xl text-white px-4 py-3 input-elegant" required>{{ servicio.descripcion|default:'' }}</textarea>
+                        </div>
+                        <div>
+                            <label for="id_imagen" class="block text-sm font-medium text-slate-300">Imagen Representativa (Principal)</label>
+                            <input type="file" id="id_imagen" name="imagen" class="mt-2 block w-full text-white input-file-custom">
+                            {% if servicio.imagen %}
+                            <p class="mt-2 text-sm text-slate-500">Imagen actual: <a href="{{ servicio.imagen.url }}" target="_blank" class="text-blue-400 hover:underline flex items-center gap-1">Ver Imagen <i data-lucide="external-link" class="w-3 h-3"></i></a></p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-6 p-6 bg-slate-800/60 rounded-xl border border-slate-700 shadow-inner">
+                        <h3 class="text-lg font-semibold text-slate-200 mb-4">Datos de Facturación y Control</h3>
+                        <div>
+                            <label for="id_codigo_facturacion" class="block text-sm font-medium text-slate-300">Código de Facturación</label>
+                            <input type="text" id="id_codigo_facturacion" name="codigo_facturacion" value="{{ servicio.codigo_facturacion|default:'' }}" 
+                                   class="mt-2 block w-full rounded-xl text-white px-4 py-3 input-elegant">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="id_precio_base" class="block text-sm font-medium text-slate-300">Precio Base (S/)</label>
+                                <input type="number" step="0.01" id="id_precio_base" name="precio_base" value="{{ servicio.precio_base|default:'' }}" 
+                                       class="mt-2 block w-full rounded-xl text-white px-4 py-3 input-elegant" required>
+                            </div>
+                            <div>
+                                <label for="id_unidad_base" class="block text-sm font-medium text-slate-300">Unidad Base</label>
+                                <input type="text" id="id_unidad_base" name="unidad_base" value="{{ servicio.unidad_base|default:'' }}" 
+                                       class="mt-2 block w-full rounded-xl text-white px-4 py-3 input-elegant" placeholder="Ej: Ensayo, punto, metro">
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center mt-4">
+                            <input id="id_esta_acreditado" name="esta_acreditado" type="checkbox" 
+                                   {% if servicio.esta_acreditado %}checked{% endif %}
+                                   class="w-5 h-5 text-blue-500 bg-gray-700 border-gray-600 rounded focus:ring-blue-500">
+                            <label for="id_esta_acreditado" class="ml-2 text-sm font-medium text-slate-300">
+                                ¿Servicio Acreditado?
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="space-y-6">
+                <h2 class="text-2xl font-bold text-slate-200 border-b-2 border-slate-700/50 pb-3">
+                    <i data-lucide="tag" class="inline-block w-5 h-5 mr-2 text-cyan-400"></i>
+                    Regulaciones Técnicas (Selección de Base de Datos)
+                </h2>
+                <p class="text-sm text-slate-400 -mt-4 mb-6">Seleccione las normas y métodos de la lista existente. (Mantenga **Ctrl/Cmd** para selección múltiple)</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="space-y-3 p-6 bg-slate-800/60 rounded-xl border border-slate-700 shadow-inner">
+                        <label for="id_normas" class="font-bold text-slate-300 block mb-2 text-lg flex items-center gap-2">
+                             <i data-lucide="award" class="w-5 h-5 text-cyan-400"></i> Normas Aplicables
+                        </label>
+                        <select name="normas" id="id_normas" multiple 
+                                class="multi-select-professional block w-full input-elegant" 
+                                size="8" required>
+                            
+                            {% for norma in normas_disponibles %}
+                                <option value="{{ norma.pk }}" 
+                                        {% if servicio and norma in servicio.normas.all %}selected{% endif %}>
+                                    {{ norma.nombre }}
+                                </option>
+                            {% endfor %}
+                            
+                        </select>
+                    </div>
+
+                    <div class="space-y-3 p-6 bg-slate-800/60 rounded-xl border border-slate-700 shadow-inner">
+                        <label for="id_metodos" class="font-bold text-slate-300 block mb-2 text-lg flex items-center gap-2">
+                            <i data-lucide="microscope" class="w-5 h-5 text-cyan-400"></i> Métodos de Ensayo/Ejecución
+                        </label>
+                        <select name="metodos" id="id_metodos" multiple 
+                                class="multi-select-professional block w-full input-elegant" 
+                                size="8" required>
+                            
+                            {% for metodo in metodos_disponibles %}
+                                <option value="{{ metodo.pk }}" 
+                                        {% if servicio and metodo in servicio.metodos.all %}selected{% endif %}>
+                                    {{ metodo.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-slate-700/50 my-8"></div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-1">
+                    <h2 class="text-2xl font-bold text-slate-200">
+                        <i data-lucide="hard-hat" class="inline-block w-5 h-5 mr-2 text-indigo-400"></i>
+                        Alcance Técnico (Detalle Web)
+                    </h2>
+                    <p class="mt-2 text-sm text-slate-400">
+                        Información específica sobre el alcance y los puntos clave de este servicio, para visualización ampliada en el sitio web.
+                    </p>
+                </div>
+                <div class="md:col-span-2 p-8 rounded-xl space-y-6 bg-slate-800/60 border border-slate-700 shadow-inner">
+                    <div>
+                        <label for="id_detalle_titulo" class="block text-sm font-medium text-slate-300">Título del Detalle</label>
+                        <input type="text" id="id_detalle_titulo" name="detalle_titulo" value="{{ detalle_servicio.titulo|default:'' }}" 
+                               class="mt-2 block w-full rounded-xl text-white px-4 py-3 input-elegant">
+                    </div>
+                    <div>
+                        <label for="id_detalle_descripcion" class="block text-sm font-medium text-slate-300">Descripción del Detalle</label>
+                        <textarea id="id_detalle_descripcion" name="detalle_descripcion" rows="2"
+                                  class="mt-2 block w-full rounded-xl text-white px-4 py-3 input-elegant">{{ detalle_servicio.descripcion|default:'' }}</textarea>
+                    </div>
+                    <div>
+                        <label for="id_detalle_imagen" class="block text-sm font-medium text-slate-300">Imagen del Detalle (Opcional)</label>
+                        <input type="file" id="id_detalle_imagen" name="detalle_imagen" class="mt-2 block w-full text-white input-file-custom">
+                        {% if detalle_servicio.imagen %}
+                        <p class="mt-2 text-sm text-slate-500">Imagen actual: <a href="{{ detalle_servicio.imagen.url }}" target="_blank" class="text-blue-400 hover:underline flex items-center gap-1">Ver Imagen <i data-lucide="external-link" class="w-3 h-3"></i></a></p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-8">
+                <button type="submit" class="inline-flex items-center gap-2 px-10 py-3.5 border border-transparent shadow-xl text-base font-bold rounded-full text-white bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-slate-900 transition-all duration-300 transform hover:scale-[1.02]">
+                    <i data-lucide="save" class="w-6 h-6"></i>
+                    {% if servicio %}ACTUALIZAR SERVICIO{% else %}CREAR SERVICIO{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    });
+</script>
+{% endblock %}
