@@ -15,6 +15,23 @@ from .models import (
 # ================================================================
 # 1. INLINES (Detalles Anidados)
 # ================================================================
+@admin.register(CotizacionDetalle)
+class CotizacionDetalleAdmin(admin.ModelAdmin):
+    # Esto es lo más importante: definir campos de búsqueda.
+    search_fields = (
+        'cotizacion__numero_oferta', 
+        'servicio__nombre', 
+        'norma'
+    )
+    
+    list_display = (
+        'cotizacion', 
+        'servicio', 
+        'cantidad', 
+        'precio_unitario'
+    )
+    list_filter = ('cotizacion__estado',)
+    
 
 class CotizacionDetalleInline(admin.TabularInline):
     """

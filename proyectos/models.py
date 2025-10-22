@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from clientes.models import Cliente
-from trabajadores.models import TrabajadorProfile
+from trabajadores.models import TrabajadorProfile # Importación clave
 from servicios.models import Cotizacion, CotizacionDetalle 
 import os
 
@@ -16,8 +16,7 @@ def documento_file_path(instance, filename):
 
 
 # ================================================================
-# 1. Modelo Principal: Proyecto
-# (Se genera al aprobar una Cotización)
+# 1. Modelo Principal: Proyecto (SIN CAMBIOS)
 # ================================================================
 class Proyecto(models.Model):
     """Representa un proyecto de trabajo generado tras la aprobación de una cotización."""
@@ -73,8 +72,7 @@ class Proyecto(models.Model):
 
 
 # ================================================================
-# 2. Modelo: Muestra
-# (Recepción y Asignación de Técnico Principal)
+# 2. Modelo: Muestra (SIN CAMBIOS)
 # ================================================================
 class Muestra(models.Model):
     """Representa una muestra física asociada a un proyecto, y lleva el técnico principal asignado."""
@@ -96,7 +94,7 @@ class Muestra(models.Model):
     codigo_muestra = models.CharField(max_length=100, verbose_name="Código de Muestra (Cliente)")
     id_lab = models.CharField(max_length=50, blank=True, null=True, verbose_name="ID de Laboratorio (Interno)")
     
-    # 🎯 CAMBIO CLAVE: Asignación del Técnico Principal a la Muestra
+    # 🎯 CAMBIO CLAVE: Asignación del Técnico Principal a la Muestra (Mantenido)
     tecnico_responsable_muestra = models.ForeignKey(
         TrabajadorProfile, 
         on_delete=models.SET_NULL, 
@@ -131,86 +129,185 @@ class Muestra(models.Model):
 
 
 # ================================================================
-# 3. Modelo: OrdenDeEnsayo
-# (Solicitud/Generación de un Ensayo Específico)
+# 3. NUEVO MODELO: TipoEnsayo (CATÁLOGO)
 # ================================================================
-class OrdenDeEnsayo(models.Model):
-    """Representa la solicitud o documento de trabajo para realizar un ensayo específico sobre una muestra."""
+class TipoEnsayo(models.Model):
+    """
+    Define los tipos de ensayos predefinidos del laboratorio (el catálogo). 
+    """
+    nombre = models.CharField(max_length=100, unique=True, verbose_name="Nombre del Ensayo (Catálogo)")
+    descripcion = models.TextField(blank=True, null=True, verbose_name="Descripción Detallada")
+    codigo_interno = models.CharField(max_length=20, unique=True, blank=True, null=True, verbose_name="Código Interno")
+
+    class Meta:
+        verbose_name = "Tipo de Ensayo"
+        verbose_name_plural = "Tipos de Ensayos"
+        ordering = ['nombre']
+
+    def __str__(self):
+        return self.nombre
+
+
+# ================================================================
+# 4. NUEVO MODELO: SolicitudEnsayo (CABECERA)
+# ================================================================
+class SolicitudEnsayo(models.Model):
+    """Representa el documento cabecera (la Solicitud/Orden) de una Muestra."""
     
-    muestra = models.ForeignKey(
+    muestra = models.OneToOneField( 
         Muestra, 
         on_delete=models.CASCADE, 
-        related_name='ordenes', 
-        verbose_name="Muestra a Ensayo"
+        related_name='solicitud_ensayo', 
+        verbose_name="Muestra Asociada"
     )
-    # RELACIÓN CLAVE: Vincula la orden al ítem específico de la cotización para trazabilidad
-    detalle_cotizacion = models.ForeignKey(
-        CotizacionDetalle, 
+    codigo_solicitud = models.CharField(max_length=100, unique=True, verbose_name="Código de Solicitud/Orden") 
+    fecha_solicitud = models.DateField(default=timezone.now, verbose_name="Fecha de Generación de la Solicitud")
+    
+    generada_por = models.ForeignKey(
+        TrabajadorProfile, 
         on_delete=models.SET_NULL, 
         null=True, 
         blank=True, 
-        verbose_name="Detalle de Cotización (Ensayo Solicitado)"
+        related_name='solicitudes_generadas', 
+        verbose_name="Generada Por"
     )
 
-    codigo_orden = models.CharField(max_length=100, unique=True, verbose_name="Código de la Orden (Ej: OE-M-1-E1)")
-    tipo_ensayo = models.CharField(max_length=100, verbose_name="Tipo de Ensayo/Parámetro a Medir")
-    norma_aplicable = models.CharField(max_length=150, blank=True, null=True, verbose_name="Norma de Ensayo Aplicable")
+    ESTADOS_SOLICITUD = (
+        ('ASIGNADA', 'Técnicos Asignados'),
+        ('EN_ANALISIS', 'En Curso'),
+        ('COMPLETADA', 'Todos los Ensayos Finalizados'),
+    )
+    estado = models.CharField(max_length=30, choices=ESTADOS_SOLICITUD, default='ASIGNADA', verbose_name="Estado de la Solicitud")
+
+    creado_en = models.DateTimeField(auto_now_add=True)
     
-    # El técnico asignado para este ensayo específico (puede ser el mismo que el de la muestra)
+    def __str__(self):
+        return f"Solicitud {self.codigo_solicitud} para {self.muestra.codigo_muestra}"
+
+    class Meta:
+        verbose_name = "Solicitud de Ensayo (Cabecera)"
+        verbose_name_plural = "Solicitudes de Ensayo (Cabeceras)"
+        
+# ================================================================
+# 5. NUEVO MODELO: AsignacionTipoEnsayo (TABLA INTERMEDIA CRÍTICA)
+# ================================================================
+class AsignacionTipoEnsayo(models.Model):
+    """
+    Tabla intermedia que conecta DetalleEnsayo (la tarea) con TipoEnsayo (el catálogo) 
+    y asigna un técnico específico a ESA combinación.
+    """
+    detalle = models.ForeignKey(
+        'DetalleEnsayo', 
+        on_delete=models.CASCADE, 
+        related_name='asignaciones', 
+        verbose_name="Tarea de Detalle"
+    )
+    tipo_ensayo = models.ForeignKey(
+        TipoEnsayo, 
+        on_delete=models.PROTECT, 
+        related_name='asignaciones_tecnicos',
+        verbose_name="Tipo de Ensayo a Ejecutar"
+    )
+    
+    # 🎯 CLAVE: ASIGNACIÓN DEL TÉCNICO AL TIPO DE ENSAYO
     tecnico_asignado = models.ForeignKey(
         TrabajadorProfile, 
         on_delete=models.SET_NULL, 
         null=True, 
         blank=True, 
-        related_name='ordenes_ejecutadas', 
-        verbose_name="Técnico Ejecutor del Ensayo"
+        related_name='tipos_ensayos_asignados', 
+        verbose_name="Técnico (Supervisor) Asignado"
     )
+    
+    class Meta:
+        verbose_name = "Asignación de Ensayo a Técnico"
+        verbose_name_plural = "Asignaciones de Ensayos a Técnicos"
+        unique_together = ('detalle', 'tipo_ensayo') 
+
+    def __str__(self):
+        # Asume que TrabajadorProfile tiene un campo 'user' o un campo de identificación
+        tecnico_info = self.tecnico_asignado.user.username if self.tecnico_asignado and hasattr(self.tecnico_asignado, 'user') else 'N/A'
+        return f"{self.tipo_ensayo.nombre} asignado a {tecnico_info}"
+
+
+# ================================================================
+# 6. MODELO: DetalleEnsayo (LÍNEA DE TRABAJO/TAREA)
+# 🎯 MODIFICACIÓN: Se elimina tecnico_asignado directo y se añade el 'through'
+# ================================================================
+class DetalleEnsayo(models.Model):
+    """Representa una línea de trabajo individual dentro de una Solicitud (el tipo de ensayo a realizar)."""
+    
+    # CLAVE: Relación al documento cabecera
+    solicitud = models.ForeignKey(
+        SolicitudEnsayo, 
+        on_delete=models.CASCADE, 
+        related_name='detalles_ensayo', 
+        verbose_name="Solicitud de Ensayo de Origen"
+    )
+    
+    # 🎯 NUEVA RELACIÓN M2M: Usa la tabla intermedia para la asignación de técnico por tipo
+    tipos_ensayo = models.ManyToManyField(
+        TipoEnsayo, 
+        through='AsignacionTipoEnsayo', # Especifica la tabla intermedia
+        related_name='detalles_con_asignacion',
+        verbose_name="Tipos de Ensayos Asignados"
+    )
+    
+    # 🛑 CAMPO ELIMINADO/IGNORADO: Se elimina el `tecnico_asignado` directo para esta tarea, 
+    # ya que se asigna en la tabla `AsignacionTipoEnsayo`.
+    
+    # Trazabilidad a la Cotización (Se mantiene)
+    detalle_cotizacion = models.ForeignKey(
+        CotizacionDetalle, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        verbose_name="Detalle de Cotización"
+    )
+
+    # Campos de descripción (Se mantienen)
+    tipo_ensayo_descripcion = models.CharField(max_length=150, verbose_name="Descripción del Ensayo")
+    norma_aplicable = models.CharField(max_length=150, blank=True, null=True, verbose_name="Norma")
+    metodo_aplicable = models.CharField(max_length=150, blank=True, null=True, verbose_name="Método")
     
     fecha_limite_ejecucion = models.DateField(verbose_name="Fecha Límite de Ejecución")
     
     ESTADOS = (
         ('PENDIENTE', 'Pendiente de Inicio'),
         ('EN_PROCESO', 'En Proceso de Ensayo'),
-        ('RESULTADOS_CARGADOS', 'Resultados Cargados (Pendiente de Verificación)'),
+        ('RESULTADOS_CARGADOS', 'Resultados Cargados'),
         ('FINALIZADA', 'Finalizada y Verificada')
     )
-    estado_orden = models.CharField(max_length=50, choices=ESTADOS, default='PENDIENTE', verbose_name="Estado de la Orden")
-    
+    estado_detalle = models.CharField(max_length=50, choices=ESTADOS, default='PENDIENTE', verbose_name="Estado de la Tarea")
+
     creado_en = models.DateTimeField(auto_now_add=True)
     modificado_en = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.codigo_orden}: {self.tipo_ensayo} para {self.muestra.codigo_muestra}"
+        return f"Detalle de {self.solicitud.codigo_solicitud}: {self.tipo_ensayo_descripcion}"
 
     class Meta:
-        verbose_name = "Orden de Ensayo"
-        verbose_name_plural = "Órdenes de Ensayo"
-        ordering = ['fecha_limite_ejecucion']
-        
-        
+        verbose_name = "Detalle de Ensayo (Línea de Trabajo)"
+        verbose_name_plural = "Detalles de Ensayos (Líneas de Trabajo)"
+        ordering = ['solicitud', 'creado_en'] 
+
+
 # ================================================================
-# 4. Modelo: ResultadoEnsayo
-# (Registro y Verificación de Resultados)
+# 7. MODELO MODIFICADO: ResultadoEnsayo 
+# 🎯 MODIFICACIÓN: Se quita la FK a Muestra (ya está en DetalleEnsayo)
 # ================================================================
 class ResultadoEnsayo(models.Model):
     """Almacena los datos y la verificación de un ensayo realizado."""
     
-    # RELACIÓN CLAVE: Un resultado pertenece a una orden de ensayo específica
-    orden = models.OneToOneField(
-        OrdenDeEnsayo,
+    # CLAVE: Apunta al DetalleEnsayo (la tarea individual que ahora incluye el tipo de ensayo y el técnico)
+    detalle_ensayo = models.OneToOneField(
+        DetalleEnsayo,
         on_delete=models.CASCADE,
-        related_name='resultado', # Cambiado de 'resultado_ensayo' a 'resultado' para limpieza
-        verbose_name="Orden de Ensayo de Origen"
+        related_name='resultado', 
+        verbose_name="Detalle de Ensayo de Origen"
     )
     
-    # Muestra (redundante pero útil para consultas directas)
-    muestra = models.ForeignKey(
-        Muestra, 
-        on_delete=models.CASCADE, 
-        related_name='resultados_registrados', 
-        verbose_name="Muestra"
-    )
-    
+
     tecnico_registro = models.ForeignKey(
         TrabajadorProfile, 
         on_delete=models.SET_NULL, 
@@ -220,11 +317,11 @@ class ResultadoEnsayo(models.Model):
         verbose_name="Técnico que Registró"
     )
     
-    # Resultados almacenados de forma estructurada (JSON) o descriptiva
-    resultados_json = models.TextField(
+    # Resultados almacenados de forma estructurada
+    resultados_data = models.JSONField(
         blank=True, 
         null=True, 
-        verbose_name="Resultados del Ensayo (Datos JSON/Texto)"
+        verbose_name="Resultados del Ensayo (Datos Estructurados)"
     ) 
     
     observaciones = models.TextField(blank=True, null=True, verbose_name="Observaciones del Ensayo")
@@ -246,7 +343,7 @@ class ResultadoEnsayo(models.Model):
     modificado_en = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return f"Resultado de {self.orden.codigo_orden} - Válido: {self.es_valido}"
+        return f"Resultado de {self.detalle_ensayo.solicitud.codigo_solicitud} - Válido: {self.es_valido}"
 
     class Meta:
         verbose_name = "Resultado de Ensayo"
@@ -255,8 +352,7 @@ class ResultadoEnsayo(models.Model):
 
 
 # ================================================================
-# 5. Modelo: DocumentoFinal
-# (Informe/Validación Final del Proyecto)
+# 8. Modelo: DocumentoFinal (SIN CAMBIOS)
 # ================================================================
 class DocumentoFinal(models.Model):
     """Representa el informe o documento final de un proyecto."""
