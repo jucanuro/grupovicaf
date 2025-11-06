@@ -11,9 +11,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
 from django.db import IntegrityError
 from django.utils import timezone
-from .models import Proyecto, SolicitudEnsayo,DetalleEnsayo, Muestra
+from .models import Proyecto, SolicitudEnsayo,DetalleEnsayo, Muestra,TipoEnsayo, AsignacionTipoEnsayo, ReporteIncidencia
 from clientes.models import Cliente as Cliente 
-from servicios.models import Cotizacion
+from servicios.models import Cotizacion,CotizacionDetalle, Norma, Metodo
+from trabajadores.models import TrabajadorProfile
 
 try:
     from .models import ResultadoEnsayo 
@@ -183,5 +184,162 @@ def muestras_del_proyecto(request, proyecto_id):
         return JsonResponse({'status': 'error', 'message': 'El proyecto no existe.'}, status=404)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': f'Error interno: {str(e)}'}, status=500)
+ 
+
+def generar_o_redirigir_solicitud(request, muestra_id):
+    """
+    Verifica si la SolicitudEnsayo existe. Si no, la crea con su código.
+    Siempre redirige al formulario de llenado (pagina_registro_solicitud).
+    """
+    muestra = get_object_or_404(Muestra, pk=muestra_id)
+    
+    try:
+        solicitud_existente = SolicitudEnsayo.objects.get(muestra=muestra)
+        
+        # Si ya existe y la vista es llamada, el usuario verá el mensaje de Solicitud Existente
+        # y un enlace para "Ver Solicitud" (o ir a la página de llenado/detalle)
+        return redirect(reverse('pagina_registro_solicitud', kwargs={'solicitud_id': solicitud_existente.pk}))
+        
+    except SolicitudEnsayo.DoesNotExist:
+        # Generación de código: Asegúrate de que esta lógica coincida con tus reglas de negocio
+        nuevo_codigo = f"SOL-{muestra.proyecto.codigo_proyecto or 'TEMP'}-{muestra.codigo_muestra}"
+        
+        try:
+            # Crea la solicitud mínima
+            solicitud_existente = SolicitudEnsayo.objects.create(
+                muestra=muestra,
+                codigo_solicitud=nuevo_codigo,
+                estado='BORRADOR', 
+                generada_por=request.user.trabajadorprofile
+            )
+        except Exception as e:
+            # Manejo de error si la creación falla
+            return render(request, 'error_page.html', {'message': f'Error al crear Solicitud: {e}'}, status=500)
+
+    # Redirigir a la vista de registro/llenado
+    return redirect(reverse('pagina_registro_solicitud', kwargs={'solicitud_id': solicitud_existente.pk}))
 
 
+# ---------------------------------------------------------------------------------
+# 2. FUNCIÓN: LLENADO/REGISTRO (Paso 2)
+#    Renderiza el formulario HTML.
+# ---------------------------------------------------------------------------------
+
+def pagina_registro_solicitud(request, solicitud_id):
+    solicitud = get_object_or_404(SolicitudEnsayo, pk=solicitud_id)
+    muestra = solicitud.muestra
+    proyecto = muestra.proyecto
+    
+    solicitud_ya_detallada = DetalleEnsayo.objects.filter(solicitud=solicitud).exists() 
+
+    tecnico_generador_id = None
+    if solicitud.generada_por:
+        tecnico_generador_id = solicitud.generada_por.id
+    elif request.user.is_authenticated and hasattr(request.user, 'trabajadorprofile'):
+        tecnico_generador_id = request.user.trabajadorprofile.id
+
+    detalles_cotizacion_qs = CotizacionDetalle.objects.none()
+    try:
+        cotizacion = Cotizacion.objects.get(proyecto=proyecto) 
+        detalles_cotizacion_qs = cotizacion.detalles_cotizacion.all().select_related('servicio')
+    except Cotizacion.DoesNotExist:
+        pass 
+        
+    tipos_ensayo_db = list(TipoEnsayo.objects.all().values('id', 'nombre', 'codigo_interno'))
+    ROLES_LABORATORIO = ['TECNICO', 'JEFE_LAB', 'SUPERVISOR']
+    tecnicos_db = list(TrabajadorProfile.objects.filter(role__in=ROLES_LABORATORIO).values('id', 'nombre_completo'))
+    normas_db = list(Norma.objects.all().values('id', 'nombre', 'codigo'))
+    metodos_db = list(Metodo.objects.all().values('id', 'nombre', 'codigo'))
+
+    
+
+    detalles_para_js = []
+    for detalle in detalles_cotizacion_qs:
+        tipo_ensayo_inicial_id = getattr(detalle, 'tipo_ensayo_id', None) 
+        tecnico_inicial_id = getattr(detalle, 'tecnico_inicial_id', None) 
+        
+        detalles_para_js.append({
+            'cotizacion_detalle_id': detalle.pk,
+            'descripcion': getattr(detalle.servicio, 'nombre', ''), 
+            'norma_precargada': getattr(detalle.servicio, 'norma_aplicable', ''),
+            'metodo_precargado': getattr(detalle.servicio, 'metodo_aplicable', ''),
+            'fecha_limite': (proyecto.fecha_entrega_estimada or timezone.now()).strftime('%Y-%m-%d'), 
+            'observaciones_detalle': '', 
+            'tipo_ensayo_id': tipo_ensayo_inicial_id, 
+            'tecnico_inicial_id': tecnico_inicial_id, 
+        })
+
+    detalles_cotizacion_json = json.dumps(detalles_para_js)
+
+    context = {
+        'muestra': muestra,
+        'solicitud': solicitud,
+        'solicitud_ya_detallada': solicitud_ya_detallada,
+        'tecnico_generador_id': tecnico_generador_id, 
+        'tecnicos': tecnicos_db,
+        'tipos_ensayo': tipos_ensayo_db,
+        'normas': normas_db,
+        'metodos': metodos_db, 
+        'detalles_cotizacion_json': detalles_cotizacion_json, 
+        'logged_user_id': request.user.trabajadorprofile.id if request.user.is_authenticated and hasattr(request.user, 'trabajadorprofile') else 0,
+    }
+    
+    return render(request, 'proyectos/registro_solicitud.html', context)
+
+# ---------------------------------------------------------------------------------
+# 3. FUNCIÓN: GUARDADO/ACTUALIZACIÓN (Paso 3 - AJAX POST)
+#    Crea/Actualiza SolicitudEnsayo, DetalleEnsayo y AsignacionTipoEnsayo.
+# ---------------------------------------------------------------------------------
+
+@csrf_exempt
+def actualizar_solicitud_y_detalles(request, solicitud_id):
+    """
+    Procesa la solicitud POST para actualizar la cabecera y guardar los DetalleEnsayo 
+    y AsignacionTipoEnsayo anidados.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido.'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        solicitud = get_object_or_404(SolicitudEnsayo, pk=solicitud_id)
+        
+        with transaction.atomic():
+            
+            # 1. ACTUALIZAR CABECERA
+            solicitud.generada_por_id = data.get('generada_por_id', solicitud.generada_por_id)
+            solicitud.estado = 'PENDIENTE' 
+            solicitud.save()
+
+            # 2. ELIMINAR DETALLES Y ASIGNACIONES (para reescribir)
+            # 💥 CORRECCIÓN DEL FieldError 💥
+            DetalleEnsayo.objects.filter(solicitud=solicitud).delete()
+            
+            # 3. CREAR NUEVOS DETALLES Y ASIGNACIONES
+            for detalle_data in data.get('detalles', []):
+                
+                # CREAR DetalleEnsayo
+                detalle = DetalleEnsayo.objects.create(
+                    solicitud=solicitud, # 💥 Usamos 'solicitud' 💥
+                    descripcion=detalle_data.get('descripcion'),
+                    norma_aplicable=detalle_data.get('norma'),
+                    metodo_aplicable=detalle_data.get('metodo'),
+                    fecha_limite=detalle_data.get('fecha_limite'),
+                    observaciones_detalle=detalle_data.get('observaciones_detalle'), # Nuevo campo
+                    cotizacion_detalle_id=detalle_data.get('cotizacion_detalle_id') or None, 
+                )
+
+                # CREAR AsignacionTipoEnsayo
+                for asignacion in detalle_data.get('tipos_asignaciones', []):
+                    AsignacionTipoEnsayo.objects.create(
+                        detalle=detalle, # Usamos 'detalle' (nombre de la FK en AsignacionTipoEnsayo)
+                        tipo_ensayo_id=asignacion['tipo_ensayo_id'],
+                        tecnico_asignado_id=asignacion['tecnico_asignado_id']
+                    )
+
+        return JsonResponse({'codigo': solicitud.codigo_solicitud, 'solicitud_id': solicitud.pk}, status=200)
+
+    except SolicitudEnsayo.DoesNotExist:
+        return JsonResponse({'error': 'Solicitud de Ensayo no encontrada.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)

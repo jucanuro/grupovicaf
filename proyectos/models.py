@@ -155,7 +155,7 @@ class SolicitudEnsayo(models.Model):
     """Representa el documento cabecera (la Solicitud/Orden) de una Muestra."""
     
     muestra = models.OneToOneField( 
-        Muestra, 
+        'Muestra', 
         on_delete=models.CASCADE, 
         related_name='solicitud_ensayo', 
         verbose_name="Muestra Asociada"
@@ -169,13 +169,37 @@ class SolicitudEnsayo(models.Model):
         null=True, 
         blank=True, 
         related_name='solicitudes_generadas', 
-        verbose_name="Generada Por"
+        verbose_name="Persona que Elabora la Solicitud"
     )
-
+    
+    @property
+    def cotizacion(self):
+        """Retorna la cotización del proyecto asociado a la muestra."""
+        if self.muestra and self.muestra.proyecto:
+            return self.muestra.proyecto.cotizacion
+        return None
+    
+    # 2. Fechas de Entrega
+    fecha_entrega_programada = models.DateField(blank=True, null=True, verbose_name="Fecha de Entrega de Registros (Programada)")
+    fecha_entrega_real = models.DateField(blank=True, null=True, verbose_name="Fecha Real de Entrega de Registros")
+    
+    # 3. Firmas
+    # **NOTA:** La firma del Jefe de Laboratorio se manejaría como un campo de imagen o un proceso de estado.
+    # Por ahora, solo indicamos quién debe firmar/validar la solicitud.
+    firma_jefe_laboratorio = models.ForeignKey(
+        TrabajadorProfile, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='solicitudes_firmadas', 
+        verbose_name="Jefe de Laboratorio que Firma"
+    )
+    
     ESTADOS_SOLICITUD = (
         ('ASIGNADA', 'Técnicos Asignados'),
         ('EN_ANALISIS', 'En Curso'),
         ('COMPLETADA', 'Todos los Ensayos Finalizados'),
+        ('CERRADA', 'Cerrada con Informe')
     )
     estado = models.CharField(max_length=30, choices=ESTADOS_SOLICITUD, default='ASIGNADA', verbose_name="Estado de la Solicitud")
 
@@ -186,8 +210,7 @@ class SolicitudEnsayo(models.Model):
 
     class Meta:
         verbose_name = "Solicitud de Ensayo (Cabecera)"
-        verbose_name_plural = "Solicitudes de Ensayo (Cabeceras)"
-        
+        verbose_name_plural = "Solicitudes de Ensayo (Cabeceras)"   
 # ================================================================
 # 5. NUEVO MODELO: AsignacionTipoEnsayo (TABLA INTERMEDIA CRÍTICA)
 # ================================================================
@@ -237,7 +260,6 @@ class AsignacionTipoEnsayo(models.Model):
 class DetalleEnsayo(models.Model):
     """Representa una línea de trabajo individual dentro de una Solicitud (el tipo de ensayo a realizar)."""
     
-    # CLAVE: Relación al documento cabecera
     solicitud = models.ForeignKey(
         SolicitudEnsayo, 
         on_delete=models.CASCADE, 
@@ -245,53 +267,128 @@ class DetalleEnsayo(models.Model):
         verbose_name="Solicitud de Ensayo de Origen"
     )
     
-    # 🎯 NUEVA RELACIÓN M2M: Usa la tabla intermedia para la asignación de técnico por tipo
     tipos_ensayo = models.ManyToManyField(
-        TipoEnsayo, 
-        through='AsignacionTipoEnsayo', # Especifica la tabla intermedia
+        'TipoEnsayo', # O 'TipoEnsayoCatalogo' si lo tienes en 'servicios'
+        through='AsignacionTipoEnsayo', 
         related_name='detalles_con_asignacion',
         verbose_name="Tipos de Ensayos Asignados"
     )
     
-    # 🛑 CAMPO ELIMINADO/IGNORADO: Se elimina el `tecnico_asignado` directo para esta tarea, 
-    # ya que se asigna en la tabla `AsignacionTipoEnsayo`.
+    # 🌟 CAMBIO: Las Normas y Métodos deben ser Catálogos si ya existen
+    # Asumo que tienes modelos 'NormaEnsayo' y 'MetodoEnsayo' en tu app 'servicios'.
+    norma = models.ForeignKey(
+        'servicios.Norma', # Asegúrate de que este 'servicios.NormaEnsayo' sea correcto
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Norma de Ensayo"
+    )
+    metodo = models.ForeignKey(
+        'servicios.Metodo', # Asegúrate de que este 'servicios.MetodoEnsayo' sea correcto
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Método de Ensayo"
+    )
     
-    # Trazabilidad a la Cotización (Se mantiene)
-    detalle_cotizacion = models.ForeignKey(
-        CotizacionDetalle, 
+    # Se deja la descripción por si se requiere un texto libre adicional al catálogo
+    tipo_ensayo_descripcion = models.CharField(max_length=150, verbose_name="Descripción del Ensayo") 
+    
+    fecha_limite_ejecucion = models.DateField(verbose_name="Fecha Límite de Ejecución (Entrega Programada)")
+    fecha_entrega_real = models.DateField(blank=True, null=True, verbose_name="Fecha de Entrega Real (Técnico)")
+    
+    # Firma del Técnico
+    firma_tecnico = models.ForeignKey(
+        TrabajadorProfile, 
         on_delete=models.SET_NULL, 
         null=True, 
         blank=True, 
-        verbose_name="Detalle de Cotización"
+        related_name='detalles_firmados', 
+        verbose_name="Firma del Técnico (Completado)"
     )
-
-    # Campos de descripción (Se mantienen)
-    tipo_ensayo_descripcion = models.CharField(max_length=150, verbose_name="Descripción del Ensayo")
-    norma_aplicable = models.CharField(max_length=150, blank=True, null=True, verbose_name="Norma")
-    metodo_aplicable = models.CharField(max_length=150, blank=True, null=True, verbose_name="Método")
-    
-    fecha_limite_ejecucion = models.DateField(verbose_name="Fecha Límite de Ejecución")
-    
-    ESTADOS = (
-        ('PENDIENTE', 'Pendiente de Inicio'),
-        ('EN_PROCESO', 'En Proceso de Ensayo'),
-        ('RESULTADOS_CARGADOS', 'Resultados Cargados'),
-        ('FINALIZADA', 'Finalizada y Verificada')
+    detalle_cotizacion = models.ForeignKey(
+        CotizacionDetalle, 
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Detalle de Cotización de Origen"
     )
-    estado_detalle = models.CharField(max_length=50, choices=ESTADOS, default='PENDIENTE', verbose_name="Estado de la Tarea")
-
-    creado_en = models.DateTimeField(auto_now_add=True)
-    modificado_en = models.DateTimeField(auto_now=True)
-
+    
+    # Definición de Estados
+    ESTADOS_DETALLE = (
+        ('PENDIENTE', 'Pendiente de Asignación'),
+        ('ASIGNADO', 'Asignado a Técnico'),
+        ('EN_EJECUCION', 'En Ejecución'),
+        ('COMPLETADO', 'Completado por Técnico'),
+        ('VALIDADO', 'Validado por Supervisor'),
+    )
+    
+    # 🎯 CORRECCIÓN 2: Añadir campo de estado (para E108 y E116)
+    estado_detalle = models.CharField(
+        max_length=20, 
+        choices=ESTADOS_DETALLE, 
+        default='PENDIENTE', 
+        verbose_name="Estado del Detalle de Ensayo"
+    )
+    observaciones_detalle = models.TextField(blank=True, null=True, verbose_name="Observaciones de la Tarea/Ensayo")
+    
+    # ... (estado_detalle y campos de tiempo mantenidos)
+    
     def __str__(self):
         return f"Detalle de {self.solicitud.codigo_solicitud}: {self.tipo_ensayo_descripcion}"
 
     class Meta:
         verbose_name = "Detalle de Ensayo (Línea de Trabajo)"
         verbose_name_plural = "Detalles de Ensayos (Líneas de Trabajo)"
-        ordering = ['solicitud', 'creado_en'] 
+        
 
 
+
+
+class ReporteIncidencia(models.Model):
+    """Registra cualquier incidencia o cambio en la Solicitud de Ensayo."""
+
+    solicitud = models.ForeignKey(
+        SolicitudEnsayo,
+        on_delete=models.CASCADE,
+        related_name='incidencias',
+        verbose_name="Solicitud de Ensayo Asociada"
+    )
+    
+    TIPOS_INCIDENCIA = (
+        ('CAMBIO', 'Cambio en Solicitud/Alcance'),
+        ('ANULACION', 'Anulación de Ensayo/Detalle'),
+        ('INCREMENTO', 'Incremento de Ensayos'),
+        ('OTRO', 'Otro')
+    )
+    tipo_incidencia = models.CharField(max_length=20, choices=TIPOS_INCIDENCIA, default='OTRO', verbose_name="Tipo de Incidencia")
+    
+    detalle_incidencia = models.TextField(verbose_name="Detalle de la Incidencia")
+    fecha_ocurrencia = models.DateField(default=timezone.now, verbose_name="Fecha de Ocurrencia")
+    
+    # Responsables y Firmas
+    representante_cliente = models.CharField(max_length=150, verbose_name="Representante del Cliente (Nombre/Firma)")
+    responsable_laboratorio = models.ForeignKey(
+        TrabajadorProfile, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='incidencias_registradas', 
+        verbose_name="Responsable del Laboratorio (Jefe/Supervisor)"
+    )
+    
+    # **NOTA:** La gestión de la firma como archivo de imagen se haría aparte si es necesario.
+    # Por ahora, el campo FK al TrabajadorProfile es suficiente para la trazabilidad.
+    
+    creado_en = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Incidencia {self.id} en {self.solicitud.codigo_solicitud} - Tipo: {self.get_tipo_incidencia_display()}"
+
+    class Meta:
+        verbose_name = "Reporte de Incidencia"
+        verbose_name_plural = "Reportes de Incidencias"
+        ordering = ['-fecha_ocurrencia']
 # ================================================================
 # 7. MODELO MODIFICADO: ResultadoEnsayo 
 # 🎯 MODIFICACIÓN: Se quita la FK a Muestra (ya está en DetalleEnsayo)

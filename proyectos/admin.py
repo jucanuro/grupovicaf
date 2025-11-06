@@ -1,116 +1,123 @@
 from django.contrib import admin
 from django.db import models
 from django.forms import Textarea
-# Importamos el modelo intermedio clave para registrarlo en el admin
 from .models import (
     Proyecto, 
     Muestra, 
-    TipoEnsayo, # <-- Modelo Catálogo
+    TipoEnsayo, 
     SolicitudEnsayo, 
     DetalleEnsayo, 
-    AsignacionTipoEnsayo, # <-- Modelo Intermedio Clave
+    AsignacionTipoEnsayo, 
     ResultadoEnsayo, 
-    DocumentoFinal
+    DocumentoFinal,
+    ReporteIncidencia 
 )
-
-# =======================================================
-# 1. Asignación de Tipo Ensayo (Inline para DetalleEnsayo)
-# =======================================================
+# Se asume que estos modelos ya están enlazados en proyectos/models.py
+from servicios.models import Norma, Metodo, Cotizacion, CotizacionDetalle 
 
 class AsignacionTipoEnsayoInline(admin.TabularInline):
-    """
-    Permite asignar múltiples Tipos de Ensayos a una Tarea (DetalleEnsayo)
-    y, crucialmente, asignar un Técnico a cada Tipo de Ensayo individual.
-    """
     model = AsignacionTipoEnsayo
     extra = 1
     verbose_name = "Asignación de Ensayo/Técnico"
     verbose_name_plural = "Asignaciones de Ensayos a Técnicos"
     fields = ('tipo_ensayo', 'tecnico_asignado',)
-    autocomplete_fields = ['tipo_ensayo', 'tecnico_asignado']
+    raw_id_fields = ['tipo_ensayo', 'tecnico_asignado'] 
     
-# =======================================================
-# 2. Resultados de Ensayo (Inline para DetalleEnsayo)
-# =======================================================
-
 class ResultadoEnsayoInline(admin.StackedInline):
-    """Permite el registro del resultado asociado a una línea de trabajo (DetalleEnsayo)."""
     model = ResultadoEnsayo
     max_num = 1
     can_delete = False
     
-    # Widgets para mejorar la apariencia del JSONField/TextField grande
     formfield_overrides = {
-        models.JSONField: {'widget': Textarea(attrs={'rows': 5, 'cols': 80})},
+        models.JSONField: {'widget': Textarea(attrs={'rows': 6, 'cols': 90})},
+        models.TextField: {'widget': Textarea(attrs={'rows': 3, 'cols': 90})},
     }
 
     fieldsets = (
         ('Registro de Datos', {
             'fields': ('tecnico_registro', 'fecha_realizacion', 'resultados_data', 'observaciones',),
         }),
-        ('Validación y Verificación', {
+        ('Validación y Verificación (Jefe/Supervisor)', {
             'fields': ('es_valido', 'verificado_por', 'fecha_verificacion',),
+            'classes': ('collapse',),
         }),
     )
-    # Ya no hay 'muestra' como campo directo.
-    readonly_fields = ('creado_en',) 
+    raw_id_fields = ('tecnico_registro', 'verificado_por')
 
 
-# =======================================================
-# 3. Detalle de Ensayo (Inline para SolicitudEnsayo)
-# =======================================================
+class ReporteIncidenciaInline(admin.StackedInline):
+    model = ReporteIncidencia
+    extra = 0
+    verbose_name = "Incidencia"
+    verbose_name_plural = "Reporte de Incidencias"
+    
+    fieldsets = (
+        (None, {
+            'fields': ('tipo_incidencia', 'fecha_ocurrencia', 'detalle_incidencia'),
+        }),
+        ('Firmas y Responsables', {
+            'fields': ('representante_cliente', 'responsable_laboratorio'),
+        }),
+    )
+    raw_id_fields = ['responsable_laboratorio'] 
 
-class DetalleEnsayoInline(admin.StackedInline): # Cambiado a StackedInline para mejor vista de inlines anidados
-    """Las líneas de trabajo (tareas) que componen una Solicitud."""
+class DetalleEnsayoInline(admin.StackedInline): 
     model = DetalleEnsayo
     extra = 0
-    # Quitamos 'tecnico_asignado' de fields y list_display
-    fields = (
-        'tipo_ensayo_descripcion', 
-        'norma_aplicable', 
-        'metodo_aplicable',
-        'fecha_limite_ejecucion',
-        'estado_detalle',
+    
+    fieldsets = (
+        ('Identificación de Tarea', {
+            'fields': (
+                'tipo_ensayo_descripcion', 
+                ('norma', 'metodo'), 
+                'detalle_cotizacion', 
+            )
+        }),
+        ('Seguimiento y Cierre', {
+            'fields': (
+                ('fecha_limite_ejecucion', 'fecha_entrega_real'),
+                ('estado_detalle', 'firma_tecnico'),
+                'observaciones_detalle'
+            ),
+        }),
     )
-    # list_display no se usa en inlines, pero usamos fields para el orden
-    autocomplete_fields = ['detalle_cotizacion'] # Quitamos 'tecnico_asignado'
-    inlines = [AsignacionTipoEnsayoInline, ResultadoEnsayoInline] # Incluimos los dos sub-inlines
+    # Corrección E002: raw_id_fields para el inline
+    raw_id_fields = ['detalle_cotizacion', 'norma', 'metodo', 'firma_tecnico'] 
+    inlines = [AsignacionTipoEnsayoInline, ResultadoEnsayoInline] 
 
-
-# =======================================================
-# 4. Solicitud de Ensayo (Inline para Muestra)
-# =======================================================
 
 class SolicitudEnsayoInline(admin.StackedInline):
-    """La Solicitud de Ensayo (la Orden) asociada a una muestra."""
     model = SolicitudEnsayo
     max_num = 1
     can_delete = False
     
     fieldsets = (
-        ('Datos de la Solicitud', {
-            'fields': ('codigo_solicitud', 'fecha_solicitud', 'generada_por', 'estado'),
+        ('Datos de la Solicitud (Cabecera)', {
+            'fields': (
+                # Se mantiene 'cotizacion' aquí para que se muestre como campo de solo lectura
+                ('codigo_solicitud', 'cotizacion'), 
+                ('fecha_solicitud', 'fecha_entrega_programada'),
+                ('fecha_entrega_real', 'estado'),
+                ('generada_por', 'firma_jefe_laboratorio'),
+            ),
         }),
     )
-    readonly_fields = ('estado', 'fecha_solicitud')
-    autocomplete_fields = ['generada_por']
-    inlines = [DetalleEnsayoInline]
+    # CORRECCIÓN CLAVE: Quitamos 'cotizacion' de raw_id_fields
+    raw_id_fields = ['generada_por', 'firma_jefe_laboratorio'] 
+    # CORRECCIÓN CLAVE: Agregamos 'cotizacion' a readonly_fields
+    readonly_fields = ('estado', 'fecha_solicitud', 'cotizacion')
+    inlines = [DetalleEnsayoInline, ReporteIncidenciaInline] 
 
-
-# =======================================================
-# 5. Muestra (Inline para Proyecto)
-# =======================================================
 
 class MuestraInline(admin.StackedInline):
-    """Las muestras asociadas a un proyecto."""
     model = Muestra
     extra = 1
     fieldsets = (
         ('Identificación y Estado', {
             'fields': (
                 ('codigo_muestra', 'id_lab', 'tipo_muestra'), 
-                'tecnico_responsable_muestra',
                 ('estado', 'fecha_recepcion'),
+                'tecnico_responsable_muestra',
             )
         }),
         ('Detalles y Fechas', {
@@ -118,16 +125,11 @@ class MuestraInline(admin.StackedInline):
         }),
     )
     search_fields = ('codigo_muestra',)
-    autocomplete_fields = ['tecnico_responsable_muestra']
+    raw_id_fields = ['tecnico_responsable_muestra']
     inlines = [SolicitudEnsayoInline]
 
 
-# =======================================================
-# 6. Documento Final (Inline para Proyecto)
-# =======================================================
-
 class DocumentoFinalInline(admin.StackedInline):
-    """El informe o documento final del proyecto."""
     model = DocumentoFinal
     max_num = 1
     can_delete = False
@@ -146,10 +148,6 @@ class DocumentoFinalInline(admin.StackedInline):
     )
 
 
-# =======================================================
-# 7. Registro de Modelos en el Admin
-# =======================================================
-
 @admin.register(Proyecto)
 class ProyectoAdmin(admin.ModelAdmin):
     list_display = (
@@ -161,19 +159,19 @@ class ProyectoAdmin(admin.ModelAdmin):
     ordering = ('-fecha_inicio',)
     
     fieldsets = (
+        ('Datos del Proyecto', {
+            'fields': ('codigo_proyecto', 'nombre_proyecto', 'cliente', 'descripcion_proyecto', 'estado'),
+        }),
         ('Información de Origen', {
             'fields': ('cotizacion', 'monto_cotizacion', 'codigo_voucher'),
             'description': 'Información generada automáticamente desde la Cotización aprobada.'
-        }),
-        ('Datos del Proyecto', {
-            'fields': ('codigo_proyecto', 'nombre_proyecto', 'cliente', 'descripcion_proyecto', 'estado'),
         }),
         ('Metas y Plazos', {
             'fields': ('fecha_inicio', 'fecha_entrega_estimada', ('numero_muestras', 'numero_muestras_registradas')),
         }),
     )
     readonly_fields = ('cotizacion', 'monto_cotizacion', 'codigo_voucher', 'numero_muestras_registradas')
-    autocomplete_fields = ['cliente', 'cotizacion']
+    raw_id_fields = ['cliente', 'cotizacion']
     inlines = [MuestraInline, DocumentoFinalInline]
 
 
@@ -182,7 +180,7 @@ class MuestraAdmin(admin.ModelAdmin):
     list_display = ('codigo_muestra', 'proyecto', 'tipo_muestra', 'estado', 'tecnico_responsable_muestra', 'fecha_recepcion')
     list_filter = ('estado', 'tipo_muestra', 'proyecto__cliente')
     search_fields = ('codigo_muestra', 'id_lab', 'proyecto__codigo_proyecto')
-    autocomplete_fields = ['proyecto', 'tecnico_responsable_muestra']
+    raw_id_fields = ['proyecto', 'tecnico_responsable_muestra']
     inlines = [SolicitudEnsayoInline]
     
     fieldsets = (
@@ -195,7 +193,7 @@ class MuestraAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(TipoEnsayo) # Registro del nuevo Catálogo
+@admin.register(TipoEnsayo) 
 class TipoEnsayoAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'codigo_interno', 'descripcion')
     search_fields = ('nombre', 'codigo_interno')
@@ -203,42 +201,83 @@ class TipoEnsayoAdmin(admin.ModelAdmin):
 
 @admin.register(SolicitudEnsayo)
 class SolicitudEnsayoAdmin(admin.ModelAdmin):
-    list_display = ('codigo_solicitud', 'muestra', 'estado', 'generada_por', 'fecha_solicitud')
+    list_display = ('codigo_solicitud', 'muestra', 'cotizacion', 'estado', 'generada_por', 'fecha_solicitud')
     list_filter = ('estado', 'fecha_solicitud')
     search_fields = ('codigo_solicitud', 'muestra__codigo_muestra')
-    autocomplete_fields = ['muestra', 'generada_por']
-    inlines = [DetalleEnsayoInline]
-    readonly_fields = ('estado',)
+    # CORRECCIÓN: 'cotizacion' ya no es raw_id_field, es read-only.
+    raw_id_fields = ['muestra', 'generada_por', 'firma_jefe_laboratorio'] 
+    inlines = [DetalleEnsayoInline, ReporteIncidenciaInline]
+    # CORRECCIÓN: 'cotizacion' es read-only.
+    readonly_fields = ('estado', 'fecha_solicitud', 'cotizacion') 
+    
+    fieldsets = (
+        ('Información de Cabecera', {
+            'fields': (
+                ('codigo_solicitud', 'muestra'), 
+                ('fecha_solicitud', 'generada_por'),
+                'estado',
+                'cotizacion' # Se muestra aquí como read-only
+            )
+        }),
+        ('Plazos y Aprobación', {
+            'fields': (
+                ('fecha_entrega_programada', 'fecha_entrega_real'),
+                'firma_jefe_laboratorio',
+            )
+        }),
+    )
+
 
 @admin.register(DetalleEnsayo)
 class DetalleEnsayoAdmin(admin.ModelAdmin):
-    # Quitamos 'tecnico_asignado' de list_display
-    list_display = ('solicitud', 'tipo_ensayo_descripcion', 'fecha_limite_ejecucion', 'estado_detalle')
-    # Quitamos 'tecnico_asignado' de list_filter. El técnico ahora se filtra por la tabla intermedia.
-    list_filter = ('estado_detalle', ) 
+    # Ya corregido y activado: requiere que 'estado_detalle' y 'detalle_cotizacion' existan en el modelo.
+    list_display = ('solicitud', 'tipo_ensayo_descripcion', 'get_norma_display', 'get_metodo_display', 'fecha_limite_ejecucion', 'estado_detalle') 
+    list_filter = ('estado_detalle', 'norma', 'metodo') 
     search_fields = ('tipo_ensayo_descripcion', 'solicitud__codigo_solicitud')
-    # Quitamos 'tecnico_asignado' de autocomplete_fields
-    autocomplete_fields = ['solicitud', 'detalle_cotizacion'] 
-    inlines = [AsignacionTipoEnsayoInline, ResultadoEnsayoInline] # Aseguramos los dos inlines
+    raw_id_fields = ['solicitud', 'detalle_cotizacion', 'norma', 'metodo', 'firma_tecnico'] 
+    inlines = [AsignacionTipoEnsayoInline, ResultadoEnsayoInline] 
+    
+    def get_norma_display(self, obj):
+        return obj.norma.nombre if obj.norma else "N/A"
+    get_norma_display.short_description = "Norma"
+
+    def get_metodo_display(self, obj):
+        return obj.metodo.nombre if obj.metodo else "N/A"
+    get_metodo_display.short_description = "Método"
+
 
 @admin.register(ResultadoEnsayo)
 class ResultadoEnsayoAdmin(admin.ModelAdmin):
-    # Quitamos 'muestra' de list_display.
     def get_muestra_codigo(self, obj):
         return obj.detalle_ensayo.solicitud.muestra.codigo_muestra
     get_muestra_codigo.short_description = "Muestra"
 
     list_display = ('detalle_ensayo', 'get_muestra_codigo', 'tecnico_registro', 'es_valido', 'verificado_por', 'fecha_realizacion')
     list_filter = ('es_valido', 'fecha_realizacion', 'tecnico_registro')
-    # Ajustamos el search para buscar la muestra a través de la relación correcta
     search_fields = ('detalle_ensayo__solicitud__codigo_solicitud', 'detalle_ensayo__solicitud__muestra__codigo_muestra')
-    # Quitamos 'muestra' de autocomplete_fields
-    autocomplete_fields = ['detalle_ensayo', 'tecnico_registro', 'verificado_por']
+    raw_id_fields = ['detalle_ensayo', 'tecnico_registro', 'verificado_por']
 
 
 @admin.register(DocumentoFinal)
 class DocumentoFinalAdmin(admin.ModelAdmin):
     list_display = ('proyecto', 'titulo', 'fecha_emision')
     search_fields = ('proyecto__codigo_proyecto', 'titulo')
-    autocomplete_fields = ['proyecto']
+    raw_id_fields = ['proyecto']
     readonly_fields = ('resumen_ejecutivo_ia', 'analisis_detallado_ia', 'recomendaciones_ia')
+    
+    fieldsets = (
+        (None, {
+            'fields': ('proyecto', 'titulo', 'fecha_emision', 'archivo_original'),
+        }),
+        ('Firmas', {
+            'fields': ('firma_supervisor', 'firma_cliente'),
+        }),
+    )
+
+
+@admin.register(ReporteIncidencia)
+class ReporteIncidenciaAdmin(admin.ModelAdmin):
+    list_display = ('solicitud', 'tipo_incidencia', 'fecha_ocurrencia', 'representante_cliente', 'responsable_laboratorio')
+    list_filter = ('tipo_incidencia', 'fecha_ocurrencia')
+    search_fields = ('detalle_incidencia', 'solicitud__codigo_solicitud', 'representante_cliente')
+    raw_id_fields = ['solicitud', 'responsable_laboratorio']
