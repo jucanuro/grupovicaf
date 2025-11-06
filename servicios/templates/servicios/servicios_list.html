@@ -102,8 +102,10 @@
                 <thead class="bg-slate-700/50">
                     <tr class="text-slate-200">
                         <th class="py-3 px-4 font-bold text-sm">Nombre</th>
+                        <th class="py-3 px-4 font-bold text-sm hidden sm:table-cell">Cód. Fact.</th>
+                        <th class="py-3 px-4 font-bold text-sm hidden md:table-cell">Categoría</th>
+                        <th class="py-3 px-4 font-bold text-sm hidden lg:table-cell">Estado</th>
                         <th class="py-3 px-4 font-bold text-sm">Descripción</th>
-                        <th class="py-3 px-4 font-bold text-sm hidden lg:table-cell">Orden</th>
                         <th class="py-3 px-4 font-bold text-sm text-right">Acciones</th>
                     </tr>
                 </thead>
@@ -111,8 +113,28 @@
                     {% for servicio in servicios %}
                     <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors duration-200" data-pk="{{ servicio.pk }}">
                         <td class="py-4 px-4 font-medium text-white">{{ servicio.nombre }}</td>
+                        <td class="py-4 px-4 hidden sm:table-cell text-slate-300 font-mono">{{ servicio.codigo_facturacion }}</td>
+                        <td class="py-4 px-4 hidden md:table-cell text-slate-400">
+                            {% if servicio.categoria %}
+                                {{ servicio.categoria.nombre }}
+                            {% else %}
+                                <span class="text-slate-500 italic">--- Sin Categoría ---</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-4 hidden lg:table-cell whitespace-nowrap">
+                            {% if servicio.esta_acreditado %}
+                                <span class="text-blue-400 flex items-center gap-1" title="Acreditado">
+                                    <i data-lucide="check-circle" class="w-4 h-4"></i> Acreditado
+                                </span>
+                            {% elif servicio.es_sujeto_a_presupuesto %}
+                                <span class="text-indigo-400 flex items-center gap-1" title="Sujeto a Presupuesto">
+                                    <i data-lucide="alert-triangle" class="w-4 h-4"></i> S.P.
+                                </span>
+                            {% else %}
+                                <span class="text-slate-500">Normal</span>
+                            {% endif %}
+                        </td>
                         <td class="py-4 px-4">{{ servicio.descripcion|truncatewords:10 }}</td>
-                        <td class="py-4 px-4 hidden lg:table-cell">{{ servicio.orden }}</td>
                         <td class="py-4 px-4 text-right whitespace-nowrap">
                             <button class="ver-detalle-btn inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-green-300 bg-green-500/10 hover:bg-green-500/20 mr-2 transition-colors">
                                 <i data-lucide="eye" class="w-4 h-4 mr-1"></i> Ver
@@ -168,7 +190,7 @@
     <div id="detalle-modal-container" class="modal-container">
         <button id="close-modal-btn" class="modal-close-btn">&times;</button>
         <div id="modal-content-area" class="space-y-6">
-            </div>
+        </div>
     </div>
 </div>
 
@@ -177,24 +199,45 @@
 {% block extra_scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Inicializa los íconos de Lucide
+        // Inicializa los íconos de Lucide al cargar la página
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();
         }
         
+        // --- CONSTANTES DE ELEMENTOS DOM ---
         const searchInput = document.getElementById('searchInput');
         const serviciosTableBody = document.getElementById('servicios-table-body');
         const paginationControls = document.getElementById('pagination-controls');
         const noResultsMessage = document.getElementById('no-results-message');
-
         const modalOverlay = document.getElementById('detalle-modal-overlay');
         const modalContentArea = document.getElementById('modal-content-area');
         const closeModalBtn = document.getElementById('close-modal-btn');
 
-        // Función para abrir el modal y cargar datos vía API
+        /**
+         * Función para cerrar el modal y limpiar el contenido.
+         */
+        const closeModal = () => {
+            modalOverlay.classList.remove('open');
+            // Retraso para permitir que la transición CSS finalice antes de limpiar el contenido
+            setTimeout(() => {
+                modalContentArea.innerHTML = '';
+            }, 300);
+        };
+
+        /**
+         * Función para abrir el modal, hacer el fetch de datos y rellenar el contenido.
+         * @param {string} servicePk - La clave primaria (PK) del servicio a mostrar.
+         */
         const openModal = async (servicePk) => {
+            // Asegúrate de que el nombre del endpoint coincida con tu urls.py
+            const url = `{% url 'servicios:servicio_detalle_api' pk=0 %}`.replace('0', servicePk); 
+            
+            // Limpiamos el modal antes de abrir para mostrar un estado de carga si es necesario
+            modalContentArea.innerHTML = '<div class="text-center text-white py-10"><i data-lucide="loader-2" class="w-8 h-8 mx-auto animate-spin text-indigo-400"></i><p class="mt-3">Cargando detalles del servicio...</p></div>';
+            modalOverlay.classList.add('open');
+            if (typeof lucide !== 'undefined') { lucide.createIcons(); }
+
             try {
-                const url = `{% url 'servicios:obtener_detalle_servicio_api' pk=0 %}`.replace('0', servicePk); 
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -203,51 +246,116 @@
                 
                 const servicio = await response.json();
 
-                // Llenar el contenido del modal
+                // -------------------------------------------------------------------
+                // GENERACIÓN DE ESTADO (MEJORADO)
+                // -------------------------------------------------------------------
+                let estadoHtml = '';
+                if (servicio.esta_acreditado) {
+                    estadoHtml = '<span class="px-4 py-2 rounded-full text-sm font-bold text-blue-300 bg-blue-500/10 flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4"></i>ACREDITADO</span>';
+                } else if (servicio.es_sujeto_a_presupuesto) { // Se asume que este campo viene de la API
+                    estadoHtml = '<span class="px-4 py-2 rounded-full text-sm font-bold text-indigo-300 bg-indigo-500/10 flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4"></i>SUJETO A PRESUPUESTO</span>';
+                } else {
+                    estadoHtml = '<span class="px-4 py-2 rounded-full text-sm font-bold text-slate-300 bg-slate-700/50 flex items-center gap-2"><i data-lucide="tag" class="w-4 h-4"></i>NORMAL</span>';
+                }
+
+                // -------------------------------------------------------------------
+                // CONTENIDO HTML DEL MODAL (Elaborado y detallado)
+                // -------------------------------------------------------------------
                 modalContentArea.innerHTML = `
-                    <h2 class="text-2xl font-bold text-white mb-4">${servicio.nombre}</h2>
-                    <p class="text-slate-400">${servicio.descripcion}</p>
-                    ${servicio.imagen_url ? `<img src="${servicio.imagen_url}" alt="${servicio.nombre}" class="mt-4 rounded-lg shadow-md w-full max-w-sm">` : ''}
+                    <h2 class="text-3xl font-extrabold text-white mb-6 border-b border-indigo-500 pb-2">${servicio.nombre || 'Servicio sin Nombre'}</h2>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6 text-sm mb-6 p-4 rounded-xl bg-slate-800/50 backdrop-blur-sm shadow-inner">
+                        
+                        <p class="text-slate-300">
+                            <span class="font-bold text-indigo-400">Cód. Facturación:</span> 
+                            ${servicio.codigo_facturacion || '---'}
+                        </p>
+                        
+                        <p class="text-slate-300">
+                            <span class="font-bold text-indigo-400">Categoría:</span> 
+                            <span class="text-white bg-indigo-600 px-2 py-0.5 rounded-full text-xs font-semibold">
+                                ${servicio.categoria || 'Sin Categoría'}
+                            </span>
+                        </p>
+                        
+                        <p class="text-slate-300">
+                            <span class="font-bold text-indigo-400">Precio Base:</span> 
+                            <span class="text-lg font-bold text-green-400">
+                                S/ ${parseFloat(servicio.precio_base || 0).toFixed(2)}
+                            </span>
+                        </p>
+                        
+                        <p class="text-slate-300">
+                            <span class="font-bold text-indigo-400">Unidad Base:</span> 
+                            ${servicio.unidad_base || 'N/A'}
+                        </p>
+
+                        <p class="text-slate-300 col-span-1 sm:col-span-2 md:col-span-1">
+                            <span class="font-bold text-indigo-400">Estado:</span> 
+                            ${estadoHtml}
+                        </p>
+
+                    </div>
+
+                    <div class="mb-6 p-5 rounded-xl border border-slate-700 bg-slate-900/40">
+                        <h3 class="text-xl font-bold text-slate-200 mb-2">Resumen del Servicio</h3>
+                        <p class="text-slate-400 leading-relaxed">${servicio.descripcion || 'Descripción no disponible.'}</p>
+                        
+                        ${servicio.imagen_url ? `
+                        <div class="mt-4 flex justify-center">
+                            <img src="${servicio.imagen_url}" alt="Imagen de ${servicio.nombre}" class="rounded-xl shadow-2xl w-full max-w-sm object-cover border border-slate-700 transition duration-300 hover:scale-[1.02]">
+                        </div>
+                        ` : ''}
+                    </div>
 
                     <div class="mt-6">
-                        <h3 class="text-xl font-bold text-white mb-2">Normas y Métodos</h3>
-                        <div class="flex flex-wrap gap-2">
-                            ${servicio.normas.map(norma => `<span class="px-4 py-2 rounded-full text-sm font-semibold text-blue-300 bg-blue-500/10">${norma}</span>`).join('')}
-                            ${servicio.metodos.map(metodo => `<span class="px-4 py-2 rounded-full text-sm font-semibold text-purple-300 bg-purple-500/10">${metodo}</span>`).join('')}
+                        <h3 class="text-xl font-bold text-white mb-3 border-b border-slate-700 pb-2">Regulaciones Técnicas Asociadas</h3>
+                        <div class="flex flex-wrap gap-3">
+                            ${servicio.normas && servicio.normas.length > 0 ? 
+                                servicio.normas.map(norma => `<span class="px-3 py-1 rounded-full text-xs font-semibold text-blue-300 bg-blue-500/10 shadow-md transition duration-300 hover:bg-blue-500/20">📋 ${norma}</span>`).join('') 
+                                : '<span class="text-slate-500 italic">No hay normas registradas.</span>'}
+                            
+                            ${servicio.metodos && servicio.metodos.length > 0 ? 
+                                servicio.metodos.map(metodo => `<span class="px-3 py-1 rounded-full text-xs font-semibold text-purple-300 bg-purple-500/10 shadow-md transition duration-300 hover:bg-purple-500/20">🧪 ${metodo}</span>`).join('') 
+                                : '<span class="text-slate-500 italic">No hay métodos de ensayo.</span>'}
                         </div>
                     </div>
 
                     ${servicio.detalle ? `
-                    <div class="mt-6 p-4 rounded-lg bg-slate-800/60 border border-slate-700">
-                        <h3 class="text-xl font-bold text-white mb-2">Detalles Adicionales</h3>
-                        <p class="text-lg font-semibold text-slate-300">${servicio.detalle.titulo}</p>
-                        <p class="text-slate-400">${servicio.detalle.descripcion}</p>
-                        ${servicio.detalle.imagen_url ? `<img src="${servicio.detalle.imagen_url}" alt="${servicio.detalle.titulo}" class="mt-4 rounded-lg shadow-md w-full max-w-sm">` : ''}
+                    <div class="mt-8 p-6 rounded-xl bg-slate-800 border border-indigo-600 shadow-2xl">
+                        <h3 class="text-xl font-extrabold text-indigo-400 mb-3 flex items-center">
+                            <svg data-lucide="hard-hat" class="w-6 h-6 inline-block mr-2 text-indigo-400"></svg>
+                            Detalle Técnico del Servicio (Web)
+                        </h3>
+                        <p class="text-lg font-bold text-slate-300 mb-2">${servicio.detalle.titulo || 'Detalle sin título'}</p>
+                        <p class="text-slate-400 border-l-4 border-slate-600 pl-3 italic leading-relaxed">${servicio.detalle.descripcion || 'Este detalle adicional no tiene una descripción específica.'}</p>
+                        
+                        ${servicio.detalle.imagen_url ? `
+                        <div class="mt-4 flex justify-center">
+                            <img src="${servicio.detalle.imagen_url}" alt="${servicio.detalle.titulo}" class="rounded-lg shadow-xl w-full max-w-xs object-cover">
+                        </div>
+                        ` : ''}
                     </div>
-                    ` : `<p class="text-slate-500 italic mt-6">Este servicio no tiene detalles adicionales.</p>`}
+                    ` : `<p class="text-slate-500 italic mt-8 p-4 bg-slate-800 rounded-lg border border-slate-700 flex items-center">📌 Este servicio no tiene detalles técnicos adicionales definidos.</p>`}
                 `;
 
-                // Mostrar el modal
-                modalOverlay.classList.add('open');
+                // Recargar íconos de Lucide dentro del nuevo contenido
                 if (typeof lucide !== 'undefined') {
-                    lucide.createIcons(); // Vuelve a crear los íconos dentro del modal
+                    lucide.createIcons(); 
                 }
+                
             } catch (error) {
                 console.error('Error al obtener los detalles del servicio:', error);
-                alert('No se pudo cargar el detalle del servicio. Asegúrate de que la API esté funcionando correctamente.');
+                modalContentArea.innerHTML = `<div class="text-center text-red-400 py-10"><i data-lucide="x-circle" class="w-8 h-8 mx-auto text-red-500"></i><p class="mt-3">Error al cargar el servicio. Inténtalo de nuevo. Revise la consola.</p></div>`;
             }
         };
 
-        // Función para cerrar el modal
-        const closeModal = () => {
-            modalOverlay.classList.remove('open');
-            setTimeout(() => {
-                modalContentArea.innerHTML = '';
-            }, 300);
-        };
+        // --- EVENT LISTENERS PRINCIPALES ---
 
-        // Event Listeners para el modal
+        // Cierre del modal con el botón X
         closeModalBtn.addEventListener('click', closeModal);
+        
+        // Cierre del modal haciendo clic en el overlay (fondo oscuro)
         modalOverlay.addEventListener('click', (e) => {
             if (e.target.id === 'detalle-modal-overlay') {
                 closeModal();
@@ -260,11 +368,11 @@
             if (verBtn) {
                 const row = verBtn.closest('tr');
                 const pk = row.dataset.pk;
-                openModal(pk);
+                openModal(pk); // Llama a la función robusta
             }
         });
         
-        // Lógica de búsqueda asíncrona
+        // Lógica de búsqueda asíncrona (Deja esta lógica intacta)
         let searchTimer;
         searchInput.addEventListener('keyup', async (e) => {
             clearTimeout(searchTimer);
@@ -294,12 +402,23 @@
                             noResultsMessage.textContent = "No se encontraron servicios que coincidan con la búsqueda.";
                         } else {
                             servicios.forEach(servicio => {
-                                // Asegurar que las URLs de la tabla usen el nombre de URL de Django
+                                // Generar el estado con íconos para la tabla
+                                let estadoHtmlTable = '';
+                                if (servicio.esta_acreditado) {
+                                    estadoHtmlTable = '<span class="text-blue-400 flex items-center gap-1" title="Acreditado"><i data-lucide="check-circle" class="w-4 h-4"></i> Acreditado</span>';
+                                } else if (servicio.es_sujeto_a_presupuesto) {
+                                    estadoHtmlTable = '<span class="text-indigo-400 flex items-center gap-1" title="Sujeto a Presupuesto"><i data-lucide="alert-triangle" class="w-4 h-4"></i> S.P.</span>';
+                                } else {
+                                    estadoHtmlTable = '<span class="text-slate-500">Normal</span>';
+                                }
+
                                 const row = `
                                 <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors duration-200" data-pk="${servicio.pk}">
                                     <td class="py-4 px-4 font-medium text-white">${servicio.nombre}</td>
-                                    <td class="py-4 px-4">${servicio.descripcion}</td>
-                                    <td class="py-4 px-4 hidden lg:table-cell">${servicio.orden}</td>
+                                    <td class="py-4 px-4 hidden sm:table-cell text-slate-300 font-mono">${servicio.codigo_facturacion || 'N/A'}</td>
+                                    <td class="py-4 px-4 hidden md:table-cell text-slate-400">${servicio.categoria || '---'}</td>
+                                    <td class="py-4 px-4 hidden lg:table-cell whitespace-nowrap">${estadoHtmlTable}</td>
+                                    <td class="py-4 px-4">${servicio.descripcion ? servicio.descripcion.substring(0, 50) + (servicio.descripcion.length > 50 ? '...' : '') : ''}</td>
                                     <td class="py-4 px-4 text-right whitespace-nowrap">
                                         <button class="ver-detalle-btn inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-green-300 bg-green-500/10 hover:bg-green-500/20 mr-2 transition-colors">
                                             <i data-lucide="eye" class="w-4 h-4 mr-1"></i> Ver

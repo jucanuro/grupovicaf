@@ -44,13 +44,47 @@ class Metodo(models.Model):
 # ================================================================
 # Modelo de Servicio (Ensayo) - Base para el Tarifario
 # ================================================================
+class CategoriaServicio(models.Model):
+    nombre = models.CharField(max_length=100, unique=True, verbose_name="Nombre de la Categoría (Ej: ENSAYOS EN SUELOS)")
+    codigo_prefijo = models.CharField(max_length=10, unique=True, verbose_name="Prefijo de Código (Ej: ES, EC, EA)")
+    descripcion = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.nombre
+
+    class Meta:
+        verbose_name = "Categoría de Servicio"
+        verbose_name_plural = "Categorías de Servicios"
+        ordering = ['nombre']
+
 class Servicio(models.Model):
+    categoria = models.ForeignKey(
+        'CategoriaServicio', 
+        on_delete=models.SET_NULL, 
+        related_name='servicios',
+        null=True, 
+        blank=True,
+        verbose_name="Categoría del Ensayo"
+    )
     codigo_facturacion = models.CharField(max_length=50, unique=True, verbose_name="Cód. Fact. (e.g., ES001, TC001)")
     nombre = models.CharField(max_length=150, verbose_name="Nombre del Servicio/Ensayo")
     descripcion = models.TextField(verbose_name="Descripción General del Servicio")
     
     # Tarifario base
-    precio_base = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Precio Unitario Base")
+    precio_base = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Precio Unitario Base (Normal)")
+    precio_urgente = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True, 
+        blank=True, 
+        verbose_name="Precio Unitario Urgente"
+    )
+
+    # Bandera para manejar "SP" (Sujeto a Presupuesto)
+    es_sujeto_a_presupuesto = models.BooleanField(
+        default=False, 
+        verbose_name="¿Sujeto a Presupuesto (SP)?"
+    )
     unidad_base = models.CharField(max_length=50, default='Ensayo', verbose_name="Unidad de Medida Base")
     
     # Relaciones con Normas y Métodos (Muchos a Muchos)
@@ -71,7 +105,12 @@ class Servicio(models.Model):
 
 
 class DetalleServicio(models.Model):
-    servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE, related_name='detalles_web', verbose_name="Servicio Web")
+    servicio = models.OneToOneField(
+        Servicio, 
+        on_delete=models.CASCADE, 
+        related_name='detalle_web', 
+        verbose_name="Servicio Web"
+    )
     titulo = models.CharField(max_length=100, verbose_name="Título del Detalle")
     descripcion = models.TextField(verbose_name="Descripción del Detalle")
     imagen = models.ImageField(upload_to='servicios/detalles/', blank=True, null=True, verbose_name="Imagen o Ícono")

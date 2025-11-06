@@ -26,8 +26,8 @@ from .models import (
     Cotizacion, 
     CotizacionDetalle, 
     Voucher, 
-    # Asegúrate de importar tu modelo Cliente aquí
-    Cliente 
+    Cliente,
+    CategoriaServicio
 )
 
 # ---------------------------------------------------------------
@@ -52,10 +52,14 @@ def lista_servicios(request):
     paginator = Paginator(servicios_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    categorias_disponibles = CategoriaServicio.objects.all().order_by('nombre')
+
 
     context = {
         'servicios': page_obj,
         'query': query,
+        'categorias_disponibles': categorias_disponibles,
+
     }
     return render(request, 'servicios/servicios_list.html', context)
 
@@ -88,7 +92,6 @@ def _procesar_guardado_servicio(request, servicio=None):
     """Función auxiliar para manejar la lógica de guardado y actualización (DRY)."""
     try:
         with transaction.atomic():
-            # 1. Procesar datos del Servicio principal
             precio_base_str = request.POST.get('precio_base', '0').replace(',', '.')
             
             try:
@@ -96,15 +99,28 @@ def _procesar_guardado_servicio(request, servicio=None):
             except Exception:
                 raise ValueError("El campo 'Precio Base' debe ser un número válido.")
             
-            # Obtener el DetalleServicio existente para manejo de archivos
+            # --- CORRECCIÓN 1: Usar el nombre de relación correcto ('detalle_web') ---
             detalle_servicio = None
             if servicio:
                 try:
-                    detalle_servicio = servicio.detalleservicio
+                    detalle_servicio = servicio.detalle_web 
                 except DetalleServicio.DoesNotExist:
                     pass
 
+            precio_urgente_str = request.POST.get('precio_urgente', '').replace(',', '.')
+            precio_urgente = Decimal(precio_urgente_str) if precio_urgente_str else None
+
+            categoria_id = request.POST.get('categoria')
             imagen_file = request.FILES.get('imagen')
+            
+            # --- CORRECCIÓN 2: Obtener el objeto CategoriaServicio ---
+            categoria_obj = None
+            if categoria_id:
+                try:
+                    categoria_obj = CategoriaServicio.objects.get(pk=categoria_id)
+                except CategoriaServicio.DoesNotExist:
+                    raise ValueError("La categoría seleccionada no es válida.")
+
             data_servicio = {
                 'nombre': request.POST.get('nombre'),
                 'descripcion': request.POST.get('descripcion'),
@@ -112,13 +128,13 @@ def _procesar_guardado_servicio(request, servicio=None):
                 'precio_base': precio_base,
                 'unidad_base': request.POST.get('unidad_base'),
                 'esta_acreditado': request.POST.get('esta_acreditado') == 'on',
+                'categoria': categoria_obj, # <-- ¡Asignación del objeto Categoría!
             }
             
             if not data_servicio['nombre'] or not data_servicio['descripcion']:
                 raise ValueError("El nombre y la descripción son obligatorios.")
 
             if servicio:
-                # Actualizar Servicio existente
                 for key, value in data_servicio.items():
                     setattr(servicio, key, value)
                 
@@ -127,17 +143,14 @@ def _procesar_guardado_servicio(request, servicio=None):
                 
                 servicio.save()
             else:
-                # Crear nuevo Servicio
                 servicio = Servicio.objects.create(**data_servicio, imagen=imagen_file)
 
-            # 2. Sincronización Many-to-Many
             normas_ids = request.POST.getlist('normas')
             metodos_ids = request.POST.getlist('metodos')
             
             servicio.normas.set(normas_ids)
             servicio.metodos.set(metodos_ids)
             
-            # 3. Procesar DetalleServicio (One-to-One)
             detalle_imagen_file = request.FILES.get('detalle_imagen')
             
             detalle_data = {
@@ -157,57 +170,48 @@ def _procesar_guardado_servicio(request, servicio=None):
                     defaults=defaults
                 )
 
-        return None # Retorna None en éxito
+        return None 
     
     except ValueError as e:
         return f'Error de validación de datos: {e}'
     except Exception as e:
-        logger.error(f"Error crítico al guardar servicio: {e}")
+        # logger.error(f"Error crítico al guardar servicio: {e}") # Descomenta si usas logging
         return f'Ocurrió un error inesperado al guardar el servicio: {e}'
 
-# ----------------------------------------------------------------------
-# VISTAS FINALES REQUERIDAS POR LAS URLs
-# ----------------------------------------------------------------------
 
 @login_required
 def crear_editar_servicio(request, pk=None):
     """Maneja la lógica de Creación (pk=None) y Edición (pk existe)."""
     servicio = None
-    detalle_servicio = None
     error = None
     
-    # 1. Carga inicial del objeto (Modo Edición)
     if pk:
         servicio = get_object_or_404(Servicio, pk=pk)
-        try:
-            detalle_servicio = servicio.detalleservicio
-        except DetalleServicio.DoesNotExist:
-            pass
+        # --- CORRECCIÓN 1: Se elimina el bloque try/except que fallaba. ---
+        # El acceso seguro se hace en el contexto final con 'getattr'.
 
-    # 2. Procesamiento POST (Creación o Edición)
     if request.method == 'POST':
         error = _procesar_guardado_servicio(request, servicio)
         if not error:
             return redirect('servicios:lista_servicios')
         
-        # Si hubo error en POST, recargar el servicio por si hubo actualizaciones parciales
         if servicio and pk:
             servicio.refresh_from_db()
 
-    # 3. Renderizado (GET o POST con error)
+    categorias_disponibles = CategoriaServicio.objects.all().order_by('nombre')
     normas_disponibles = Norma.objects.all()
     metodos_disponibles = Metodo.objects.all()
     
     context = {
         'servicio': servicio,
-        'detalle_servicio': detalle_servicio,
+        # Acceso seguro a detalle_servicio usando 'detalle_web'
+        'detalle_servicio': getattr(servicio, 'detalle_web', None) if servicio else None, 
+        'categorias_disponibles': categorias_disponibles,
         'normas_disponibles': normas_disponibles,
         'metodos_disponibles': metodos_disponibles,
         'error': error,
     }
-    # Usa el template de formulario requerido
     return render(request, 'servicios/servicios_form.html', context)
-
 
 @login_required
 def eliminar_servicio(request, pk):
@@ -224,14 +228,54 @@ def eliminar_servicio(request, pk):
             logger.error(f"Error al eliminar servicio {pk}: {e}")
             error = f'No se pudo eliminar el servicio. Puede que existan dependencias protegidas: {e}'
     
-    # Renderiza la página de confirmación (GET o POST con error)
     return render(request, 'servicios/servicio_confirm_delete.html', {
         'servicio': servicio,
         'error': error
     })
-# ---------------------------------------------------------------
-# Vistas para la gestión de Cotizaciones (CRUD y API)
-# ---------------------------------------------------------------
+
+
+def obtener_datos_servicio_json(request, pk):
+    """
+    Retorna los datos detallados de un Servicio específico en formato JSON, 
+    preparado para ser consumido por un modal de visualización en JavaScript.
+    """
+    servicio = get_object_or_404(
+        Servicio.objects.select_related('categoria'), 
+        pk=pk
+    )
+
+    detalle_data = None
+    try:
+        detalle_web = servicio.detalle_web 
+        detalle_data = {
+            'titulo': getattr(detalle_web, 'titulo', 'Sin título'),
+            'descripcion': getattr(detalle_web, 'descripcion', 'Sin descripción de detalle.'),
+            'imagen_url': request.build_absolute_uri(detalle_web.imagen.url) if detalle_web.imagen else None,
+        }
+    except DetalleServicio.DoesNotExist:
+        pass
+    except Exception:
+        pass
+
+    normas_codigos = [norma.codigo for norma in servicio.normas.all()]
+    metodos_codigos = [metodo.codigo for metodo in servicio.metodos.all()]
+
+
+    data = {
+        'nombre': servicio.nombre,
+        'descripcion': servicio.descripcion,
+        'codigo_facturacion': servicio.codigo_facturacion,
+        'unidad_base': servicio.unidad_base,
+        'esta_acreditado': servicio.esta_acreditado,
+        'categoria': servicio.categoria.nombre if servicio.categoria else 'Sin Categoría', 
+        'precio_base': str(servicio.precio_base) if servicio.precio_base else '0.00', 
+        'imagen_url': request.build_absolute_uri(servicio.imagen.url) if servicio.imagen else None,
+        'normas': normas_codigos,
+        'metodos': metodos_codigos,
+        'detalle': detalle_data, 
+    }
+    
+    return JsonResponse(data)
 
 @login_required
 def lista_cotizaciones(request):

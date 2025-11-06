@@ -50,4 +50,9 @@ urlpatterns = [
         views.obtener_detalle_servicio_api, 
         name='obtener_detalle_servicio_para_cotizacion_api'
     ),
+    path(
+        'api/detalle/<int:pk>/', 
+        views.obtener_datos_servicio_json, 
+        name='servicio_detalle_api'
+    ),
 ]

@@ -9,7 +9,8 @@ from .models import (
     CotizacionDetalle,
     Voucher,
     Norma,
-    Metodo
+    Metodo,
+    CategoriaServicio
 )
 
 # ================================================================
@@ -146,6 +147,10 @@ class CotizacionAdmin(admin.ModelAdmin):
         return f"S/. {obj.monto_total:.2f}"
     display_monto_total.short_description = 'Monto Total'
 
+@admin.register(CategoriaServicio)
+class CategoriaAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'descripcion')
+    search_fields = ('nombre',)
 
 
 class DetalleServicioInline(admin.StackedInline):
@@ -166,6 +171,7 @@ class ServicioAdmin(admin.ModelAdmin):
     inlines = [DetalleServicioInline]
     
     list_display = (
+        'categoria',
         'codigo_facturacion', 
         'nombre', 
         'precio_base_display', 
@@ -175,7 +181,7 @@ class ServicioAdmin(admin.ModelAdmin):
         'get_metodos',
     )
     
-    list_filter = ('esta_acreditado', 'normas', 'metodos')
+    list_filter = ('categoria','esta_acreditado', 'normas', 'metodos')
     search_fields = ('codigo_facturacion', 'nombre', 'descripcion')
     filter_horizontal = ('normas', 'metodos') # Para campos ManyToMany, mejora UX
 
@@ -183,6 +189,7 @@ class ServicioAdmin(admin.ModelAdmin):
     fieldsets = (
         ('I. IDENTIFICACIÓN Y TARIFARIO', {
             'fields': (
+                'categoria',
                 'codigo_facturacion', 
                 'nombre', 
                 'descripcion',
