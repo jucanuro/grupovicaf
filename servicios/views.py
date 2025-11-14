@@ -63,7 +63,6 @@ def lista_servicios(request):
     }
     return render(request, 'servicios/servicios_list.html', context)
 
-
 def obtener_detalle_servicio_api(request, pk):
     """
     Devuelve los detalles de un servicio en formato JSON para uso en el modal.
@@ -85,9 +84,7 @@ def obtener_detalle_servicio_api(request, pk):
     }
     return JsonResponse(data)
 
-
 logger = logging.getLogger(__name__)
-
 def _procesar_guardado_servicio(request, servicio=None):
     """Función auxiliar para manejar la lógica de guardado y actualización (DRY)."""
     try:
@@ -178,7 +175,6 @@ def _procesar_guardado_servicio(request, servicio=None):
         # logger.error(f"Error crítico al guardar servicio: {e}") # Descomenta si usas logging
         return f'Ocurrió un error inesperado al guardar el servicio: {e}'
 
-
 @login_required
 def crear_editar_servicio(request, pk=None):
     """Maneja la lógica de Creación (pk=None) y Edición (pk existe)."""
@@ -232,7 +228,6 @@ def eliminar_servicio(request, pk):
         'servicio': servicio,
         'error': error
     })
-
 
 def obtener_datos_servicio_json(request, pk):
     """
@@ -311,7 +306,6 @@ def lista_cotizaciones(request):
     }
     return render(request, 'servicios/cotizacion_list.html', context)
 
-
 @login_required
 def detalle_cotizacion(request, pk):
     """ Muestra los detalles de una cotización específica. """
@@ -335,7 +329,6 @@ def detalle_cotizacion(request, pk):
     }
     return render(request, 'servicios/cotizacion_detail.html', context)
 
-
 @login_required
 def crear_editar_cotizacion(request, pk=None):
     cotizacion = get_object_or_404(Cotizacion, pk=pk) if pk else None
@@ -351,55 +344,48 @@ def crear_editar_cotizacion(request, pk=None):
                     raise ValueError("La cotización debe tener al menos un servicio.")
 
                 is_new = cotizacion is None 
-
-                # ------------------------------------------------------------------
-                # 1. Asignación/Creación de Encabezado
-                # ------------------------------------------------------------------
-                if is_new:
-                    cotizacion = Cotizacion.objects.create(
-                        cliente=cliente,
-                        asunto_servicio=request.POST.get('asunto_servicio'),
-                        estado='Pendiente',
-                        # Inicializar con valores seguros
-                        tasa_igv = Decimal('0.18'), 
-                        persona_contacto = request.POST.get('persona_contacto'),
-                        correo_contacto = request.POST.get('correo_contacto'),
-                        telefono_contacto = request.POST.get('telefono_contacto'),
-                        plazo_entrega_dias = int(request.POST.get('plazo_entrega_dias') or 0),
-                        validez_oferta_dias = int(request.POST.get('validez_oferta_dias') or 0),
-                        forma_pago = request.POST.get('forma_pago'),
-                    )
                 
-                # Actualización de campos
+                if is_new:
+                    cotizacion = Cotizacion(cliente=cliente)
+                
+                fecha_generacion_str = request.POST.get('fecha_generacion')
+                if fecha_generacion_str:
+                    try:
+                        cotizacion.fecha_generacion = date.fromisoformat(fecha_generacion_str)
+                    except ValueError:
+                        pass
+                
                 cotizacion.cliente = cliente
                 cotizacion.asunto_servicio = request.POST.get('asunto_servicio')
                 cotizacion.persona_contacto = request.POST.get('persona_contacto')
                 cotizacion.correo_contacto = request.POST.get('correo_contacto')
                 cotizacion.telefono_contacto = request.POST.get('telefono_contacto')
+
+                servicio_general_pk = request.POST.get('servicio_general')
+                if servicio_general_pk:
+                    servicio_general_obj = get_object_or_404(CategoriaServicio, pk=servicio_general_pk)
+                    cotizacion.servicio_general = servicio_general_obj
+                else:
+                    cotizacion.servicio_general = None
+                
                 cotizacion.plazo_entrega_dias = int(request.POST.get('plazo_entrega_dias') or 0)
                 cotizacion.validez_oferta_dias = int(request.POST.get('validez_oferta_dias') or 0)
                 cotizacion.forma_pago = request.POST.get('forma_pago')
+                cotizacion.observaciones_condiciones = request.POST.get('observaciones_condiciones')
                 
-                # Conversión robusta para tasa_igv
                 tasa_igv_str = str(request.POST.get('tasa_igv', '0')).strip().replace(',', '.')
                 cotizacion.tasa_igv = Decimal(tasa_igv_str) if tasa_igv_str else Decimal('0.00')
 
-                if is_new:
-                    numero_oferta = f"COT-{cotizacion.pk:04d}" 
-                    cotizacion.numero_oferta = numero_oferta
-                    
+                cotizacion.save() 
+                
                 if not is_new:
                     cotizacion.detalles_cotizacion.all().delete()
                 
-                # ------------------------------------------------------------------
-                # 2. Creación de Detalle (Solución al ConversionSyntax)
-                # ------------------------------------------------------------------
                 detalle_objs = []
                 for item in detalles_data:
-                    
                     servicio_id_str = str(item.get('servicio_id')).strip()
                     if not servicio_id_str or not servicio_id_str.isdigit():
-                         raise ValueError(f"ID de Servicio requerido no válido. Valor recibido: '{servicio_id_str}'.")
+                        raise ValueError(f"ID de Servicio requerido no válido. Valor recibido: '{servicio_id_str}'.")
 
                     servicio_id = int(servicio_id_str)
                     servicio = Servicio.objects.get(pk=servicio_id) 
@@ -414,7 +400,6 @@ def crear_editar_cotizacion(request, pk=None):
                     if metodo_id_str and metodo_id_str.isdigit():
                         metodo = Metodo.objects.get(pk=int(metodo_id_str))
                     
-                    # ✅ SOLUCIÓN AL ConversionSyntax: Limpieza de comas y manejo de vacío
                     cantidad_str = str(item.get('cantidad', '0')).strip().replace(',', '.')
                     precio_unitario_str = str(item.get('precio_unitario', '0')).strip().replace(',', '.')
                     
@@ -436,39 +421,38 @@ def crear_editar_cotizacion(request, pk=None):
                     ))
 
                 CotizacionDetalle.objects.bulk_create(detalle_objs)
-                cotizacion.save() # Llama a calcular_totales() y guarda los montos finales
-            
-            # Lógica de Redirección (Éxito)
-            accion = "creada" if is_new else "actualizada"
-            messages.success(request, f"¡Cotización {cotizacion.numero_oferta} {accion} con éxito! ✅")
-            
-            if is_new:
-                return redirect('servicios:lista_cotizaciones') 
-            else:
+                cotizacion.save()
+
+                accion = "creada" if is_new else "actualizada"
+                messages.success(request, f"¡Cotización {cotizacion.numero_oferta} {accion} con éxito! ✅")
+                
                 return redirect('servicios:editar_cotizacion', pk=cotizacion.pk)
 
-        except (ValueError, InvalidOperation, Cotizacion.DoesNotExist, Cliente.DoesNotExist, Servicio.DoesNotExist) as e:
+        except (ValueError, InvalidOperation, Cotizacion.DoesNotExist, Cliente.DoesNotExist, Servicio.DoesNotExist, CategoriaServicio.DoesNotExist) as e:
             error = f'Error de Guardado: Error en los datos de entrada o cálculo: {e}'
         except Exception as e:
             error = f'Ocurrió un error inesperado al procesar la cotización: {e}'
             
-    # -------------------------------------------------------------------------
-    # 3. LÓGICA DE PREPARACIÓN DE CONTEXTO (Solución al NameError)
-    # -------------------------------------------------------------------------
     clientes = Cliente.objects.all()
     servicios = Servicio.objects.all().prefetch_related('normas', 'metodos')
-
+    
+    servicio_grupos = CategoriaServicio.objects.all()
+    
     servicios_con_detalles_json = json.dumps([
-         {
-             'pk': s.pk, 'nombre': s.nombre, 'unidad_base': s.unidad_base, 'precio_base': str(s.precio_base),
-             'normas': [model_to_dict(n, fields=['pk', 'codigo', 'nombre']) for n in s.normas.all()],
-             'metodos': [model_to_dict(m, fields=['pk', 'codigo', 'nombre']) for m in s.metodos.all()]
-         } for s in servicios
+        {
+            'pk': s.pk, 
+            'nombre': s.nombre, 
+            'unidad_base': s.unidad_base, 
+            'precio_base': str(s.precio_base),
+            'categoria_id': s.categoria_id, 
+            'normas': [model_to_dict(n, fields=['pk', 'codigo', 'nombre']) for n in s.normas.all()],
+            'metodos': [model_to_dict(m, fields=['pk', 'codigo', 'nombre']) for m in s.metodos.all()]
+        } for s in servicios
     ])
 
     detalles_cotizacion_json = '[]'
     if cotizacion:
-         detalles_cotizacion_json = json.dumps([
+        detalles_cotizacion_json = json.dumps([
              {
                  'servicio_id': detalle.servicio.pk, 'descripcion_especifica': detalle.descripcion_especifica,
                  'norma_id': detalle.norma.pk if detalle.norma else None, 'metodo_id': detalle.metodo.pk if detalle.metodo else None,
@@ -483,12 +467,12 @@ def crear_editar_cotizacion(request, pk=None):
         'servicios_con_detalles_json': servicios_con_detalles_json,
         'detalles_cotizacion_json': detalles_cotizacion_json,
         'error': error,
+        'servicio_grupos': servicio_grupos, 
     }
     return render(request, 'servicios/cotizaciones_form.html', context)
 
 crear_cotizacion = crear_editar_cotizacion
 editar_cotizacion = crear_editar_cotizacion
-
 
 @login_required
 def eliminar_cotizacion(request, pk):
@@ -514,7 +498,6 @@ def eliminar_cotizacion(request, pk):
             })
 
     return render(request, 'servicios/cotizacion_confirm_delete.html', {'cotizacion': cotizacion})
-
 
 def generar_pdf_cotizacion(request, pk):
     """
@@ -544,7 +527,7 @@ def generar_pdf_cotizacion(request, pk):
     # Esto usa el motor de plantillas de Django para devolver el HTML plano.
     return render(request, 'servicios/cotizacion_pdf.html', context)
 
-logger = logging.getLogger(__name__) # Definición del logger
+logger = logging.getLogger(__name__) 
 
 @login_required
 def aprobar_cotizacion(request, pk):

@@ -4,6 +4,9 @@ from django.utils import timezone
 from clientes.models import Cliente
 from trabajadores.models import TrabajadorProfile
 from decimal import Decimal
+from django.utils import timezone
+from django.db.utils import IntegrityError
+from datetime import date
 from django.db.models import Sum
 from django.core.validators import FileExtensionValidator, MinValueValidator
 from django.core.exceptions import ValidationError
@@ -129,7 +132,17 @@ class Cotizacion(models.Model):
     # ... (Campos de encabezado y relaciones) ...
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='cotizaciones', verbose_name="Cliente")
     trabajador_responsable = models.ForeignKey(TrabajadorProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='cotizaciones_emitidas', verbose_name="Responsable de la Oferta")
-    numero_oferta = models.CharField(max_length=50, unique=True, verbose_name="Número de Oferta (VCF-OTE-YYYY-XXX)")
+    numero_oferta = models.CharField(
+        max_length=50, 
+        unique=True, 
+        blank=True, 
+        null=True, 
+        verbose_name="Número de Oferta (VCF-OTE-YYYY-XXX)"
+    )
+    fecha_generacion = models.DateField(
+        default=timezone.now, 
+        verbose_name="Fecha de Generación de la Oferta"
+    )
     asunto_servicio = models.CharField(max_length=255, verbose_name="Asunto del Servicio (Ej: Ensayos de Campo)")
     proyecto_asociado = models.CharField(max_length=255, blank=True, null=True, verbose_name="Referencia/Nombre del Proyecto del Cliente")
     persona_contacto = models.CharField(max_length=200, verbose_name="Persona de Contacto (Atención)")

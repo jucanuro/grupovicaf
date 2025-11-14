@@ -1,171 +1,286 @@
 {% extends "base_vicafpro.html" %}
 {% load static %}
 {% block content %}
-<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-
 <style>
-    /* Estilos base para un diseño limpio y oscuro */
-    :root {
-        --color-bg-main: #0F172A; /* slate-900 */
-        --color-bg-card: #1E293B; /* slate-800 */
-        --color-border: #475569; /* slate-600 */
-        --color-text-light: #F1F5F9; /* slate-100 */
-        --color-text-faded: #94A3B8; /* slate-400 */
-        --color-primary: #0EA5E9; /* sky-500 */
-        --color-secondary: #0D9488; /* teal-600 */
-        --color-accent-green: #22C55E; /* green-500 */
-        --color-accent-red: #EF4444; /* rose-500 */
-    }
+    /* cotizaciones.css - Actualizado con estilos solicitados */
 
-    body {
-        background-color: var(--color-bg-main);
-    }
+:root {
+    --color-bg-main: #0F172A;
+    --color-bg-card: #1E293B;
+    --color-border: #475569;
+    --color-text-light: #F1F5F9;
+    --color-text-faded: #FFFFFF;
+    --color-primary: #0EA5E9;
+    --color-secondary: #0D9488;
+    --color-accent-green: #22C55E;
+    --color-accent-red: #EF4444;
+    --color-bg-input: #1E3A8A;
+}
 
-    /* Contenedor de cada campo */
-    .form-group-v2 {
-        display: flex;
-        flex-direction: column;
-        gap: 0.25rem;
-    }
+body {
+    background-color: var(--color-bg-main);
+    color: var(--color-text-light);
+}
 
-    /* Estilo del label fijo, siempre arriba */
-    .form-label-v2 {
-        font-size: 0.8rem;
-        color: var(--color-text-faded);
-        font-weight: 500;
-        transition: all 0.2s ease-in-out;
-    }
+#quote-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background-color: var(--color-bg-card);
+    border-radius: 1rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
 
-    /* Estilo del input y select - TAMAÑO Y FONDO OPTIMIZADOS */
-    .form-control-v2 {
-        width: 100%;
-        padding: 0.5rem 0.75rem; /* Menor padding para hacerlo más compacto */
-        background-color: #020617; /* slate-950 como fondo del input */
-        border: 1px solid var(--color-border); /* Borde más delgado */
-        border-radius: 0.5rem;
-        color: var(--color-text-light);
-        font-size: 0.9rem;
-        transition: all 0.2s ease-in-out;
-        outline: none;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    
-    .form-control-v2:focus {
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.5); /* Sombra más sutil */
-    }
+h2 {
+    color: var(--color-text-light);
+    border-bottom: 2px solid var(--color-border);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+.glass-card h3 {
+    color: var(--color-text-light) !important;
+}
 
-    /* Estilo específico para selects */
-    .form-control-v2.form-select-v2 {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-        background-position: right 0.75rem center;
-        background-repeat: no-repeat;
-        background-size: 1.5rem;
-        padding-right: 2.5rem;
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background-color: #020617; /* slate-950 para los selects */
-    }
+.form-group-v2 {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+}
 
-    /* Estilo para el input de solo lectura */
-    .form-control-v2[readonly] {
-        cursor: not-allowed;
-        background-color: #334155; /* slate-700 */
-        color: #E2E8F0; /* slate-200 */
-    }
+.form-label-v2 {
+    font-size: 0.8rem;
+    color: var(--color-text-faded) !important;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+}
 
-    /* Ocultar flechas en inputs de tipo number */
-    .no-arrows::-webkit-outer-spin-button,
-    .no-arrows::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-    .no-arrows {
-        -moz-appearance: textfield;
-    }
+.form-control-v2 {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background-color: var(--color-bg-input) !important;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    color: #FFFFFF !important;
+    font-size: 0.9rem;
+    transition: all 0.2s ease-in-out;
+    outline: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
 
-    /* Nuevo estilo para la fila de items en la tabla de cotización */
-    .item-row-v2 {
-        display: grid;
-        /* Optimización del grid para que quepa en una sola fila: Servicio (2.5), Norma (1), Método (1), Und (0.5), Cant (0.5), Precio (0.8), Subtotal (1), Eliminar (0.2) */
-        grid-template-columns: 2.5fr 1fr 1fr 0.5fr 0.5fr 0.8fr 1fr 0.2fr;
-        gap: 0.75rem;
-        padding: 0.75rem;
-        background-color: rgba(30, 41, 59, 0.7);
-        border-radius: 0.5rem;
-        border: 1px solid #475569;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        transition: all 0.3s ease-in-out;
-        align-items: center;
-    }
-    
-    .item-row-v2:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-    }
-    
-    .item-row-v2 .subtotal-cell {
-        min-width: 60px;
-    }
-    
-    .item-row-v2 .remove-item-btn {
-        padding: 0.5rem;
-    }
-    
-    /* Tom-select custom styles for a dark theme */
-    .ts-control {
-        background-color: #020617; /* slate-950 */
-        border-color: #475569; /* slate-600 */
-        color: var(--color-text-light);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        border-radius: 0.5rem;
-        transition: all 0.2s ease-in-out;
-        padding: 0.5rem 0.75rem;
-    }
-    .ts-control.focus {
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.5);
-    }
-    .ts-control .ts-input {
-        background-color: transparent !important;
-        border: none !important;
-        color: var(--color-text-light);
-        padding: 0;
-        font-size: 0.9rem;
-    }
-    /* Estilo crucial para el input de búsqueda */
-    .ts-control .ts-input input {
-        background-color: #020617 !important;
-        color: #F1F5F9 !important;
-    }
+.form-control-v2:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.5);
+}
 
-    .ts-dropdown {
-        background-color: #1E293B; /* slate-800 */
-        border-color: #475569;
-        border-radius: 0.5rem;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    }
-    .ts-dropdown .option {
-        color: var(--color-text-light);
-        padding: 0.5rem 0.75rem;
-    }
-    .ts-dropdown .option.active, .ts-dropdown .option.selected {
-        background-color: #334155; /* slate-700 */
-        color: var(--color-primary);
-    }
-    .ts-control::after {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-        right: 0.75rem;
-        transform: none;
-    }
-    .ts-control.single::after {
-        border-color: transparent !important;
-    }
+.form-control-v2.form-select-v2 {
+    background-color: var(--color-bg-input) !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23F1F5F9' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5rem;
+    padding-right: 2.5rem;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
 
+.form-control-v2[readonly] {
+    cursor: not-allowed;
+    background-color: var(--color-bg-input) !important; 
+    color: var(--color-text-light) !important; 
+}
+
+.no-arrows::-webkit-outer-spin-button,
+.no-arrows::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.no-arrows {
+    -moz-appearance: textfield;
+}
+
+.ts-wrapper.form-control-v2 {
+    padding: 0;
+    border: none;
+    background-color: transparent;
+}
+.ts-control {
+    background-color: var(--color-bg-input) !important;
+    border-color: #475569;
+    color: var(--color-text-light);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+    padding: 0.5rem 0.75rem;
+}
+.ts-control .ts-input {
+    background-color: transparent !important;
+    border: none !important;
+    color: var(--color-text-light) !important;
+    padding: 0;
+    font-size: 0.9rem;
+    min-height: 1.5rem;
+}
+.ts-control .ts-input input {
+    background-color: var(--color-bg-input) !important;
+    color: #FFFFFF !important;
+    padding: 0;
+    height: auto !important;
+}
+
+.ts-dropdown {
+    background-color: #1E293B;
+    border-color: #475569;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+.ts-dropdown .option {
+    color: var(--color-text-light);
+    padding: 0.5rem 0.75rem;
+}
+.ts-dropdown .option.active, .ts-dropdown .option.selected {
+    background-color: #334155;
+    color: var(--color-primary);
+}
+.ts-control::after {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23F1F5F9' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg'%3e");
+    right: 0.75rem;
+    transform: none;
+}
+.ts-control.single::after {
+    border-color: transparent !important;
+}
+
+.item-row-v2 {
+    display: grid;
+    grid-template-columns: 2.5fr 1fr 1fr 0.5fr 0.5fr 0.8fr 1fr 0.2fr;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background-color: rgba(30, 41, 59, 0.7);
+    border-radius: 0.5rem;
+    border: 1px solid #475569;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease-in-out;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.item-row-v2-header {
+    font-weight: bold;
+    color: var(--color-primary);
+    padding: 0.75rem;
+    border-bottom: 2px solid var(--color-border);
+    margin-bottom: 0.5rem;
+}
+
+.item-row-v2:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.item-row-v2 .subtotal-cell {
+    min-width: 60px;
+    font-weight: bold;
+    color: var(--color-accent-green);
+    text-align: right;
+    padding-right: 0.5rem;
+}
+
+.item-row-v2 .remove-item-btn {
+    background: none;
+    border: none;
+    color: var(--color-accent-red);
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.item-row-v2 .remove-item-btn:hover {
+    color: #FF7777;
+}
+
+.grid-container-2-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.grid-container-3-cols {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+.grid-container-4-cols {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+}
+
+.totals-area {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background-color: rgba(14, 165, 233, 0.1);
+    border-radius: 0.5rem;
+    border: 1px solid var(--color-primary);
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.1rem;
+    padding: 0.3rem 0;
+}
+
+.total-row.grand-total {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--color-accent-green);
+    border-top: 1px dashed var(--color-border);
+    padding-top: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.btn-primary-v2 {
+    background-color: var(--color-primary);
+    color: var(--color-text-light);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn-primary-v2:hover {
+    background-color: #0C8AC7;
+    transform: translateY(-1px);
+}
+
+.btn-secondary-v2 {
+    background-color: var(--color-secondary);
+    color: var(--color-text-light);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn-secondary-v2:hover {
+    background-color: #0B7E74;
+    transform: translateY(-1px);
+}
 </style>
-
 <div class="space-y-8 p-4">
     <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 animate-fade-in-up">
         <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-cyan-300">
@@ -188,40 +303,70 @@
 
         <div class="glass-card p-6 rounded-2xl shadow-xl animate-fade-in-up bg-slate-800/50 backdrop-blur-sm border border-slate-700">
             <h2 class="text-xl font-bold text-white mb-6">Datos de la Oferta</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                <div class="form-group-v2 md:col-span-2">
-                    <label for="id_asunto_servicio" class="form-label-v2">Asunto del Servicio / Descripción General</label>
-                    <input type="text" name="asunto_servicio" id="id_asunto_servicio" class="form-control-v2" required placeholder="Ej: Ensayo de suelos para Proyecto X" {% if cotizacion %}value="{{ cotizacion.asunto_servicio }}"{% endif %}>
+            
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-x-12 gap-y-4">
+                <div class="space-y-6 md:col-span-7">
+                    <h3 class="text-lg font-semibold text-white border-b border-slate-700 pb-2">Empresa y Contacto</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                        
+                        <div class="form-group-v2">
+                            <label for="id_cliente_ruc" class="form-label-v2">RUC del Cliente</label>
+                            <select id="id_cliente_ruc" name="cliente" class="form-control-v2 form-select-v2 tom-select-js" required>
+                                <option value="" selected disabled>Buscar RUC o Razón Social...</option> 
+                                {% for cliente in clientes %}
+                                <option value="{{ cliente.pk }}" data-razon-social="{{ cliente.razon_social }}" data-contacto="{{ cliente.nombre_contacto }}" data-correo="{{ cliente.correo }}" data-telefono="{{ cliente.telefono }}" {% if cotizacion and cotizacion.cliente.pk == cliente.pk %}selected{% endif %}>
+                                    {{ cliente.ruc }} - {{ cliente.razon_social }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group-v2">
+                            <label for="id_razon_social" class="form-label-v2">Razón Social</label>
+                            <input type="text" id="id_razon_social" class="form-control-v2" readonly placeholder="Razón Social">
+                        </div>
+                        
+                        <div class="form-group-v2">
+                            <label for="id_persona_contacto" class="form-label-v2">Persona de Contacto</label>
+                            <input type="text" name="persona_contacto" id="id_persona_contacto" class="form-control-v2" required placeholder="Persona de Contacto" {% if cotizacion %}value="{{ cotizacion.persona_contacto }}"{% endif %}>
+                        </div>
+
+                        <div class="form-group-v2">
+                            <label for="id_telefono_contacto" class="form-label-v2">Teléfono</label>
+                            <input type="text" name="telefono_contacto" id="id_telefono_contacto" class="form-control-v2" required placeholder="Teléfono" {% if cotizacion %}value="{{ cotizacion.telefono_contacto }}"{% endif %}>
+                        </div>
+                        
+                        <div class="form-group-v2 md:col-span-2">
+                            <label for="id_correo_contacto" class="form-label-v2">Correo</label>
+                            <input type="email" name="correo_contacto" id="id_correo_contacto" class="form-control-v2" required placeholder="Correo" {% if cotizacion %}value="{{ cotizacion.correo_contacto }}"{% endif %}>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group-v2">
-                    <label for="id_cliente_ruc" class="form-label-v2">RUC del Cliente</label>
-                    <select id="id_cliente_ruc" name="cliente" class="form-control-v2 form-select-v2 tom-select-js" required>
-                        <option value="" selected disabled>Buscar RUC o Razón Social...</option> 
-                        {% for cliente in clientes %}
-                        <option value="{{ cliente.pk }}" data-razon-social="{{ cliente.razon_social }}" data-contacto="{{ cliente.nombre_contacto }}" data-correo="{{ cliente.correo }}" data-telefono="{{ cliente.telefono }}" {% if cotizacion and cotizacion.cliente.pk == cliente.pk %}selected{% endif %}>
-                            {{ cliente.ruc }} - {{ cliente.razon_social }}
-                        </option>
-                        {% endfor %}
-                    </select>
+                <div class="space-y-6 md:col-span-5">
+                    <h3 class="text-lg font-semibold text-white border-b border-slate-700 pb-2">Detalle de la Oferta</h3>
+                    
+                    <div class="form-group-v2">
+                        <label for="id_servicio_general" class="form-label-v2">Servicio General / Categoría</label>
+                        <select id="id_servicio_general" name="servicio_general" class="form-control-v2 form-select-v2 tom-select-js">
+                            <option value="" selected disabled>Seleccionar Categoría de Servicio...</option> 
+                            {% for group in servicio_grupos %}
+                            <option value="{{ group.pk }}" {% if cotizacion and cotizacion.servicio_general.pk == group.pk %}selected{% endif %}>
+                                {{ group.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group-v2">
+                        <label for="id_asunto_servicio" class="form-label-v2">Asunto del Servicio / Descripción General</label>
+                        <input type="text" name="asunto_servicio" id="id_asunto_servicio" class="form-control-v2" required placeholder="Ej: Ensayo de suelos para Proyecto X" {% if cotizacion %}value="{{ cotizacion.asunto_servicio }}"{% endif %}>
+                    </div>
+                    
                 </div>
-                <div class="form-group-v2">
-                    <label for="id_razon_social" class="form-label-v2">Razón Social</label>
-                    <input type="text" id="id_razon_social" class="form-control-v2 cursor-not-allowed" readonly placeholder="Razón Social">
-                </div>
-                <div class="form-group-v2">
-                    <label for="id_persona_contacto" class="form-label-v2">Persona de Contacto</label>
-                    <input type="text" name="persona_contacto" id="id_persona_contacto" class="form-control-v2" required placeholder="Persona de Contacto" {% if cotizacion %}value="{{ cotizacion.persona_contacto }}"{% endif %}>
-                </div>
-                <div class="form-group-v2">
-                    <label for="id_correo_contacto" class="form-label-v2">Correo</label>
-                    <input type="email" name="correo_contacto" id="id_correo_contacto" class="form-control-v2" required placeholder="Correo" {% if cotizacion %}value="{{ cotizacion.correo_contacto }}"{% endif %}>
-                </div>
-                <div class="form-group-v2">
-                    <label for="id_telefono_contacto" class="form-label-v2">Teléfono</label>
-                    <input type="text" name="telefono_contacto" id="id_telefono_contacto" class="form-control-v2" required placeholder="Teléfono" {% if cotizacion %}value="{{ cotizacion.telefono_contacto }}"{% endif %}>
-                </div>
-                <input type="hidden" name="tasa_igv" value="{% if cotizacion %}{{ cotizacion.tasa_igv }}{% else %}0.18{% endif %}">
             </div>
+            
+            <input type="hidden" name="tasa_igv" id="tasa_igv" value="{% if cotizacion %}{{ cotizacion.tasa_igv }}{% else %}0.18{% endif %}">
         </div>
         
         <div class="glass-card p-6 rounded-2xl shadow-xl animate-fade-in-up bg-slate-800/50 backdrop-blur-sm border border-slate-700">
@@ -298,11 +443,11 @@
                     </div>
                     <div class="form-group-v2">
                         <label for="id_validez_oferta_dias" class="form-label-v2">Validez (días)</label>
-                        <input type="number" name="validez_oferta_dias" id="id_validez_oferta_dias" class="form-control-v2" placeholder="Validez" min="1" value="{% if cotizacion %}{{ cotizacion.validez_oferta_dias }}{% else %}30{% endif %}">
+                        <input type="number" name="validez_oferta_dias" id="id_validez_oferta_dias" class="form-control-v2" placeholder="Validez" min="1" value="{% if cotizacion %}{{ cotizacion.validez_oferta_dias }}{% else %} {% endif %}">
                     </div>
                     <div class="form-group-v2">
                         <label for="id_plazo_entrega_dias" class="form-label-v2">Plazo de Entrega (días)</label>
-                        <input type="number" name="plazo_entrega_dias" id="id_plazo_entrega_dias" class="form-control-v2" placeholder="Plazo de Entrega" min="0" value="{% if cotizacion %}{{ cotizacion.plazo_entrega_dias }}{% else %}0{% endif %}">
+                        <input type="number" name="plazo_entrega_dias" id="id_plazo_entrega_dias" class="form-control-v2" placeholder="Plazo de Entrega" min="30" value="{% if cotizacion %}{{ cotizacion.plazo_entrega_dias }}{% else %} {% endif %}">
                     </div>
                 </div>
                 <div class="flex flex-col justify-end items-end space-y-4 mt-8 md:mt-0 text-right">
@@ -335,14 +480,20 @@
         </div>
     </form>
 </div>
-
 <script src="https://unpkg.com/lucide@latest"></script>
 <script>
     lucide.createIcons();
 </script>
-
+<script id="all-services-data" type="application/json">
+    {{ servicios_con_detalles_json|safe }}
+</script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Variables Globales ---
+    let ALL_SERVICES_DATA = [];
+    let servicesDataLoaded = false;
+    let categoriaTomSelectInstance = null; // Variable para la instancia TomSelect de la categoría
+
     // Inicializar Lucide Icons
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
@@ -351,6 +502,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Elementos del Encabezado y Cliente
     const clientesSelect = document.getElementById('id_cliente_ruc');
     const formaPagoSelect = document.getElementById('id_forma_pago');
+    const categoriaServicioSelect = document.getElementById('id_servicio_general'); // El select del encabezado
+
     const razonSocialInput = document.getElementById('id_razon_social');
     const personaContactoInput = document.getElementById('id_persona_contacto');
     const correoContactoInput = document.getElementById('id_correo_contacto');
@@ -366,7 +519,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalFinalSpan = document.getElementById('total_final_cotizacion');
     const montoTotalInput = document.getElementById('id_monto_total');
     const detallesJsonInput = document.getElementById('detalles_json');
-    
+    const tasaIgvInput = document.getElementById('id_tasa_igv');
+
+    // --- Lógica de Inicialización de Datos ---
+
+    // 1. Carga los datos JSON de servicios
+    const loadAllServicesData = () => {
+        const dataElement = document.getElementById('all-services-data');
+        if (dataElement) {
+            try {
+                ALL_SERVICES_DATA = JSON.parse(dataElement.textContent || '[]');
+                servicesDataLoaded = true;
+            } catch (e) {
+                console.error("Error al parsear el JSON de servicios:", e);
+            }
+        }
+    };
+
     // Función para cargar datos del cliente
     const loadClientData = (selectedOption) => {
         if (selectedOption) {
@@ -383,71 +552,116 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Función de inicialización de Tom-select
-    const initializeTomSelect = (element) => {
+    const initializeTomSelect = (element, options = {}) => {
         if (typeof TomSelect !== 'undefined' && element) {
-            // Evitar doble inicialización
             if (element.tomselect) {
                 element.tomselect.destroy();
             }
-            new TomSelect(element, {
+            const defaultOptions = element.matches('.servicio-select') ? {
+                render: {
+                    option: function(item, escape) { return `<div>${escape(item.text)}</div>`; },
+                    item: function(item, escape) { return `<div>${escape(item.text)}</div>`; }
+                }
+            } : {};
+
+            const instance = new TomSelect(element, {
                 create: false,
                 sortField: {
                     field: "text",
                     direction: "asc"
                 },
-                render: {
-                    option: function(item, escape) {
-                        return '<div>' + escape(item.text) + '</div>';
-                    },
-                    item: function(item, escape) {
-                        return '<div>' + escape(item.text) + '</div>';
-                    }
-                }
+                placeholder: element.getAttribute('data-placeholder') || 'Seleccione...',
+                allowEmptyOption: true,
+                ...defaultOptions,
+                ...options
             });
+
+            // Guardar la instancia de la categoría principal
+            if (element === categoriaServicioSelect) {
+                categoriaTomSelectInstance = instance;
+            }
         }
     };
-
-    // Inicialización inicial para elementos estáticos
-    if (typeof TomSelect !== 'undefined') {
-        initializeTomSelect(clientesSelect);
-        initializeTomSelect(formaPagoSelect);
-    }
-
-    // Evento de cambio para cargar datos del cliente
-    clientesSelect.addEventListener('change', (e) => {
-        const selectedOption = clientesSelect.options[clientesSelect.selectedIndex];
-        loadClientData(selectedOption);
-    });
-
-    // Cargar datos iniciales del cliente (para edición o valor por defecto)
-    const initialSelectedOption = clientesSelect.options[clientesSelect.selectedIndex];
-    if (initialSelectedOption && initialSelectedOption.value) {
-        loadClientData(initialSelectedOption);
-    }
     
+    // Función para poblar el SELECT de servicio con base en la Categoría seleccionada
+    const populateServiciosSelect = (selectElement, selectedServicioId) => {
+        if (!servicesDataLoaded) return;
+        
+        let tomSelectInstance = selectElement.tomselect;
+        
+        if (!tomSelectInstance) {
+            initializeTomSelect(selectElement);
+            tomSelectInstance = selectElement.tomselect;
+            if (!tomSelectInstance) return;
+        }
 
-    // Función para generar el HTML de una fila de ítem (usa sintaxis de plantilla Django)
-    const createItemRowHTML = (servicioId = '', cantidad = '1', precio = '0.00', und = 'und') => {
+        // Obtener el valor de la categoría de la INSTANCIA de TomSelect (la fuente de verdad)
+        let selectedCategoriaId = '';
+        if (categoriaTomSelectInstance) {
+            selectedCategoriaId = String(categoriaTomSelectInstance.getValue() || '');
+        } else {
+            selectedCategoriaId = String(categoriaServicioSelect.value || '');
+        }
+        
+        tomSelectInstance.clearOptions();
+        
+        // Opción por defecto (Placeholder)
+        tomSelectInstance.addOption({
+            value: '', 
+            text: 'Seleccione servicio', 
+            disabled: true, 
+            selected: true
+        });
+
+        let servicesToUse = [];
+
+        // Filtrar solo si la categoría seleccionada tiene un valor
+        if (selectedCategoriaId) {
+            servicesToUse = ALL_SERVICES_DATA.filter(service => {
+                const serviceCategoriaId = String(service.categoria_id); 
+                // Compara la ID de la categoría del servicio con la ID seleccionada (ambas strings)
+                return serviceCategoriaId === selectedCategoriaId; 
+            }).map(service => ({
+                value: String(service.pk),
+                text: service.nombre
+            }));
+        }
+        
+        // Agregar servicios filtrados
+        if (servicesToUse.length > 0) {
+            tomSelectInstance.addOptions(servicesToUse);
+        }
+        
+        // Seleccionar el valor guardado si existe en las nuevas opciones
+        if (selectedServicioId && tomSelectInstance.options[String(selectedServicioId)]) {
+             tomSelectInstance.setValue(String(selectedServicioId), true);
+        } else {
+             // Si el servicio anterior no está en la nueva categoría, lo deselecciona.
+             tomSelectInstance.setValue('', true);
+        }
+        
+        tomSelectInstance.refreshOptions(false);
+    };
+
+    // Función para generar el HTML de una fila de ítem
+    const createItemRowHTML = (servicioId = '', cantidad = '1', precio = '0.00', und = 'und', normaId = '', metodoId = '') => {
         return `
-            <div class="item-row-v2 animate-fade-in-up">
+            <div class="item-row-v2 animate-fade-in-up" data-servicio-id="${servicioId}" data-norma-id="${normaId}" data-metodo-id="${metodoId}">
                 <div class="form-group-v2">
                     <label class="form-label-v2">Servicio</label>
-                    <select class="form-control-v2 form-select-v2 servicio-select tom-select-js" required name="servicio">
+                    <select class="form-control-v2 form-select-v2 servicio-select tom-select-js" required name="servicio" data-placeholder="Seleccione servicio">
                         <option value="" disabled selected>Seleccione servicio</option>
-                        {% for servicio in servicios %}
-                            <option value="{{ servicio.pk }}" ${servicioId === '{{servicio.pk}}' ? 'selected' : ''}>{{ servicio.nombre }}</option>
-                        {% endfor %}
                     </select>
                 </div>
                 <div class="form-group-v2">
                     <label class="form-label-v2">Norma</label>
-                    <select class="form-control-v2 form-select-v2 normas-select" name="norma">
+                    <select class="form-control-v2 form-select-v2 normas-select" name="norma" data-placeholder="Seleccione norma">
                         <option value="" disabled selected>Seleccione norma</option>
                     </select>
                 </div>
                 <div class="form-group-v2">
                     <label class="form-label-v2">Método</label>
-                    <select class="form-control-v2 form-select-v2 metodos-select" name="metodo">
+                    <select class="form-control-v2 form-select-v2 metodos-select" name="metodo" data-placeholder="Seleccione método">
                         <option value="" disabled selected>Seleccione método</option>
                     </select>
                 </div>
@@ -478,7 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Función para añadir una nueva fila de ítem
     const addRow = (servicioId = '', cantidad = '1', precio = '0.00', und = 'und', normaId = '', metodoId = '') => {
-        const rowHTML = createItemRowHTML(servicioId, cantidad, precio, und);
+        const rowHTML = createItemRowHTML(servicioId, cantidad, precio, und, normaId, metodoId);
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = rowHTML.trim();
         const newRow = tempDiv.firstChild;
@@ -488,14 +702,14 @@ document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
         }
 
-        // Inicializar Tom-select para el selector de servicio
-        initializeTomSelect(newRow.querySelector('.servicio-select'));
+        const servicioSelect = newRow.querySelector('.servicio-select');
+        initializeTomSelect(servicioSelect);
 
         if (servicioId) {
-            // Cargar datos del servicio si se está añadiendo una fila con datos (ej. al editar)
-            loadServiceData(newRow.querySelector('.servicio-select'), normaId, metodoId);
+            loadServiceData(servicioSelect, normaId, metodoId);
+        } else {
+             updateTotals(); 
         }
-        updateTotals(); // Actualizar totales después de añadir la fila
     };
     
     // Función para cargar los datos del servicio seleccionado (precio, unidad, normas, métodos)
@@ -507,7 +721,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const normasSelect = row.querySelector('.normas-select');
         const metodosSelect = row.querySelector('.metodos-select');
 
-        // *** AJUSTE CLAVE: Destruir e inicializar TomSelect para campos dinámicos ***
         if (normasSelect && normasSelect.tomselect) normasSelect.tomselect.destroy();
         if (metodosSelect && metodosSelect.tomselect) metodosSelect.tomselect.destroy();
 
@@ -516,7 +729,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (pk) {
             try {
-                // NOTA: Reemplaza esta URL con la ruta correcta si no usas Django
                 const url = `{% url 'servicios:obtener_detalle_servicio_para_cotizacion_api' pk=999999 %}`.replace('999999', pk);
                 const response = await fetch(url);
                 const servicio = await response.json();
@@ -529,7 +741,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const option = document.createElement('option');
                         option.value = norma.id;
                         option.textContent = norma.nombre;
-                        if (norma.id == selectedNormaId) option.selected = true;
+                        if (String(norma.id) === String(selectedNormaId)) option.selected = true;
                         normasSelect.appendChild(option);
                     });
                 }
@@ -538,19 +750,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         const option = document.createElement('option');
                         option.value = metodo.id;
                         option.textContent = metodo.nombre;
-                        if (metodo.id == selectedMetodoId) option.selected = true;
+                        if (String(metodo.id) === String(selectedMetodoId)) option.selected = true;
                         metodosSelect.appendChild(option);
                     });
                 }
 
-                // Reinicializar TomSelect para Norma y Método
                 if (typeof TomSelect !== 'undefined') {
-                    initializeTomSelect(normasSelect);
-                    initializeTomSelect(metodosSelect);
+                    initializeTomSelect(normasSelect, {placeholder: 'Seleccione norma'});
+                    initializeTomSelect(metodosSelect, {placeholder: 'Seleccione método'});
                 }
 
             } catch (error) {
-                console.error('Error al cargar datos del servicio:', error);
+                console.error('Error al cargar datos del servicio mediante API:', error);
                 precioInput.value = '0.00';
                 undInput.value = '';
             }
@@ -561,10 +772,53 @@ document.addEventListener('DOMContentLoaded', () => {
         updateTotals();
     };
 
+    // Función para actualizar todos los selects de servicio en la página
+    // 🚨 ACEPTA UN BOOLEANO PARA SABER SI ES UN CAMBIO DE CATEGORÍA PRINCIPAL
+    const updateAllServiceSelects = (isMasterCategoryChange = false) => {
+        detallesContainer.querySelectorAll('.item-row-v2').forEach(row => {
+            const servicioSelect = row.querySelector('.servicio-select');
+            
+            // Si es un cambio de categoría principal, forzamos la deselección
+            if (isMasterCategoryChange) {
+                if (servicioSelect.tomselect) {
+                    servicioSelect.tomselect.setValue('', true); // Limpiar selección en TomSelect
+                }
+                // Limpiar data attributes de la fila y valores de otros campos
+                row.dataset.servicioId = ''; 
+                
+                const normasSelect = row.querySelector('.normas-select');
+                const metodosSelect = row.querySelector('.metodos-select');
+                const precioInput = row.querySelector('.precio-input');
+                const undInput = row.querySelector('.und-input');
+                
+                if (normasSelect.tomselect) normasSelect.tomselect.setValue('', true);
+                if (metodosSelect.tomselect) metodosSelect.tomselect.setValue('', true);
+                
+                row.dataset.normaId = '';
+                row.dataset.metodoId = '';
+                precioInput.value = '0.00';
+                undInput.value = '';
+            }
+            
+            // Obtener el ID de servicio a intentar mantener (será nulo/vacío si se acaba de resetear)
+            const selectedServicioId = servicioSelect.value || row.dataset.servicioId; 
+
+            populateServiciosSelect(servicioSelect, selectedServicioId); 
+            
+            // Si después de poblar tenemos un valor (solo pasaría si NO hubo un reset o es carga inicial)
+            if (servicioSelect.value) {
+                loadServiceData(servicioSelect, row.dataset.normaId, row.dataset.metodoId);
+            }
+        });
+        updateTotals(); 
+    };
+
     // Función para recalcular totales y preparar el JSON de detalles
     const updateTotals = () => {
         let subtotal = 0;
         const detalles = [];
+        const tasaIgv = parseFloat(tasaIgvInput ? tasaIgvInput.value : 0.18) || 0.18; 
+
         detallesContainer.querySelectorAll('.item-row-v2').forEach(row => { 
             const servicioSelect = row.querySelector('.servicio-select');
             const cantidadInput = row.querySelector('.cantidad-input');
@@ -594,7 +848,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        const igv = subtotal * 0.18; // Asumiendo 18% de IGV
+        const igv = subtotal * tasaIgv; 
         const totalFinal = subtotal + igv;
         
         subtotalSpan.textContent = subtotal.toFixed(2);
@@ -605,25 +859,40 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Listeners de Eventos ---
-
-    addItemBtn.addEventListener('click', () => addRow());
     
-    // Cambio en selects (ej. servicio, norma, método)
+    // 🚨 Listener modificado: Pasa 'true' al cambiar la categoría principal
+    categoriaServicioSelect.addEventListener('change', () => updateAllServiceSelects(true));
+    
+    if (tasaIgvInput) {
+        tasaIgvInput.addEventListener('input', updateTotals);
+    }
+    
+    clientesSelect.addEventListener('change', (e) => {
+        const selectedOption = clientesSelect.options[clientesSelect.selectedIndex];
+        loadClientData(selectedOption);
+    });
+
+    addItemBtn.addEventListener('click', () => {
+        addRow();
+        // Llama sin argumentos (default false) para no resetear las filas existentes
+        updateAllServiceSelects(); 
+    });
+    
     detallesContainer.addEventListener('change', (e) => { 
         if (e.target.matches('.servicio-select')) {
-            loadServiceData(e.target);
+            const row = e.target.closest('.item-row-v2');
+            row.dataset.servicioId = e.target.value; 
+            loadServiceData(e.target, row.dataset.normaId, row.dataset.metodoId);
         }
         updateTotals();
     });
 
-    // Input en cantidad, precio o unidad
     detallesContainer.addEventListener('input', (e) => {
         if (e.target.matches('.cantidad-input, .precio-input, .und-input')) {
             updateTotals();
         }
     });
     
-    // Eliminar fila
     detallesContainer.addEventListener('click', (e) => {
         const removeBtn = e.target.closest('.remove-item-btn');
         if (removeBtn) {
@@ -632,32 +901,57 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Envío del formulario
     cotizacionForm.addEventListener('submit', (e) => {
         updateTotals();
-        // Validar que haya al menos un ítem
         if (!detallesJsonInput.value || JSON.parse(detallesJsonInput.value).length === 0) {
             e.preventDefault();
             alert('Debe agregar al menos un ítem a la cotización.');
         }
     });
 
-    // Inicialización para filas existentes (si se está editando una cotización)
+    // --- Inicialización General ---
+    
+    loadAllServicesData(); // 1. Cargar el JSON con todos los servicios
+
+    // Inicialización de selects estáticos
+    if (typeof TomSelect !== 'undefined') {
+        initializeTomSelect(clientesSelect, {placeholder: 'Seleccione cliente'});
+        initializeTomSelect(formaPagoSelect, {placeholder: 'Seleccione forma de pago'});
+        // 🚨 Inicializamos la categoría y guardamos la instancia
+        initializeTomSelect(categoriaServicioSelect, {placeholder: 'Seleccione categoría'}); 
+    }
+
+    // Cargar datos iniciales del cliente
+    const initialSelectedOption = clientesSelect.options[clientesSelect.selectedIndex];
+    if (initialSelectedOption && initialSelectedOption.value) {
+        loadClientData(initialSelectedOption);
+    }
+    
+    // Inicialización para filas existentes (Edición)
+    let initialRowsPresent = false;
     detallesContainer.querySelectorAll('.item-row-v2').forEach(row => {
-        const servicioSelect = row.querySelector('.servicio-select');
-        initializeTomSelect(servicioSelect); 
-        // Recuperar IDs de datos de la fila (asumiendo que vienen de atributos data)
+        initialRowsPresent = true;
+        
+        const selectedServicioId = row.dataset.servicioId; 
         const selectedNormaId = row.dataset.normaId;
         const selectedMetodoId = row.dataset.metodoId;
-        if (servicioSelect.value) {
+        
+        const servicioSelect = row.querySelector('.servicio-select');
+        
+        initializeTomSelect(servicioSelect); 
+        
+        if (selectedServicioId) {
             loadServiceData(servicioSelect, selectedNormaId, selectedMetodoId);
         }
     });
 
     // Asegurar que siempre haya una fila al inicio si está vacío
-    if (detallesContainer.children.length === 0) {
+    if (!initialRowsPresent) {
         addRow();
     }
+    
+    // Paso FINAL CRÍTICO: Poblar todos los selects de servicio con el filtro de la categoría inicial.
+    updateAllServiceSelects(); 
 });
 </script>
 {% endblock %}
