@@ -426,7 +426,7 @@ def crear_editar_cotizacion(request, pk=None):
                 accion = "creada" if is_new else "actualizada"
                 messages.success(request, f"¡Cotización {cotizacion.numero_oferta} {accion} con éxito! ✅")
                 
-                return redirect('servicios:editar_cotizacion', pk=cotizacion.pk)
+                return redirect('servicios:lista_cotizaciones')
 
         except (ValueError, InvalidOperation, Cotizacion.DoesNotExist, Cliente.DoesNotExist, Servicio.DoesNotExist, CategoriaServicio.DoesNotExist) as e:
             error = f'Error de Guardado: Error en los datos de entrada o cálculo: {e}'

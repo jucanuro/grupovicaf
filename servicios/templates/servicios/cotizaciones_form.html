@@ -489,27 +489,34 @@ h2 {
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    
     // --- Variables Globales ---
     let ALL_SERVICES_DATA = [];
+    let ALL_SERVICES_OPTIONS = [];
     let servicesDataLoaded = false;
-    let categoriaTomSelectInstance = null; // Variable para la instancia TomSelect de la categoría
+    let categoriaTomSelectInstance = null; 
 
-    // Inicializar Lucide Icons
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
+    
+    // Función para asegurar el parsing correcto de números (maneja , y . y devuelve un flotante)
+    const parseValue = (value) => {
+        if (value === null || value === undefined) return 0;
+        let cleanValue = String(value).trim();
+        cleanValue = cleanValue.replace(',', '.');
+        return parseFloat(cleanValue) || 0;
+    };
 
-    // Elementos del Encabezado y Cliente
     const clientesSelect = document.getElementById('id_cliente_ruc');
     const formaPagoSelect = document.getElementById('id_forma_pago');
-    const categoriaServicioSelect = document.getElementById('id_servicio_general'); // El select del encabezado
+    const categoriaServicioSelect = document.getElementById('id_servicio_general');
 
     const razonSocialInput = document.getElementById('id_razon_social');
     const personaContactoInput = document.getElementById('id_persona_contacto');
     const correoContactoInput = document.getElementById('id_correo_contacto');
     const telefonoContactoInput = document.getElementById('id_telefono_contacto');
 
-    // Elementos de Detalle y Totales
     const detallesContainer = document.getElementById('cotizacion-detalles'); 
     const addItemBtn = document.getElementById('addItemBtn');
     const cotizacionForm = document.getElementById('cotizacion-form');
@@ -519,24 +526,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalFinalSpan = document.getElementById('total_final_cotizacion');
     const montoTotalInput = document.getElementById('id_monto_total');
     const detallesJsonInput = document.getElementById('detalles_json');
-    const tasaIgvInput = document.getElementById('id_tasa_igv');
+    // Elemento crucial para el IGV (puede ser nulo, lo manejamos en updateTotals)
+    const tasaIgvInput = document.getElementById('id_tasa_igv'); 
 
-    // --- Lógica de Inicialización de Datos ---
-
-    // 1. Carga los datos JSON de servicios
     const loadAllServicesData = () => {
         const dataElement = document.getElementById('all-services-data');
         if (dataElement) {
             try {
                 ALL_SERVICES_DATA = JSON.parse(dataElement.textContent || '[]');
                 servicesDataLoaded = true;
+
+                ALL_SERVICES_OPTIONS = ALL_SERVICES_DATA.map(service => ({
+                    value: String(service.pk),
+                    text: `${service.nombre}${service.codigo_facturacion ? ' - (' + service.codigo_facturacion + ')' : ''}` 
+                }));
+
             } catch (e) {
                 console.error("Error al parsear el JSON de servicios:", e);
             }
         }
     };
 
-    // Función para cargar datos del cliente
     const loadClientData = (selectedOption) => {
         if (selectedOption) {
             razonSocialInput.value = selectedOption.dataset.razonSocial || '';
@@ -551,20 +561,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Función de inicialización de Tom-select
     const initializeTomSelect = (element, options = {}) => {
         if (typeof TomSelect !== 'undefined' && element) {
             if (element.tomselect) {
                 element.tomselect.destroy();
             }
-            const defaultOptions = element.matches('.servicio-select') ? {
-                render: {
-                    option: function(item, escape) { return `<div>${escape(item.text)}</div>`; },
-                    item: function(item, escape) { return `<div>${escape(item.text)}</div>`; }
-                }
-            } : {};
-
-            const instance = new TomSelect(element, {
+            
+            let tsOptions = {
                 create: false,
                 sortField: {
                     field: "text",
@@ -572,97 +575,59 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 placeholder: element.getAttribute('data-placeholder') || 'Seleccione...',
                 allowEmptyOption: true,
-                ...defaultOptions,
-                ...options
-            });
+                render: {
+                    option: function(item, escape) { return `<div>${escape(item.text)}</div>`; },
+                    item: function(item, escape) { return `<div>${escape(item.text)}</div>`; }
+                }
+            };
 
-            // Guardar la instancia de la categoría principal
+            if (element.matches('.servicio-select')) {
+                 tsOptions = {
+                    ...tsOptions,
+                    persist: false,
+                    maxItems: 1,
+                    valueField: 'value',
+                    labelField: 'text',
+                    searchField: ['text'],
+                    options: ALL_SERVICES_OPTIONS,
+                    items: [element.value],
+                 };
+            }
+
+            const instance = new TomSelect(element, { ...tsOptions, ...options });
+
             if (element === categoriaServicioSelect) {
                 categoriaTomSelectInstance = instance;
             }
         }
     };
     
-    // Función para poblar el SELECT de servicio con base en la Categoría seleccionada
-    const populateServiciosSelect = (selectElement, selectedServicioId) => {
-        if (!servicesDataLoaded) return;
-        
-        let tomSelectInstance = selectElement.tomselect;
-        
-        if (!tomSelectInstance) {
-            initializeTomSelect(selectElement);
-            tomSelectInstance = selectElement.tomselect;
-            if (!tomSelectInstance) return;
-        }
-
-        // Obtener el valor de la categoría de la INSTANCIA de TomSelect (la fuente de verdad)
-        let selectedCategoriaId = '';
-        if (categoriaTomSelectInstance) {
-            selectedCategoriaId = String(categoriaTomSelectInstance.getValue() || '');
-        } else {
-            selectedCategoriaId = String(categoriaServicioSelect.value || '');
-        }
-        
-        tomSelectInstance.clearOptions();
-        
-        // Opción por defecto (Placeholder)
-        tomSelectInstance.addOption({
-            value: '', 
-            text: 'Seleccione servicio', 
-            disabled: true, 
-            selected: true
-        });
-
-        let servicesToUse = [];
-
-        // Filtrar solo si la categoría seleccionada tiene un valor
-        if (selectedCategoriaId) {
-            servicesToUse = ALL_SERVICES_DATA.filter(service => {
-                const serviceCategoriaId = String(service.categoria_id); 
-                // Compara la ID de la categoría del servicio con la ID seleccionada (ambas strings)
-                return serviceCategoriaId === selectedCategoriaId; 
-            }).map(service => ({
-                value: String(service.pk),
-                text: service.nombre
-            }));
-        }
-        
-        // Agregar servicios filtrados
-        if (servicesToUse.length > 0) {
-            tomSelectInstance.addOptions(servicesToUse);
-        }
-        
-        // Seleccionar el valor guardado si existe en las nuevas opciones
-        if (selectedServicioId && tomSelectInstance.options[String(selectedServicioId)]) {
-             tomSelectInstance.setValue(String(selectedServicioId), true);
-        } else {
-             // Si el servicio anterior no está en la nueva categoría, lo deselecciona.
-             tomSelectInstance.setValue('', true);
-        }
-        
-        tomSelectInstance.refreshOptions(false);
-    };
-
-    // Función para generar el HTML de una fila de ítem
-    const createItemRowHTML = (servicioId = '', cantidad = '1', precio = '0.00', und = 'und', normaId = '', metodoId = '') => {
+    // CAMBIO: DESCRIPCIÓN - Nueva función para generar el HTML
+    const createItemRowHTML = (servicioId = '', cantidad = '1', precio = '0.00', und = 'und', normaId = '', metodoId = '', descripcion = '') => {
+        const initialPrice = String(precio).replace(',', '.');
         return `
             <div class="item-row-v2 animate-fade-in-up" data-servicio-id="${servicioId}" data-norma-id="${normaId}" data-metodo-id="${metodoId}">
                 <div class="form-group-v2">
                     <label class="form-label-v2">Servicio</label>
                     <select class="form-control-v2 form-select-v2 servicio-select tom-select-js" required name="servicio" data-placeholder="Seleccione servicio">
-                        <option value="" disabled selected>Seleccione servicio</option>
+                        <option value="${servicioId}" selected>${servicioId ? 'Cargando...' : 'Seleccione servicio'}</option>
                     </select>
+                </div>
+                
+                <div class="form-group-v2 descripcion-container" style="grid-column: 1 / -1;">
+                    <label class="form-label-v2">Descripción Específica</label>
+                    <textarea class="form-control-v2 descripcion-input" name="descripcion_especifica" rows="2" placeholder="Notas específicas del ítem">${descripcion}</textarea>
                 </div>
                 <div class="form-group-v2">
                     <label class="form-label-v2">Norma</label>
                     <select class="form-control-v2 form-select-v2 normas-select" name="norma" data-placeholder="Seleccione norma">
-                        <option value="" disabled selected>Seleccione norma</option>
+                        <option value="" ${!normaId ? 'selected' : ''}>Seleccione norma</option>
                     </select>
                 </div>
                 <div class="form-group-v2">
                     <label class="form-label-v2">Método</label>
                     <select class="form-control-v2 form-select-v2 metodos-select" name="metodo" data-placeholder="Seleccione método">
-                        <option value="" disabled selected>Seleccione método</option>
+                        <option value="" ${!metodoId ? 'selected' : ''}>Seleccione método</option>
                     </select>
                 </div>
                 <div class="form-group-v2">
@@ -675,11 +640,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="form-group-v2">
                     <label class="form-label-v2">Precio</label>
-                    <input type="number" class="form-control-v2 text-center precio-input no-arrows" step="0.01" value="${precio}" required placeholder="Precio">
+                    <input type="number" class="form-control-v2 text-center precio-input no-arrows" step="0.01" value="${initialPrice}" required placeholder="Precio">
                 </div>
                 <div class="flex flex-col items-end text-lg font-bold text-green-400">
                     <span class="text-sm text-slate-400">Subtotal:</span>
-                    S/. <span class="subtotal-cell">0.00</span>
+                    <div class="flex">
+                        <span>S/. </span>
+                        <span class="subtotal-cell">0.00</span>
+                    </div>
+                    
                 </div>
                 <div class="flex justify-center">
                     <button type="button" class="remove-item-btn p-2 text-rose-400 hover:bg-rose-500/20 rounded-full transition-colors">
@@ -690,9 +659,10 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     };
 
-    // Función para añadir una nueva fila de ítem
-    const addRow = (servicioId = '', cantidad = '1', precio = '0.00', und = 'und', normaId = '', metodoId = '') => {
-        const rowHTML = createItemRowHTML(servicioId, cantidad, precio, und, normaId, metodoId);
+    // CAMBIO: DESCRIPCIÓN - Se agrega el argumento 'descripcion'
+    const addRow = (servicioId = '', cantidad = '1', precio = '0.00', und = 'und', normaId = '', metodoId = '', descripcion = '') => {
+        // CAMBIO: DESCRIPCIÓN - Se pasa el argumento 'descripcion'
+        const rowHTML = createItemRowHTML(servicioId, cantidad, precio, und, normaId, metodoId, descripcion); 
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = rowHTML.trim();
         const newRow = tempDiv.firstChild;
@@ -708,12 +678,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (servicioId) {
             loadServiceData(servicioSelect, normaId, metodoId);
         } else {
-             updateTotals(); 
+            updateTotals();
         }
     };
     
-    // Función para cargar los datos del servicio seleccionado (precio, unidad, normas, métodos)
-    const loadServiceData = async (selectElement, selectedNormaId, selectedMetodoId) => {
+    const loadServiceData = (selectElement, selectedNormaId, selectedMetodoId) => {
         const pk = selectElement.value;
         const row = selectElement.closest('.item-row-v2'); 
         const precioInput = row.querySelector('.precio-input');
@@ -721,47 +690,53 @@ document.addEventListener('DOMContentLoaded', () => {
         const normasSelect = row.querySelector('.normas-select');
         const metodosSelect = row.querySelector('.metodos-select');
 
+        const servicio = ALL_SERVICES_DATA.find(s => String(s.pk) === pk);
+
         if (normasSelect && normasSelect.tomselect) normasSelect.tomselect.destroy();
         if (metodosSelect && metodosSelect.tomselect) metodosSelect.tomselect.destroy();
 
         normasSelect.innerHTML = '<option value="" disabled selected>Seleccione norma</option>';
         metodosSelect.innerHTML = '<option value="" disabled selected>Seleccione método</option>';
 
-        if (pk) {
+        if (servicio) {
             try {
-                const url = `{% url 'servicios:obtener_detalle_servicio_para_cotizacion_api' pk=999999 %}`.replace('999999', pk);
-                const response = await fetch(url);
-                const servicio = await response.json();
+                precioInput.value = String(parseValue(servicio.precio_base)).replace(',', '.'); 
+                undInput.value = servicio.unidad_base || ''; 
                 
-                precioInput.value = parseFloat(servicio.precio_unitario).toFixed(2);
-                undInput.value = servicio.und || '';
-
                 if (servicio.normas && servicio.normas.length > 0) {
                     servicio.normas.forEach(norma => {
                         const option = document.createElement('option');
-                        option.value = norma.id;
-                        option.textContent = norma.nombre;
-                        if (String(norma.id) === String(selectedNormaId)) option.selected = true;
+                        option.value = norma.pk;
+                        option.textContent = `${norma.codigo || ''} ${norma.nombre}`;
+                        if (String(norma.pk) === String(selectedNormaId)) option.selected = true;
                         normasSelect.appendChild(option);
                     });
                 }
+                
                 if (servicio.metodos && servicio.metodos.length > 0) {
                     servicio.metodos.forEach(metodo => {
                         const option = document.createElement('option');
-                        option.value = metodo.id;
-                        option.textContent = metodo.nombre;
-                        if (String(metodo.id) === String(selectedMetodoId)) option.selected = true;
+                        option.value = metodo.pk;
+                        option.textContent = `${metodo.codigo || ''} ${metodo.nombre}`; 
+                        if (String(metodo.pk) === String(selectedMetodoId)) option.selected = true;
                         metodosSelect.appendChild(option);
                     });
                 }
 
                 if (typeof TomSelect !== 'undefined') {
-                    initializeTomSelect(normasSelect, {placeholder: 'Seleccione norma'});
-                    initializeTomSelect(metodosSelect, {placeholder: 'Seleccione método'});
+                    initializeTomSelect(normasSelect, {
+                        placeholder: 'Seleccione norma',
+                        allowEmptyOption: (normasSelect.options.length > 1) 
+                    });
+                    
+                    initializeTomSelect(metodosSelect, {
+                        placeholder: 'Seleccione método',
+                        allowEmptyOption: (metodosSelect.options.length > 1)
+                    });
                 }
 
             } catch (error) {
-                console.error('Error al cargar datos del servicio mediante API:', error);
+                console.error('Error al procesar datos del servicio en frontend:', error);
                 precioInput.value = '0.00';
                 undInput.value = '';
             }
@@ -771,25 +746,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         updateTotals();
     };
-
-    // Función para actualizar todos los selects de servicio en la página
-    // 🚨 ACEPTA UN BOOLEANO PARA SABER SI ES UN CAMBIO DE CATEGORÍA PRINCIPAL
+    
     const updateAllServiceSelects = (isMasterCategoryChange = false) => {
         detallesContainer.querySelectorAll('.item-row-v2').forEach(row => {
             const servicioSelect = row.querySelector('.servicio-select');
             
-            // Si es un cambio de categoría principal, forzamos la deselección
             if (isMasterCategoryChange) {
                 if (servicioSelect.tomselect) {
-                    servicioSelect.tomselect.setValue('', true); // Limpiar selección en TomSelect
+                    servicioSelect.tomselect.setValue('', true);
                 }
-                // Limpiar data attributes de la fila y valores de otros campos
                 row.dataset.servicioId = ''; 
                 
                 const normasSelect = row.querySelector('.normas-select');
                 const metodosSelect = row.querySelector('.metodos-select');
                 const precioInput = row.querySelector('.precio-input');
                 const undInput = row.querySelector('.und-input');
+                // CAMBIO: DESCRIPCIÓN - Limpieza al cambiar de categoría principal
+                const descripcionInput = row.querySelector('.descripcion-input');
                 
                 if (normasSelect.tomselect) normasSelect.tomselect.setValue('', true);
                 if (metodosSelect.tomselect) metodosSelect.tomselect.setValue('', true);
@@ -798,14 +771,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 row.dataset.metodoId = '';
                 precioInput.value = '0.00';
                 undInput.value = '';
+                if (descripcionInput) descripcionInput.value = ''; // Limpiar la descripción
             }
             
-            // Obtener el ID de servicio a intentar mantener (será nulo/vacío si se acaba de resetear)
-            const selectedServicioId = servicioSelect.value || row.dataset.servicioId; 
+            if (!servicioSelect.tomselect) {
+                initializeTomSelect(servicioSelect);
+            } 
 
-            populateServiciosSelect(servicioSelect, selectedServicioId); 
-            
-            // Si después de poblar tenemos un valor (solo pasaría si NO hubo un reset o es carga inicial)
             if (servicioSelect.value) {
                 loadServiceData(servicioSelect, row.dataset.normaId, row.dataset.metodoId);
             }
@@ -813,11 +785,21 @@ document.addEventListener('DOMContentLoaded', () => {
         updateTotals(); 
     };
 
-    // Función para recalcular totales y preparar el JSON de detalles
     const updateTotals = () => {
         let subtotal = 0;
         const detalles = [];
-        const tasaIgv = parseFloat(tasaIgvInput ? tasaIgvInput.value : 0.18) || 0.18; 
+        
+        let tasaIgv = 0.18; 
+        
+        // Manejo robusto del input de tasa IGV (si existe)
+        if (tasaIgvInput) {
+            tasaIgv = parseValue(tasaIgvInput.value) || 0.18;
+        }
+
+        if (tasaIgv > 1) { 
+             tasaIgv = tasaIgv / 100;
+        }
+
 
         detallesContainer.querySelectorAll('.item-row-v2').forEach(row => { 
             const servicioSelect = row.querySelector('.servicio-select');
@@ -827,10 +809,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const undInput = row.querySelector('.und-input');
             const normasSelect = row.querySelector('.normas-select');
             const metodosSelect = row.querySelector('.metodos-select');
+            // CAMBIO: DESCRIPCIÓN - Obtener el input de descripción
+            const descripcionInput = row.querySelector('.descripcion-input'); 
 
             const servicioId = servicioSelect.value;
-            const cantidad = parseFloat(cantidadInput.value) || 0;
-            const precio = parseFloat(precioInput.value) || 0;
+            
+            const cantidad = parseValue(cantidadInput.value);
+            const precio = parseValue(precioInput.value); 
+            
             const itemSubtotal = cantidad * precio;
 
             subtotal += itemSubtotal;
@@ -840,10 +826,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 detalles.push({
                     servicio_id: servicioId,
                     cantidad: cantidad,
-                    precio_unitario: precio.toFixed(2),
-                    und: undInput.value,
+                    precio_unitario: precio.toFixed(2), 
+                    unidad_medida: undInput.value,
                     norma_id: normasSelect.value || null,
-                    metodo_id: metodosSelect.value || null
+                    metodo_id: metodosSelect.value || null,
+                    // CAMBIO: DESCRIPCIÓN - Incluir el valor de la descripción en el JSON
+                    descripcion_especifica: descripcionInput ? descripcionInput.value.trim() : ''
                 });
             }
         });
@@ -860,7 +848,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Listeners de Eventos ---
     
-    // 🚨 Listener modificado: Pasa 'true' al cambiar la categoría principal
     categoriaServicioSelect.addEventListener('change', () => updateAllServiceSelects(true));
     
     if (tasaIgvInput) {
@@ -873,8 +860,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     addItemBtn.addEventListener('click', () => {
+        // CAMBIO: DESCRIPCIÓN - No necesitamos pasar la descripción al añadir una fila nueva
         addRow();
-        // Llama sin argumentos (default false) para no resetear las filas existentes
         updateAllServiceSelects(); 
     });
     
@@ -882,14 +869,35 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.matches('.servicio-select')) {
             const row = e.target.closest('.item-row-v2');
             row.dataset.servicioId = e.target.value; 
+            
+            row.dataset.normaId = '';
+            row.dataset.metodoId = '';
+
             loadServiceData(e.target, row.dataset.normaId, row.dataset.metodoId);
         }
+        if (e.target.matches('.normas-select')) {
+            const row = e.target.closest('.item-row-v2');
+            row.dataset.normaId = e.target.value;
+        }
+        if (e.target.matches('.metodos-select')) {
+            const row = e.target.closest('.item-row-v2');
+            row.dataset.metodoId = e.target.value;
+        }
+
         updateTotals();
     });
 
     detallesContainer.addEventListener('input', (e) => {
-        if (e.target.matches('.cantidad-input, .precio-input, .und-input')) {
+        // CAMBIO: DESCRIPCIÓN - Se añade el input de descripción al listener
+        if (e.target.matches('.cantidad-input, .precio-input, .und-input, .descripcion-input')) {
             updateTotals();
+        }
+    });
+
+    detallesContainer.addEventListener('paste', (e) => {
+        // CAMBIO: DESCRIPCIÓN - Se añade el input de descripción al listener de paste
+        if (e.target.matches('.cantidad-input, .precio-input, .descripcion-input')) {
+            setTimeout(updateTotals, 50); 
         }
     });
     
@@ -911,23 +919,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Inicialización General ---
     
-    loadAllServicesData(); // 1. Cargar el JSON con todos los servicios
+    loadAllServicesData(); 
 
-    // Inicialización de selects estáticos
     if (typeof TomSelect !== 'undefined') {
         initializeTomSelect(clientesSelect, {placeholder: 'Seleccione cliente'});
         initializeTomSelect(formaPagoSelect, {placeholder: 'Seleccione forma de pago'});
-        // 🚨 Inicializamos la categoría y guardamos la instancia
         initializeTomSelect(categoriaServicioSelect, {placeholder: 'Seleccione categoría'}); 
     }
 
-    // Cargar datos iniciales del cliente
     const initialSelectedOption = clientesSelect.options[clientesSelect.selectedIndex];
     if (initialSelectedOption && initialSelectedOption.value) {
         loadClientData(initialSelectedOption);
     }
     
-    // Inicialización para filas existentes (Edición)
     let initialRowsPresent = false;
     detallesContainer.querySelectorAll('.item-row-v2').forEach(row => {
         initialRowsPresent = true;
@@ -938,6 +942,17 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const servicioSelect = row.querySelector('.servicio-select');
         
+        // Asumiendo que en la vista de Edición (donde hay filas pre-cargadas), 
+        // el <textarea class="descripcion-input"> ya viene con el valor pre-llenado desde el backend.
+        
+        if (selectedServicioId) {
+             const selectedService = ALL_SERVICES_DATA.find(s => String(s.pk) === selectedServicioId);
+             if (selectedService) {
+                 const serviceText = `${selectedService.nombre}${selectedService.codigo_facturacion ? ' - (' + selectedService.codigo_facturacion + ')' : ''}`;
+                 servicioSelect.innerHTML = `<option value="${selectedServicioId}" selected>${serviceText}</option>`;
+             }
+        }
+        
         initializeTomSelect(servicioSelect); 
         
         if (selectedServicioId) {
@@ -945,13 +960,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Asegurar que siempre haya una fila al inicio si está vacío
     if (!initialRowsPresent) {
         addRow();
     }
     
-    // Paso FINAL CRÍTICO: Poblar todos los selects de servicio con el filtro de la categoría inicial.
-    updateAllServiceSelects(); 
+    updateTotals(); 
 });
 </script>
 {% endblock %}
