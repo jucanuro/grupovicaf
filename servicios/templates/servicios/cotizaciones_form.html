@@ -390,42 +390,8 @@ h2 {
                         <select class="form-control-v2 form-select-v2 servicio-select" required>
                             <option value="" selected disabled>Seleccionar Servicio</option>
                         </select>
-                        <input type="hidden" class="descripcion-input">
+                        </div>
                     </div>
-                    <div class="form-group-v2">
-                        <label class="form-label-v2">Norma</label>
-                        <select class="form-control-v2 form-select-v2 normas-select">
-                            <option value="">N/A</option>
-                        </select>
-                    </div>
-                    <div class="form-group-v2">
-                        <label class="form-label-v2">Método</label>
-                        <select class="form-control-v2 form-select-v2 metodos-select">
-                            <option value="">N/A</option>
-                        </select>
-                    </div>
-                    <div class="form-group-v2">
-                        <label class="form-label-v2">Unidad</label>
-                        <input type="text" class="form-control-v2 text-center und-input" required placeholder="Und.">
-                    </div>
-                    <div class="form-group-v2">
-                        <label class="form-label-v2">Cantidad</label>
-                        <input type="number" class="form-control-v2 text-center cantidad-input no-arrows" min="1" value="1" required placeholder="Cant.">
-                    </div>
-                    <div class="form-group-v2">
-                        <label class="form-label-v2">Precio</label>
-                        <input type="number" class="form-control-v2 text-center precio-input no-arrows" step="0.01" min="0.01" value="0.00" required placeholder="Precio">
-                    </div>
-                    <div class="flex flex-col items-start text-sm font-bold text-green-400">
-                        <span class="text-sm text-slate-400">Subtotal:</span>
-                        S/. <span class="subtotal-cell text-sm">0.00</span>
-                    </div>
-                    <div class="flex justify-center">
-                        <button type="button" class="remove-item-btn p-2 text-rose-400 hover:bg-rose-500/20 rounded-full transition-colors">
-                            <i data-lucide="trash-2" class="w-5 h-5"></i>
-                        </button>
-                    </div>
-                </div>
             </template>
         </div>
 
@@ -487,6 +453,12 @@ h2 {
 <script id="all-services-data" type="application/json">
     {{ servicios_con_detalles_json|safe }}
 </script>
+
+{% if cotizacion and detalles_cotizacion_json and detalles_cotizacion_json != '[]' %}
+<script id="initial-detalles-json" type="application/json">
+    {{ detalles_cotizacion_json|safe }}
+</script>
+{% endif %}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -527,7 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const montoTotalInput = document.getElementById('id_monto_total');
     const detallesJsonInput = document.getElementById('detalles_json');
     // Elemento crucial para el IGV (puede ser nulo, lo manejamos en updateTotals)
-    const tasaIgvInput = document.getElementById('id_tasa_igv'); 
+    const tasaIgvInput = document.getElementById('tasa_igv'); 
 
     const loadAllServicesData = () => {
         const dataElement = document.getElementById('all-services-data');
@@ -583,15 +555,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (element.matches('.servicio-select')) {
                  tsOptions = {
-                    ...tsOptions,
-                    persist: false,
-                    maxItems: 1,
-                    valueField: 'value',
-                    labelField: 'text',
-                    searchField: ['text'],
-                    options: ALL_SERVICES_OPTIONS,
-                    items: [element.value],
-                 };
+                     ...tsOptions,
+                     persist: false,
+                     maxItems: 1,
+                     valueField: 'value',
+                     labelField: 'text',
+                     searchField: ['text'],
+                     options: ALL_SERVICES_OPTIONS,
+                     // Si el select ya tiene un valor (cargado del backend), lo mantiene, 
+                     // sino, lo inicializa vacío.
+                     items: [element.value], 
+                   };
             }
 
             const instance = new TomSelect(element, { ...tsOptions, ...options });
@@ -602,18 +576,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // CAMBIO: DESCRIPCIÓN - Nueva función para generar el HTML
+    // Función para generar el HTML de una fila de detalle
     const createItemRowHTML = (servicioId = '', cantidad = '1', precio = '0.00', und = 'und', normaId = '', metodoId = '', descripcion = '') => {
-        const initialPrice = String(precio).replace(',', '.');
+        // Asegurar que el precio tenga formato de punto para el input type="number"
+        const initialPrice = String(precio).replace(',', '.'); 
+        
+        // Buscar el texto del servicio para la opción inicial (necesario en modo Edición)
+        let servicioText = servicioId ? 'Cargando...' : 'Seleccione servicio';
+        if (servicioId && ALL_SERVICES_OPTIONS.length > 0) {
+            const selectedServiceOption = ALL_SERVICES_OPTIONS.find(opt => opt.value === String(servicioId));
+            if (selectedServiceOption) {
+                servicioText = selectedServiceOption.text;
+            }
+        }
+        
         return `
-           <div class="item-row-v2 animate-fade-in-up" data-servicio-id="${servicioId}" data-norma-id="${normaId}" data-metodo-id="${metodoId}">
+            <div class="item-row-v2 animate-fade-in-up" data-servicio-id="${servicioId}" data-norma-id="${normaId}" data-metodo-id="${metodoId}">
             
             <div style="display: flex; gap: 1rem; width: 100%; grid-column: 1 / -1;">
                 
                 <div class="form-group-v2" style="flex: 5;">
                     <label class="form-label-v2">Servicio</label>
                     <select class="form-control-v2 form-select-v2 servicio-select tom-select-js" required name="servicio" data-placeholder="Seleccione servicio">
-                        <option value="${servicioId}" selected>${servicioId ? 'Cargando...' : 'Seleccione servicio'}</option>
+                        <option value="${servicioId}" selected>${servicioText}</option>
                     </select>
                 </div>
                 
@@ -671,9 +656,8 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     };
 
-    // CAMBIO: DESCRIPCIÓN - Se agrega el argumento 'descripcion'
+    // Función para añadir una fila (item)
     const addRow = (servicioId = '', cantidad = '1', precio = '0.00', und = 'und', normaId = '', metodoId = '', descripcion = '') => {
-        // CAMBIO: DESCRIPCIÓN - Se pasa el argumento 'descripcion'
         const rowHTML = createItemRowHTML(servicioId, cantidad, precio, und, normaId, metodoId, descripcion); 
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = rowHTML.trim();
@@ -685,9 +669,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const servicioSelect = newRow.querySelector('.servicio-select');
+        // El TomSelect se inicializa con la opción ya cargada por createItemRowHTML
         initializeTomSelect(servicioSelect);
 
         if (servicioId) {
+            // Si hay un servicio ID, cargamos sus normas/métodos asociados y los pre-seleccionamos
             loadServiceData(servicioSelect, normaId, metodoId);
         } else {
             updateTotals();
@@ -704,15 +690,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const servicio = ALL_SERVICES_DATA.find(s => String(s.pk) === pk);
 
+        // Destruir instancias existentes antes de recrear
         if (normasSelect && normasSelect.tomselect) normasSelect.tomselect.destroy();
         if (metodosSelect && metodosSelect.tomselect) metodosSelect.tomselect.destroy();
 
-        normasSelect.innerHTML = '<option value="" disabled selected>Seleccione norma</option>';
-        metodosSelect.innerHTML = '<option value="" disabled selected>Seleccione método</option>';
+        normasSelect.innerHTML = '<option value="">Seleccione norma</option>';
+        metodosSelect.innerHTML = '<option value="">Seleccione método</option>';
 
         if (servicio) {
             try {
-                precioInput.value = String(parseValue(servicio.precio_base)).replace(',', '.'); 
+                // Si estamos en edición y ya hay un precio en el input, no sobreescribir con precio_base
+                // Esto es manejado por createItemRowHTML al pasar el precio. Aquí solo actualizamos el resto.
+                if (parseValue(precioInput.value) === 0.00) {
+                     precioInput.value = String(parseValue(servicio.precio_base)).replace(',', '.'); 
+                }
                 undInput.value = servicio.unidad_base || ''; 
                 
                 if (servicio.normas && servicio.normas.length > 0) {
@@ -738,12 +729,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof TomSelect !== 'undefined') {
                     initializeTomSelect(normasSelect, {
                         placeholder: 'Seleccione norma',
-                        allowEmptyOption: (normasSelect.options.length > 1) 
+                        allowEmptyOption: true 
                     });
                     
                     initializeTomSelect(metodosSelect, {
                         placeholder: 'Seleccione método',
-                        allowEmptyOption: (metodosSelect.options.length > 1)
+                        allowEmptyOption: true
                     });
                 }
 
@@ -757,6 +748,46 @@ document.addEventListener('DOMContentLoaded', () => {
             undInput.value = '';
         }
         updateTotals();
+    };
+    
+    // 💡 Solución: Nueva función para cargar detalles desde el JSON del Backend 
+    const loadInitialDetailsFromJSON = () => {
+        const initialDetailsElement = document.getElementById('initial-detalles-json');
+        
+        // Si no existe el elemento, es modo "Creación", solo añade una fila vacía.
+        if (!initialDetailsElement) {
+            addRow(); 
+            return;
+        } 
+        
+        let initialDetails = [];
+        try {
+            initialDetails = JSON.parse(initialDetailsElement.textContent || '[]');
+        } catch (e) {
+            console.error("Error al parsear el JSON de detalles iniciales:", e);
+            addRow();
+            return;
+        }
+        
+        // Limpiar filas de detalle precargadas (si las hay, aunque no debería haberlas con este enfoque)
+        detallesContainer.innerHTML = '';
+        
+        // Si hay detalles, los cargamos
+        if (initialDetails.length > 0) {
+            initialDetails.forEach(detail => {
+                addRow(
+                    String(detail.servicio_id || ''), 
+                    String(detail.cantidad || '1'), 
+                    String(detail.precio_unitario || '0.00'), 
+                    String(detail.unidad_medida || 'und'), 
+                    String(detail.norma_id || ''), 
+                    String(detail.metodo_id || ''),
+                    String(detail.descripcion_especifica || '') // Se carga la descripción
+                );
+            });
+        } else {
+            addRow(); 
+        }
     };
     
     const updateAllServiceSelects = (isMasterCategoryChange = false) => {
@@ -773,7 +804,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const metodosSelect = row.querySelector('.metodos-select');
                 const precioInput = row.querySelector('.precio-input');
                 const undInput = row.querySelector('.und-input');
-                // CAMBIO: DESCRIPCIÓN - Limpieza al cambiar de categoría principal
                 const descripcionInput = row.querySelector('.descripcion-input');
                 
                 if (normasSelect.tomselect) normasSelect.tomselect.setValue('', true);
@@ -783,7 +813,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 row.dataset.metodoId = '';
                 precioInput.value = '0.00';
                 undInput.value = '';
-                if (descripcionInput) descripcionInput.value = ''; // Limpiar la descripción
+                if (descripcionInput) descripcionInput.value = '';
             }
             
             if (!servicioSelect.tomselect) {
@@ -803,7 +833,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let tasaIgv = 0.18; 
         
-        // Manejo robusto del input de tasa IGV (si existe)
         if (tasaIgvInput) {
             tasaIgv = parseValue(tasaIgvInput.value) || 0.18;
         }
@@ -821,7 +850,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const undInput = row.querySelector('.und-input');
             const normasSelect = row.querySelector('.normas-select');
             const metodosSelect = row.querySelector('.metodos-select');
-            // CAMBIO: DESCRIPCIÓN - Obtener el input de descripción
             const descripcionInput = row.querySelector('.descripcion-input'); 
 
             const servicioId = servicioSelect.value;
@@ -842,7 +870,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     unidad_medida: undInput.value,
                     norma_id: normasSelect.value || null,
                     metodo_id: metodosSelect.value || null,
-                    // CAMBIO: DESCRIPCIÓN - Incluir el valor de la descripción en el JSON
                     descripcion_especifica: descripcionInput ? descripcionInput.value.trim() : ''
                 });
             }
@@ -858,7 +885,6 @@ document.addEventListener('DOMContentLoaded', () => {
         detallesJsonInput.value = JSON.stringify(detalles);
     };
 
-    // --- Listeners de Eventos ---
     
     categoriaServicioSelect.addEventListener('change', () => updateAllServiceSelects(true));
     
@@ -872,7 +898,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     addItemBtn.addEventListener('click', () => {
-        // CAMBIO: DESCRIPCIÓN - No necesitamos pasar la descripción al añadir una fila nueva
         addRow();
         updateAllServiceSelects(); 
     });
@@ -900,14 +925,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     detallesContainer.addEventListener('input', (e) => {
-        // CAMBIO: DESCRIPCIÓN - Se añade el input de descripción al listener
         if (e.target.matches('.cantidad-input, .precio-input, .und-input, .descripcion-input')) {
             updateTotals();
         }
     });
 
     detallesContainer.addEventListener('paste', (e) => {
-        // CAMBIO: DESCRIPCIÓN - Se añade el input de descripción al listener de paste
         if (e.target.matches('.cantidad-input, .precio-input, .descripcion-input')) {
             setTimeout(updateTotals, 50); 
         }
@@ -928,8 +951,6 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Debe agregar al menos un ítem a la cotización.');
         }
     });
-
-    // --- Inicialización General ---
     
     loadAllServicesData(); 
 
@@ -944,37 +965,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadClientData(initialSelectedOption);
     }
     
-    let initialRowsPresent = false;
-    detallesContainer.querySelectorAll('.item-row-v2').forEach(row => {
-        initialRowsPresent = true;
-        
-        const selectedServicioId = row.dataset.servicioId; 
-        const selectedNormaId = row.dataset.normaId;
-        const selectedMetodoId = row.dataset.metodoId;
-        
-        const servicioSelect = row.querySelector('.servicio-select');
-        
-        // Asumiendo que en la vista de Edición (donde hay filas pre-cargadas), 
-        // el <textarea class="descripcion-input"> ya viene con el valor pre-llenado desde el backend.
-        
-        if (selectedServicioId) {
-             const selectedService = ALL_SERVICES_DATA.find(s => String(s.pk) === selectedServicioId);
-             if (selectedService) {
-                 const serviceText = `${selectedService.nombre}${selectedService.codigo_facturacion ? ' - (' + selectedService.codigo_facturacion + ')' : ''}`;
-                 servicioSelect.innerHTML = `<option value="${selectedServicioId}" selected>${serviceText}</option>`;
-             }
-        }
-        
-        initializeTomSelect(servicioSelect); 
-        
-        if (selectedServicioId) {
-            loadServiceData(servicioSelect, selectedNormaId, selectedMetodoId);
-        }
-    });
-
-    if (!initialRowsPresent) {
-        addRow();
-    }
+    loadInitialDetailsFromJSON(); 
     
     updateTotals(); 
 });
