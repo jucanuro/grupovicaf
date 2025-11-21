@@ -38,7 +38,6 @@ def lista_servicios(request):
     """ Muestra una lista de todos los servicios con paginación y búsqueda. """
     query = request.GET.get('q')
     
-    # Uso de prefetch_related para cargar Normas y Métodos de manera eficiente
     servicios_list = Servicio.objects.all().prefetch_related('normas', 'metodos').order_by('nombre')
     
     if query:
@@ -95,7 +94,6 @@ def _procesar_guardado_servicio(request, servicio=None):
             except Exception:
                 raise ValueError("El campo 'Precio Base' debe ser un número válido.")
             
-            # --- CORRECCIÓN 1: Usar el nombre de relación correcto ('detalle_web') ---
             detalle_servicio = None
             if servicio:
                 try:
@@ -109,7 +107,6 @@ def _procesar_guardado_servicio(request, servicio=None):
             categoria_id = request.POST.get('categoria')
             imagen_file = request.FILES.get('imagen')
             
-            # --- CORRECCIÓN 2: Obtener el objeto CategoriaServicio ---
             categoria_obj = None
             if categoria_id:
                 try:
@@ -124,7 +121,7 @@ def _procesar_guardado_servicio(request, servicio=None):
                 'precio_base': precio_base,
                 'unidad_base': request.POST.get('unidad_base'),
                 'esta_acreditado': request.POST.get('esta_acreditado') == 'on',
-                'categoria': categoria_obj, # <-- ¡Asignación del objeto Categoría!
+                'categoria': categoria_obj, 
             }
             
             if not data_servicio['nombre'] or not data_servicio['descripcion']:
@@ -199,7 +196,6 @@ def crear_editar_servicio(request, pk=None):
     
     context = {
         'servicio': servicio,
-        # Acceso seguro a detalle_servicio usando 'detalle_web'
         'detalle_servicio': getattr(servicio, 'detalle_web', None) if servicio else None, 
         'categorias_disponibles': categorias_disponibles,
         'normas_disponibles': normas_disponibles,
@@ -335,7 +331,7 @@ def crear_editar_cotizacion(request, pk=None):
     is_editing = pk is not None
 
     if is_editing:
-        cotizacion = get_object_or_404(Cotizacion, pk=pk)
+        cotizacion = get_object_or_404(Cotizacion, pk=pk) 
 
     if request.method == 'POST':
         try:
@@ -355,7 +351,6 @@ def crear_editar_cotizacion(request, pk=None):
                 if not detalles_data:
                     raise ValueError("La cotización debe tener al menos un servicio.")
 
-                # --- Lógica de Creación/Actualización de Cabecera ---
                 if not is_editing:
                     cotizacion = Cotizacion(cliente=cliente)
                     try:
@@ -363,7 +358,6 @@ def crear_editar_cotizacion(request, pk=None):
                     except TrabajadorProfile.DoesNotExist:
                         pass
                 
-                # Actualizar campos de cabecera
                 cotizacion.cliente = cliente
                 cotizacion.asunto_servicio = request.POST.get('asunto_servicio')
                 cotizacion.proyecto_asociado = request.POST.get('proyecto_asociado')
@@ -371,20 +365,20 @@ def crear_editar_cotizacion(request, pk=None):
                 cotizacion.correo_contacto = request.POST.get('correo_contacto')
                 cotizacion.telefono_contacto = request.POST.get('telefono_contacto')
                 
-                # Fechas y Estado
                 fecha_generacion_str = request.POST.get('fecha_generacion')
+                
                 if fecha_generacion_str:
                     try:
                         cotizacion.fecha_generacion = date.fromisoformat(fecha_generacion_str)
                     except ValueError:
                         pass
+                
                 if not cotizacion.fecha_generacion:
                     cotizacion.fecha_generacion = date.today()
-
+                
                 cotizacion.estado = request.POST.get('estado', cotizacion.estado if is_editing else 'Pendiente')
                 cotizacion.aprobada_por_cliente = request.POST.get('aprobada_por_cliente') == 'on'
 
-                # Servicio General (Categoría)
                 servicio_general_pk = request.POST.get('servicio_general')
                 if servicio_general_pk:
                     servicio_general_obj = CategoriaServicio.objects.get(pk=servicio_general_pk)
@@ -392,7 +386,6 @@ def crear_editar_cotizacion(request, pk=None):
                 else:
                     cotizacion.servicio_general = None
 
-                # Condiciones Comerciales
                 cotizacion.plazo_entrega_dias = int(request.POST.get('plazo_entrega_dias') or 0)
                 cotizacion.validez_oferta_dias = int(request.POST.get('validez_oferta_dias') or 0)
                 cotizacion.forma_pago = request.POST.get('forma_pago')
@@ -401,7 +394,6 @@ def crear_editar_cotizacion(request, pk=None):
                 tasa_igv_str = str(request.POST.get('tasa_igv', '0')).strip().replace(',', '.')
                 cotizacion.tasa_igv = Decimal(tasa_igv_str) if tasa_igv_str else Decimal('0.00')
 
-                # Generar correlativo si es nuevo
                 if not is_editing:
                     prefix = 'VFC-OTE'
                     current_year = cotizacion.fecha_generacion.year
@@ -419,7 +411,6 @@ def crear_editar_cotizacion(request, pk=None):
 
                 cotizacion.save()
 
-                # --- Lógica de Detalles ---
                 if is_editing:
                     cotizacion.detalles_cotizacion.all().delete()
 
@@ -430,7 +421,6 @@ def crear_editar_cotizacion(request, pk=None):
 
                     servicio = Servicio.objects.get(pk=int(servicio_id_str))
 
-                    # Manejo de Norma
                     norma_id_str = str(item.get('norma_id', '')).strip()
                     norma = None
                     if norma_id_str and norma_id_str != 'null' and norma_id_str.isdigit():
@@ -439,7 +429,6 @@ def crear_editar_cotizacion(request, pk=None):
                          except Norma.DoesNotExist:
                              pass
 
-                    # Manejo de Método
                     metodo_id_str = str(item.get('metodo_id', '')).strip()
                     metodo = None
                     if metodo_id_str and metodo_id_str != 'null' and metodo_id_str.isdigit():
@@ -448,22 +437,18 @@ def crear_editar_cotizacion(request, pk=None):
                          except Metodo.DoesNotExist:
                              pass
 
-                    # Valores Numéricos
                     cantidad_str = str(item.get('cantidad', '0')).replace(',', '.')
                     precio_str = str(item.get('precio_unitario', '0')).replace(',', '.')
                     
                     cantidad = Decimal(cantidad_str)
                     precio_unitario = Decimal(precio_str)
                     
-                    # Descripción Específica: Si viene vacía, usamos la del servicio
                     desc_especifica = item.get('descripcion_especifica', '').strip()
                     if not desc_especifica:
                         desc_especifica = servicio.descripcion
 
-                    # Unidad de Medida
                     unidad = item.get('unidad_medida', servicio.unidad_base)
 
-                    # Calculo Total Linea
                     total_linea = (cantidad * precio_unitario).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
                     detalle_objs.append(CotizacionDetalle(
@@ -480,11 +465,12 @@ def crear_editar_cotizacion(request, pk=None):
 
                 CotizacionDetalle.objects.bulk_create(detalle_objs)
 
-                # Recalcular totales cabecera
                 subtotal = cotizacion.detalles_cotizacion.aggregate(Sum('total_detalle'))['total_detalle__sum'] or Decimal('0.00')
                 cotizacion.subtotal = subtotal
-                igv_monto = (subtotal * (cotizacion.tasa_igv / 100)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                cotizacion.impuesto_igv = igv_monto # OJO: Usar el nombre correcto del campo del modelo
+                
+                igv_monto = (subtotal * cotizacion.tasa_igv).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                
+                cotizacion.impuesto_igv = igv_monto
                 cotizacion.monto_total = subtotal + igv_monto
                 cotizacion.save()
 
@@ -494,22 +480,19 @@ def crear_editar_cotizacion(request, pk=None):
 
         except Exception as e:
             error = f'Error al procesar: {str(e)}'
-            # Si falla, mantenemos la instancia cotizacion si existía para volver a renderizar
             if is_editing and pk:
                 cotizacion = get_object_or_404(Cotizacion, pk=pk)
 
-    # --- Preparación de Datos para el Frontend ---
     clientes = Cliente.objects.all()
     servicios = Servicio.objects.all().prefetch_related('normas', 'metodos')
     servicio_grupos = CategoriaServicio.objects.all()
 
-    # JSON de Tarifario (Para lógica JS)
     servicios_con_detalles_json = json.dumps([
         {
             'pk': s.pk, 
             'nombre': s.nombre, 
             'unidad_base': s.unidad_base,
-            'descripcion': s.descripcion, # Importante para fallback
+            'descripcion': s.descripcion, 
             'precio_base': str(s.precio_base), 
             'categoria_id': s.categoria_id,
             'codigo_facturacion': s.codigo_facturacion,
@@ -518,7 +501,6 @@ def crear_editar_cotizacion(request, pk=None):
         } for s in servicios
     ])
 
-    # JSON de Detalles Guardados (CRUCIAL PARA EDITAR)
     detalles_cotizacion_json = '[]'
     if cotizacion:
         detalles_list = []
@@ -539,9 +521,9 @@ def crear_editar_cotizacion(request, pk=None):
         'cotizacion': cotizacion,
         'clientes': clientes,
         'servicios': servicios,
-        'servicio_grupos': servicio_grupos,
+        'servicio_grupos': servicio_grupos, 
         'servicios_con_detalles_json': servicios_con_detalles_json,
-        'detalles_cotizacion_json': detalles_cotizacion_json, # ESTE ES EL QUE FALTABA USAR EN JS
+        'detalles_cotizacion_json': detalles_cotizacion_json, 
         'error': error,
         'estados_choices': Cotizacion.ESTADO_CHOICES,
         'forma_pago_choices': Cotizacion.FORMA_PAGO_CHOICES,
@@ -577,31 +559,31 @@ def eliminar_cotizacion(request, pk):
     return render(request, 'servicios/cotizacion_confirm_delete.html', {'cotizacion': cotizacion})
 
 def generar_pdf_cotizacion(request, pk):
-    """
-    Muestra el HTML de la cotización directamente en el navegador
-    para propósitos de depuración.
-    """
+    cotizacion = get_object_or_404(Cotizacion.objects.all(), pk=pk)
     
-    # 1. Preparar el QuerySet (Mantenemos la optimización)
-    # Corregido: 'trabajador_responsable' es el campo correcto.
-    cotizacion_qs = Cotizacion.objects.select_related(
-        'cliente',                       
-        'trabajador_responsable',        
-    ).prefetch_related(
-        'detalles_cotizacion', 
-        'detalles_cotizacion__servicio',
-        'detalles_cotizacion__norma', 
-        'detalles_cotizacion__metodo', 
-    )
+    try:
+        tasa_igv_decimal = Decimal(cotizacion.tasa_igv) if cotizacion.tasa_igv else Decimal('0.18')
+    except (TypeError, ValueError):
+        tasa_igv_decimal = Decimal('0.18')
+
+    try:
+        subtotal = Decimal(cotizacion.subtotal) if cotizacion.subtotal else Decimal('0.00')
+    except (TypeError, ValueError):
+        subtotal = Decimal('0.00')
+
+    igv_amount = subtotal * tasa_igv_decimal
+    monto_total = subtotal + igv_amount
     
-    # 2. Obtener el objeto de la cotización
-    cotizacion = get_object_or_404(cotizacion_qs, pk=pk)
+    igv_porcentaje = int(tasa_igv_decimal * 100)
+
+    context = {
+        'cotizacion': cotizacion,
+        'subtotal_final': subtotal,
+        'igv_monto_final': igv_amount,
+        'monto_total_final': monto_total,
+        'igv_porcentaje': igv_porcentaje, 
+    }
     
-    # 3. Preparar el contexto
-    context = {'cotizacion': cotizacion}
-    
-    # 4. RENDERIZAR DIRECTAMENTE EL TEMPLATE HTML
-    # Esto usa el motor de plantillas de Django para devolver el HTML plano.
     return render(request, 'servicios/cotizacion_pdf.html', context)
 
 logger = logging.getLogger(__name__) 

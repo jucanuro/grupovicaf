@@ -143,6 +143,14 @@ class Cotizacion(models.Model):
         default=timezone.now, 
         verbose_name="Fecha de Generación de la Oferta"
     )
+    servicio_general = models.ForeignKey(
+        'CategoriaServicio', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='cotizaciones_por_categoria',
+        verbose_name="Categoría General del Servicio (Filtro)"
+    )
     asunto_servicio = models.CharField(max_length=255, verbose_name="Asunto del Servicio (Ej: Ensayos de Campo)")
     proyecto_asociado = models.CharField(max_length=255, blank=True, null=True, verbose_name="Referencia/Nombre del Proyecto del Cliente")
     persona_contacto = models.CharField(max_length=200, verbose_name="Persona de Contacto (Atención)")
@@ -150,7 +158,7 @@ class Cotizacion(models.Model):
     telefono_contacto = models.CharField(max_length=20, verbose_name="Teléfono de Contacto")
     
     ESTADO_CHOICES = [
-        ('Pendiente', 'Pendiente de Revisión Interna'),
+        ('Pendiente', 'Pendiente de Revisión'),
         ('Enviada', 'Enviada al Cliente'),
         ('Aceptada', 'Aceptada'),
         ('Rechazada', 'Rechazada'),

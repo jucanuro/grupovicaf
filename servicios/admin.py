@@ -1,4 +1,5 @@
 # servicios/admin.py
+
 from django.contrib import admin
 from django.utils.html import format_html
 from decimal import Decimal
@@ -16,9 +17,38 @@ from .models import (
 # ================================================================
 # 1. INLINES (Detalles Anidados)
 # ================================================================
+
+class CotizacionDetalleInline(admin.TabularInline):
+    model = CotizacionDetalle
+    extra = 1
+    
+    fields = [
+        'servicio', 
+        'norma', 
+        'metodo', 
+        'descripcion_especifica', 
+        'unidad_medida', 
+        'cantidad', 
+        'precio_unitario',
+        'total_detalle'
+    ]
+    
+    readonly_fields = ['total_detalle'] 
+
+
+class DetalleServicioInline(admin.StackedInline):
+    model = DetalleServicio
+    extra = 1
+    verbose_name = "Detalle para Web/Portal"
+    verbose_name_plural = "Detalles para Web/Portal"
+
+
+# ================================================================
+# 2. ADMINISTRACIÓN DE MODELOS
+# ================================================================
+
 @admin.register(CotizacionDetalle)
 class CotizacionDetalleAdmin(admin.ModelAdmin):
-    # Esto es lo más importante: definir campos de búsqueda.
     search_fields = (
         'cotizacion__numero_oferta', 
         'servicio__nombre', 
@@ -34,59 +64,30 @@ class CotizacionDetalleAdmin(admin.ModelAdmin):
     list_filter = ('cotizacion__estado',)
     
 
-class CotizacionDetalleInline(admin.TabularInline):
-    """
-    Permite editar los detalles de la cotización directamente en la página 
-    de edición de la cotización principal.
-    """
-    model = CotizacionDetalle
-    extra = 1 # Número de formularios vacíos para agregar
-    
-    # Campos que el usuario puede editar en el detalle
-    fields = [
-        'servicio', 
-        'norma', 
-        'metodo', 
-        'descripcion_especifica', 
-        'unidad_medida', 
-        'cantidad', 
-        'precio_unitario',
-        'total_detalle'
-    ]
-    
-    # 'total_detalle' es un campo que se calcula automáticamente en el save() del modelo,
-    # por lo que lo hacemos de solo lectura para evitar ediciones manuales accidentales.
-    readonly_fields = ['total_detalle'] 
-
-
 @admin.register(Cotizacion)
 class CotizacionAdmin(admin.ModelAdmin):
-    # ================================================================
-    # 2. Configuración de la Lista (List View)
-    # ================================================================
     list_display = (
         'numero_oferta', 
         'cliente', 
+        'servicio_general', 
         'asunto_servicio', 
         'trabajador_responsable',
-        'subtotal', # Campo para verificar el cálculo
-        'impuesto_igv', # Campo para verificar el cálculo
-        'monto_total',  # Campo para verificar el cálculo
+        'subtotal', 
+        'impuesto_igv', 
+        'monto_total',  
         'estado', 
         'fecha_creacion'
     )
-    list_filter = ('estado', 'forma_pago', 'fecha_creacion')
+    list_filter = ('estado', 'forma_pago', 'fecha_creacion', 'servicio_general')
     search_fields = ('numero_oferta', 'cliente__razon_social', 'asunto_servicio')
     date_hierarchy = 'fecha_creacion'
 
-    # ================================================================
-    # 3. Configuración del Formulario (Change/Add View)
-    # ================================================================
     fieldsets = (
         ('INFORMACIÓN PRINCIPAL', {
             'fields': (
                 ('numero_oferta', 'estado'), 
                 ('cliente', 'trabajador_responsable'),
+                'servicio_general',
                 'asunto_servicio',
                 'proyecto_asociado',
             )
@@ -99,14 +100,13 @@ class CotizacionAdmin(admin.ModelAdmin):
             )
         }),
         ('RESUMEN FINANCIERO', {
-            # Estos campos deben ser de solo lectura para reflejar los cálculos
             'fields': (
                 'tasa_igv', 
                 'subtotal', 
                 'impuesto_igv', 
                 'monto_total'
             ),
-            'classes': ('collapse',), # Opcional: para que esta sección esté plegada por defecto
+            'classes': ('collapse',),
         }),
     )
 
@@ -118,34 +118,22 @@ class CotizacionAdmin(admin.ModelAdmin):
 
     inlines = [CotizacionDetalleInline]
     
-    # ================================================================
-    # 4. Lógica de Recálculo en el Admin
-    # ================================================================
     def save_model(self, request, obj, form, change):
-        """ 
-        Llamado justo antes de guardar el objeto principal. 
-        Garantizamos que la función calcular_totales se ejecute al guardar.
-        """
         super().save_model(request, obj, form, change)
         
     def save_formset(self, request, form, formset, change):
-        """ 
-        Llamado después de guardar el inline formset.
-        Es CRÍTICO volver a calcular los totales del padre después de guardar los detalles.
-        """
         super().save_formset(request, form, formset, change)
         
-        # Si estamos editando una Cotizacion existente, forzamos el recalculo
         if formset.model == CotizacionDetalle and change:
             cotizacion = form.instance
             if cotizacion.pk:
                 cotizacion.calcular_totales()
-                cotizacion.save() # Llama a save que recalcula y guarda los montos
+                cotizacion.save()
                 
-    # Opcional: Asegúrate de que los campos de moneda se muestren con dos decimales
     def display_monto_total(self, obj):
         return f"S/. {obj.monto_total:.2f}"
     display_monto_total.short_description = 'Monto Total'
+
 
 @admin.register(CategoriaServicio)
 class CategoriaAdmin(admin.ModelAdmin):
@@ -153,19 +141,6 @@ class CategoriaAdmin(admin.ModelAdmin):
     search_fields = ('nombre',)
 
 
-class DetalleServicioInline(admin.StackedInline):
-    """
-    Permite editar los detalles web del servicio dentro de la vista de Servicio.
-    """
-    model = DetalleServicio
-    extra = 1
-    verbose_name = "Detalle para Web/Portal"
-    verbose_name_plural = "Detalles para Web/Portal"
-
-
-# ================================================================
-# 2. MODELADMINS (Vistas Principales)
-# ================================================================
 @admin.register(Servicio)
 class ServicioAdmin(admin.ModelAdmin):
     inlines = [DetalleServicioInline]
@@ -183,9 +158,8 @@ class ServicioAdmin(admin.ModelAdmin):
     
     list_filter = ('categoria','esta_acreditado', 'normas', 'metodos')
     search_fields = ('codigo_facturacion', 'nombre', 'descripcion')
-    filter_horizontal = ('normas', 'metodos') # Para campos ManyToMany, mejora UX
+    filter_horizontal = ('normas', 'metodos')
 
-    # Organización de la vista de detalle
     fieldsets = (
         ('I. IDENTIFICACIÓN Y TARIFARIO', {
             'fields': (
@@ -204,7 +178,6 @@ class ServicioAdmin(admin.ModelAdmin):
         }),
     )
 
-    # Métodos Display
     def get_normas(self, obj):
         return ", ".join([norma.codigo for norma in obj.normas.all()])
     get_normas.short_description = "Normas (Códigos)"
@@ -223,10 +196,6 @@ class ServicioAdmin(admin.ModelAdmin):
         return format_html('<span style="color: red;">✘</span>')
     esta_acreditado_icon.short_description = 'Acreditado'
 
-
-# ================================================================
-# 3. REGISTROS SIMPLES
-# ================================================================
 
 @admin.register(Norma)
 class NormaAdmin(admin.ModelAdmin):
@@ -247,6 +216,3 @@ class VoucherAdmin(admin.ModelAdmin):
     def get_cliente_razon_social(self, obj):
         return obj.cotizacion.cliente.razon_social
     get_cliente_razon_social.short_description = 'Cliente'
-
-# El modelo DetalleServicio ya está en línea, no necesita registro individual.
-# admin.site.register(DetalleServicio) # Comentado, ya se usa como inline

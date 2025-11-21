@@ -1,22 +1,20 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Cotización N° {{ cotizacion.numero_oferta }}</title>
+    <title>Oferta Técnica-Económica N° {{ cotizacion.numero_oferta }}</title>
     <style>
         /* ========================================================= */
         /* 1. CONFIGURACIÓN DE PÁGINA PARA WEASYPRINT/PDF */
         /* ========================================================= */
         @page {
             size: A4;
-            /* Margen: Arriba (2.5cm para el header), Derecha, Abajo (2cm para el footer), Izquierda */
-            /* Estos son los márgenes REALES que usará WeasyPrint */
-            margin: 2.5cm 1.5cm 2cm 1.5cm; 
+            margin: 1.8cm 1.5cm 1.5cm 1.5cm; /* Márgenes reales para el PDF */
             
             @top-center {
                 content: element(header-running);
-                /* Ajustamos el margen superior para que el header running quede bien */
-                margin-top: -1cm; 
+                margin-top: -1.3cm; 
             }
             @bottom-center {
                 content: element(footer-running);
@@ -27,321 +25,442 @@
         /* 2. ESTILOS BASE Y TIPOGRAFÍA */
         /* ========================================================= */
         body {
-            /* IMPORTANTE: Eliminamos el .pdf-container y el max-width, 
-               el body ahora usa todo el espacio disponible dentro de los márgenes @page */
             font-family: 'Arial', sans-serif;
-            font-size: 10.5px;
+            font-size: 10px; 
             color: #333;
-            line-height: 1.4;
+            line-height: 1.3;
             margin: 0;
             padding: 0;
             width: 100%;
+            /* ESTILOS PARA VISUALIZACIÓN EN PANTALLA: */
+            background-color: #f0f0f0; /* Fondo gris claro para simular el "entorno" */
+            display: flex; /* Para centrar la hoja A4 */
+            justify-content: center;
+            align-items: flex-start; /* Alinea al inicio verticalmente */
+            min-height: 100vh; /* Para que ocupe toda la altura de la ventana */
+            padding-top: 20px; /* Pequeño espacio superior */
+            padding-bottom: 20px; /* Pequeño espacio inferior */
         }
 
+        /* Contenedor principal que simulará la hoja A4 */
+        .pdf-page-viewer {
+            width: 210mm; /* Ancho de una A4 */
+            min-height: 297mm; /* Altura mínima de una A4 */
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); /* Sombra para efecto 3D */
+            margin: 0; /* Ya centrado por el body flex */
+            padding: 1.8cm 1.5cm 1.5cm 1.5cm; /* Márgenes INTERNOS, aquí sí los aplicamos */
+            box-sizing: border-box; /* Para que el padding no añada al width */
+            position: relative; /* Para el posicionamiento del header/footer absoluto en pantalla */
+        }
+
+        /* Ocultar elementos de Running en pantalla y luego mostrarlos en impresión */
+        .header-running, .footer-running {
+            display: none; /* Oculto en pantalla por defecto */
+        }
+        
         .font-bold { font-weight: bold; }
         .text-right { text-align: right; }
         .text-center { text-align: center; }
-        .corporate-blue { color: #004d99; } /* Azul corporativo */
+        .corporate-blue { color: #004D99; } 
+        .dark-blue { color: #1E3A8A; } 
         
-        /* Fuerza la impresión en una nueva página si es necesario (ej: antes de términos largos) */
         .page-break { page-break-before: always; } 
-        
-        /* Estilo para que el bloque de totales no quede solo en la página siguiente */
-        .totals-container { widows: 3; orphans: 3; } 
-
+        .avoid-break { page-break-inside: avoid; }
 
         /* ========================================================= */
-        /* 3. RUNNING ELEMENTS (HEADER/FOOTER) */
-        /* ========================================================= */
-        .header-running {
-            position: running(header-running);
-            font-size: 9px;
-            color: #666;
-            text-align: right;
-            border-bottom: 3px solid #004d99; 
-            padding-bottom: 5px;
-            width: 100%;
-        }
-        .footer-running {
-            position: running(footer-running);
-            font-size: 9px;
-            color: #666;
-            text-align: center;
-            border-top: 1px solid #ddd; 
-            padding-top: 5px;
-            width: 100%;
-        }
-        .page-info {
-            float: right; 
-            margin-right: 0;
-            padding-left: 10px;
-            border-left: 1px solid #ccc;
-        }
-        .page-info::before {
-            content: "Página " counter(page) " de " counter(pages);
-        }
-        
-        /* ========================================================= */
-        /* 4. LAYOUT Y ESTILOS DE SECCIÓN */
+        /* 3. LAYOUT Y ESTILOS DE SECCIÓN */
         /* ========================================================= */
         
-        /* CABECERA PRINCIPAL (Usamos flow-root para contenedores de flotantes) */
+        /* CABECERA PRINCIPAL (Logo y datos de la empresa) */
         .main-header {
-            display: flow-root; 
-            margin-bottom: 25px;
+            display: flow-root;
+            margin-bottom: 15px;
             padding-bottom: 15px;
-            border-bottom: 1px dashed #ccc; 
         }
         .main-header .logo-col { 
             float: left; 
-            width: 40%; 
+            width: 30%; 
         }
         .main-header .info-col { 
             float: right; 
-            width: 60%; 
-            text-align: right; 
-            font-size: 10px; 
+            width: 70%; 
+            font-size: 9.5px; 
+            border: 1px solid #ccc; 
+            padding: 5px 10px;
+            box-sizing: border-box;
         }
-        .logo { max-height: 55px; }
+        .main-header .info-col p { margin: 1px 0; }
+        .logo { max-height: 50px; }
 
-        /* TÍTULO CENTRAL */
-        .h1-title {
-            font-size: 22px;
+        /* TÍTULO PRINCIPAL (OFERTA) */
+        .h1-offer-title {
+            font-size: 16px;
             font-weight: bold;
             text-align: center;
-            color: white; 
-            background: linear-gradient(90deg, #004d99 0%, #0066cc 100%);
-            padding: 10px 0;
-            margin: 0 0 20px 0;
-            letter-spacing: 1px;
-            border-radius: 5px; 
-        }
-        
-        /* TÍTULOS DE SECCIÓN */
-        .section-title {
-            font-size: 13px;
-            font-weight: bold;
-            color: #004d99;
-            border-bottom: 2px solid #004d99;
-            padding-bottom: 5px;
-            margin-top: 1.5cm;
-            margin-bottom: 1rem;
+            background-color: #eee;
+            border: 1px solid #ccc;
+            padding: 8px 0;
+            margin: 0 0 10px 0;
+            color: #004D99;
             text-transform: uppercase;
         }
 
-        /* DETALLES DE LA OFERTA (CLIENTE) */
-        .offer-details {
-            display: flow-root; /* Usamos flow-root para contener los float */
+        /* Datos de la oferta (Número, Fecha) */
+        .offer-meta-box {
+            display: flow-root;
             width: 100%;
-            background-color: #f8faff; 
-            padding: 15px 10px;
-            margin-bottom: 1.5cm;
-            border: 1px solid #004d99; 
-            border-radius: 5px;
+            font-size: 10.5px;
+            margin-bottom: 20px;
         }
-        .offer-details .col {
-            float: left;
-            width: 48%; /* Más margen de seguridad para los flotantes */
-            padding: 0 10px;
+        .offer-meta-box p {
+            margin: 0;
+            padding: 2px 0;
         }
-        .offer-details p { margin: 0; padding: 3px 0; }
+        .offer-meta-box .num-col { float: left; width: 40%; }
+        .offer-meta-box .date-col { float: left; width: 60%; }
+
+        /* TÍTULOS DE SECCIÓN (Numerados) */
+        .section-title {
+            font-size: 11px;
+            font-weight: bold;
+            color: #000;
+            border-bottom: 1px solid #000;
+            padding-bottom: 3px;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        /* DATOS DEL CLIENTE (Emula la tabla del PDF) */
+        .client-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+            margin-bottom: 20px;
+            table-layout: fixed;
+        }
+        .client-data-table td {
+            padding: 3px 5px;
+            vertical-align: top;
+            border: 1px solid #ccc;
+        }
+        .client-data-table .label {
+            width: 15%; 
+            font-weight: bold;
+            background-color: #f0f0f0;
+        }
+        .client-data-table .value {
+            width: 35%; 
+        }
 
         /* TABLA DE SERVICIOS */
         .services-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 10px;
-            margin-bottom: 20px;
+            font-size: 9.5px;
+            margin-bottom: 10px;
         }
         .services-table th, .services-table td {
             border: 1px solid #ddd;
-            padding: 8px 6px; 
+            padding: 5px 4px; 
             vertical-align: top;
-            /* Agregamos una propiedad de salto de página para que las filas no se corten */
             page-break-inside: avoid; 
         }
         .services-table th {
-            background-color: #004d99;
-            color: white;
+            background-color: #f0f0f0; 
+            color: #333;
             text-align: center;
             font-weight: bold;
             text-transform: uppercase;
         }
-        .services-table tbody tr:nth-child(even) { 
-            background-color: #f9f9f9; 
-        }
 
         /* TABLA DE TOTALES */
-        .totals-container {
-            display: flow-root;
-            width: 100%;
-        }
-        .totals-container .table-col { 
-            float: right; 
-            width: 40%; 
-        }
         .totals-table {
-            width: 100%;
+            width: 40%; 
+            float: right;
             border-collapse: collapse;
-            font-size: 12px; 
-            margin-top: 10px;
+            font-size: 10.5px; 
+            margin-top: 5px;
         }
         .totals-table td {
+            padding: 4px 10px;
             border: 1px solid #ddd;
-            padding: 8px 10px;
+        }
+        .totals-table tr:first-child td {
+            border-top: 1px solid #333; 
+        }
+        .totals-table tr:nth-child(2) td:first-child,
+        .totals-table tr:nth-child(3) td:first-child {
+             font-weight: bold;
         }
         .totals-table tr:last-child {
-            background-color: #004d99;
-            color: white;
+            background-color: #f0f0f0;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 11px;
+            color: #000;
         }
 
-        /* TÉRMINOS Y NOTAS */
+        /* LISTAS Y CONDICIONES */
         .terms-list {
-            list-style-type: square;
+            list-style-type: decimal;
             margin-left: 20px;
             padding-left: 0;
             font-size: 10px;
-            /* Ayuda a que la lista no se divida de forma extraña */
             page-break-inside: avoid; 
         }
+        .terms-list li { margin-bottom: 5px; }
+
+        /* BLOQUE DE FIRMAS */
         .signature-block {
             margin-top: 3cm;
-            width: 50%;
-            float: right;
+            display: flow-root;
+            width: 100%;
             text-align: center;
+            font-size: 10px;
+            page-break-before: avoid; 
+        }
+        .signature-col {
+            float: left;
+            width: 48%;
+            padding-top: 10px;
+            margin: 0;
+        }
+        .signature-col p { margin: 3px 0; }
+        .signature-line {
             border-top: 1px solid #333;
-            padding-top: 5px;
-            font-size: 11px;
-            page-break-before: avoid; /* Intenta evitar que se quede solo en la página siguiente */
+            width: 80%;
+            margin: 0 auto 5px auto;
+        }
+
+        /* ========================================================= */
+        /* 5. MEDIA QUERIES PARA IMPRESIÓN/PDF */
+        /* ========================================================= */
+        @media print {
+            body {
+                background-color: white; /* Sin fondo gris al imprimir */
+                display: block; /* Desactiva flexbox */
+                padding: 0; /* Sin padding extra */
+                margin: 0;
+            }
+
+            .pdf-page-viewer {
+                width: auto; /* Permite que WeasyPrint use el tamaño A4 real */
+                min-height: auto; /* Sin altura mínima fija */
+                box-shadow: none; /* Sin sombra al imprimir */
+                margin: 0;
+                padding: 0; /* El @page margin manejará esto */
+            }
+
+            /* Mostrar los running elements para WeasyPrint */
+            .header-running {
+                display: block;
+                position: running(header-running); /* Asegura que se detecte como running element */
+                top: 0;
+                left: 0;
+                right: 0;
+                width: 100%;
+                box-sizing: border-box;
+                padding: 0 1.5cm; /* Padding para que el contenido no pegue a los bordes de la página */
+            }
+            .footer-running {
+                display: block;
+                position: running(footer-running); /* Asegura que se detecte como running element */
+                bottom: 0;
+                left: 0;
+                right: 0;
+                width: 100%;
+                box-sizing: border-box;
+                padding: 0 1.5cm; /* Padding para que el contenido no pegue a los bordes de la página */
+            }
         }
     </style>
 </head>
 <body>
 
     <div class="header-running">
-        Código: VCF-LAB-FOR-001 | Versión: 06 | Fecha: {{ cotizacion.fecha|date:"Y-m-d" }}
+        <span class="doc-meta">
+            Código: VCF-LAB-FOR-001 | Fecha: 2025-03-05 | Versión: 06
+        </span>
+        <span class="page-info"></span>
     </div>
 
     <div class="footer-running">
         <span>GRUPO VICAF SAC - Tel: +51 941 573 750 | Email: informes@grupovicaf.com</span>
-        <span class="page-info"></span>
     </div>
 
-    <div class="main-header">
-        <div class="logo-col">
-            <img src="/static/img/logo.png" alt="Logo Grupo Vicaf" class="logo"> 
-        </div>
-        <div class="info-col">
-            <p class="font-bold corporate-blue">GRUPO VICAF SAC</p>
-            <p>RUC: 2060...</p>
-            <p>Dirección: Calle Falsa 123, Lima, Perú</p>
-        </div>
-    </div>
-    
-    <h1 class="h1-title">OFERTA TÉCNICA - ECONÓMICA</h1>
+    <div class="pdf-page-viewer">
 
-    <div style="text-align: center; margin-bottom: 25px;">
-        <p style="font-size: 14px; margin: 0;"><strong>N° de Oferta:</strong> <span class="corporate-blue">{{ cotizacion.numero_oferta }}</span></p>
-        <p style="font-size: 14px; margin: 0;"><strong>Fecha de Emisión:</strong> {{ cotizacion.fecha|date:"d \d\e F \d\e Y" }}</p>
-    </div>
-
-
-    <div class="section-title">1. Datos de la Oferta</div>
-    <div class="offer-details">
-        <div class="col">
-            <p><strong>Cliente:</strong> {{ cotizacion.cliente.razon_social }}</p>
-            <p><strong>RUC:</strong> {{ cotizacion.cliente.ruc }}</p>
-            <p><strong>Servicio General:</strong> {{ cotizacion.descripcion_servicio|default:"Servicios de Ensayo y Consultoría" }}</p>
+        <div class="main-header avoid-break">
+            <div class="logo-col">
+                <img src="{% static 'img/LogoF.png' %}" alt="Logo Grupo Vicaf" class="logo"> 
+            </div>
+            <div class="info-col">
+                <p><strong>RUC:</strong> 20609464632</p>
+                <p><strong>Dirección:</strong> JR. LOS TOPACIOS 440 - CAJAMARCA</p>
+                <p><strong>Teléfono:</strong> 960 713 555 | <strong>Cel:</strong> +51 941 573 750</p>
+                <p><strong>Email:</strong> informes@grupovicaf.com</p>
+            </div>
         </div>
-        <div class="col">
-            <p><strong>Atención (Contacto):</strong> {{ cotizacion.contacto.nombre_completo|default:"-" }}</p>
-            <p><strong>Correo Electrónico:</strong> {{ cotizacion.contacto.correo|default:"-" }}</p>
-            <p><strong>Teléfono:</strong> {{ cotizacion.contacto.telefono|default:"-" }}</p>
-            <p><strong>Preparado por:</strong> {{ cotizacion.trabajador_responsable.get_full_name|default:"Laboratorio Vicaf" }}</p> 
-        </div>
-    </div>
+        
+        <h1 class="h1-offer-title avoid-break">OFERTA TÉCNICA - ECONÓMICA LABORATORIO</h1>
 
-    <div class="section-title">2. Oferta Económica</div>
-    <table class="services-table">
-        <thead>
-            <tr>
-                <th style="width: 5%;">ÍTEM</th>
-                <th style="width: 35%;">DESCRIPCIÓN DEL SERVICIO</th>
-                <th style="width: 15%;">NORMA</th>
-                <th style="width: 15%;">MÉTODO</th>
-                <th style="width: 5%;">UND.</th>
-                <th style="width: 8%;">CANT.</th>
-                <th style="width: 10%;">P. UNIT. (S/.)</th>
-                <th style="width: 10%;">P. PARCIAL (S/.)</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for detalle in cotizacion.detalles_cotizacion.all %}
-            <tr>
-                <td class="text-center">{{ forloop.counter }}</td>
-                <td>{{ detalle.servicio.nombre }}</td>
-                <td>{{ detalle.norma.nombre|default_if_none:"N/A" }}</td>
-                <td>{{ detalle.metodo.nombre|default_if_none:"N/A" }}</td>
-                <td class="text-center">{{ detalle.und|default_if_none:"und" }}</td>
-                <td class="text-center">{{ detalle.cantidad|floatformat:0 }}</td>
-                <td class="text-right">{{ detalle.precio_unitario|floatformat:2 }}</td>
-                <td class="text-right">{{ detalle.subtotal|floatformat:2 }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="8" class="text-center">No hay detalles de servicios registrados para esta cotización.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    
-    <div class="totals-container">
-        <div class="table-col">
+        <div class="offer-meta-box avoid-break">
+            <div class="num-col font-bold">
+                OFERTA No. {{ cotizacion.numero_oferta }}
+            </div>
+            <div class="date-col font-bold text-right">
+                Fecha: {{ cotizacion.fecha_generacion|date:"d \d\e F \d\e Y" }}
+            </div>
+        </div>
+        
+        <div class="avoid-break">
+            <table class="client-data-table">
+                <tr>
+                    <td class="label">Señor(es):</td>
+                    <td class="value font-bold">{{ cotizacion.cliente.razon_social }}</td>
+                    <td class="label">Servicio:</td>
+                    <td class="value font-bold">{{ cotizacion.asunto_servicio|default:"Servicios de Ensayo" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">DNI / RUC:</td>
+                    <td class="value">{{ cotizacion.cliente.ruc }}</td>
+                    <td class="label">Atención:</td>
+                    <td class="value">{{ cotizacion.persona_contacto|default:"-" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Teléfono:</td>
+                    <td class="value">{{ cotizacion.telefono_contacto|default:"-" }}</td>
+                    <td class="label">Correo Electrónico:</td>
+                    <td class="value">{{ cotizacion.correo_contacto|default:"-" }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <p style="margin-top: 15px; font-size: 10.5px;">
+            Estimado cliente, mediante la presente se remite nuestra oferta económica por el servicio solicitado:
+        </p>
+
+        <div class="section-title">1. OFERTA ECONÓMICA</div>
+        <table class="services-table">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">ÍTEM</th>
+                    <th style="width: 35%;">DESCRIPCIÓN</th>
+                    <th style="width: 15%;">NORMA DE ENSAYO</th>
+                    <th style="width: 15%;">MÉTODO</th>
+                    <th style="width: 5%;">UND.</th>
+                    <th style="width: 8%;">CANTIDAD</th>
+                    <th style="width: 10%;">P. UNITARIO (S/.)</th>
+                    <th style="width: 10%;">P. PARCIAL (S/.)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for detalle in cotizacion.detalles_cotizacion.all %}
+                <tr class="avoid-break">
+                    <td class="text-center">{{ forloop.counter }}</td>
+                    <td>
+                        <span class="font-bold">{{ detalle.servicio.nombre|default:"Servicio no especificado" }}</span>
+                        {% if detalle.descripcion_especifica %}
+                            <br><span style="font-size: 9px;">({{ detalle.descripcion_especifica }})</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ detalle.norma.nombre|default_if_none:"N/A" }}</td>
+                    <td>{{ detalle.metodo.nombre|default_if_none:"N/A" }}</td>
+                    <td class="text-center">{{ detalle.unidad_medida|default:"und" }}</td>
+                    <td class="text-center">{{ detalle.cantidad|floatformat:0 }}</td>
+                    <td class="text-right">{{ detalle.precio_unitario|floatformat:2 }}</td>
+                    <td class="text-right">{{ detalle.subtotal|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr class="avoid-break">
+                    <td colspan="8" class="text-center">No hay detalles de servicios registrados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div style="clear: both;"></div>
+        <div class="totals-container avoid-break">
             <table class="totals-table">
                 <tbody>
                     <tr>
-                        <td>SUBTOTAL</td>
-                        <td class="text-right">S/. {{ cotizacion.subtotal|floatformat:2 }}</td>
+                        <td>COSTO DIRECTO</td>
+                        <td class="text-right font-bold">S/. {{ subtotal_final|floatformat:2|default:"0.00" }}</td>
                     </tr>
                     <tr>
-                        <td>I.G.V. ({{ cotizacion.igv_porcentaje|default:"18" }}%)</td>
-                        <td class="text-right">S/. {{ cotizacion.igv|floatformat:2 }}</td>
+                        <td>I.G.V ({{ igv_porcentaje }}%)</td>
+                        <td class="text-right">S/. {{ igv_monto_final|floatformat:2|default:"0.00" }}</td>
                     </tr>
                     <tr>
-                        <td>TOTAL A PAGAR</td>
-                        <td class="text-right">S/. {{ cotizacion.monto_total|floatformat:2 }}</td>
+                        <td>COSTO TOTAL</td>
+                        <td class="text-right font-bold">S/. {{ monto_total_final|floatformat:2|default:"0.00" }}</td>
                     </tr>
                 </tbody>
             </table>
         </div>
-    </div>
-    
-    <div style="clear: both;"></div>
 
-    <div class="section-title">3. Términos y Condiciones Comerciales</div>
-    <ul class="terms-list">
-        <li><strong>Moneda:</strong> Soles (S/).</li>
-        <li><strong>Validez de la Oferta:</strong> {{ cotizacion.validez_oferta|default:"30 días calendario" }} desde la fecha de emisión.</li>
-        <li><strong>Forma de Pago:</strong> {{ cotizacion.forma_pago.nombre|default:"Acuerdo Mutuo" }}.</li>
-        <li><strong>Plazo de Entrega del Informe:</strong> {{ cotizacion.plazo_entrega|default:"5 días hábiles" }} después de finalizado el servicio.</li>
-        <li><strong>Lugar de la Prestación del Servicio:</strong> {{ cotizacion.lugar_servicio|default:"Según lo coordinado con el cliente" }}.</li>
-        <li><strong>Aprobación:</strong> La aceptación de la oferta debe realizarse mediante correo electrónico o una Orden de Servicio formal.</li>
-    </ul>
+        <div style="clear: both;"></div>
 
-    <div class="section-title">4. Consideraciones Técnicas</div>
-    <p style="font-size: 10px;">
-        {{ cotizacion.consideraciones_tecnicas|default:"
-        Se garantiza la imparcialidad y confidencialidad de los resultados proporcionados. El servicio será realizado por personal calificado del Laboratorio. Frente a situaciones inesperadas, el servicio podrá ser subcontratado previa coordinación con el cliente.
-        "|linebreaksbr }}
-    </p>
+        <div class="section-title">2. FORMAS DE PAGO Y CONTRATACIÓN DEL SERVICIO</div>
+        <ul class="terms-list">
+            <li><strong>Forma de pago:</strong> {{ cotizacion.forma_pago|default:"Contado" }}.</li>
+            <li><strong>Plazo de validez de la oferta:</strong> {{ cotizacion.validez_oferta_dias|default:"7" }} días calendario.</li>
+            <li>Como aceptación de la oferta, favor de remitir Orden de Servicio, Contrato o la presente oferta firmada.</li>
+            </ul>
 
-    <div class="signature-block">
-        <p>Atentamente,</p>
-        <p class="font-bold">Laboratorio Grupo Vicaf SAC</p>
-        <p style="font-size: 9px; margin-top: 10px;">{{ cotizacion.trabajador_responsable.get_full_name|default:"Gerencia Técnica" }}</p>
-    </div>
+        <div class="section-title avoid-break">3. DISPONIBILIDAD, PLAZO DE EJECUCIÓN DEL SERVICIO</div>
+        <ul class="terms-list avoid-break">
+            <li>El plazo de ejecución del servicio iniciará al día siguiente de realizada la entrega de muestras, aceptación de la Oferta y realizado el pago de acuerdo con las condiciones establecidas.</li>
+            <li>Plazo de entrega de resultados: {{ cotizacion.plazo_entrega_dias|default:"01 día" }} después de ejecutados los ensayos como entregable final.</li>
+        </ul>
 
-</body>
+        <div class="section-title avoid-break">4. NOTAS Y CONDICIONES DEL SERVICIO</div>
+        <ul class="terms-list avoid-break">
+            <li>Los métodos indicados están referidos a la versión indicada de la norma, de requerir que se use una versión anterior y/o versiones retiradas el solicitante deberá indicarlo expresamente.</li>
+            <li>Las desviaciones a los métodos para cualquier actividad de laboratorio serán documentadas y comunicadas al Cliente, la ejecución procederá bajo autorización del Cliente.</li>
+            <li>El costo del servicio incluye la movilidad desde Cajamarca hasta la zona del proyecto y viceversa. (Ejemplo basado en PDF)</li>
+        </ul>
+
+        <div class="section-title avoid-break">5. CONTACTOS AUTORIZADOS DEL LABORATORIO</div>
+        <p style="font-size: 10px;">Todas las coordinaciones referidas al servicio serán válidas solo si se realizan con los contactos autorizados:</p>
+        <table class="client-data-table" style="width: 70%; margin-left: 0;">
+            <tr>
+                <td class="label" style="width: 25%;">COORDINACIONES TÉCNICAS</td>
+                <td class="value" style="width: 25%;">Ing. Jessica Raquel Riojas Ortiz</td>
+                <td class="value" style="width: 20%;">938 172 727</td>
+                <td class="value" style="width: 30%;">raquel.riojas@grupovicaf.com</td>
+            </tr>
+            <tr>
+                <td class="label">PAGOS Y FACTURACIÓN</td>
+                <td class="value">Carmen R. Bernui Escobedo</td>
+                <td class="value">947 946 743</td>
+                <td class="value">carmen.bernui@grupovicaf.com</td>
+            </tr>
+        </table>
+
+
+        <div class="signature-block">
+            <p>Atentamente,</p>
+            <div class="signature-col" style="float: right;">
+                <div class="signature-line"></div>
+                <p><strong>{{ cotizacion.trabajador_responsable.get_full_name|default:"Ing. Jessica Raquel Riojas Ortiz" }}</strong></p>
+                <p>Jefe de Laboratorio</p>
+                <p class="font-bold corporate-blue">GRUPO VICAF SAC</p>
+            </div>
+            <div style="clear: both;"></div>
+
+            <div style="margin-top: 30px; display: flow-root;">
+                <div class="signature-col" style="float: left; width: 45%; border: 1px dashed #ccc; padding: 10px;">
+                    <p class="font-bold">Aprobó</p>
+                    <div style="height: 30px;"></div>
+                    <div class="signature-line" style="width: 90%;"></div>
+                    <p>Representante:</p>
+                    <p>Empresa: <span style="margin-left: 10px;">{{ cotizacion.cliente.razon_social }}</span></p>
+                    <p>Cargo:</p>
+                </div>
+            </div>
+        </div>
+
+    </div> </body>
 </html>

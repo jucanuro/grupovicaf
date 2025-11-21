@@ -344,8 +344,12 @@ h2 {
                     </div>
                 </div>
                 <div class="space-y-6 md:col-span-5">
-                    <h3 class="text-lg font-semibold text-white border-b border-slate-700 pb-2">Detalle de la Oferta</h3>
-                    
+                    <h3 class="text-lg font-semibold text-white border-b border-slate-700 pb-2">Detalle de la Oferta</h3>    
+                    <div class="form-group-v2">
+                        <label for="id_fecha_generacion" class="form-label-v2">Fecha de Generación</label>
+                        <input type="date" name="fecha_generacion" id="id_fecha_generacion" class="form-control-v2" required 
+                            value="{% if cotizacion %}{{ cotizacion.fecha_generacion|date:'Y-m-d' }}{% endif %}">
+                    </div>
                     <div class="form-group-v2">
                         <label for="id_servicio_general" class="form-label-v2">Servicio General / Categoría</label>
                         <select id="id_servicio_general" name="servicio_general" class="form-control-v2 form-select-v2 tom-select-js">
@@ -460,9 +464,8 @@ h2 {
 </script>
 {% endif %}
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', () => {
     
-    // --- Variables Globales ---
     let ALL_SERVICES_DATA = [];
     let ALL_SERVICES_OPTIONS = [];
     let servicesDataLoaded = false;
@@ -472,7 +475,6 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     }
     
-    // Función para asegurar el parsing correcto de números (maneja , y . y devuelve un flotante)
     const parseValue = (value) => {
         if (value === null || value === undefined) return 0;
         let cleanValue = String(value).trim();
@@ -483,6 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const clientesSelect = document.getElementById('id_cliente_ruc');
     const formaPagoSelect = document.getElementById('id_forma_pago');
     const categoriaServicioSelect = document.getElementById('id_servicio_general');
+    const fechaGeneracionInput = document.getElementById('id_fecha_generacion');
 
     const razonSocialInput = document.getElementById('id_razon_social');
     const personaContactoInput = document.getElementById('id_persona_contacto');
@@ -498,7 +501,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalFinalSpan = document.getElementById('total_final_cotizacion');
     const montoTotalInput = document.getElementById('id_monto_total');
     const detallesJsonInput = document.getElementById('detalles_json');
-    // Elemento crucial para el IGV (puede ser nulo, lo manejamos en updateTotals)
     const tasaIgvInput = document.getElementById('tasa_igv'); 
 
     const loadAllServicesData = () => {
@@ -514,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }));
 
             } catch (e) {
-                console.error("Error al parsear el JSON de servicios:", e);
+                
             }
         }
     };
@@ -522,9 +524,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadClientData = (selectedOption) => {
         if (selectedOption) {
             razonSocialInput.value = selectedOption.dataset.razonSocial || '';
-            personaContactoInput.value = selectedOption.dataset.contacto || '';
-            correoContactoInput.value = selectedOption.dataset.correo || '';
-            telefonoContactoInput.value = selectedOption.dataset.telefono || '';
+            
+            const isEditing = !!document.getElementById('initial-detalles-json'); 
+
+            if (!isEditing || personaContactoInput.value.trim() === '') {
+                personaContactoInput.value = selectedOption.dataset.contacto || '';
+            }
+            
+            if (!isEditing || telefonoContactoInput.value.trim() === '') {
+                telefonoContactoInput.value = selectedOption.dataset.telefono || '';
+            }
+            
+            if (!isEditing || correoContactoInput.value.trim() === '') {
+                correoContactoInput.value = selectedOption.dataset.correo || '';
+            }
+            
         } else {
             razonSocialInput.value = '';
             personaContactoInput.value = '';
@@ -562,8 +576,6 @@ document.addEventListener('DOMContentLoaded', () => {
                      labelField: 'text',
                      searchField: ['text'],
                      options: ALL_SERVICES_OPTIONS,
-                     // Si el select ya tiene un valor (cargado del backend), lo mantiene, 
-                     // sino, lo inicializa vacío.
                      items: [element.value], 
                    };
             }
@@ -572,16 +584,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (element === categoriaServicioSelect) {
                 categoriaTomSelectInstance = instance;
+                const initialValue = element.value;
+                if (initialValue) {
+                    instance.setValue(initialValue);
+                }
             }
         }
     };
     
-    // Función para generar el HTML de una fila de detalle
     const createItemRowHTML = (servicioId = '', cantidad = '1', precio = '0.00', und = 'und', normaId = '', metodoId = '', descripcion = '') => {
-        // Asegurar que el precio tenga formato de punto para el input type="number"
         const initialPrice = String(precio).replace(',', '.'); 
         
-        // Buscar el texto del servicio para la opción inicial (necesario en modo Edición)
         let servicioText = servicioId ? 'Cargando...' : 'Seleccione servicio';
         if (servicioId && ALL_SERVICES_OPTIONS.length > 0) {
             const selectedServiceOption = ALL_SERVICES_OPTIONS.find(opt => opt.value === String(servicioId));
@@ -656,7 +669,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     };
 
-    // Función para añadir una fila (item)
     const addRow = (servicioId = '', cantidad = '1', precio = '0.00', und = 'und', normaId = '', metodoId = '', descripcion = '') => {
         const rowHTML = createItemRowHTML(servicioId, cantidad, precio, und, normaId, metodoId, descripcion); 
         const tempDiv = document.createElement('div');
@@ -669,17 +681,50 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const servicioSelect = newRow.querySelector('.servicio-select');
-        // El TomSelect se inicializa con la opción ya cargada por createItemRowHTML
         initializeTomSelect(servicioSelect);
 
         if (servicioId) {
-            // Si hay un servicio ID, cargamos sus normas/métodos asociados y los pre-seleccionamos
             loadServiceData(servicioSelect, normaId, metodoId);
         } else {
             updateTotals();
         }
     };
     
+    const loadInitialDetailsFromJSON = () => {
+        const initialDetailsElement = document.getElementById('initial-detalles-json');
+        
+        if (!initialDetailsElement) {
+            addRow(); 
+            return;
+        } 
+        
+        let initialDetails = [];
+        try {
+            initialDetails = JSON.parse(initialDetailsElement.textContent || '[]');
+        } catch (e) {
+            addRow();
+            return;
+        }
+        
+        detallesContainer.innerHTML = '';
+        
+        if (initialDetails.length > 0) {
+            initialDetails.forEach(detail => {
+                addRow(
+                    String(detail.servicio_id || ''), 
+                    String(detail.cantidad || '1'), 
+                    String(detail.precio_unitario || '0.00'), 
+                    String(detail.unidad_medida || 'und'), 
+                    String(detail.norma_id || ''), 
+                    String(detail.metodo_id || ''),
+                    String(detail.descripcion_especifica || '')
+                );
+            });
+        } else {
+            addRow();
+        }
+    };
+
     const loadServiceData = (selectElement, selectedNormaId, selectedMetodoId) => {
         const pk = selectElement.value;
         const row = selectElement.closest('.item-row-v2'); 
@@ -690,7 +735,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const servicio = ALL_SERVICES_DATA.find(s => String(s.pk) === pk);
 
-        // Destruir instancias existentes antes de recrear
         if (normasSelect && normasSelect.tomselect) normasSelect.tomselect.destroy();
         if (metodosSelect && metodosSelect.tomselect) metodosSelect.tomselect.destroy();
 
@@ -699,10 +743,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (servicio) {
             try {
-                // Si estamos en edición y ya hay un precio en el input, no sobreescribir con precio_base
-                // Esto es manejado por createItemRowHTML al pasar el precio. Aquí solo actualizamos el resto.
                 if (parseValue(precioInput.value) === 0.00) {
-                     precioInput.value = String(parseValue(servicio.precio_base)).replace(',', '.'); 
+                    precioInput.value = String(parseValue(servicio.precio_base)).replace(',', '.'); 
                 }
                 undInput.value = servicio.unidad_base || ''; 
                 
@@ -739,7 +781,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
             } catch (error) {
-                console.error('Error al procesar datos del servicio en frontend:', error);
                 precioInput.value = '0.00';
                 undInput.value = '';
             }
@@ -748,46 +789,6 @@ document.addEventListener('DOMContentLoaded', () => {
             undInput.value = '';
         }
         updateTotals();
-    };
-    
-    // 💡 Solución: Nueva función para cargar detalles desde el JSON del Backend 
-    const loadInitialDetailsFromJSON = () => {
-        const initialDetailsElement = document.getElementById('initial-detalles-json');
-        
-        // Si no existe el elemento, es modo "Creación", solo añade una fila vacía.
-        if (!initialDetailsElement) {
-            addRow(); 
-            return;
-        } 
-        
-        let initialDetails = [];
-        try {
-            initialDetails = JSON.parse(initialDetailsElement.textContent || '[]');
-        } catch (e) {
-            console.error("Error al parsear el JSON de detalles iniciales:", e);
-            addRow();
-            return;
-        }
-        
-        // Limpiar filas de detalle precargadas (si las hay, aunque no debería haberlas con este enfoque)
-        detallesContainer.innerHTML = '';
-        
-        // Si hay detalles, los cargamos
-        if (initialDetails.length > 0) {
-            initialDetails.forEach(detail => {
-                addRow(
-                    String(detail.servicio_id || ''), 
-                    String(detail.cantidad || '1'), 
-                    String(detail.precio_unitario || '0.00'), 
-                    String(detail.unidad_medida || 'und'), 
-                    String(detail.norma_id || ''), 
-                    String(detail.metodo_id || ''),
-                    String(detail.descripcion_especifica || '') // Se carga la descripción
-                );
-            });
-        } else {
-            addRow(); 
-        }
     };
     
     const updateAllServiceSelects = (isMasterCategoryChange = false) => {
@@ -951,6 +952,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Debe agregar al menos un ítem a la cotización.');
         }
     });
+
     
     loadAllServicesData(); 
 
@@ -966,6 +968,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     loadInitialDetailsFromJSON(); 
+    
+    if (fechaGeneracionInput && !fechaGeneracionInput.value) {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0'); 
+        const day = String(today.getDate()).padStart(2, '0');
+        fechaGeneracionInput.value = `${year}-${month}-${day}`;
+    }
     
     updateTotals(); 
 });
