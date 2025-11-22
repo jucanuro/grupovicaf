@@ -561,18 +561,11 @@ def eliminar_cotizacion(request, pk):
 def generar_pdf_cotizacion(request, pk):
     cotizacion = get_object_or_404(Cotizacion.objects.all(), pk=pk)
     
-    try:
-        tasa_igv_decimal = Decimal(cotizacion.tasa_igv) if cotizacion.tasa_igv else Decimal('0.18')
-    except (TypeError, ValueError):
-        tasa_igv_decimal = Decimal('0.18')
-
-    try:
-        subtotal = Decimal(cotizacion.subtotal) if cotizacion.subtotal else Decimal('0.00')
-    except (TypeError, ValueError):
-        subtotal = Decimal('0.00')
-
-    igv_amount = subtotal * tasa_igv_decimal
-    monto_total = subtotal + igv_amount
+    # Valores robustos usando los campos ya calculados en el modelo Cotizacion
+    tasa_igv_decimal = cotizacion.tasa_igv if cotizacion.tasa_igv is not None else Decimal('0.18')
+    subtotal = cotizacion.subtotal if cotizacion.subtotal is not None else Decimal('0.00')
+    igv_amount = cotizacion.impuesto_igv if cotizacion.impuesto_igv is not None else (subtotal * tasa_igv_decimal)
+    monto_total = cotizacion.monto_total if cotizacion.monto_total is not None else (subtotal + igv_amount)
     
     igv_porcentaje = int(tasa_igv_decimal * 100)
 

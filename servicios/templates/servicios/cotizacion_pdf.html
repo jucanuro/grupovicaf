@@ -370,7 +370,7 @@
                     <td class="text-center">{{ detalle.unidad_medida|default:"und" }}</td>
                     <td class="text-center">{{ detalle.cantidad|floatformat:0 }}</td>
                     <td class="text-right">{{ detalle.precio_unitario|floatformat:2 }}</td>
-                    <td class="text-right">{{ detalle.subtotal|floatformat:2 }}</td>
+                    <td class="text-right">{{ detalle.total_detalle|floatformat:2 }}</td>
                 </tr>
                 {% empty %}
                 <tr class="avoid-break">
