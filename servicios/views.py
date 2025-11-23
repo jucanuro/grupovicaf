@@ -1,5 +1,7 @@
+import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
+from django.template.loader import get_template
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
 from django.db import transaction 
@@ -14,6 +16,12 @@ from django.forms.models import model_to_dict
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import json
 import logging
+from django.conf import settings
+from xhtml2pdf import pisa
+
+from reportlab.lib.units import cm
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import Paragraph
 
 logger = logging.getLogger(__name__)
 
@@ -353,10 +361,23 @@ def crear_editar_cotizacion(request, pk=None):
 
                 if not is_editing:
                     cotizacion = Cotizacion(cliente=cliente)
+
+                # --- LÓGICA DE ASIGNACIÓN ORIGINAL RESTITUIDA ---
+                trabajador_id_post = request.POST.get('trabajador_responsable')
+                
+                if trabajador_id_post:
+                    try:
+                        cotizacion.trabajador_responsable = TrabajadorProfile.objects.get(pk=trabajador_id_post)
+                    except TrabajadorProfile.DoesNotExist:
+                        cotizacion.trabajador_responsable = None
+                elif not is_editing:
                     try:
                         cotizacion.trabajador_responsable = TrabajadorProfile.objects.get(user=request.user)
                     except TrabajadorProfile.DoesNotExist:
-                        pass
+                        cotizacion.trabajador_responsable = None
+                elif is_editing and not trabajador_id_post:
+                    cotizacion.trabajador_responsable = None
+                # --- FIN LÓGICA RESTITUIDA ---
                 
                 cotizacion.cliente = cliente
                 cotizacion.asunto_servicio = request.POST.get('asunto_servicio')
@@ -486,6 +507,7 @@ def crear_editar_cotizacion(request, pk=None):
     clientes = Cliente.objects.all()
     servicios = Servicio.objects.all().prefetch_related('normas', 'metodos')
     servicio_grupos = CategoriaServicio.objects.all()
+    trabajadores = TrabajadorProfile.objects.all().select_related('user') # Se mantiene la carga para el select del template
 
     servicios_con_detalles_json = json.dumps([
         {
@@ -527,6 +549,7 @@ def crear_editar_cotizacion(request, pk=None):
         'error': error,
         'estados_choices': Cotizacion.ESTADO_CHOICES,
         'forma_pago_choices': Cotizacion.FORMA_PAGO_CHOICES,
+        'trabajadores': trabajadores, # Se mantiene la lista de trabajadores para el select
     }
     return render(request, 'servicios/cotizaciones_form.html', context)
 
@@ -558,10 +581,60 @@ def eliminar_cotizacion(request, pk):
 
     return render(request, 'servicios/cotizacion_confirm_delete.html', {'cotizacion': cotizacion})
 
+
+def link_callback(uri, rel):
+    """
+    Convierte rutas de recursos HTML (CSS, imágenes) a rutas del sistema de archivos.
+    Esto es necesario para que xhtml2pdf pueda incrustar archivos STATIC y MEDIA.
+    """
+    if uri.startswith(settings.MEDIA_URL):
+        path = os.path.join(settings.MEDIA_ROOT, uri.replace(settings.MEDIA_URL, ""))
+    elif uri.startswith(settings.STATIC_URL):
+        path = os.path.join(settings.STATIC_ROOT, uri.replace(settings.STATIC_URL, ""))
+    else:
+        return uri 
+        
+    if not os.path.isfile(path):
+        return uri
+        
+    return path
+
+def header_footer_callback(canvas, doc):
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import Paragraph
+    from reportlab.lib.units import cm
+
+    styles = getSampleStyleSheet()
+    style_normal = styles['Normal']
+    
+    header_text = "Código: VCF-LAB-FOR-001 | Fecha: 2025-03-05 | Versión: 06"
+    header = Paragraph(header_text, style_normal)
+    
+    header.wrapOn(canvas, doc.width, doc.topMargin)
+    header.drawOn(canvas, doc.leftMargin, doc.height + doc.topMargin - 0.5 * cm) 
+
+
+    footer_contact_text = "GRUPO VICAF SAC - Tel: +51 941 573 750 | Email: informes@grupovicaf.com"
+    footer_contact = Paragraph(footer_contact_text, style_normal)
+    
+    footer_contact.wrapOn(canvas, doc.width, doc.bottomMargin)
+    footer_contact.drawOn(canvas, doc.leftMargin, 1.0 * cm) 
+
+    page_num = canvas.getPageNumber()
+    page_text = f"Página {page_num}"
+    
+    canvas.drawString(doc.width + doc.leftMargin - 1.0 * cm, 1.0 * cm, page_text)
+
 def generar_pdf_cotizacion(request, pk):
+    
     cotizacion = get_object_or_404(Cotizacion.objects.all(), pk=pk)
     
-    # Valores robustos usando los campos ya calculados en el modelo Cotizacion
+    jefe_laboratorio = None
+    try:
+        jefe_laboratorio = TrabajadorProfile.objects.select_related('user').get(user__username='raquel')
+    except (TrabajadorProfile.DoesNotExist, TrabajadorProfile.MultipleObjectsReturned):
+        pass
+    
     tasa_igv_decimal = cotizacion.tasa_igv if cotizacion.tasa_igv is not None else Decimal('0.18')
     subtotal = cotizacion.subtotal if cotizacion.subtotal is not None else Decimal('0.00')
     igv_amount = cotizacion.impuesto_igv if cotizacion.impuesto_igv is not None else (subtotal * tasa_igv_decimal)
@@ -575,9 +648,30 @@ def generar_pdf_cotizacion(request, pk):
         'igv_monto_final': igv_amount,
         'monto_total_final': monto_total,
         'igv_porcentaje': igv_porcentaje, 
+        'jefe_laboratorio': jefe_laboratorio,
     }
+
+    template = get_template('servicios/cotizacion_pdf.html')
+    html = template.render(context)
     
-    return render(request, 'servicios/cotizacion_pdf.html', context)
+    response = HttpResponse(content_type='application/pdf')
+
+    nombre_archivo = f"{cotizacion.numero_oferta}.pdf" if cotizacion.numero_oferta else f"Cotizacion_{pk}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"' 
+    # ===========================================================================
+
+    pisa_status = pisa.CreatePDF(
+        html,                   
+        dest=response,          
+        link_callback=link_callback 
+    )
+
+    if pisa_status.err:
+        return HttpResponse('Tuvimos errores al generar el PDF.', status=500)
+    
+    return response
+
+
 
 logger = logging.getLogger(__name__) 
 

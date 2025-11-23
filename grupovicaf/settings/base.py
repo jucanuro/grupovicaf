@@ -79,16 +79,16 @@ TIME_ZONE = 'America/Lima'
 USE_I18N = True
 USE_TZ = True 
 
-# Archivos Estáticos
 STATIC_URL = 'static/'
-# Carpeta donde Django recolecta estáticos en producción
 STATIC_ROOT = BASE_DIR / 'staticfiles' 
-# Directorios de estáticos de cada app
 STATICFILES_DIRS = [
     BASE_DIR / 'static', 
 ]
 
-# Configuración de URLs de autenticación
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'mediafiles'
+
+
 LOGIN_REDIRECT_URL = 'dashboard' 
 LOGIN_URL = 'login' 
 LOGOUT_REDIRECT_URL = 'login'

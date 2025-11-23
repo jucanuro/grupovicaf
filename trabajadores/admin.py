@@ -3,9 +3,6 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from .models import TrabajadorProfile
 
-# -----------------------------------------------------------
-# 1. ADMIN INLINE: Integra el perfil en el formulario de User
-# -----------------------------------------------------------
 class TrabajadorProfileInline(admin.StackedInline):
     """Permite crear/editar el TrabajadorProfile al crear/editar un User."""
     model = TrabajadorProfile
@@ -21,22 +18,17 @@ class TrabajadorProfileInline(admin.StackedInline):
             'fields': ('telefono_contacto', 'correo_contacto')
         }),
         ('AUDITORÍA', {
-            # Campos de solo lectura para la trazabilidad
             'fields': ('creado_en', 'actualizado_en'),
             'classes': ('collapse',),
         })
     )
-    # Declaramos los campos de auditoría como solo lectura
     readonly_fields = ('creado_en', 'actualizado_en') 
 
-# -----------------------------------------------------------
-# 2. ADMIN para el modelo DJANGO USER (CUSTOM)
-# -----------------------------------------------------------
+
 class TrabajadorUserAdmin(BaseUserAdmin):
     """Sustituye el UserAdmin por defecto para inyectar el TrabajadorProfile."""
     inlines = (TrabajadorProfileInline,)
     
-    # Mantenemos la redefinición del fieldsets para evitar el error admin.E012
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         ('Información Personal (Login)', {'fields': ('first_name', 'last_name', 'email')}),
@@ -53,9 +45,7 @@ class TrabajadorUserAdmin(BaseUserAdmin):
         return super().get_inline_instances(request, obj)
 
 
-# -----------------------------------------------------------
-# 3. ADMIN para el MODELO TrabajadorProfile (Gestión Directa)
-# -----------------------------------------------------------
+
 @admin.register(TrabajadorProfile)
 class TrabajadorProfileAdmin(admin.ModelAdmin):
     """Permite la gestión directa de los perfiles."""
@@ -87,13 +77,11 @@ class TrabajadorProfileAdmin(admin.ModelAdmin):
             'fields': ('telefono_contacto', 'correo_contacto')
         }),
         ('AUDITORÍA', {
-            # Sección de Auditoría para la vista de edición directa
             'fields': ('creado_en', 'actualizado_en'),
             'classes': ('collapse',),
         })
     )
     
-    # Declaramos los campos de auditoría como solo lectura
     readonly_fields = ('creado_en', 'actualizado_en') 
 
     def user_username(self, obj):
@@ -106,8 +94,5 @@ class TrabajadorProfileAdmin(admin.ModelAdmin):
     user_is_active.boolean = True
 
 
-# -----------------------------------------------------------
-# 4. REGISTRO FINAL
-# -----------------------------------------------------------
 admin.site.unregister(User)
 admin.site.register(User, TrabajadorUserAdmin)
