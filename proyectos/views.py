@@ -286,10 +286,6 @@ def pagina_registro_solicitud(request, solicitud_id):
     
     return render(request, 'proyectos/registro_solicitud.html', context)
 
-# ---------------------------------------------------------------------------------
-# 3. FUNCIÓN: GUARDADO/ACTUALIZACIÓN (Paso 3 - AJAX POST)
-#    Crea/Actualiza SolicitudEnsayo, DetalleEnsayo y AsignacionTipoEnsayo.
-# ---------------------------------------------------------------------------------
 
 @csrf_exempt
 def actualizar_solicitud_y_detalles(request, solicitud_id):

@@ -278,6 +278,14 @@ class Voucher(models.Model):
         verbose_name="Archivo (PDF/Imagen) del Voucher",
         validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'pdf'])]
     )
+
+    documento_firmado = models.FileField(
+        upload_to='vouchers/documentos_firmados/', 
+        null=True, 
+        blank=True,
+        verbose_name="Oferta/Contrato Firmado por Cliente",
+        validators=[FileExtensionValidator(allowed_extensions=['pdf'])]
+    )
     fecha_subida = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):

@@ -671,15 +671,14 @@ def generar_pdf_cotizacion(request, pk):
     
     return response
 
-
-
 logger = logging.getLogger(__name__) 
 
 @login_required
+@transaction.atomic # Aplicamos el decorador para simplificar el bloque try/except
 def aprobar_cotizacion(request, pk):
     """
-    Aprueba una cotización, registra el voucher y crea el proyecto asociado, 
-    todo dentro de una transacción.
+    Aprueba una cotización, registra el voucher (con comprobante y oferta firmada) 
+    y crea el proyecto asociado, todo dentro de una transacción.
     """
     cotizacion = get_object_or_404(Cotizacion, pk=pk)
     
@@ -695,76 +694,75 @@ def aprobar_cotizacion(request, pk):
         monto_pagado_str = request.POST.get('monto_pagado')
         imagen_voucher = request.FILES.get('imagen_voucher')
         
-        # 2. Convertir monto (si falla, asume 0.00, no falla)
+        # 🟢 Archivo del documento firmado por el cliente
+        documento_firmado_cliente = request.FILES.get('documento_firmado_cliente')
+        
+        # 2. Convertir monto
         try:
             monto_pagado = Decimal(monto_pagado_str)
         except (TypeError, InvalidOperation):
             monto_pagado = Decimal('0.00')
-
-        # 3. Validar solo los campos que deseas que sean obligatorios (Código y Archivo)
-        if not codigo_voucher:
-            return render(request, 'servicios/aprobar_cotizacion.html', {
-                'cotizacion': cotizacion,
-                'error': 'El código de operación es requerido.'
-            })
             
-        if not imagen_voucher:
+        monto_pagado_value = monto_pagado_str
+        codigo_voucher_value = codigo_voucher
+
+        # 3. Validar campos obligatorios
+        error_message = None
+        if not codigo_voucher:
+            error_message = 'El código de operación es requerido.'
+        elif not imagen_voucher:
+            error_message = 'La imagen del voucher es requerida.'
+        elif not documento_firmado_cliente:
+            error_message = 'El Documento de Oferta Firmado por el Cliente es requerido para la aprobación.'
+
+        if error_message:
             return render(request, 'servicios/aprobar_cotizacion.html', {
                 'cotizacion': cotizacion,
-                'error': 'La imagen del voucher es requerida.'
+                'error': error_message,
+                'codigo_voucher_value': codigo_voucher_value,
+                'monto_pagado_value': monto_pagado_value,
             })
 
-        # ********** LÓGICA DE VALIDACIÓN CORREGIDA **********
-        # Eliminamos la condición `monto_pagado <= 0` de la validación crítica.
-        # ****************************************************
-
-        # ----------------------------------------------------
-        # 1. Transacción Atómica para garantizar la integridad
-        # ----------------------------------------------------
         try:
-            with transaction.atomic():
-                # A. Crear el registro del voucher
-                voucher = Voucher.objects.create(
-                    cotizacion=cotizacion,
-                    codigo=codigo_voucher,
-                    monto_pagado=monto_pagado, # Se registra el monto, aunque sea 0
-                    imagen=imagen_voucher
-                )
-                
-                # B. Actualizar el estado de la cotización
-                cotizacion.estado = 'Aceptada'
-                cotizacion.aprobada_por_cliente = True 
-                cotizacion.save()
+            voucher = Voucher.objects.create(
+                cotizacion=cotizacion,
+                codigo=codigo_voucher,
+                monto_pagado=monto_pagado, 
+                imagen=imagen_voucher,
+                documento_firmado=documento_firmado_cliente 
+            )
+            
+            cotizacion.estado = 'Aceptada'
+            cotizacion.aprobada_por_cliente = True 
+            cotizacion.save()
 
-                # C. Preparar datos para el Proyecto
-                nombre_proyecto = f"Proyecto - {cotizacion.asunto_servicio} ({cotizacion.numero_oferta})"
-                codigo_proyecto = f"P-{cotizacion.numero_oferta}" 
-                
-                total_muestras = cotizacion.detalles_cotizacion.aggregate(Sum('cantidad'))['cantidad__sum'] or 0
-
-                # D. Crear el nuevo proyecto
-                nuevo_proyecto = Proyecto.objects.create(
-                    cotizacion=cotizacion,
-                    nombre_proyecto=nombre_proyecto,
-                    codigo_proyecto=codigo_proyecto, 
-                    cliente=cotizacion.cliente,
-                    estado='PENDIENTE',
-                    descripcion_proyecto="Proyecto generado automáticamente a partir de una cotización aceptada.",
-                    monto_cotizacion=cotizacion.monto_total,
-                    codigo_voucher=voucher.codigo,
-                    numero_muestras=total_muestras,
-                )
-                
-                return redirect('proyectos:lista_proyectos_pendientes')
-        
+            nombre_proyecto = f"Proyecto - {cotizacion.asunto_servicio} ({cotizacion.numero_oferta})"
+            codigo_proyecto = f"P-{cotizacion.numero_oferta}" 
+            total_muestras = cotizacion.detalles_cotizacion.aggregate(Sum('cantidad'))['cantidad__sum'] or 0
+            
+            nuevo_proyecto = Proyecto.objects.create(
+                cotizacion=cotizacion,
+                nombre_proyecto=nombre_proyecto,
+                codigo_proyecto=codigo_proyecto, 
+                cliente=cotizacion.cliente,
+                estado='PENDIENTE',
+                descripcion_proyecto="Proyecto generado automáticamente a partir de una cotización aceptada.",
+                monto_cotizacion=cotizacion.monto_total,
+                codigo_voucher=voucher.codigo,
+                numero_muestras=total_muestras,
+            )
+            
+            return redirect('proyectos:lista_proyectos_pendientes')
+    
         except Exception as e:
             logger.error(f"Error en la aprobación de cotización {pk} y creación de proyecto: {e}")
             return render(request, 'servicios/aprobar_cotizacion.html', {
                 'cotizacion': cotizacion,
-                'error': f'Error crítico en el proceso de aprobación: {e}'
+                'error': f'Error crítico en el proceso de aprobación: {e}',
+                'codigo_voucher_value': codigo_voucher_value,
+                'monto_pagado_value': monto_pagado_value,
             })
     
-    # GET request
     context = {
         'cotizacion': cotizacion
     }
