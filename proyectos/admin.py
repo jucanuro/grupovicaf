@@ -10,7 +10,9 @@ from .models import (
     AsignacionTipoEnsayo, 
     ResultadoEnsayo, 
     DocumentoFinal,
-    ReporteIncidencia 
+    ReporteIncidencia,
+    TipoMuestra,
+    Laboratorio
 )
 # Se asume que estos modelos ya están enlazados en proyectos/models.py
 from servicios.models import Norma, Metodo, Cotizacion, CotizacionDetalle 
@@ -281,3 +283,14 @@ class ReporteIncidenciaAdmin(admin.ModelAdmin):
     list_filter = ('tipo_incidencia', 'fecha_ocurrencia')
     search_fields = ('detalle_incidencia', 'solicitud__codigo_solicitud', 'representante_cliente')
     raw_id_fields = ['solicitud', 'responsable_laboratorio']
+
+
+@admin.register(Laboratorio)
+class LaboratorioAdmin(admin.ModelAdmin):
+    list_display = ('nombre','descripcion')
+    list_filter = ('nombre',)
+
+@admin.register(TipoMuestra)
+class TipoMuestraAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'prefijo_codigo')
+    list_filter = ('tipo_laboratorio',)

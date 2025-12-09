@@ -1,20 +1,26 @@
-# /home/jucanuro/projects/grupovicaf/proyectos/views.py
 
 from django.shortcuts import render, redirect, get_object_or_404
+from django.views.generic import TemplateView
+from django.urls import reverse_lazy
 from django.db.models import Q
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
 import json
 from django.db import transaction
+from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
 from django.db import IntegrityError
 from django.utils import timezone
-from .models import Proyecto, SolicitudEnsayo,DetalleEnsayo, Muestra,TipoEnsayo, AsignacionTipoEnsayo, ReporteIncidencia
+from .models import Proyecto, SolicitudEnsayo,DetalleEnsayo, Muestra,TipoEnsayo, AsignacionTipoEnsayo, ReporteIncidencia, TipoMuestra, Laboratorio
 from clientes.models import Cliente as Cliente 
 from servicios.models import Cotizacion,CotizacionDetalle, Norma, Metodo
 from trabajadores.models import TrabajadorProfile
+from django.contrib import messages
+from decimal import Decimal, InvalidOperation
+import datetime
+from django.urls import reverse
 
 try:
     from .models import ResultadoEnsayo 
@@ -39,303 +45,339 @@ def lista_proyectos_pendientes(request):
     
     return render(request, 'proyectos/lista_proyectos_pendientes.html', context)
 
-
-@csrf_exempt
-def editar_proyecto_view(request, pk):
-    """
-    Vista para editar un proyecto existente.
-    Maneja las solicitudes POST desde el modal de edición.
-    """
-    if request.method == 'POST':
-        try:
-            proyecto = get_object_or_404(Proyecto, pk=pk)
-            data = json.loads(request.body)
-            proyecto.nombre_proyecto = data.get('nombre', proyecto.nombre_proyecto)
-            proyecto.estado = data.get('estado', proyecto.estado)
-            proyecto.monto_cotizacion = data.get('monto', proyecto.monto_cotizacion)
-            proyecto.save()
-            return JsonResponse({'success': True, 'message': 'Proyecto actualizado con éxito.'})
-        except json.JSONDecodeError:
-            return JsonResponse({'success': False, 'message': 'Formato JSON inválido.'}, status=400)
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)}, status=500)
-    return JsonResponse({'success': False, 'message': 'Método no permitido.'}, status=405)
-
-
 def get_date_or_none(date_string):
     """Convierte una cadena de fecha a formato YYYY-MM-DD o None si está vacía."""
     return date_string if date_string else None
 
-
-@csrf_exempt
-def crear_muestra(request): 
-    if request.method != 'POST':
-        return JsonResponse({'status': 'error', 'message': 'Método de solicitud no permitido.'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-        proyecto_id = data.get('proyecto_id')
-
-        # 1. Validaciones
-        if not proyecto_id:
-            return JsonResponse({'status': 'error', 'message': 'El ID del proyecto no puede ser nulo.'}, status=400)
-
-        try:
-            proyecto = Proyecto.objects.get(id=proyecto_id)
-        except Proyecto.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'El proyecto no existe.'}, status=404)
-
-        codigo_muestra = data.get('codigo_muestra')
-        if Muestra.objects.filter(proyecto=proyecto, codigo_muestra=codigo_muestra).exists():
-            return JsonResponse({'status': 'error', 'message': f'Ya existe una muestra con el código "{codigo_muestra}" para este proyecto.'}, status=400)
-
-        with transaction.atomic():
-            # 2. Creación de Muestra
-            muestra = Muestra.objects.create(
-                proyecto=proyecto,
-                codigo_muestra=codigo_muestra,
-                descripcion_muestra=data.get('descripcion_muestra', ''),
-                id_lab=data.get('id_lab'),
-                tipo_muestra=data.get('tipo_muestra'),
-                masa_aprox_kg=data.get('masa_aprox_kg'),
-                fecha_recepcion=get_date_or_none(data.get('fecha_recepcion')),
-                fecha_fabricacion=get_date_or_none(data.get('fecha_fabricacion')),
-                fecha_ensayo_rotura=get_date_or_none(data.get('fecha_ensayo_rotura')),
-                # El estado inicial debe ser 'RECIBIDA' según tu modelo Muestra.ESTADOS_MUESTRA
-                estado=data.get('estado', 'RECIBIDA'), 
-            )
-            
-            # 3. Creación de Solicitud de Ensayo (vinculada a la Muestra)
-            # El código de solicitud podría ser un correlativo, o basarse en la muestra y el proyecto.
-            codigo_solicitud = f"OE-{proyecto.codigo_proyecto}-{codigo_muestra}" 
-
-            solicitud_ensayo = SolicitudEnsayo.objects.create(
-                muestra=muestra,
-                codigo_solicitud=codigo_solicitud,
-                fecha_solicitud=timezone.now().date(),
-                # generada_por=request.user.trabajadorprofile, # Asumir que el usuario logueado es el generador
-                estado='ASIGNADA' # Estado inicial según tu modelo SolicitudEnsayo.ESTADOS_SOLICITUD
-            )
-
-            # 4. Lógica de Actualización del Proyecto
-            proyecto.numero_muestras_registradas = Muestra.objects.filter(proyecto=proyecto).count()
-            if proyecto.estado == 'PENDIENTE':
-                proyecto.estado = 'EN_CURSO'
-            proyecto.save()
-        
-        return JsonResponse({
-            'status': 'success',
-            'message': f'Muestra {muestra.codigo_muestra} y Solicitud de Ensayo ({solicitud_ensayo.codigo_solicitud}) creadas correctamente.',
-            'muestra': {
-                'id': muestra.pk,
-                'codigo_muestra': muestra.codigo_muestra,
-                'tipo_muestra': muestra.tipo_muestra,
-                'estado': muestra.estado,
-                'solicitud_id': solicitud_ensayo.id
-            }
-        }, status=201)
-
-    except json.JSONDecodeError:
-        return JsonResponse({'status': 'error', 'message': 'JSON inválido.'}, status=400)
-    except Exception as e:
-        # En producción, usa logging.error(e)
-        return JsonResponse({'status': 'error', 'message': f'Error interno: {str(e)}'}, status=500)
-
-
-@require_GET
-def muestras_del_proyecto(request, proyecto_id):
+def get_fk_object(model_class, pk_value):
     """
-    Devuelve la lista de muestras para un proyecto específico en formato JSON.
+    Intenta obtener un objeto de la base de datos usando su clave primaria (PK).
+    Devuelve None si el pk_value es None/vacío o si el objeto no se encuentra.
     """
+    if not pk_value:
+        return None
     try:
-        # 1. Obtención de datos optimizada:
-        # Usamos select_related para obtener la SolicitudEnsayo en la misma consulta
-        muestras = Muestra.objects.filter(proyecto_id=proyecto_id).order_by('-creado_en')
+        return model_class.objects.filter(pk=pk_value).first()
+    except Exception:
+        return None
+
+class MuestraCreateUpdateView(TemplateView):
+    template_name = 'proyectos/gestion_dashboard_muestras.html'
+    
+    # Asume que aquí deberías tener los modelos importados:
+    # Muestra, Proyecto, Laboratorio, TipoMuestra, TrabajadorProfile, Muestra.ESTADOS_MUESTRA
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        proyecto_pk = self.kwargs.get('pk')
         
-        muestras_list = []
-        for muestra in muestras:
-            # Manejo seguro de la relación OneToOne (solicitud_ensayo)
-            solicitud_id = None
+        proyecto = get_object_or_404(Proyecto, pk=proyecto_pk)
+        
+        context['proyecto'] = proyecto
+        
+        # 1. Intentar obtener el PK de la muestra de la URL para EDICIÓN
+        #    Asume que la URL es: /proyectos/<int:pk>/muestras/<int:muestra_pk>/
+        muestra_pk = self.kwargs.get('muestra_pk')
+        
+        muestra = None
+        is_update = False
+        form_data = {}
+
+        if 'form_data' in kwargs:
+            # Prioridad 1: Datos que fallaron en el POST
+            form_data = kwargs.get('form_data', {})
+        elif muestra_pk:
             try:
-                solicitud_id = muestra.solicitud_ensayo.id
-            except SolicitudEnsayo.DoesNotExist:
-                pass
+                # Prioridad 2: Cargar datos de la muestra para editar
+                muestra = get_object_or_404(Muestra, pk=muestra_pk, proyecto=proyecto)
+                is_update = True
+                
+                form_data = {
+                    'muestra_pk_to_edit': str(muestra.pk), # PK de la muestra para el POST (Update)
+                    'tipo_muestra': str(muestra.tipo_muestra.pk) if muestra.tipo_muestra else '',
+                    'id_lab': str(muestra.id_lab.pk) if muestra.id_lab else '',
+                    'estado': muestra.estado,
+                    
+                    'descripcion_muestra': muestra.descripcion_muestra,
+                    'estado_fisico_recepcion': muestra.estado_fisico_recepcion,
+                    'masa_aprox_kg': str(muestra.masa_aprox_kg) if muestra.masa_aprox_kg else '',
+                    'ubicacion_almacenamiento': muestra.ubicacion_almacenamiento,
+                    'ubicacion_gps': muestra.ubicacion_gps,
+                    'notas_recepcion': muestra.notas_recepcion,
+                    
+                    # Formateo de fechas a 'YYYY-MM-DD' para HTML input type="date"
+                    'fecha_toma_muestra': muestra.fecha_toma_muestra.strftime('%Y-%m-%d') if muestra.fecha_toma_muestra else '',
+                    'fecha_recepcion': muestra.fecha_recepcion.strftime('%Y-%m-%d') if muestra.fecha_recepcion else '',
+                    'fecha_fabricacion': muestra.fecha_fabricacion.strftime('%Y-%m-%d') if muestra.fecha_fabricacion else '',
+                    'fecha_ensayo_rotura': muestra.fecha_ensayo_rotura.strftime('%Y-%m-%d') if muestra.fecha_ensayo_rotura else '',
+                    
+                    'tomada_por': str(muestra.tomada_por.pk) if muestra.tomada_por else '',
+                    'recepcionado_por': str(muestra.recepcionado_por.pk) if muestra.recepcionado_por else '',
+                    'tecnico_responsable_muestra': str(muestra.tecnico_responsable_muestra.pk) if muestra.tecnico_responsable_muestra else '',
+                }
+                
+                context['title'] = f"✏️ Editando Muestra: {muestra.codigo_muestra}"
+                
+            except Exception:
+                # Si la muestra no se encuentra o hay error de carga, volvemos a modo Creación
+                context['title'] = "➕ Registrar Nueva Muestra"
+                is_update = False
+        else:
+            context['title'] = "➕ Registrar Nueva Muestra"
 
-            muestras_list.append({
-                'id': muestra.pk,
-                'codigo_muestra': muestra.codigo_muestra,
-                'descripcion_muestra': muestra.descripcion_muestra,
-                'tipo_muestra': muestra.tipo_muestra,
-                'fecha_recepcion': muestra.fecha_recepcion.strftime('%Y-%m-%d') if muestra.fecha_recepcion else 'N/A', 
-                'estado': muestra.estado, 
-                'estado_display': muestra.get_estado_display(), # Útil para la UI
-                'solicitud_id': solicitud_id, 
-            })
+        context['form_data'] = form_data
+        context['is_update'] = is_update
         
-        proyecto = Proyecto.objects.get(id=proyecto_id)
-
-        return JsonResponse({
-            'status': 'success', 
-            'muestras': muestras_list,
-            'proyecto_estado': proyecto.estado
-        })
-        
-    except Proyecto.DoesNotExist:
-        return JsonResponse({'status': 'error', 'message': 'El proyecto no existe.'}, status=404)
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': f'Error interno: {str(e)}'}, status=500)
- 
-
-def generar_o_redirigir_solicitud(request, muestra_id):
-    """
-    Verifica si la SolicitudEnsayo existe. Si no, la crea con su código.
-    Siempre redirige al formulario de llenado (pagina_registro_solicitud).
-    """
-    muestra = get_object_or_404(Muestra, pk=muestra_id)
-    
-    try:
-        solicitud_existente = SolicitudEnsayo.objects.get(muestra=muestra)
-        
-        # Si ya existe y la vista es llamada, el usuario verá el mensaje de Solicitud Existente
-        # y un enlace para "Ver Solicitud" (o ir a la página de llenado/detalle)
-        return redirect(reverse('pagina_registro_solicitud', kwargs={'solicitud_id': solicitud_existente.pk}))
-        
-    except SolicitudEnsayo.DoesNotExist:
-        # Generación de código: Asegúrate de que esta lógica coincida con tus reglas de negocio
-        nuevo_codigo = f"SOL-{muestra.proyecto.codigo_proyecto or 'TEMP'}-{muestra.codigo_muestra}"
+        # Carga de datos estadísticos y FKs (permanecen igual)
+        lista_muestras = Muestra.objects.filter(proyecto=proyecto).order_by('pk')
+        context['lista_muestras'] = lista_muestras
+        context['muestras_registradas'] = lista_muestras.count()
+        context['muestras_totales'] = proyecto.numero_muestras
+        context['muestras_pendientes'] = context['muestras_totales'] - context['muestras_registradas']
         
         try:
-            # Crea la solicitud mínima
-            solicitud_existente = SolicitudEnsayo.objects.create(
-                muestra=muestra,
-                codigo_solicitud=nuevo_codigo,
-                estado='BORRADOR', 
-                generada_por=request.user.trabajadorprofile
-            )
+            context['laboratorios'] = Laboratorio.objects.all()
+            context['tipos_muestra'] = TipoMuestra.objects.all().order_by('nombre')
+            context['trabajadores'] = TrabajadorProfile.objects.all().order_by('nombre') 
+        except Exception:
+            context['laboratorios'] = []
+            context['tipos_muestra'] = []
+            context['trabajadores'] = []
+
+        context['estados_muestra'] = Muestra.ESTADOS_MUESTRA
+            
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        proyecto_pk = kwargs.get('pk')
+        proyecto = get_object_or_404(Proyecto, pk=proyecto_pk)
+        
+        muestra_pk_to_edit = request.POST.get('muestra_pk_to_edit')
+        is_update = bool(muestra_pk_to_edit)
+
+        # 1. Determinar instancia y validación de límite (solo para CREACIÓN)
+        if is_update:
+            instance = get_object_or_404(Muestra, pk=muestra_pk_to_edit, proyecto=proyecto)
+            mensaje_exito = f"Muestra {instance.codigo_muestra} actualizada exitosamente."
+        else:
+            muestras_actuales = Muestra.objects.filter(proyecto=proyecto).count()
+            if muestras_actuales >= proyecto.numero_muestras:
+                mensaje = f"Límite alcanzado: Ya se registraron {muestras_actuales} muestras. El límite es {proyecto.numero_muestras}."
+                messages.warning(request, mensaje)
+                return redirect(reverse('proyectos:gestion_muestras_proyecto', kwargs={'pk': proyecto_pk}))
+
+            instance = Muestra(proyecto=proyecto)
+            mensaje_exito = "Muestra registrada exitosamente."
+
+        try:
+            
+            id_lab_pk = request.POST.get('id_lab')
+            tipo_muestra_pk = request.POST.get('tipo_muestra')
+
+            instance.id_lab = get_fk_object(Laboratorio, id_lab_pk)
+            instance.tipo_muestra = get_fk_object(TipoMuestra, tipo_muestra_pk)
+            
+            if not instance.id_lab or not instance.tipo_muestra:
+                raise ValueError("Faltan campos obligatorios: Laboratorio y Tipo de Muestra.")
+
+            instance.descripcion_muestra = request.POST.get('descripcion_muestra', '').strip()
+            instance.estado_fisico_recepcion = request.POST.get('estado_fisico_recepcion', '').strip()
+            instance.ubicacion_almacenamiento = request.POST.get('ubicacion_almacenamiento', '').strip()
+            instance.ubicacion_gps = request.POST.get('ubicacion_gps', '').strip()
+            instance.estado = request.POST.get('estado', 'RECIBIDA') # Por si es creación
+            instance.notas_recepcion = request.POST.get('notas_recepcion', '').strip()
+
+            masa_str = request.POST.get('masa_aprox_kg', '').strip()
+            instance.masa_aprox_kg = Decimal(masa_str) if masa_str else None
+
+            instance.fecha_toma_muestra = request.POST.get('fecha_toma_muestra', '').strip() or None
+            instance.fecha_fabricacion = request.POST.get('fecha_fabricacion', '').strip() or None
+            instance.fecha_ensayo_rotura = request.POST.get('fecha_ensayo_rotura', '').strip() or None
+            
+            fecha_recepcion_str = request.POST.get('fecha_recepcion', '').strip()
+            if not is_update and not fecha_recepcion_str:
+                 instance.fecha_recepcion = timezone.now().date() 
+            elif fecha_recepcion_str:
+                 instance.fecha_recepcion = fecha_recepcion_str
+
+            instance.tomada_por = get_fk_object(TrabajadorProfile, request.POST.get('tomada_por'))
+            instance.recepcionado_por = get_fk_object(TrabajadorProfile, request.POST.get('recepcionado_por'))
+            instance.tecnico_responsable_muestra = get_fk_object(TrabajadorProfile, request.POST.get('tecnico_responsable_muestra'))
+
+            instance.full_clean()
+            instance.save()
+            
+            messages.success(request, mensaje_exito)
+            
+            return redirect(reverse('proyectos:gestion_muestras_proyecto', kwargs={'pk': proyecto_pk}))
+
+        except (ValueError, ValidationError) as e:
+            error_message = f"Error de validación: {str(e)}"
+            messages.error(request, error_message) 
+            
+            form_data = request.POST.dict()
+            
+            if is_update:
+                return redirect(reverse('proyectos:gestion_muestras_proyecto', kwargs={'pk': proyecto_pk, 'muestra_pk': muestra_pk_to_edit}))
+            
+            return self.render_to_response(self.get_context_data(form_data=form_data, pk=proyecto_pk))
+            
         except Exception as e:
-            # Manejo de error si la creación falla
-            return render(request, 'error_page.html', {'message': f'Error al crear Solicitud: {e}'}, status=500)
-
-    # Redirigir a la vista de registro/llenado
-    return redirect(reverse('pagina_registro_solicitud', kwargs={'solicitud_id': solicitud_existente.pk}))
-
-
-# ---------------------------------------------------------------------------------
-# 2. FUNCIÓN: LLENADO/REGISTRO (Paso 2)
-#    Renderiza el formulario HTML.
-# ---------------------------------------------------------------------------------
-
-def pagina_registro_solicitud(request, solicitud_id):
-    solicitud = get_object_or_404(SolicitudEnsayo, pk=solicitud_id)
-    muestra = solicitud.muestra
-    proyecto = muestra.proyecto
-    
-    solicitud_ya_detallada = DetalleEnsayo.objects.filter(solicitud=solicitud).exists() 
-
-    tecnico_generador_id = None
-    if solicitud.generada_por:
-        tecnico_generador_id = solicitud.generada_por.id
-    elif request.user.is_authenticated and hasattr(request.user, 'trabajadorprofile'):
-        tecnico_generador_id = request.user.trabajadorprofile.id
-
-    detalles_cotizacion_qs = CotizacionDetalle.objects.none()
-    try:
-        cotizacion = Cotizacion.objects.get(proyecto=proyecto) 
-        detalles_cotizacion_qs = cotizacion.detalles_cotizacion.all().select_related('servicio')
-    except Cotizacion.DoesNotExist:
-        pass 
+            error_message = f"Error inesperado al guardar: {str(e)}"
+            messages.error(request, error_message)
+            return redirect(reverse('proyectos:gestion_muestras_proyecto', kwargs={'pk': proyecto_pk}))
         
-    tipos_ensayo_db = list(TipoEnsayo.objects.all().values('id', 'nombre', 'codigo_interno'))
-    ROLES_LABORATORIO = ['TECNICO', 'JEFE_LAB', 'SUPERVISOR']
-    tecnicos_db = list(TrabajadorProfile.objects.filter(role__in=ROLES_LABORATORIO).values('id', 'nombre_completo'))
-    normas_db = list(Norma.objects.all().values('id', 'nombre', 'codigo'))
-    metodos_db = list(Metodo.objects.all().values('id', 'nombre', 'codigo'))
+class ProyectoMuestraGestionView(TemplateView):
+    template_name = 'proyectos/gestion_dashboard_muestras.html'
 
-    
-
-    detalles_para_js = []
-    for detalle in detalles_cotizacion_qs:
-        tipo_ensayo_inicial_id = getattr(detalle, 'tipo_ensayo_id', None) 
-        tecnico_inicial_id = getattr(detalle, 'tecnico_inicial_id', None) 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        proyecto_pk = self.kwargs.get('pk')
         
-        detalles_para_js.append({
-            'cotizacion_detalle_id': detalle.pk,
-            'descripcion': getattr(detalle.servicio, 'nombre', ''), 
-            'norma_precargada': getattr(detalle.servicio, 'norma_aplicable', ''),
-            'metodo_precargado': getattr(detalle.servicio, 'metodo_aplicable', ''),
-            'fecha_limite': (proyecto.fecha_entrega_estimada or timezone.now()).strftime('%Y-%m-%d'), 
-            'observaciones_detalle': '', 
-            'tipo_ensayo_id': tipo_ensayo_inicial_id, 
-            'tecnico_inicial_id': tecnico_inicial_id, 
-        })
-
-    detalles_cotizacion_json = json.dumps(detalles_para_js)
-
-    context = {
-        'muestra': muestra,
-        'solicitud': solicitud,
-        'solicitud_ya_detallada': solicitud_ya_detallada,
-        'tecnico_generador_id': tecnico_generador_id, 
-        'tecnicos': tecnicos_db,
-        'tipos_ensayo': tipos_ensayo_db,
-        'normas': normas_db,
-        'metodos': metodos_db, 
-        'detalles_cotizacion_json': detalles_cotizacion_json, 
-        'logged_user_id': request.user.trabajadorprofile.id if request.user.is_authenticated and hasattr(request.user, 'trabajadorprofile') else 0,
-    }
-    
-    return render(request, 'proyectos/registro_solicitud.html', context)
-
-
-@csrf_exempt
-def actualizar_solicitud_y_detalles(request, solicitud_id):
-    """
-    Procesa la solicitud POST para actualizar la cabecera y guardar los DetalleEnsayo 
-    y AsignacionTipoEnsayo anidados.
-    """
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Método no permitido.'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-        solicitud = get_object_or_404(SolicitudEnsayo, pk=solicitud_id)
+        proyecto = get_object_or_404(Proyecto, pk=proyecto_pk)
         
-        with transaction.atomic():
-            
-            # 1. ACTUALIZAR CABECERA
-            solicitud.generada_por_id = data.get('generada_por_id', solicitud.generada_por_id)
-            solicitud.estado = 'PENDIENTE' 
-            solicitud.save()
-
-            # 2. ELIMINAR DETALLES Y ASIGNACIONES (para reescribir)
-            # 💥 CORRECCIÓN DEL FieldError 💥
-            DetalleEnsayo.objects.filter(solicitud=solicitud).delete()
-            
-            # 3. CREAR NUEVOS DETALLES Y ASIGNACIONES
-            for detalle_data in data.get('detalles', []):
+        muestra_pk = self.kwargs.get('muestra_pk') 
+        form_data = kwargs.get('form_data', {})
+        is_update = False
+        
+        if muestra_pk and not form_data:
+            try:
+                muestra = get_object_or_404(Muestra, pk=muestra_pk, proyecto=proyecto)
+                is_update = True
                 
-                # CREAR DetalleEnsayo
-                detalle = DetalleEnsayo.objects.create(
-                    solicitud=solicitud, # 💥 Usamos 'solicitud' 💥
-                    descripcion=detalle_data.get('descripcion'),
-                    norma_aplicable=detalle_data.get('norma'),
-                    metodo_aplicable=detalle_data.get('metodo'),
-                    fecha_limite=detalle_data.get('fecha_limite'),
-                    observaciones_detalle=detalle_data.get('observaciones_detalle'), # Nuevo campo
-                    cotizacion_detalle_id=detalle_data.get('cotizacion_detalle_id') or None, 
-                )
+                form_data = {
+                    'muestra_pk_to_edit': str(muestra.pk),
+                    'tipo_muestra': str(muestra.tipo_muestra.pk) if muestra.tipo_muestra else '',
+                    'id_lab': str(muestra.id_lab.pk) if muestra.id_lab else '',
+                    'estado': muestra.estado,
+                    
+                    'descripcion_muestra': muestra.descripcion_muestra or '',
+                    'estado_fisico_recepcion': muestra.estado_fisico_recepcion or '',
+                    
+                    'masa_aprox_kg': str(muestra.masa_aprox_kg) if muestra.masa_aprox_kg is not None else '',
+                    
+                    'ubicacion_almacenamiento': muestra.ubicacion_almacenamiento or '',
+                    'ubicacion_gps': muestra.ubicacion_gps or '',
+                    'notas_recepcion': muestra.notas_recepcion or '',
+                    
+                    'fecha_toma_muestra': muestra.fecha_toma_muestra.strftime('%Y-%m-%d') if isinstance(muestra.fecha_toma_muestra, datetime.date) else '',
+                    'fecha_recepcion': muestra.fecha_recepcion.strftime('%Y-%m-%d') if isinstance(muestra.fecha_recepcion, datetime.date) else '',
+                    'fecha_fabricacion': muestra.fecha_fabricacion.strftime('%Y-%m-%d') if isinstance(muestra.fecha_fabricacion, datetime.date) else '',
+                    'fecha_ensayo_rotura': muestra.fecha_ensayo_rotura.strftime('%Y-%m-%d') if isinstance(muestra.fecha_ensayo_rotura, datetime.date) else '',
+                    
+                    'tomada_por': str(muestra.tomada_por.pk) if muestra.tomada_por else '',
+                    'recepcionado_por': str(muestra.recepcionado_por.pk) if muestra.recepcionado_por else '',
+                    'tecnico_responsable_muestra': str(muestra.tecnico_responsable_muestra.pk) if muestra.tecnico_responsable_muestra else '',
+                }
+                context['title'] = f"✏️ Editando Muestra: {muestra.codigo_muestra or muestra.pk}"
+                
+            except Muestra.DoesNotExist:
+                messages.warning(self.request, "La muestra solicitada no existe o no pertenece a este proyecto.")
+                is_update = False
+            
+        if not is_update:
+            context['title'] = "➕ Registrar Nueva Muestra"
 
-                # CREAR AsignacionTipoEnsayo
-                for asignacion in detalle_data.get('tipos_asignaciones', []):
-                    AsignacionTipoEnsayo.objects.create(
-                        detalle=detalle, # Usamos 'detalle' (nombre de la FK en AsignacionTipoEnsayo)
-                        tipo_ensayo_id=asignacion['tipo_ensayo_id'],
-                        tecnico_asignado_id=asignacion['tecnico_asignado_id']
-                    )
+        context['form_data'] = form_data
+        context['is_update'] = is_update
+        
+        muestras_registradas = Muestra.objects.filter(proyecto=proyecto).count()
+        muestras_totales = proyecto.numero_muestras
+        muestras_pendientes = max(0, muestras_totales - muestras_registradas)
 
-        return JsonResponse({'codigo': solicitud.codigo_solicitud, 'solicitud_id': solicitud.pk}, status=200)
+        context['proyecto'] = proyecto
+        context['muestras_registradas'] = muestras_registradas
+        context['muestras_totales'] = muestras_totales
+        context['muestras_pendientes'] = muestras_pendientes
+        
+        try:
+            context['laboratorios'] = Laboratorio.objects.all()
+            context['tipos_muestra'] = TipoMuestra.objects.all()
+            context['trabajadores'] = TrabajadorProfile.objects.all()
+        except NameError:
+             pass 
 
-    except SolicitudEnsayo.DoesNotExist:
-        return JsonResponse({'error': 'Solicitud de Ensayo no encontrada.'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+        context['estados_muestra'] = Muestra.ESTADOS_MUESTRA
+        context['lista_muestras'] = Muestra.objects.filter(proyecto=proyecto).order_by('-fecha_recepcion')
+
+        return context
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        proyecto_pk = kwargs.get('pk')
+        proyecto = get_object_or_404(Proyecto, pk=proyecto_pk)
+        
+        muestra_pk_to_edit = request.POST.get('muestra_pk_to_edit')
+        is_update = bool(muestra_pk_to_edit)
+        
+        if is_update:
+            instance = get_object_or_404(Muestra, pk=muestra_pk_to_edit, proyecto=proyecto)
+            mensaje_exito = f"Muestra {instance.codigo_muestra or instance.pk} actualizada exitosamente."
+        else:
+            muestras_actuales = Muestra.objects.filter(proyecto=proyecto).count()
+            if muestras_actuales >= proyecto.numero_muestras:
+                messages.error(request, f"Límite de muestras alcanzado ({muestras_actuales}/{proyecto.numero_muestras}).")
+                return redirect(reverse('proyectos:gestion_muestras_proyecto', kwargs={'pk': proyecto_pk}))
+
+            instance = Muestra(proyecto=proyecto)
+            mensaje_exito = "Muestra registrada exitosamente."
+            
+        try:
+            instance.id_lab = get_fk_object(Laboratorio, request.POST.get('id_lab'))
+            instance.tipo_muestra = get_fk_object(TipoMuestra, request.POST.get('tipo_muestra'))
+            
+            if not instance.id_lab or not instance.tipo_muestra:
+                 raise ValidationError('El Laboratorio y el Tipo de Muestra son obligatorios.')
+            
+            instance.descripcion_muestra = request.POST.get('descripcion_muestra', '').strip()
+            instance.estado = request.POST.get('estado')
+            instance.estado_fisico_recepcion = request.POST.get('estado_fisico_recepcion', '').strip()
+            instance.ubicacion_almacenamiento = request.POST.get('ubicacion_almacenamiento', '').strip()
+            instance.ubicacion_gps = request.POST.get('ubicacion_gps', '').strip()
+            instance.notas_recepcion = request.POST.get('notas_recepcion', '').strip()
+
+            masa_str = request.POST.get('masa_aprox_kg', '').strip()
+
+            if masa_str:
+                masa_str = masa_str.replace(',', '.') 
+                try:
+                    instance.masa_aprox_kg = Decimal(masa_str)
+                except Exception:
+                    raise ValidationError("La masa debe ser un número válido, ej: 20, 20.5, 20.00.")
+            else:
+                instance.masa_aprox_kg = None
+            
+            instance.fecha_toma_muestra = request.POST.get('fecha_toma_muestra', '') or None
+            instance.fecha_recepcion = request.POST.get('fecha_recepcion', '') or None
+            instance.fecha_fabricacion = request.POST.get('fecha_fabricacion', '') or None
+            instance.fecha_ensayo_rotura = request.POST.get('fecha_ensayo_rotura', '') or None
+            
+            instance.tomada_por = get_fk_object(TrabajadorProfile, request.POST.get('tomada_por'))
+            instance.recepcionado_por = get_fk_object(TrabajadorProfile, request.POST.get('recepcionado_por'))
+            instance.tecnico_responsable_muestra = get_fk_object(TrabajadorProfile, request.POST.get('tecnico_responsable_muestra'))
+
+            instance.full_clean()
+            instance.save()
+            
+            messages.success(request, mensaje_exito)
+            
+            return redirect(reverse('proyectos:gestion_muestras_proyecto', kwargs={'pk': proyecto_pk}))
+
+        
+        except ValidationError as e:
+            error_message = f"Error de Validación: {e.message_dict if hasattr(e, 'message_dict') else e.messages}"
+            messages.error(request, error_message)
+            
+            form_data = request.POST.dict()
+            
+            if is_update:
+                return redirect(reverse('proyectos:gestion_muestras_proyecto', 
+                                        kwargs={'pk': proyecto_pk, 'muestra_pk': muestra_pk_to_edit}))
+            
+            return self.render_to_response(self.get_context_data(form_data=form_data, pk=proyecto_pk))
+
+        except Exception as e:
+            error_message = f"Error inesperado al guardar: {str(e)}"
+            messages.error(request, error_message)
+            
+            return redirect(reverse('proyectos:gestion_muestras_proyecto', kwargs={'pk': proyecto_pk}))

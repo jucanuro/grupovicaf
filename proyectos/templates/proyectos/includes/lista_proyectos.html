@@ -1,0 +1,88 @@
+{% if proyectos_pendientes %}
+<div class="glass-card p-8 rounded-3xl shadow-2xl overflow-x-auto">
+    <table class="min-w-full divide-y divide-slate-700" id="projects-table">
+        <thead class="bg-slate-700/50">
+            <tr>
+                <th scope="col" class="py-4 px-6 text-left text-sm font-medium text-slate-300 uppercase tracking-wider">
+                    Nombre del Proyecto
+                </th>
+                <th scope="col" class="py-4 px-6 text-left text-sm font-medium text-slate-300 uppercase tracking-wider">
+                    Cliente
+                </th>
+                <th scope="col" class="py-4 px-6 text-left text-sm font-medium text-slate-300 uppercase tracking-wider">
+                    Monto
+                </th>
+                <th scope="col" class="py-4 px-6 text-left text-sm font-medium text-slate-300 uppercase tracking-wider">
+                    N° Muestras
+                </th>
+                <th scope="col" class="py-4 px-6 text-left text-sm font-medium text-slate-300 uppercase tracking-wider">
+                    Estado
+                </th>
+                <th scope="col" class="py-4 px-6 text-left text-sm font-medium text-slate-300 uppercase tracking-wider">
+                    Acciones
+                </th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-700">
+            {% for proyecto in proyectos_pendientes %}
+            <tr class="hover:bg-slate-700/30 transition-colors duration-200" data-id="{{ proyecto.pk }}"
+                data-nombre="{{ proyecto.nombre_proyecto }}" data-cliente="{{ proyecto.cliente.razon_social }}"
+                data-monto="{{ proyecto.monto_cotizacion }}" data-muestras="{{ proyecto.numero_muestras }}"
+                data-estado="{{ proyecto.estado }}">
+                <td class="py-5 px-6 whitespace-nowrap text-sm font-medium text-white">
+                    {{ proyecto.nombre_proyecto }}
+                </td>
+                <td class="py-5 px-6 whitespace-nowrap text-sm text-slate-400">
+                    {{ proyecto.cliente.razon_social }}
+                </td>
+                <td class="py-5 px-6 whitespace-nowrap text-sm text-slate-400">
+                    S/. {{ proyecto.monto_cotizacion }} </td>
+                <td class="py-5 px-6 whitespace-nowrap text-sm text-slate-400">
+                    {{ proyecto.numero_muestras }} </td>
+                <td class="py-5 px-6 whitespace-nowrap text-sm text-white">
+                    <span
+                        class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-500/20 text-yellow-300">
+                        {{ proyecto.estado }}
+                    </span>
+                </td>
+                <td class="py-5 px-6 whitespace-nowrap text-left text-sm font-medium">
+                    <a href="{% url 'proyectos:gestion_muestras_proyecto' pk=proyecto.pk %}"
+                        class="inline-flex justify-center px-6 py-3 rounded-full
+                                text-xs font-semibold text-white
+                                bg-gradient-to-r from-green-500 to-emerald-600
+                                hover:from-green-600 hover:to-emerald-700
+                                transition duration-300 ease-in-out
+                                shadow-xl hover:shadow-2xl
+                                transform hover:scale-105"
+                        aria-label="Ir a la Gestión de Muestras">
+                            <svg class="w-4 h-4 mr-4 fill-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path d="M184.6 475.5C181.5 482.8 179.2 490.4 177.8 498.1C163.3 506.9 146.3 512 128 512C75 512 32 469 32 416L32 128C14.3 128 0 113.7 0 96C0 78.3 14.3 64 32 64L224 64C241.7 64 256 78.3 256 96C256 113.7 241.7 128 224 128L224 383.6L184.6 475.5zM96 128L96 256L160 256L160 128L96 128zM352 64L512 64C529.7 64 544 78.3 544 96C544 113.7 529.7 128 512 128L512 281.4L603.3 494.4C605.6 499.8 607.1 505.5 607.7 511.4L608 512L607.7 512C607.9 513.8 608 515.6 608 517.4C608 549.7 581.8 576 549.4 576L282.5 576C250.2 576 223.9 549.8 223.9 517.4C223.9 515.6 224 513.8 224.2 512L223.9 512L224.2 511.4C224.8 505.6 226.3 499.8 228.6 494.4L320 281.4L320 128C302.3 128 288 113.7 288 96C288 78.3 302.3 64 320 64L352 64zM453.2 306.6C449.8 298.6 448 290.1 448 281.4L448 128L384 128L384 281.4C384 290.1 382.2 298.6 378.8 306.6L345.6 384L486.3 384L453.1 306.6z"/></svg>
+                            Gestión de Muestras
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{# Bloque de Paginación #}
+<div class="glass-card p-6 rounded-3xl shadow-2xl flex justify-center items-center space-x-4 mt-8">
+    {% if proyectos_pendientes.has_previous %}
+    <a href="?page={{ proyectos_pendientes.previous_page_number }}"
+        class="px-6 py-3 text-slate-400 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors transform hover:scale-105">Anterior</a>
+    {% endif %}
+
+    <span class="px-6 py-3 text-sm text-white bg-slate-700 rounded-xl border border-slate-600">
+        Página {{ proyectos_pendientes.number }} de {{ proyectos_pendientes.paginator.num_pages }}
+    </span>
+
+    {% if proyectos_pendientes.has_next %}
+    <a href="?page={{ proyectos_pendientes.next_page_number }}"
+        class="px-6 py-3 text-slate-400 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors transform hover:scale-105">Siguiente</a>
+    {% endif %}
+</div>
+{% else %}
+<div class="glass-card p-8 rounded-3xl shadow-2xl">
+    <p class="text-center text-slate-400 text-lg">No hay proyectos pendientes en este momento. 🎉</p>
+</div>
+{% endif %}

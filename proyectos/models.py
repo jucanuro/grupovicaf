@@ -1,23 +1,18 @@
 from django.db import models
 from django.utils import timezone
+from django.db import transaction
 from clientes.models import Cliente
-from trabajadores.models import TrabajadorProfile # Importación clave
+from trabajadores.models import TrabajadorProfile 
 from servicios.models import Cotizacion, CotizacionDetalle 
 import os
+import datetime
 
-# ================================================================
-# Funciones de utilidad
-# ================================================================
 def documento_file_path(instance, filename):
     """Genera la ruta de subida para documentos finales basados en cliente y proyecto."""
     proyecto_id = instance.proyecto.id if instance.proyecto else 'default'
     cliente_id = instance.proyecto.cliente.id if instance.proyecto and instance.proyecto.cliente else 'default'
     return f'proyectos/documentos/{cliente_id}/{proyecto_id}/{filename}'
 
-
-# ================================================================
-# 1. Modelo Principal: Proyecto (SIN CAMBIOS)
-# ================================================================
 class Proyecto(models.Model):
     """Representa un proyecto de trabajo generado tras la aprobación de una cotización."""
     
@@ -55,7 +50,6 @@ class Proyecto(models.Model):
     fecha_entrega_estimada = models.DateField(blank=True, null=True, verbose_name="Fecha de Entrega Estimada")
     estado = models.CharField(max_length=20, choices=ESTADOS_PROYECTO, default='PENDIENTE', verbose_name="Estado del Proyecto")
     
-    # Campos de seguimiento
     numero_muestras = models.PositiveIntegerField(default=0, verbose_name="Número Total de Muestras (Según Cotización)")
     numero_muestras_registradas = models.PositiveIntegerField(default=0, verbose_name="Número de Muestras con Resultados Finales")
 
@@ -70,12 +64,66 @@ class Proyecto(models.Model):
         verbose_name_plural = "Proyectos"
         ordering = ['-fecha_inicio']
 
+class Laboratorio(models.Model):
+    """
+    Define las áreas o divisiones de servicio del laboratorio.
+    Ej: Mecánica de Suelos, Concreto, Ensayos Químicos.
+    """
+    nombre = models.CharField(
+        max_length=100, 
+        unique=True, 
+        verbose_name="Nombre del Laboratorio/Área"
+    )
+    descripcion = models.TextField(
+        blank=True, 
+        null=True, 
+        verbose_name="Descripción del Área"
+    )
+    
+    def __str__(self):
+        return self.nombre
 
-# ================================================================
-# 2. Modelo: Muestra (SIN CAMBIOS)
-# ================================================================
+    class Meta:
+        verbose_name = "Laboratorio/Área"
+        verbose_name_plural = "Laboratorios/Áreas"
+        ordering = ['nombre']
+        
+
+class TipoMuestra(models.Model):
+    """
+    Define los tipos de muestras que ingresan al laboratorio.
+    Se relaciona con el área de Laboratorio y contiene el prefijo
+    para la codificación de la Muestra.
+    """
+    nombre = models.CharField(
+        max_length=100, 
+        unique=True, 
+        verbose_name="Nombre del Tipo de Muestra (Ej: Suelo, Agua)"
+    )
+    
+    tipo_laboratorio = models.ForeignKey(
+        'Laboratorio', 
+        on_delete=models.SET_NULL, 
+        null=True,
+        blank=True,
+        verbose_name="Área de Laboratorio Asociada"
+    )
+    
+    prefijo_codigo = models.CharField(
+        max_length=2, 
+        unique=True, 
+        verbose_name="Prefijo de Codificación (Ej: S, C, A)"
+    )
+    
+    def __str__(self):
+        return f"{self.nombre} ({self.prefijo_codigo}) - Área: {self.tipo_laboratorio.nombre}"
+
+    class Meta:
+        verbose_name = "Tipo de Muestra (Catálogo)"
+        verbose_name_plural = "Tipos de Muestra (Catálogo)"
+        ordering = ['nombre']
+
 class Muestra(models.Model):
-    """Representa una muestra física asociada a un proyecto, y lleva el técnico principal asignado."""
     
     ESTADOS_MUESTRA = [
         ('RECIBIDA', 'Recibida en Laboratorio'),
@@ -83,54 +131,185 @@ class Muestra(models.Model):
         ('EN_ANALISIS', 'Órdenes de Ensayo Generadas/En Curso'),
         ('RESULTADOS_REGISTRADOS', 'Resultados Registrados (Pendiente de Validación)'),
         ('VALIDADO', 'Validada (Lista para Informe Final)'),
+        ('ENTREGADO', 'Muestra Entregada/Dispuesta'),
     ]
 
     proyecto = models.ForeignKey(
-        Proyecto, 
+        'proyectos.Proyecto',
         on_delete=models.CASCADE, 
         related_name='muestras', 
         verbose_name="Proyecto Asociado"
     )
-    codigo_muestra = models.CharField(max_length=100, verbose_name="Código de Muestra (Cliente)")
-    id_lab = models.CharField(max_length=50, blank=True, null=True, verbose_name="ID de Laboratorio (Interno)")
     
-    # 🎯 CAMBIO CLAVE: Asignación del Técnico Principal a la Muestra (Mantenido)
-    tecnico_responsable_muestra = models.ForeignKey(
-        TrabajadorProfile, 
+    id_lab = models.ForeignKey( 
+        'proyectos.Laboratorio',
+        on_delete=models.CASCADE,
+        related_name='muestras',
+        verbose_name="Laboratorio Asociado"
+    )
+    
+    codigo_lote_generado = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True, 
+        verbose_name="Código de Lote (V-TIPO-AÑO)"
+    )
+
+    codigo_muestra = models.CharField(
+        max_length=100, 
+        unique=True, 
+        blank=True, 
+        verbose_name="Código de Muestra (ID_LAB-TIPO-001)"
+    )
+    
+    descripcion_muestra = models.TextField(
+        blank=True, 
+        null=True, 
+        verbose_name="Descripción o Ubicación de Toma (Cliente)"
+    )
+    
+    tipo_muestra = models.ForeignKey(
+        'proyectos.TipoMuestra',
+        on_delete=models.RESTRICT,
+        related_name='muestras',
+        verbose_name="Tipo de Muestra"
+    )
+    
+    masa_aprox_kg = models.DecimalField(
+        max_digits=10, 
+        decimal_places=3, 
+        blank=True, 
+        null=True, 
+        verbose_name="Masa/Volumen Aprox. (kg/L)"
+    )
+    
+    tomada_por = models.ForeignKey(
+        'trabajadores.TrabajadorProfile',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='muestras_tomadas',
+        verbose_name="Tomada Por"
+    )
+    fecha_toma_muestra = models.DateField(
+        blank=True, 
+        null=True, 
+        verbose_name="Fecha Toma (Muestreo)"
+    )
+    ubicacion_gps = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True, 
+        verbose_name="Ubicación GPS (Latitud, Longitud)"
+    )
+
+    fecha_recepcion = models.DateField(
+        default=timezone.now, 
+        verbose_name="Fecha de Recepción en Lab"
+    )
+    recepcionado_por = models.ForeignKey(
+        'trabajadores.TrabajadorProfile', 
         on_delete=models.SET_NULL, 
         null=True, 
         blank=True, 
-        related_name='muestras_asignadas', 
-        verbose_name="Técnico Responsable de la Muestra"
+        related_name='muestras_recepcionadas', 
+        verbose_name="Recepcionado Por"
+    )
+    estado_fisico_recepcion = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True, 
+        verbose_name="Estado Físico (Recepción/Integridad)"
+    )
+    ubicacion_almacenamiento = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True, 
+        verbose_name="Ubicación Muestra (En Almacén)"
     )
     
-    descripcion_muestra = models.TextField(blank=True, null=True, verbose_name="Descripción o Ubicación de Toma")
-    tipo_muestra = models.CharField(max_length=100, blank=True, null=True, verbose_name="Tipo de Muestra")
-    masa_aprox_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name="Masa Aprox. (kg)")
+    fecha_fabricacion = models.DateField(
+        blank=True, 
+        null=True, 
+        verbose_name="Fecha de Fabricación (si aplica)"
+    )
+    fecha_ensayo_rotura = models.DateField(
+        blank=True, 
+        null=True, 
+        verbose_name="Fecha Prevista de Ensayo de Rotura (si aplica)"
+    )
     
-    # Fechas relevantes
-    fecha_recepcion = models.DateField(default=timezone.now, verbose_name="Fecha de Recepción en Lab")
-    fecha_fabricacion = models.DateField(blank=True, null=True, verbose_name="Fecha de Fabricación (si aplica)")
-    fecha_ensayo_rotura = models.DateField(blank=True, null=True, verbose_name="Fecha Prevista de Ensayo de Rotura (si aplica)")
-    
-    estado = models.CharField(max_length=30, choices=ESTADOS_MUESTRA, default='RECIBIDA', verbose_name="Estado de la Muestra")
+    estado = models.CharField(
+        max_length=30, 
+        choices=ESTADOS_MUESTRA, 
+        default='RECIBIDA', 
+        verbose_name="Estado de la Muestra"
+    )
+    tecnico_responsable_muestra = models.ForeignKey(
+        'trabajadores.TrabajadorProfile', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='muestras_asignadas_principal', 
+        verbose_name="Técnico Responsable Principal"
+    )
+    notas_recepcion = models.TextField(
+        blank=True, 
+        null=True, 
+        verbose_name="Notas de Recepción/Observaciones Internas"
+    )
     
     creado_en = models.DateTimeField(auto_now_add=True)
     modificado_en = models.DateTimeField(auto_now=True)
     
+    def get_tipo_prefix(self):
+        if self.tipo_muestra and self.tipo_muestra.prefijo_codigo:
+            return self.tipo_muestra.prefijo_codigo.upper()
+        return 'X'
+        
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            with transaction.atomic():
+                current_year = datetime.datetime.now().year
+                
+                tipo_prefix = self.get_tipo_prefix()
+                
+                codigo_lote = f'V-{tipo_prefix}-{current_year}'
+                self.codigo_lote_generado = codigo_lote 
+                
+                lab_pk = self.id_lab.pk if self.id_lab else '0'
+                
+                prefix_to_search = f'{lab_pk}-{tipo_prefix}-{current_year}-' 
+                
+                last_muestra = Muestra.objects.filter(
+                    codigo_muestra__startswith=prefix_to_search
+                ).order_by('-codigo_muestra').first()
+                
+                next_number = 1
+                if last_muestra and last_muestra.codigo_muestra:
+                    try:
+                        parts = last_muestra.codigo_muestra.split('-')
+                        if len(parts) >= 4:
+                            last_number_str = parts[-1] 
+                            last_number = int(last_number_str)
+                            next_number = last_number + 1
+                    except ValueError:
+                        pass
+                    
+                consecutive_number = f'{next_number:03d}'
+                
+                self.codigo_muestra = f'{lab_pk}-{tipo_prefix}-{current_year}-{consecutive_number}'
+                
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{self.codigo_muestra} - {self.tipo_muestra}"
+        return f"{self.codigo_muestra} - {self.tipo_muestra.nombre if self.tipo_muestra else 'Sin Tipo'} (Lote: {self.codigo_lote_generado})"
 
     class Meta:
-        verbose_name = "Muestra"
-        verbose_name_plural = "Muestras"
-        unique_together = ('proyecto', 'codigo_muestra')
+        verbose_name = "Muestra de Laboratorio"
+        verbose_name_plural = "Muestras de Laboratorio"
         ordering = ['codigo_muestra']
 
-
-# ================================================================
-# 3. NUEVO MODELO: TipoEnsayo (CATÁLOGO)
-# ================================================================
 class TipoEnsayo(models.Model):
     """
     Define los tipos de ensayos predefinidos del laboratorio (el catálogo). 
@@ -148,9 +327,6 @@ class TipoEnsayo(models.Model):
         return self.nombre
 
 
-# ================================================================
-# 4. NUEVO MODELO: SolicitudEnsayo (CABECERA)
-# ================================================================
 class SolicitudEnsayo(models.Model):
     """Representa el documento cabecera (la Solicitud/Orden) de una Muestra."""
     
@@ -179,13 +355,9 @@ class SolicitudEnsayo(models.Model):
             return self.muestra.proyecto.cotizacion
         return None
     
-    # 2. Fechas de Entrega
     fecha_entrega_programada = models.DateField(blank=True, null=True, verbose_name="Fecha de Entrega de Registros (Programada)")
     fecha_entrega_real = models.DateField(blank=True, null=True, verbose_name="Fecha Real de Entrega de Registros")
     
-    # 3. Firmas
-    # **NOTA:** La firma del Jefe de Laboratorio se manejaría como un campo de imagen o un proceso de estado.
-    # Por ahora, solo indicamos quién debe firmar/validar la solicitud.
     firma_jefe_laboratorio = models.ForeignKey(
         TrabajadorProfile, 
         on_delete=models.SET_NULL, 
@@ -252,11 +424,6 @@ class AsignacionTipoEnsayo(models.Model):
         tecnico_info = self.tecnico_asignado.user.username if self.tecnico_asignado and hasattr(self.tecnico_asignado, 'user') else 'N/A'
         return f"{self.tipo_ensayo.nombre} asignado a {tecnico_info}"
 
-
-# ================================================================
-# 6. MODELO: DetalleEnsayo (LÍNEA DE TRABAJO/TAREA)
-# 🎯 MODIFICACIÓN: Se elimina tecnico_asignado directo y se añade el 'through'
-# ================================================================
 class DetalleEnsayo(models.Model):
     """Representa una línea de trabajo individual dentro de una Solicitud (el tipo de ensayo a realizar)."""
     
@@ -341,9 +508,6 @@ class DetalleEnsayo(models.Model):
         verbose_name = "Detalle de Ensayo (Línea de Trabajo)"
         verbose_name_plural = "Detalles de Ensayos (Líneas de Trabajo)"
         
-
-
-
 
 class ReporteIncidencia(models.Model):
     """Registra cualquier incidencia o cambio en la Solicitud de Ensayo."""

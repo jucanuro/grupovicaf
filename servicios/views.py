@@ -674,7 +674,7 @@ def generar_pdf_cotizacion(request, pk):
 logger = logging.getLogger(__name__) 
 
 @login_required
-@transaction.atomic # Aplicamos el decorador para simplificar el bloque try/except
+@transaction.atomic 
 def aprobar_cotizacion(request, pk):
     """
     Aprueba una cotización, registra el voucher (con comprobante y oferta firmada) 
@@ -736,7 +736,7 @@ def aprobar_cotizacion(request, pk):
             cotizacion.aprobada_por_cliente = True 
             cotizacion.save()
 
-            nombre_proyecto = f"Proyecto - {cotizacion.asunto_servicio} ({cotizacion.numero_oferta})"
+            nombre_proyecto = f"{cotizacion.cliente.razon_social} ({cotizacion.numero_oferta})"
             codigo_proyecto = f"P-{cotizacion.numero_oferta}" 
             total_muestras = cotizacion.detalles_cotizacion.aggregate(Sum('cantidad'))['cantidad__sum'] or 0
             
