@@ -6,6 +6,23 @@
 {% endblock extra_css %}
 
 {% block content %}
+<style>
+    .animated-gradient-text {
+        background: linear-gradient(to right, #10B981, #3B82F6, #8B5CF6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+        background-size: 200% auto;
+        animation: text-gradient 3s linear infinite alternate;
+    }
+
+    @keyframes text-gradient {
+        to {
+            background-position: 200% center;
+        }
+    }
+</style>
 <div class="p-4 md:p-4">
 
     {% if messages %}
@@ -21,33 +38,33 @@
         </div>
     {% endif %}
 
-    <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 animate-fade-in-up">
-        <h1 class="flex text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-cyan-300">
+    <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 animate-fade-in-up mb-6 border-b border-gray-200 pb-4">
+        <h1 class="flex text-xl font-extrabold text-transparent bg-clip-text animated-gradient-text">
             Gestión de muestras
-            <svg class="h-8 w-8 ml-4 fill-sky-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path d="M184.6 475.5C181.5 482.8 179.2 490.4 177.8 498.1C163.3 506.9 146.3 512 128 512C75 512 32 469 32 416L32 128C14.3 128 0 113.7 0 96C0 78.3 14.3 64 32 64L224 64C241.7 64 256 78.3 256 96C256 113.7 241.7 128 224 128L224 383.6L184.6 475.5zM96 128L96 256L160 256L160 128L96 128zM352 64L512 64C529.7 64 544 78.3 544 96C544 113.7 529.7 128 512 128L512 281.4L603.3 494.4C605.6 499.8 607.1 505.5 607.7 511.4L608 512L607.7 512C607.9 513.8 608 515.6 608 517.4C608 549.7 581.8 576 549.4 576L282.5 576C250.2 576 223.9 549.8 223.9 517.4C223.9 515.6 224 513.8 224.2 512L223.9 512L224.2 511.4C224.8 505.6 226.3 499.8 228.6 494.4L320 281.4L320 128C302.3 128 288 113.7 288 96C288 78.3 302.3 64 320 64L352 64zM453.2 306.6C449.8 298.6 448 290.1 448 281.4L448 128L384 128L384 281.4C384 290.1 382.2 298.6 378.8 306.6L345.6 384L486.3 384L453.1 306.6z"/></svg>
+            <svg class="h-6 w-6 ml-4 fill-indigo-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path d="M184.6 475.5C181.5 482.8 179.2 490.4 177.8 498.1C163.3 506.9 146.3 512 128 512C75 512 32 469 32 416L32 128C14.3 128 0 113.7 0 96C0 78.3 14.3 64 32 64L224 64C241.7 64 256 78.3 256 96C256 113.7 241.7 128 224 128L224 383.6L184.6 475.5zM96 128L96 256L160 256L160 128L96 128zM352 64L512 64C529.7 64 544 78.3 544 96C544 113.7 529.7 128 512 128L512 281.4L603.3 494.4C605.6 499.8 607.1 505.5 607.7 511.4L608 512L607.7 512C607.9 513.8 608 515.6 608 517.4C608 549.7 581.8 576 549.4 576L282.5 576C250.2 576 223.9 549.8 223.9 517.4C223.9 515.6 224 513.8 224.2 512L223.9 512L224.2 511.4C224.8 505.6 226.3 499.8 228.6 494.4L320 281.4L320 128C302.3 128 288 113.7 288 96C288 78.3 302.3 64 320 64L352 64zM453.2 306.6C449.8 298.6 448 290.1 448 281.4L448 128L384 128L384 281.4C384 290.1 382.2 298.6 378.8 306.6L345.6 384L486.3 384L453.1 306.6z"/></svg>
         </h1>
-        <a href="{% url 'proyectos:lista_proyectos_pendientes' %}" class="inline-flex items-center gap-2 px-6 py-2 bg-slate-800 text-white font-semibold rounded-full hover:bg-slate-700 transition-all duration-300 transform hover:scale-105 shadow-lg">
+        <a href="{% url 'proyectos:lista_proyectos_pendientes' %}" class="inline-flex items-center gap-2 px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-full hover:bg-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-lg">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="list" class="lucide lucide-list w-5 h-5"><path d="M3 5h.01"></path><path d="M3 12h.01"></path><path d="M3 19h.01"></path><path d="M8 5h13"></path><path d="M8 12h13"></path><path d="M8 19h13"></path></svg>
             Regresar a la Lista
         </a>
     </header>
     
-    <div class="dashboard-header mt-4 bg-slate-800/50 backdrop-blur-sm border border-slate-700 text-white p-6 rounded-lg mb-8 shadow-lg">
-        <h1 class="text-sm md:text-lg font-bold mb-2">🧪 Gestión de Muestras: {{ proyecto.nombre_proyecto }}</h1>
-        <p class="text-sm text-gray-400 mb-4">Cliente: <strong class="text-white text-lg ml-2">{{ proyecto.cliente.razon_social }}</strong></p>
+    <div class="dashboard-header mt-4 bg-white border border-gray-200 text-gray-900 p-6 rounded-lg mb-8 shadow-xl">
+        <h1 class="text-sm md:text-lg font-bold mb-2">🧪 Gestión de Muestras: <span class="text-indigo-600">{{ proyecto.nombre_proyecto }}</span></h1>
+        <p class="text-sm text-gray-600 mb-4">Cliente: <strong class="text-gray-900 text-lg ml-2">{{ proyecto.cliente.razon_social }}</strong></p>
         
         <div class="stats-grid grid grid-cols-1 md:grid-cols-3 gap-5 text-center">
-            <div class="stat-box bg-gray-700 p-4 rounded-md">
-                <div class="stat-label text-sm opacity-80">TOTAL MUESTRAS</div>
-                <div class="stat-value text-2xl font-extrabold text-green-400 mt-1">{{ muestras_totales }}</div>
+            <div class="stat-box bg-gray-50 border border-gray-200 p-4 rounded-md shadow-sm">
+                <div class="stat-label text-sm opacity-80 text-gray-600">TOTAL MUESTRAS</div>
+                <div class="stat-value text-2xl font-extrabold text-green-600 mt-1">{{ muestras_totales }}</div>
             </div>
-            <div class="stat-box bg-gray-700 p-4 rounded-md">
-                <div class="stat-label text-sm opacity-80">MUESTRAS REGISTRADAS</div>
-                <div class="stat-value text-2xl font-extrabold text-blue-400 mt-1">{{ muestras_registradas }}</div>
+            <div class="stat-box bg-gray-50 border border-gray-200 p-4 rounded-md shadow-sm">
+                <div class="stat-label text-sm opacity-80 text-gray-600">MUESTRAS REGISTRADAS</div>
+                <div class="stat-value text-2xl font-extrabold text-blue-600 mt-1">{{ muestras_registradas }}</div>
             </div>
-            <div class="stat-box bg-gray-700 p-4 rounded-md">
-                <div class="stat-label text-sm opacity-80">MUESTRAS PENDIENTES</div>
-                <div class="stat-value text-2xl font-extrabold text-red-500 mt-1">{{ muestras_pendientes }}</div>
+            <div class="stat-box bg-gray-50 border border-gray-200 p-4 rounded-md shadow-sm">
+                <div class="stat-label text-sm opacity-80 text-gray-600">MUESTRAS PENDIENTES</div>
+                <div class="stat-value text-2xl font-extrabold text-red-600 mt-1">{{ muestras_pendientes }}</div>
             </div>
         </div>
     </div>
@@ -55,9 +72,9 @@
 
     <div class="content-grid grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        <div id="form-panel" class="form-panel lg:col-span-7 bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-6 rounded-lg shadow-md h-fit">
+        <div id="form-panel" class="form-panel lg:col-span-7 bg-white border border-gray-200 p-6 rounded-lg shadow-xl h-fit">
             
-            <h2 id="form-title" class="text-xl font-semibold text-white mb-6"> {{ title }} </h2>
+            <h2 id="form-title" class="text-xl font-semibold text-gray-800 mb-6"> {{ title }} </h2>
             
             <form method="POST" id="muestra-form" action="{% url 'proyectos:gestion_muestras_proyecto' pk=proyecto.pk %}" class="space-y-6"> 
                 {% csrf_token %}
@@ -67,9 +84,9 @@
 
                 <div class="grid grid-cols-3 gap-4"> 
                     <div>
-                        <label for="id_tipo_muestra" class="block text-sm font-medium text-white mb-1">Tipo de Muestra *:</label>
+                        <label for="id_tipo_muestra" class="block text-sm font-medium text-gray-700 mb-1">Tipo de Muestra *:</label>
                         <select id="id_tipo_muestra" name="tipo_muestra" required 
-                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white text-gray-900">
+                            class="w-full py-2 px-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50 text-gray-900">
                             <option value="">-- Seleccione Tipo --</option>
                             {% for tipo in tipos_muestra %} 
                                 <option value="{{ tipo.pk }}" 
@@ -81,9 +98,9 @@
                     </div>
 
                     <div>
-                        <label for="id_lab" class="block text-sm font-medium text-white mb-1">Laboratorio Asociado *:</label>
+                        <label for="id_lab" class="block text-sm font-medium text-gray-700 mb-1">Laboratorio Asociado *:</label>
                         <select id="id_lab" name="id_lab" required 
-                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white text-gray-900">
+                            class="w-full py-2 px-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50 text-gray-900">
                             <option value="">-- Seleccione Lab --</option>
                             {% for laboratorio in laboratorios %}
                                 <option value="{{ laboratorio.pk }}"
@@ -95,9 +112,9 @@
                     </div>
                     
                     <div>
-                        <label for="id_estado" class="block text-sm font-medium text-white mb-1">Estado Inicial:</label>
+                        <label for="id_estado" class="block text-sm font-medium text-gray-700 mb-1">Estado Inicial:</label>
                         <select id="id_estado" name="estado" 
-                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white text-gray-900">
+                            class="w-full py-2 px-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50 text-gray-900">
                             {% for value, label in estados_muestra %}
                                 <option value="{{ value }}"
                                     {% with selected_val=form_data.estado|default:'RECIBIDA' %}
@@ -110,94 +127,94 @@
                     </div>
                 </div>
 
-                <hr class="border-slate-700"> 
+                <hr class="border-gray-200"> 
                 
                 <div>
-                    <label for="id_descripcion_muestra" class="block text-sm font-medium text-white mb-1">Descripción/Ubicación de Toma:</label>
+                    <label for="id_descripcion_muestra" class="block text-sm font-medium text-gray-700 mb-1">Descripción/Ubicación de Toma:</label>
                     <textarea id="id_descripcion_muestra" name="descripcion_muestra" rows="2" 
-                        class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white text-gray-900">{{ form_data.descripcion_muestra|default:"" }}</textarea>
+                        class="w-full border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50 text-gray-900">{{ form_data.descripcion_muestra|default:"" }}</textarea>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                   <div>
-                        <label for="id_masa_aprox_kg" class="block text-sm font-medium text-white mb-1">Masa Aprox. (kg):</label>
+                <div class="grid grid-cols-3 gap-4">
+                   <div class="col-span-1">
+                        <label for="id_masa_aprox_kg" class="block text-sm font-medium text-gray-700 mb-1">Masa Aprox. (kg):</label>
                         <input type="number" 
                             step="0.001" 
                             id="id_masa_aprox_kg" 
                             name="masa_aprox_kg" 
                             value="{{ form_data.masa_aprox_kg|default:'' }}"
-                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white text-gray-900">
+                            class="w-full py-2 px-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50 text-gray-900">
                     </div>
-                    <div>
-                        <label for="id_estado_fisico_recepcion" class="block text-sm font-medium text-white mb-1">Estado Físico:</label>
+                    <div class="col-span-2">
+                        <label for="id_estado_fisico_recepcion" class="block text-sm font-medium text-gray-700 mb-1">Estado Físico:</label>
                         <input type="text" id="id_estado_fisico_recepcion" name="estado_fisico_recepcion" 
                             value="{{ form_data.estado_fisico_recepcion|default:'' }}"
-                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white text-gray-900">
+                            class="w-full py-2 px-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50 text-gray-900">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label for="id_ubicacion_almacenamiento" class="block text-sm font-medium text-white mb-1">Ubicación Almacenamiento:</label>
+                        <label for="id_ubicacion_almacenamiento" class="block text-sm font-medium text-gray-700 mb-1">Ubicación Almacenamiento:</label>
                         <input type="text" id="id_ubicacion_almacenamiento" name="ubicacion_almacenamiento" 
                             value="{{ form_data.ubicacion_almacenamiento|default:'' }}"
-                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white text-gray-900">
+                            class="w-full py-2 px-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50 text-gray-900">
                     </div>
 
                     <div>
-                        <label for="id_ubicacion_gps" class="block text-sm font-medium text-white mb-1">Ubicación GPS:</label>
+                        <label for="id_ubicacion_gps" class="block text-sm font-medium text-gray-700 mb-1">Ubicación GPS:</label>
                         <input type="text" id="id_ubicacion_gps" name="ubicacion_gps" 
                             value="{{ form_data.ubicacion_gps|default:'' }}"
                             placeholder="Ej: -12.0464, -77.0428"
-                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white text-gray-900">
+                            class="w-full py-2 px-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50 text-gray-900">
                     </div>
                 </div>
                 
                 <div>
-                    <label for="id_notas_recepcion" class="block text-sm font-medium text-white mb-1">Notas de Recepción:</label>
+                    <label for="id_notas_recepcion" class="block text-sm font-medium text-gray-700 mb-1">Notas de Recepción:</label>
                     <textarea id="id_notas_recepcion" name="notas_recepcion" rows="2" 
-                        class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white text-gray-900">{{ form_data.notas_recepcion|default:"" }}</textarea>
+                        class="w-full border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50 text-gray-900">{{ form_data.notas_recepcion|default:"" }}</textarea>
                 </div>
 
-                <hr class="border-slate-700">
+                <hr class="border-gray-200">
 
-                <h3 class="text-md font-medium text-white">Fechas Clave</h3>
+                <h3 class="text-md font-medium text-gray-800">Fechas Clave</h3>
                 <div class="grid grid-cols-4 gap-4">
                     <div>
-                        <label for="id_fecha_toma_muestra" class="block text-sm font-medium text-white mb-1">Fecha de Toma:</label>
+                        <label for="id_fecha_toma_muestra" class="block text-sm font-medium text-gray-700 mb-1">Fecha de Toma:</label>
                         <input type="date" id="id_fecha_toma_muestra" name="fecha_toma_muestra" 
                             value="{{ form_data.fecha_toma_muestra|default:'' }}"
-                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white text-gray-900">
+                            class="w-full py-2 px-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50 text-gray-900">
                     </div>
                     <div>
-                        <label for="id_fecha_recepcion" class="block text-sm font-medium text-white mb-1">Fecha de Recepción:</label>
+                        <label for="id_fecha_recepcion" class="block text-sm font-medium text-gray-700 mb-1">Fecha de Recepción:</label>
                         <input type="date" id="id_fecha_recepcion" name="fecha_recepcion" 
                             value="{{ form_data.fecha_recepcion|default:'' }}"
-                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white text-gray-900">
+                            class="w-full py-2 px-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50 text-gray-900">
                     </div>
                     <div>
-                        <label for="id_fecha_fabricacion" class="block text-sm font-medium text-white mb-1">Fecha de Fabricación:</label>
+                        <label for="id_fecha_fabricacion" class="block text-sm font-medium text-gray-700 mb-1">Fecha de Fabricación:</label>
                         <input type="date" id="id_fecha_fabricacion" name="fecha_fabricacion" 
                             value="{{ form_data.fecha_fabricacion|default:'' }}"
-                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white text-gray-900">
+                            class="w-full py-2 px-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50 text-gray-900">
                     </div>
                     <div>
-                        <label for="id_fecha_ensayo_rotura" class="block text-sm font-medium text-white mb-1">Fecha Ensayo/Rotura:</label>
+                        <label for="id_fecha_ensayo_rotura" class="block text-sm font-medium text-gray-700 mb-1">Fecha Ensayo/Rotura:</label>
                         <input type="date" id="id_fecha_ensayo_rotura" name="fecha_ensayo_rotura" 
                             value="{{ form_data.fecha_ensayo_rotura|default:'' }}"
-                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white text-gray-900">
+                            class="w-full py-2 px-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50 text-gray-900">
                     </div>
                 </div>
 
-                <hr class="border-slate-700">
+                <hr class="border-gray-200">
                 
-                <h3 class="text-md font-medium text-white">Responsables</h3>
+                <h3 class="text-md font-medium text-gray-800">Responsables</h3>
 
                 <div class="grid grid-cols-3 gap-4">
                     <div>
-                        <label for="id_tomada_por" class="block text-sm font-medium text-white mb-1">Muestra Tomada Por:</label>
+                        <label for="id_tomada_por" class="block text-sm font-medium text-gray-700 mb-1">Muestra Tomada Por:</label>
                         <select id="id_tomada_por" name="tomada_por" 
-                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white text-gray-900">
+                            class="w-full py-2 px-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50 text-gray-900">
                             <option value="">-- Seleccione Trabajador --</option>
                             {% for trabajador in trabajadores %}
                                 <option value="{{ trabajador.pk }}"
@@ -209,9 +226,9 @@
                     </div>
 
                     <div>
-                        <label for="id_recepcionado_por" class="block text-sm font-medium text-white mb-1">Recepcionado Por:</label>
+                        <label for="id_recepcionado_por" class="block text-sm font-medium text-gray-700 mb-1">Recepcionado Por:</label>
                         <select id="id_recepcionado_por" name="recepcionado_por" 
-                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white text-gray-900">
+                            class="w-full py-2 px-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50 text-gray-900">
                             <option value="">-- Seleccione Trabajador --</option>
                             {% for trabajador in trabajadores %}
                                 <option value="{{ trabajador.pk }}"
@@ -223,9 +240,9 @@
                     </div>
                     
                     <div>
-                        <label for="id_tecnico_responsable_muestra" class="block text-sm font-medium text-white mb-1">Técnico Responsable:</label>
+                        <label for="id_tecnico_responsable_muestra" class="block text-sm font-medium text-gray-700 mb-1">Técnico Responsable:</label>
                         <select id="id_tecnico_responsable_muestra" name="tecnico_responsable_muestra" 
-                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white text-gray-900">
+                            class="w-full py-2 px-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50 text-gray-900">
                             <option value="">-- Seleccione Trabajador --</option>
                             {% for trabajador in trabajadores %}
                                 <option value="{{ trabajador.pk }}"
@@ -237,7 +254,7 @@
                     </div>
                 </div>
 
-                <div id="form-buttons" class="flex justify-start space-x-4">
+                <div id="form-buttons" class="flex justify-start space-x-4 pt-4">
                     
                     {% if is_update %}
                         <button type="submit" id="submit-button" class="flex items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
@@ -252,31 +269,49 @@
                 </div>
                 
                 {% if muestras_pendientes == 0 and not is_update %}
-                    <small class="text-red-400 text-xs mt-2 block">* Límite de muestras alcanzado ({{ muestras_totales }}). No se pueden registrar más.</small>
+                    <small class="text-red-600 text-xs mt-2 block">* Límite de muestras alcanzado ({{ muestras_totales }}). No se pueden registrar más.</small>
                 {% endif %}
                 
             </form>
         </div>
         
-        {# PANEL DERECHO: Lista de Muestras Registradas #}
-        <div class="list-panel lg:col-span-5 bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold text-gray-700 mb-4">📜 Muestras Registradas ({{ muestras_registradas }})</h2>
+        <div class="list-panel lg:col-span-5 bg-white p-6 rounded-lg shadow-xl border border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">📜 Muestras Registradas ({{ muestras_registradas }})</h2>
 
             {% if lista_muestras %}
                 <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">ID Muestra</th>
-                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Estado</th>
-                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Recepción</th>
-                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4 text-center">Editar</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-1/4">ID Muestra</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-1/4">Estado</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-1/4">Recepción</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-1/4 text-center">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
+                        <tbody class="bg-white divide-y divide-gray-100">
                             {% for muestra in lista_muestras %}
                             
-                            <tr>
+                            <tr id="muestra-row-{{ muestra.pk }}" data-muestra-data='{
+                                "pk": "{{ muestra.pk }}",
+                                "codigo_muestra": "{{ muestra.codigo_muestra|default:'' }}",
+                                "tipo_muestra": "{{ muestra.tipo_muestra.pk|default:'' }}",
+                                "id_lab": "{{ muestra.laboratorio_asociado.pk|default:'' }}",
+                                "estado": "{{ muestra.estado|default:'' }}",
+                                "descripcion_muestra": "{{ muestra.descripcion_muestra|default:'' }}",
+                                "masa_aprox_kg": "{{ muestra.masa_aprox_kg|default:'' }}",
+                                "estado_fisico_recepcion": "{{ muestra.estado_fisico_recepcion|default:'' }}",
+                                "ubicacion_almacenamiento": "{{ muestra.ubicacion_almacenamiento|default:'' }}",
+                                "ubicacion_gps": "{{ muestra.ubicacion_gps|default:'' }}",
+                                "notas_recepcion": "{{ muestra.notas_recepcion|default:'' }}",
+                                "fecha_toma_muestra": "{{ muestra.fecha_toma_muestra|date:'Y-m-d'|default:'' }}",
+                                "fecha_recepcion": "{{ muestra.fecha_recepcion|date:'Y-m-d'|default:'' }}",
+                                "fecha_fabricacion": "{{ muestra.fecha_fabricacion|date:'Y-m-d'|default:'' }}",
+                                "fecha_ensayo_rotura": "{{ muestra.fecha_ensayo_rotura|date:'Y-m-d'|default:'' }}",
+                                "tomada_por": "{{ muestra.tomada_por.pk|default:'' }}",
+                                "recepcionado_por": "{{ muestra.recepcionado_por.pk|default:'' }}",
+                                "tecnico_responsable_muestra": "{{ muestra.tecnico_responsable_muestra.pk|default:'' }}"
+                            }'>
                                 
                                 <td class="px-3 py-4 whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-900">
                                     <a href="{% url 'proyectos:gestion_muestras_proyecto' pk=proyecto.pk muestra_pk=muestra.pk %}">
@@ -295,23 +330,38 @@
                                     </span>
                                 </td>
                                 
-                                <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-600">
                                     {{ muestra.fecha_recepcion|date:"d/m/Y" }}
                                 </td>
                                 
                                 <td class="px-3 py-4 whitespace-nowrap text-sm font-medium text-center">
-                                    <a href="{% url 'proyectos:gestion_muestras_proyecto' pk=proyecto.pk muestra_pk=muestra.pk %}" 
-                                        title="Editar Muestra"
-                                        class="inline-flex items-center justify-center h-8 w-8 rounded-full 
-                                               bg-indigo-100 text-indigo-600 
-                                               hover:bg-indigo-200 hover:text-indigo-900 
-                                               focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 
-                                               transition duration-150 ease-in-out">
+                                    <div class="inline-flex space-x-2"> 
                                         
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                        </svg>
-                                    </a>
+                                        <a href="{% url 'proyectos:gestion_muestras_proyecto' pk=proyecto.pk muestra_pk=muestra.pk %}" 
+                                            title="Editar Muestra"
+                                            class="inline-flex items-center justify-center h-8 w-8 rounded-full 
+                                                bg-indigo-100 text-indigo-600 
+                                                hover:bg-indigo-200 hover:text-indigo-900 
+                                                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 
+                                                transition duration-150 ease-in-out">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                            </svg>
+                                        </a>
+
+                                        <a href="{% url 'proyectos:gestion_solicitud_ensayo' muestra.pk %}"
+                                            title="Registrar Solicitud de Ensayo"
+                                            class="inline-flex items-center justify-center h-8 w-8 rounded-full 
+                                                bg-green-100 text-green-600 
+                                                hover:bg-green-200 hover:text-green-900 
+                                                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 
+                                                transition duration-150 ease-in-out">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                        </a>
+
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -319,7 +369,7 @@
                     </table>
                 </div>
             {% else %}
-                <div class="p-4 text-center bg-blue-50 text-blue-700 rounded-lg" role="alert">
+                <div class="p-4 text-center bg-blue-50 text-blue-700 rounded-lg border border-blue-200" role="alert">
                     Aún no se ha registrado ninguna muestra para este proyecto. ¡Empiece con el formulario de la izquierda!
                 </div>
             {% endif %}
@@ -362,7 +412,7 @@
             const input = document.getElementById('id_' + key); 
             if (input) {
                 if (input.tagName === 'SELECT' || input.tagName === 'INPUT' || input.tagName === 'TEXTAREA') {
-                    input.value = data[key] || ''; // Usar '' si el dato es null o undefined
+                    input.value = data[key] || '';
                 }
             }
         }
@@ -388,13 +438,14 @@
         const formTitle = document.getElementById('form-title');
         if (formTitle) formTitle.textContent = '➕ Registrar Nueva Muestra';
         
-        if (submitButton) submitButton.innerHTML = '<i class="fas fa-save mr-2"></i> Guardar Muestra';
+        const submitButtonUpdate = document.getElementById('submit-button');
+        if (submitButtonUpdate) submitButtonUpdate.innerHTML = '<i class="fas fa-save mr-2"></i> Guardar Muestra';
         
         const cancelButton = document.getElementById('cancel-edit-button');
         if (cancelButton) cancelButton.classList.add('hidden');
         
         if (registradas < totalMuestras && submitButton) {
-             submitButton.disabled = false;
+              submitButton.disabled = false;
         }
     }
     

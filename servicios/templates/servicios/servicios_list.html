@@ -3,9 +3,10 @@
 {% block content %}
 
 <style>
-    /* Estilos del Título Animado */
+    /* Estilos del Título Animado (Manteniendo colores vibrantes para contraste) */
     .animated-gradient-text {
-        background: linear-gradient(to right, #6EE7B7, #3B82F6, #8B5CF6);
+        /* Degradado de colores vibrantes para un fondo claro: Verde, Azul, Púrpura */
+        background: linear-gradient(to right, #10B981, #3B82F6, #8B5CF6);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -19,21 +20,21 @@
             background-position: 200% center;
         }
     }
-    
-    /* Estilos para el modal de Detalle */
+
+    /* Estilos para el Modal (Adaptado a Light Mode) */
     .modal-overlay {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: rgba(0, 0, 0, 0.75);
+        background-color: rgba(0, 0, 0, 0.6); /* Fondo semi-transparente oscuro */
         display: none;
-        justify-content: center;
         align-items: center;
+        justify-content: center;
         z-index: 50;
         opacity: 0;
-        transition: opacity 0.3s ease-in-out;
+        transition: opacity 0.3s ease;
     }
 
     .modal-overlay.open {
@@ -42,107 +43,108 @@
     }
 
     .modal-container {
-        position: relative;
-        background-color: #1a202c;
-        padding: 2.5rem;
-        border-radius: 1.5rem;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-        max-width: 900px;
-        width: 90%;
-        color: white;
-        transform: translateY(-20px);
-        transition: transform 0.3s ease-in-out;
+        background-color: #ffffff; /* Fondo del modal blanco */
+        color: #1F2937; /* Texto principal oscuro */
+        border-radius: 1rem;
+        padding: 2rem;
+        max-width: 90%;
+        width: 600px;
         max-height: 90vh;
         overflow-y: auto;
+        position: relative;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
     }
 
     .modal-overlay.open .modal-container {
-        transform: translateY(0);
+        transform: scale(1);
     }
-    
+
     .modal-close-btn {
         position: absolute;
         top: 1rem;
         right: 1.5rem;
+        font-size: 2rem;
+        font-weight: 300;
+        color: #9CA3AF;
+        cursor: pointer;
         background: none;
         border: none;
-        color: #94a3b8;
-        cursor: pointer;
-        font-size: 1.5rem;
         line-height: 1;
+        transition: color 0.2s;
     }
 
-    .modal-content-area img {
-        display: block;
-        max-width: 100%;
-        height: auto;
+    .modal-close-btn:hover {
+        color: #1F2937;
     }
 </style>
 
 <div class="space-y-6">
-    <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-up">
-        <h1 class="text-2xl font-extrabold animated-gradient-text">Gestión de Servicios</h1>
-        <div class="flex items-center gap-4 w-full md:w-auto">
-            <div class="relative w-full">
-                <input type="text" id="searchInput" placeholder="Buscar servicios..." 
-                        class="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-full text-white focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200">
-                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
+    <div class="border-b border-gray-200 pb-4 mb-6">
+        <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-up border-b border-gray-200 pb-4 mb-6">
+            <h1 class="text-xl font-extrabold animated-gradient-text">Gestión de Servicios</h1>
+            <div class="flex items-center gap-4 w-full md:w-auto">
+                <div class="relative w-full">
+                    <input type="text" id="searchInput" placeholder="Buscar servicios..." 
+                            class="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 rounded-full text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+                </div>
+                <a href="{% url 'servicios:crear_servicio' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 transition-all duration-300 shadow-lg flex-shrink-0">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                    Nuevo Servicio
+                </a>
             </div>
-            <a href="{% url 'servicios:crear_servicio' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-accent text-white font-semibold rounded-full hover:bg-blue-600 transition-all duration-300 shadow-lg flex-shrink-0">
-                <i data-lucide="plus" class="w-5 h-5"></i>
-                Nuevo Servicio
-            </a>
-        </div>
-    </header>
-
-    <div class="glass-card p-6 rounded-2xl shadow-xl animate-fade-in-up">
+        </header>
+    </div>
+    <div class="bg-white p-6 rounded-2xl shadow-xl animate-fade-in-up border border-gray-100">
         {% if servicios %}
         <div class="overflow-x-auto">
-            <table class="w-full text-left table-auto">
-                <thead class="bg-slate-700/50">
-                    <tr class="text-slate-200">
-                        <th class="py-3 px-4 font-bold text-sm">Nombre</th>
-                        <th class="py-3 px-4 font-bold text-sm hidden sm:table-cell">Cód. Fact.</th>
-                        <th class="py-3 px-4 font-bold text-sm hidden md:table-cell">Categoría</th>
-                        <th class="py-3 px-4 font-bold text-sm hidden lg:table-cell">Estado</th>
-                        <th class="py-3 px-4 font-bold text-sm">Descripción</th>
-                        <th class="py-3 px-4 font-bold text-sm text-right">Acciones</th>
+            <table class="w-full text-left table-auto divide-y divide-gray-200">
+                <thead class="bg-gray-100 border-b border-gray-200">
+                    <tr class="text-gray-600 uppercase tracking-wider">
+                        <th class="py-3 px-4 font-bold text-xs">Nombre</th>
+                        <th class="py-3 px-4 font-bold text-xs hidden sm:table-cell">Cód. Fact.</th>
+                        <th class="py-3 px-4 font-bold text-xs hidden md:table-cell">Categoría</th>
+                        <th class="py-3 px-4 font-bold text-xs hidden lg:table-cell">Estado</th>
+                        <th class="py-3 px-4 font-bold text-xs">Descripción</th>
+                        <th class="py-3 px-4 font-bold text-xs text-right">Acciones</th>
                     </tr>
                 </thead>
-                <tbody id="servicios-table-body">
+                <tbody id="servicios-table-body" class="divide-y divide-gray-100">
                     {% for servicio in servicios %}
-                    <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors duration-200" data-pk="{{ servicio.pk }}">
-                        <td class="py-4 px-4 font-medium text-white">{{ servicio.nombre }}</td>
-                        <td class="py-4 px-4 hidden sm:table-cell text-slate-300 font-mono">{{ servicio.codigo_facturacion }}</td>
-                        <td class="py-4 px-4 hidden md:table-cell text-slate-400">
+                    <tr class="hover:bg-blue-50/50 transition-colors duration-200" data-pk="{{ servicio.pk }}">
+                        <td class="py-4 px-4 font-medium text-gray-900">{{ servicio.nombre }}</td>
+                        <td class="py-4 px-4 hidden sm:table-cell text-gray-700 font-mono">{{ servicio.codigo_facturacion }}</td>
+                        <td class="py-4 px-4 hidden md:table-cell text-gray-600">
                             {% if servicio.categoria %}
                                 {{ servicio.categoria.nombre }}
                             {% else %}
-                                <span class="text-slate-500 italic">--- Sin Categoría ---</span>
+                                <span class="text-gray-500 italic">--- Sin Categoría ---</span>
                             {% endif %}
                         </td>
                         <td class="py-4 px-4 hidden lg:table-cell whitespace-nowrap">
                             {% if servicio.esta_acreditado %}
-                                <span class="text-blue-400 flex items-center gap-1" title="Acreditado">
+                                <span class="text-blue-600 flex items-center gap-1" title="Acreditado">
                                     <i data-lucide="check-circle" class="w-4 h-4"></i> Acreditado
                                 </span>
                             {% elif servicio.es_sujeto_a_presupuesto %}
-                                <span class="text-indigo-400 flex items-center gap-1" title="Sujeto a Presupuesto">
+                                <span class="text-indigo-600 flex items-center gap-1" title="Sujeto a Presupuesto">
                                     <i data-lucide="alert-triangle" class="w-4 h-4"></i> S.P.
                                 </span>
                             {% else %}
-                                <span class="text-slate-500">Normal</span>
+                                <span class="text-gray-500">Normal</span>
                             {% endif %}
                         </td>
-                        <td class="py-4 px-4">{{ servicio.descripcion|truncatewords:10 }}</td>
+                        <td class="py-4 px-4 text-gray-700">{{ servicio.descripcion|truncatewords:10 }}</td>
                         <td class="py-4 px-4 text-right whitespace-nowrap">
-                            <button class="ver-detalle-btn inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-green-300 bg-green-500/10 hover:bg-green-500/20 mr-2 transition-colors">
+                            <button class="ver-detalle-btn inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-green-700 bg-green-50 hover:bg-green-100 mr-2 transition-colors">
                                 <i data-lucide="eye" class="w-4 h-4 mr-1"></i> Ver
                             </button>
-                            <a href="{% url 'servicios:editar_servicio' pk=servicio.pk %}" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 mr-2 transition-colors">
+                            <a href="{% url 'servicios:editar_servicio' pk=servicio.pk %}" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-blue-700 bg-blue-50 hover:bg-blue-100 mr-2 transition-colors">
                                 <i data-lucide="edit" class="w-4 h-4 mr-1"></i> Editar
                             </a>
-                            <a href="{% url 'servicios:eliminar_servicio' pk=servicio.pk %}" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 transition-colors">
+                            <a href="{% url 'servicios:eliminar_servicio' pk=servicio.pk %}" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors">
                                 <i data-lucide="trash-2" class="w-4 h-4 mr-1"></i> Eliminar
                             </a>
                         </td>
@@ -154,7 +156,7 @@
         
         <div id="pagination-controls" class="flex justify-center items-center mt-6 space-x-2">
             {% if servicios.has_previous %}
-            <a href="?page={{ servicios.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" class="px-4 py-2 rounded-full text-slate-400 hover:bg-slate-700/50 transition-colors duration-200">
+            <a href="?page={{ servicios.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" class="px-4 py-2 rounded-full text-gray-600 hover:bg-gray-100 transition-colors duration-200 border border-gray-200">
                 <i data-lucide="arrow-left" class="w-4 h-4"></i>
             </a>
             {% endif %}
@@ -163,24 +165,24 @@
             <a href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}"
                class="px-4 py-2 rounded-full font-semibold transition-colors duration-200
                {% if servicios.number == i %}
-                   bg-primary-accent text-white
+                   bg-blue-600 text-white shadow-md
                {% else %}
-                   bg-slate-700/50 text-slate-300 hover:bg-slate-600/50
+                   bg-gray-100 text-gray-700 hover:bg-gray-200
                {% endif %}">
                 {{ i }}
             </a>
             {% endfor %}
 
             {% if servicios.has_next %}
-            <a href="?page={{ servicios.next_page_number }}{% if query %}&q={{ query }}{% endif %}" class="px-4 py-2 rounded-full text-slate-400 hover:bg-slate-700/50 transition-colors duration-200">
+            <a href="?page={{ servicios.next_page_number }}{% if query %}&q={{ query }}{% endif %}" class="px-4 py-2 rounded-full text-gray-600 hover:bg-gray-100 transition-colors duration-200 border border-gray-200">
                 <i data-lucide="arrow-right" class="w-4 h-4"></i>
             </a>
             {% endif %}
         </div>
         {% endif %}
 
-        <div id="no-results-message" class="p-6 text-center text-slate-500 {% if servicios %}hidden{% endif %}">
-            <i data-lucide="file-x" class="w-12 h-12 mx-auto mb-4"></i>
+        <div id="no-results-message" class="p-6 text-center text-gray-500 {% if servicios %}hidden{% endif %}">
+            <i data-lucide="file-x" class="w-12 h-12 mx-auto mb-4 text-gray-400"></i>
             <p>No se encontraron servicios.</p>
         </div>
     </div>
@@ -233,7 +235,7 @@
             const url = `{% url 'servicios:servicio_detalle_api' pk=0 %}`.replace('0', servicePk); 
             
             // Limpiamos el modal antes de abrir para mostrar un estado de carga si es necesario
-            modalContentArea.innerHTML = '<div class="text-center text-white py-10"><i data-lucide="loader-2" class="w-8 h-8 mx-auto animate-spin text-indigo-400"></i><p class="mt-3">Cargando detalles del servicio...</p></div>';
+            modalContentArea.innerHTML = '<div class="text-center text-gray-600 py-10"><i data-lucide="loader-2" class="w-8 h-8 mx-auto animate-spin text-blue-500"></i><p class="mt-3">Cargando detalles del servicio...</p></div>';
             modalOverlay.classList.add('open');
             if (typeof lucide !== 'undefined') { lucide.createIcons(); }
 
@@ -247,96 +249,96 @@
                 const servicio = await response.json();
 
                 // -------------------------------------------------------------------
-                // GENERACIÓN DE ESTADO (MEJORADO)
+                // GENERACIÓN DE ESTADO (MEJORADO para Light Mode)
                 // -------------------------------------------------------------------
                 let estadoHtml = '';
                 if (servicio.esta_acreditado) {
-                    estadoHtml = '<span class="px-4 py-2 rounded-full text-sm font-bold text-blue-300 bg-blue-500/10 flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4"></i>ACREDITADO</span>';
-                } else if (servicio.es_sujeto_a_presupuesto) { // Se asume que este campo viene de la API
-                    estadoHtml = '<span class="px-4 py-2 rounded-full text-sm font-bold text-indigo-300 bg-indigo-500/10 flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4"></i>SUJETO A PRESUPUESTO</span>';
+                    estadoHtml = '<span class="px-4 py-2 rounded-full text-sm font-bold text-blue-700 bg-blue-100 flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4"></i>ACREDITADO</span>';
+                } else if (servicio.es_sujeto_a_presupuesto) { 
+                    estadoHtml = '<span class="px-4 py-2 rounded-full text-sm font-bold text-indigo-700 bg-indigo-100 flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4"></i>SUJETO A PRESUPUESTO</span>';
                 } else {
-                    estadoHtml = '<span class="px-4 py-2 rounded-full text-sm font-bold text-slate-300 bg-slate-700/50 flex items-center gap-2"><i data-lucide="tag" class="w-4 h-4"></i>NORMAL</span>';
+                    estadoHtml = '<span class="px-4 py-2 rounded-full text-sm font-bold text-gray-700 bg-gray-200 flex items-center gap-2"><i data-lucide="tag" class="w-4 h-4"></i>NORMAL</span>';
                 }
 
                 // -------------------------------------------------------------------
-                // CONTENIDO HTML DEL MODAL (Elaborado y detallado)
+                // CONTENIDO HTML DEL MODAL (Elaborado y detallado adaptado a Light Mode)
                 // -------------------------------------------------------------------
                 modalContentArea.innerHTML = `
-                    <h2 class="text-3xl font-extrabold text-white mb-6 border-b border-indigo-500 pb-2">${servicio.nombre || 'Servicio sin Nombre'}</h2>
+                    <h2 class="text-3xl font-extrabold text-gray-900 mb-6 border-b border-blue-500 pb-2">${servicio.nombre || 'Servicio sin Nombre'}</h2>
                     
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6 text-sm mb-6 p-4 rounded-xl bg-slate-800/50 backdrop-blur-sm shadow-inner">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6 text-sm mb-6 p-4 rounded-xl bg-gray-50 border border-gray-200 shadow-inner">
                         
-                        <p class="text-slate-300">
-                            <span class="font-bold text-indigo-400">Cód. Facturación:</span> 
+                        <p class="text-gray-700">
+                            <span class="font-bold text-blue-600">Cód. Facturación:</span> 
                             ${servicio.codigo_facturacion || '---'}
                         </p>
                         
-                        <p class="text-slate-300">
-                            <span class="font-bold text-indigo-400">Categoría:</span> 
-                            <span class="text-white bg-indigo-600 px-2 py-0.5 rounded-full text-xs font-semibold">
+                        <p class="text-gray-700">
+                            <span class="font-bold text-blue-600">Categoría:</span> 
+                            <span class="text-white bg-blue-600 px-2 py-0.5 rounded-full text-xs font-semibold">
                                 ${servicio.categoria || 'Sin Categoría'}
                             </span>
                         </p>
                         
-                        <p class="text-slate-300">
-                            <span class="font-bold text-indigo-400">Precio Base:</span> 
-                            <span class="text-lg font-bold text-green-400">
+                        <p class="text-gray-700">
+                            <span class="font-bold text-blue-600">Precio Base:</span> 
+                            <span class="text-lg font-bold text-green-600">
                                 S/ ${parseFloat(servicio.precio_base || 0).toFixed(2)}
                             </span>
                         </p>
                         
-                        <p class="text-slate-300">
-                            <span class="font-bold text-indigo-400">Unidad Base:</span> 
+                        <p class="text-gray-700">
+                            <span class="font-bold text-blue-600">Unidad Base:</span> 
                             ${servicio.unidad_base || 'N/A'}
                         </p>
 
-                        <p class="text-slate-300 col-span-1 sm:col-span-2 md:col-span-1">
-                            <span class="font-bold text-indigo-400">Estado:</span> 
+                        <p class="text-gray-700 col-span-1 sm:col-span-2 md:col-span-1">
+                            <span class="font-bold text-blue-600">Estado:</span> 
                             ${estadoHtml}
                         </p>
 
                     </div>
 
-                    <div class="mb-6 p-5 rounded-xl border border-slate-700 bg-slate-900/40">
-                        <h3 class="text-xl font-bold text-slate-200 mb-2">Resumen del Servicio</h3>
-                        <p class="text-slate-400 leading-relaxed">${servicio.descripcion || 'Descripción no disponible.'}</p>
+                    <div class="mb-6 p-5 rounded-xl border border-gray-300 bg-gray-100">
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">Resumen del Servicio</h3>
+                        <p class="text-gray-700 leading-relaxed">${servicio.descripcion || 'Descripción no disponible.'}</p>
                         
                         ${servicio.imagen_url ? `
                         <div class="mt-4 flex justify-center">
-                            <img src="${servicio.imagen_url}" alt="Imagen de ${servicio.nombre}" class="rounded-xl shadow-2xl w-full max-w-sm object-cover border border-slate-700 transition duration-300 hover:scale-[1.02]">
+                            <img src="${servicio.imagen_url}" alt="Imagen de ${servicio.nombre}" class="rounded-xl shadow-lg w-full max-w-sm object-cover border border-gray-300 transition duration-300 hover:scale-[1.02]">
                         </div>
                         ` : ''}
                     </div>
 
                     <div class="mt-6">
-                        <h3 class="text-xl font-bold text-white mb-3 border-b border-slate-700 pb-2">Regulaciones Técnicas Asociadas</h3>
+                        <h3 class="text-xl font-bold text-gray-900 mb-3 border-b border-gray-300 pb-2">Regulaciones Técnicas Asociadas</h3>
                         <div class="flex flex-wrap gap-3">
                             ${servicio.normas && servicio.normas.length > 0 ? 
-                                servicio.normas.map(norma => `<span class="px-3 py-1 rounded-full text-xs font-semibold text-blue-300 bg-blue-500/10 shadow-md transition duration-300 hover:bg-blue-500/20">📋 ${norma}</span>`).join('') 
-                                : '<span class="text-slate-500 italic">No hay normas registradas.</span>'}
+                                servicio.normas.map(norma => `<span class="px-3 py-1 rounded-full text-xs font-semibold text-blue-700 bg-blue-100 shadow-md transition duration-300 hover:bg-blue-200">📋 ${norma}</span>`).join('') 
+                                : '<span class="text-gray-500 italic">No hay normas registradas.</span>'}
                             
                             ${servicio.metodos && servicio.metodos.length > 0 ? 
-                                servicio.metodos.map(metodo => `<span class="px-3 py-1 rounded-full text-xs font-semibold text-purple-300 bg-purple-500/10 shadow-md transition duration-300 hover:bg-purple-500/20">🧪 ${metodo}</span>`).join('') 
-                                : '<span class="text-slate-500 italic">No hay métodos de ensayo.</span>'}
+                                servicio.metodos.map(metodo => `<span class="px-3 py-1 rounded-full text-xs font-semibold text-purple-700 bg-purple-100 shadow-md transition duration-300 hover:bg-purple-200">🧪 ${metodo}</span>`).join('') 
+                                : '<span class="text-gray-500 italic">No hay métodos de ensayo.</span>'}
                         </div>
                     </div>
 
                     ${servicio.detalle ? `
-                    <div class="mt-8 p-6 rounded-xl bg-slate-800 border border-indigo-600 shadow-2xl">
-                        <h3 class="text-xl font-extrabold text-indigo-400 mb-3 flex items-center">
-                            <svg data-lucide="hard-hat" class="w-6 h-6 inline-block mr-2 text-indigo-400"></svg>
+                    <div class="mt-8 p-6 rounded-xl bg-blue-50 border border-blue-400 shadow-lg">
+                        <h3 class="text-xl font-extrabold text-blue-600 mb-3 flex items-center">
+                            <svg data-lucide="hard-hat" class="w-6 h-6 inline-block mr-2 text-blue-600"></svg>
                             Detalle Técnico del Servicio (Web)
                         </h3>
-                        <p class="text-lg font-bold text-slate-300 mb-2">${servicio.detalle.titulo || 'Detalle sin título'}</p>
-                        <p class="text-slate-400 border-l-4 border-slate-600 pl-3 italic leading-relaxed">${servicio.detalle.descripcion || 'Este detalle adicional no tiene una descripción específica.'}</p>
+                        <p class="text-lg font-bold text-gray-700 mb-2">${servicio.detalle.titulo || 'Detalle sin título'}</p>
+                        <p class="text-gray-600 border-l-4 border-blue-300 pl-3 italic leading-relaxed">${servicio.detalle.descripcion || 'Este detalle adicional no tiene una descripción específica.'}</p>
                         
                         ${servicio.detalle.imagen_url ? `
                         <div class="mt-4 flex justify-center">
-                            <img src="${servicio.detalle.imagen_url}" alt="${servicio.detalle.titulo}" class="rounded-lg shadow-xl w-full max-w-xs object-cover">
+                            <img src="${servicio.detalle.imagen_url}" alt="${servicio.detalle.titulo}" class="rounded-lg shadow-xl w-full max-w-xs object-cover border border-gray-300">
                         </div>
                         ` : ''}
                     </div>
-                    ` : `<p class="text-slate-500 italic mt-8 p-4 bg-slate-800 rounded-lg border border-slate-700 flex items-center">📌 Este servicio no tiene detalles técnicos adicionales definidos.</p>`}
+                    ` : `<p class="text-gray-500 italic mt-8 p-4 bg-gray-100 rounded-lg border border-gray-300 flex items-center">📌 Este servicio no tiene detalles técnicos adicionales definidos.</p>`}
                 `;
 
                 // Recargar íconos de Lucide dentro del nuevo contenido
@@ -346,7 +348,7 @@
                 
             } catch (error) {
                 console.error('Error al obtener los detalles del servicio:', error);
-                modalContentArea.innerHTML = `<div class="text-center text-red-400 py-10"><i data-lucide="x-circle" class="w-8 h-8 mx-auto text-red-500"></i><p class="mt-3">Error al cargar el servicio. Inténtalo de nuevo. Revise la consola.</p></div>`;
+                modalContentArea.innerHTML = `<div class="text-center text-red-600 py-10"><i data-lucide="x-circle" class="w-8 h-8 mx-auto text-red-500"></i><p class="mt-3">Error al cargar el servicio. Inténtalo de nuevo. Revise la consola.</p></div>`;
             }
         };
 
@@ -399,34 +401,35 @@
 
                         if (servicios.length === 0) {
                             noResultsMessage.classList.remove('hidden');
-                            noResultsMessage.textContent = "No se encontraron servicios que coincidan con la búsqueda.";
+                            noResultsMessage.innerHTML = '<i data-lucide="file-x" class="w-12 h-12 mx-auto mb-4 text-gray-400"></i><p>No se encontraron servicios que coincidan con la búsqueda.</p>';
+                            if (typeof lucide !== 'undefined') { lucide.createIcons(); }
                         } else {
                             servicios.forEach(servicio => {
-                                // Generar el estado con íconos para la tabla
+                                // Generar el estado con íconos para la tabla (Light Mode)
                                 let estadoHtmlTable = '';
                                 if (servicio.esta_acreditado) {
-                                    estadoHtmlTable = '<span class="text-blue-400 flex items-center gap-1" title="Acreditado"><i data-lucide="check-circle" class="w-4 h-4"></i> Acreditado</span>';
+                                    estadoHtmlTable = '<span class="text-blue-600 flex items-center gap-1" title="Acreditado"><i data-lucide="check-circle" class="w-4 h-4"></i> Acreditado</span>';
                                 } else if (servicio.es_sujeto_a_presupuesto) {
-                                    estadoHtmlTable = '<span class="text-indigo-400 flex items-center gap-1" title="Sujeto a Presupuesto"><i data-lucide="alert-triangle" class="w-4 h-4"></i> S.P.</span>';
+                                    estadoHtmlTable = '<span class="text-indigo-600 flex items-center gap-1" title="Sujeto a Presupuesto"><i data-lucide="alert-triangle" class="w-4 h-4"></i> S.P.</span>';
                                 } else {
-                                    estadoHtmlTable = '<span class="text-slate-500">Normal</span>';
+                                    estadoHtmlTable = '<span class="text-gray-500">Normal</span>';
                                 }
 
                                 const row = `
-                                <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors duration-200" data-pk="${servicio.pk}">
-                                    <td class="py-4 px-4 font-medium text-white">${servicio.nombre}</td>
-                                    <td class="py-4 px-4 hidden sm:table-cell text-slate-300 font-mono">${servicio.codigo_facturacion || 'N/A'}</td>
-                                    <td class="py-4 px-4 hidden md:table-cell text-slate-400">${servicio.categoria || '---'}</td>
+                                <tr class="hover:bg-blue-50/50 transition-colors duration-200" data-pk="${servicio.pk}">
+                                    <td class="py-4 px-4 font-medium text-gray-900">${servicio.nombre}</td>
+                                    <td class="py-4 px-4 hidden sm:table-cell text-gray-700 font-mono">${servicio.codigo_facturacion || 'N/A'}</td>
+                                    <td class="py-4 px-4 hidden md:table-cell text-gray-600">${servicio.categoria || '---'}</td>
                                     <td class="py-4 px-4 hidden lg:table-cell whitespace-nowrap">${estadoHtmlTable}</td>
-                                    <td class="py-4 px-4">${servicio.descripcion ? servicio.descripcion.substring(0, 50) + (servicio.descripcion.length > 50 ? '...' : '') : ''}</td>
+                                    <td class="py-4 px-4 text-gray-700">${servicio.descripcion ? servicio.descripcion.substring(0, 50) + (servicio.descripcion.length > 50 ? '...' : '') : ''}</td>
                                     <td class="py-4 px-4 text-right whitespace-nowrap">
-                                        <button class="ver-detalle-btn inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-green-300 bg-green-500/10 hover:bg-green-500/20 mr-2 transition-colors">
+                                        <button class="ver-detalle-btn inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-green-700 bg-green-50 hover:bg-green-100 mr-2 transition-colors">
                                             <i data-lucide="eye" class="w-4 h-4 mr-1"></i> Ver
                                         </button>
-                                        <a href="{% url 'servicios:editar_servicio' pk=0 %}".replace('0', servicio.pk) class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 mr-2 transition-colors">
+                                        <a href="/servicios/editar/${servicio.pk}/" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-blue-700 bg-blue-50 hover:bg-blue-100 mr-2 transition-colors">
                                             <i data-lucide="edit" class="w-4 h-4 mr-1"></i> Editar
                                         </a>
-                                        <a href="{% url 'servicios:eliminar_servicio' pk=0 %}".replace('0', servicio.pk) class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 transition-colors">
+                                        <a href="/servicios/eliminar/${servicio.pk}/" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors">
                                             <i data-lucide="trash-2" class="w-4 h-4 mr-1"></i> Eliminar
                                         </a>
                                     </td>

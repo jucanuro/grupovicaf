@@ -1,299 +1,196 @@
 {% extends "base_vicafpro.html" %}
 {% load static %}
 {% block content %}
+
 <style>
-    /* cotizaciones.css - Actualizado con estilos solicitados */
+    /* Estilos base para tema claro y clases funcionales (v2) */
+    :root {
+        --color-bg-main: #F8FAFC; 
+        --color-bg-card: #FFFFFF; 
+        --color-border: #E2E8F0; 
+        --color-text-dark: #1E293B; 
+        --color-text-faded: #475569; 
+        --color-primary: #0EA5E9; 
+        --color-accent-green: #10B981; 
+        --color-accent-red: #EF4444; 
+        --color-bg-input: #F1F5F9; 
+    }
 
-:root {
-    --color-bg-main: #0F172A;
-    --color-bg-card: #1E293B;
-    --color-border: #475569;
-    --color-text-light: #F1F5F9;
-    --color-text-faded: #FFFFFF;
-    --color-primary: #0EA5E9;
-    --color-secondary: #0D9488;
-    --color-accent-green: #22C55E;
-    --color-accent-red: #EF4444;
-    --color-bg-input: #1E3A8A;
-}
+    body {
+        background-color: var(--color-bg-main);
+        color: var(--color-text-dark);
+    }
 
-body {
-    background-color: var(--color-bg-main);
-    color: var(--color-text-light);
-}
+    .form-group-v2 {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        margin-bottom: 1rem;
+    }
 
-#quote-container {
-    max-width: 1200px;
-    margin: 2rem auto;
-    padding: 2rem;
-    background-color: var(--color-bg-card);
-    border-radius: 1rem;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-}
+    .form-label-v2 {
+        font-size: 0.8rem;
+        color: var(--color-text-faded) !important; 
+        font-weight: 500;
+        transition: all 0.2s ease-in-out;
+    }
 
-h2 {
-    color: var(--color-text-light);
-    border-bottom: 2px solid var(--color-border);
-    padding-bottom: 0.5rem;
-    margin-bottom: 1.5rem;
-}
-.glass-card h3 {
-    color: var(--color-text-light) !important;
-}
+    .form-control-v2 {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        background-color: var(--color-bg-input) !important;
+        border: 1px solid var(--color-border);
+        border-radius: 0.5rem;
+        color: var(--color-text-dark) !important; 
+        font-size: 0.9rem;
+        transition: all 0.2s ease-in-out;
+        outline: none;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
 
-.form-group-v2 {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    margin-bottom: 1rem;
-}
+    .form-control-v2:focus {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.5);
+    }
 
-.form-label-v2 {
-    font-size: 0.8rem;
-    color: var(--color-text-faded) !important;
-    font-weight: 500;
-    transition: all 0.2s ease-in-out;
-}
+    .form-control-v2.form-select-v2 {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); 
+        background-position: right 0.75rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5rem;
+        padding-right: 2.5rem;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+    }
 
-.form-control-v2 {
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    background-color: var(--color-bg-input) !important;
-    border: 1px solid var(--color-border);
-    border-radius: 0.5rem;
-    color: #FFFFFF !important;
-    font-size: 0.9rem;
-    transition: all 0.2s ease-in-out;
-    outline: none;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
+    .form-control-v2[readonly] {
+        cursor: not-allowed;
+        background-color: var(--color-border) !important; 
+        color: var(--color-text-dark) !important; 
+    }
 
-.form-control-v2:focus {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.5);
-}
+    .no-arrows::-webkit-outer-spin-button,
+    .no-arrows::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    .no-arrows {
+        -moz-appearance: textfield;
+    }
+    
+    .ts-wrapper.form-control-v2 {
+        padding: 0;
+        border: none;
+        background-color: transparent;
+    }
+    .ts-control {
+        background-color: var(--color-bg-input) !important;
+        border-color: var(--color-border);
+        color: var(--color-text-dark);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        border-radius: 0.5rem;
+        transition: all 0.2s ease-in-out;
+        padding: 0.5rem 0.75rem;
+    }
+    .ts-control .ts-input {
+        background-color: transparent !important;
+        border: none !important;
+        color: var(--color-text-dark) !important;
+        padding: 0;
+        font-size: 0.9rem;
+        min-height: 1.5rem;
+    }
+    .ts-control .ts-input input {
+        background-color: var(--color-bg-input) !important;
+        color: var(--color-text-dark) !important;
+        padding: 0;
+        height: auto !important;
+    }
 
-.form-control-v2.form-select-v2 {
-    background-color: var(--color-bg-input) !important;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23F1F5F9' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 0.75rem center;
-    background-repeat: no-repeat;
-    background-size: 1.5rem;
-    padding-right: 2.5rem;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-}
+    .ts-dropdown {
+        background-color: #FFFFFF; 
+        border-color: var(--color-border);
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .ts-dropdown .option {
+        color: var(--color-text-dark);
+        padding: 0.5rem 0.75rem;
+    }
+    .ts-dropdown .option.active, .ts-dropdown .option.selected {
+        background-color: #F1F5F9; 
+        color: var(--color-primary);
+    }
+    .ts-control::after {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg'%3e"); 
+        right: 0.75rem;
+        transform: none;
+    }
+    .ts-control.single::after {
+        border-color: transparent !important;
+    }
 
-.form-control-v2[readonly] {
-    cursor: not-allowed;
-    background-color: var(--color-bg-input) !important; 
-    color: var(--color-text-light) !important; 
-}
+    .item-row-v2 {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background-color: #FFFFFF; 
+        border-radius: 0.5rem;
+        border: 1px solid var(--color-border);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease-in-out;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
 
-.no-arrows::-webkit-outer-spin-button,
-.no-arrows::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-.no-arrows {
-    -moz-appearance: textfield;
-}
+    .item-row-v2:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
 
-.ts-wrapper.form-control-v2 {
-    padding: 0;
-    border: none;
-    background-color: transparent;
-}
-.ts-control {
-    background-color: var(--color-bg-input) !important;
-    border-color: #475569;
-    color: var(--color-text-light);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    border-radius: 0.5rem;
-    transition: all 0.2s ease-in-out;
-    padding: 0.5rem 0.75rem;
-}
-.ts-control .ts-input {
-    background-color: transparent !important;
-    border: none !important;
-    color: var(--color-text-light) !important;
-    padding: 0;
-    font-size: 0.9rem;
-    min-height: 1.5rem;
-}
-.ts-control .ts-input input {
-    background-color: var(--color-bg-input) !important;
-    color: #FFFFFF !important;
-    padding: 0;
-    height: auto !important;
-}
+    .item-row-v2 .subtotal-cell {
+        min-width: 60px;
+        font-weight: bold;
+        color: var(--color-accent-green);
+        text-align: right;
+        padding-right: 0.5rem;
+    }
 
-.ts-dropdown {
-    background-color: #1E293B;
-    border-color: #475569;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-.ts-dropdown .option {
-    color: var(--color-text-light);
-    padding: 0.5rem 0.75rem;
-}
-.ts-dropdown .option.active, .ts-dropdown .option.selected {
-    background-color: #334155;
-    color: var(--color-primary);
-}
-.ts-control::after {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23F1F5F9' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg'%3e");
-    right: 0.75rem;
-    transform: none;
-}
-.ts-control.single::after {
-    border-color: transparent !important;
-}
+    .item-row-v2 .remove-item-btn {
+        background: none;
+        border: none;
+        color: var(--color-accent-red);
+        cursor: pointer;
+        font-size: 1.2rem;
+        padding: 0;
+        line-height: 1;
+        transition: color 0.2s;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
 
-.item-row-v2 {
-    display: grid;
-    grid-template-columns: 2.5fr 1fr 1fr 0.5fr 0.5fr 0.8fr 1fr 0.2fr;
-    gap: 0.75rem;
-    padding: 0.75rem;
-    background-color: rgba(30, 41, 59, 0.7);
-    border-radius: 0.5rem;
-    border: 1px solid #475569;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    transition: all 0.3s ease-in-out;
-    align-items: center;
-    margin-bottom: 0.5rem;
-}
-
-.item-row-v2-header {
-    font-weight: bold;
-    color: var(--color-primary);
-    padding: 0.75rem;
-    border-bottom: 2px solid var(--color-border);
-    margin-bottom: 0.5rem;
-}
-
-.item-row-v2:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-}
-
-.item-row-v2 .subtotal-cell {
-    min-width: 60px;
-    font-weight: bold;
-    color: var(--color-accent-green);
-    text-align: right;
-    padding-right: 0.5rem;
-}
-
-.item-row-v2 .remove-item-btn {
-    background: none;
-    border: none;
-    color: var(--color-accent-red);
-    cursor: pointer;
-    font-size: 1.2rem;
-    padding: 0;
-    line-height: 1;
-    transition: color 0.2s;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.item-row-v2 .remove-item-btn:hover {
-    color: #FF7777;
-}
-
-.grid-container-2-cols {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-}
-
-.grid-container-3-cols {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-}
-
-.grid-container-4-cols {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-}
-
-.totals-area {
-    margin-top: 1.5rem;
-    padding: 1rem;
-    background-color: rgba(14, 165, 233, 0.1);
-    border-radius: 0.5rem;
-    border: 1px solid var(--color-primary);
-}
-
-.total-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 1.1rem;
-    padding: 0.3rem 0;
-}
-
-.total-row.grand-total {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: var(--color-accent-green);
-    border-top: 1px dashed var(--color-border);
-    padding-top: 0.5rem;
-    margin-top: 0.5rem;
-}
-
-.btn-primary-v2 {
-    background-color: var(--color-primary);
-    color: var(--color-text-light);
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    font-size: 1rem;
-    font-weight: 600;
-    transition: background-color 0.2s, transform 0.1s;
-}
-
-.btn-primary-v2:hover {
-    background-color: #0C8AC7;
-    transform: translateY(-1px);
-}
-
-.btn-secondary-v2 {
-    background-color: var(--color-secondary);
-    color: var(--color-text-light);
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    font-size: 1rem;
-    font-weight: 600;
-    transition: background-color 0.2s, transform 0.1s;
-}
-
-.btn-secondary-v2:hover {
-    background-color: #0B7E74;
-    transform: translateY(-1px);
-}
+    .item-row-v2 .remove-item-btn:hover {
+        color: #B91C1C; 
+    }
 </style>
-<div class="space-y-8 p-4">
-    <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 animate-fade-in-up">
-        <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-cyan-300">
-            {% if cotizacion %}Editar Cotización{% else %}Crear Nueva Cotización{% endif %}
-        </h1>
-        <a href="{% url 'servicios:lista_cotizaciones' %}" class="inline-flex items-center gap-2 px-6 py-2 bg-slate-800 text-white font-semibold rounded-full hover:bg-slate-700 transition-all duration-300 transform hover:scale-105 shadow-lg">
-            <i data-lucide="list" class="w-5 h-5"></i>
-            Regresar a la Lista
-        </a>
-    </header>
 
+<div class="space-y-8 p-4 bg-gray-50 min-h-screen">
+    <div class="border-b border-gray-200 pb-4 mb-6">
+        <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 animate-fade-in-up">
+            <h1 class="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-500">
+                {% if cotizacion %}Editar Cotización{% else %}Crear Nueva Cotización{% endif %}
+            </h1>
+            <a href="{% url 'servicios:lista_cotizaciones' %}" class="inline-flex items-center gap-2 px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-full hover:bg-gray-300 transition-all duration-300 transform hover:scale-105 shadow-md">
+                <i data-lucide="list" class="w-5 h-5"></i>
+                Regresar a la Lista
+            </a>
+        </header>
+    </div>
     {% if error %}
-    <div class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-500/30" role="alert">
+    <div class="p-4 mb-4 text-sm text-red-700 rounded-lg bg-red-100 border border-red-200" role="alert">
         <span class="font-medium">Error de Guardado:</span> {{ error }}
     </div>
     {% endif %}
@@ -301,12 +198,12 @@ h2 {
     <form method="post" class="space-y-8" id="cotizacion-form">
         {% csrf_token %}
 
-        <div class="glass-card p-6 rounded-2xl shadow-xl animate-fade-in-up bg-slate-800/50 backdrop-blur-sm border border-slate-700">
-            <h2 class="text-xl font-bold text-white mb-6">Datos de la Oferta</h2>
+        <div class="p-6 rounded-2xl shadow-xl animate-fade-in-up bg-white border border-gray-200">
+            <h2 class="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2">Datos de la Oferta</h2>
             
             <div class="grid grid-cols-1 md:grid-cols-12 gap-x-12 gap-y-4">
                 <div class="space-y-6 md:col-span-8">
-                    <h3 class="text-lg font-semibold text-white border-b border-slate-700 pb-2">Empresa y Contacto</h3>
+                    <h3 class="text-lg font-semibold text-gray-700 border-b border-gray-200 pb-2">Empresa y Contacto</h3>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                         
@@ -344,7 +241,7 @@ h2 {
                     </div>
                 </div>
                 <div class="space-y-6 md:col-span-4">
-                    <h3 class="text-lg font-semibold text-white border-b border-slate-700 pb-2">Detalle de la Oferta</h3>    
+                    <h3 class="text-lg font-semibold text-gray-700 border-b border-gray-200 pb-2">Detalle de la Oferta</h3>    
                     <div class="form-group-v2">
                         <label for="id_fecha_generacion" class="form-label-v2">Fecha de Generación</label>
                         <input type="date" name="fecha_generacion" id="id_fecha_generacion" class="form-control-v2" required 
@@ -373,34 +270,23 @@ h2 {
             <input type="hidden" name="tasa_igv" id="tasa_igv" value="{% if cotizacion %}{{ cotizacion.tasa_igv }}{% else %}0.18{% endif %}">
         </div>
         
-        <div class="glass-card p-6 rounded-2xl shadow-xl animate-fade-in-up bg-slate-800/50 backdrop-blur-sm border border-slate-700">
+        <div class="p-6 rounded-2xl shadow-xl animate-fade-in-up bg-white border border-gray-200">
             <div class="flex flex-col md:flex-row justify-between items-center mb-6">
-                <h2 class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-cyan-300">
+                <h2 class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-500">
                     Detalle de la Cotización
                 </h2>
-                <button type="button" id="addItemBtn" class="mt-4 md:mt-0 inline-flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-full hover:from-green-600 hover:to-emerald-600 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                <button type="button" id="addItemBtn" class="mt-4 md:mt-0 inline-flex items-center gap-2 px-6 py-2 bg-emerald-500 text-white font-semibold rounded-full hover:bg-emerald-600 transition-all duration-300 transform hover:scale-105 shadow-lg">
                     <i data-lucide="plus" class="w-5 h-5"></i>
                     Agregar Ítem
                 </button>
             </div>
             
-            <div id="cotizacion-detalles" class="space-y-6">
-                </div>
-
-            <template id="item-row-template">
-                <div class="item-row-v2 animate-fade-in-up">
-                    <div class="form-group-v2">
-                        <label class="form-label-v2">Servicio</label>
-                        <select class="form-control-v2 form-select-v2 servicio-select" required>
-                            <option value="" selected disabled>Seleccionar Servicio</option>
-                        </select>
-                        </div>
-                    </div>
-            </template>
+            <div id="cotizacion-detalles" class="space-y-4">
+            </div>
         </div>
 
-        <div class="glass-card p-6 rounded-2xl shadow-xl animate-fade-in-up bg-slate-800/50 backdrop-blur-sm border border-slate-700">
-            <h2 class="text-xl font-bold text-white mb-6">Condiciones y Totales</h2>
+        <div class="p-6 rounded-2xl shadow-xl animate-fade-in-up bg-white border border-gray-200">
+            <h2 class="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2">Condiciones y Totales</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                 <div class="space-y-4">
                     <div class="form-group-v2">
@@ -420,18 +306,18 @@ h2 {
                         <input type="number" name="plazo_entrega_dias" id="id_plazo_entrega_dias" class="form-control-v2" placeholder="Plazo de Entrega" min="30" value="{% if cotizacion %}{{ cotizacion.plazo_entrega_dias }}{% else %} {% endif %}">
                     </div>
                 </div>
-                <div class="flex flex-col justify-end items-end space-y-4 mt-8 md:mt-0 text-right">
+                <div class="flex flex-col justify-end items-end space-y-4 mt-8 md:mt-0 text-right p-4 bg-blue-50/50 rounded-lg border border-blue-100">
                     <div class="w-full max-w-sm">
-                        <div class="flex justify-between items-center text-slate-300 font-medium text-lg">
+                        <div class="flex justify-between items-center text-gray-700 font-medium text-lg">
                             <span>Subtotal:</span>
                             <span>S/. <span id="subtotal_cotizacion">0.00</span></span>
                         </div>
-                        <div class="flex justify-between items-center text-slate-300 font-medium text-lg">
+                        <div class="flex justify-between items-center text-gray-700 font-medium text-lg">
                             <span>IGV (18%):</span>
                             <span>S/. <span id="igv_cotizacion">0.00</span></span>
                         </div>
-                        <div class="h-px bg-slate-700 my-2"></div>
-                        <div class="flex justify-between items-center text-3xl font-bold text-green-400">
+                        <div class="h-px bg-gray-300 my-2"></div>
+                        <div class="flex justify-between items-center text-3xl font-bold text-emerald-600">
                             <span>Total:</span>
                             <span>S/. <span id="total_final_cotizacion">0.00</span></span>
                         </div>
@@ -443,13 +329,14 @@ h2 {
         </div>
 
         <div class="flex justify-end mt-8 animate-fade-in-up">
-            <button type="submit" class="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-500 to-sky-500 text-white font-bold rounded-full hover:from-blue-600 hover:to-sky-600 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-blue-500/30 focus:outline-none focus:ring-4 focus:ring-blue-400">
+            <button type="submit" class="inline-flex items-center gap-2 px-8 py-3 bg-blue-500 text-white font-bold rounded-full hover:bg-blue-600 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-blue-300/50 focus:outline-none focus:ring-4 focus:ring-blue-200">
                 <i data-lucide="save" class="w-5 h-5"></i>
                 Guardar Cotización
             </button>
         </div>
     </form>
 </div>
+
 <script src="https://unpkg.com/lucide@latest"></script>
 <script>
     lucide.createIcons();
@@ -604,63 +491,64 @@ h2 {
         }
         
         return `
-            <div class="item-row-v2 animate-fade-in-up" data-servicio-id="${servicioId}" data-norma-id="${normaId}" data-metodo-id="${metodoId}">
+            <div class="item-row-v2 animate-fade-in-up lg:grid lg:grid-cols-10 lg:gap-4 p-4 mb-3 bg-white border border-gray-200 rounded-lg shadow-sm" data-servicio-id="${servicioId}" data-norma-id="${normaId}" data-metodo-id="${metodoId}">
             
-            <div style="display: flex; gap: 1rem; width: 100%; grid-column: 1 / -1;">
+            <div class="lg:col-span-6 flex flex-col md:flex-row gap-4 mb-4 lg:mb-0">
                 
-                <div class="form-group-v2" style="flex: 5;">
+                <div class="form-group-v2 flex-1">
                     <label class="form-label-v2">Servicio</label>
                     <select class="form-control-v2 form-select-v2 servicio-select tom-select-js" required name="servicio" data-placeholder="Seleccione servicio">
                         <option value="${servicioId}" selected>${servicioText}</option>
                     </select>
                 </div>
                 
-                <div class="form-group-v2 descripcion-container" style="flex: 5;">
+                <div class="form-group-v2 flex-1 descripcion-container">
                     <label class="form-label-v2">Descripción Específica</label>
                     <input type="text" class="form-control-v2 descripcion-input" name="descripcion_especifica" value="${descripcion}" placeholder="Notas específicas del ítem">
                 </div>
             </div>
-            <div style="display: flex; gap: 1rem; width: 100%; grid-column: 1 / -1; align-items: flex-end; margin-top: 1rem;">
+            
+            <div class="lg:col-span-4 grid grid-cols-4 md:grid-cols-7 gap-4 items-end">
                 
-                <div class="form-group-v2" style="flex: 2.5;">
+                <div class="form-group-v2 col-span-2 md:col-span-2">
                     <label class="form-label-v2">Norma</label>
                     <select class="form-control-v2 form-select-v2 normas-select" name="norma" data-placeholder="Seleccione norma">
                         <option value="" ${!normaId ? 'selected' : ''}>Seleccione norma</option>
                     </select>
                 </div>
                 
-                <div class="form-group-v2" style="flex: 2.5;">
+                <div class="form-group-v2 col-span-2 md:col-span-2">
                     <label class="form-label-v2">Método</label>
                     <select class="form-control-v2 form-select-v2 metodos-select" name="metodo" data-placeholder="Seleccione método">
                         <option value="" ${!metodoId ? 'selected' : ''}>Seleccione método</option>
                     </select>
                 </div>
                 
-                <div class="form-group-v2" style="flex: 1.0;">
-                    <label class="form-label-v2">Unidad</label>
+                <div class="form-group-v2 col-span-1 md:col-span-1">
+                    <label class="form-label-v2">Und.</label>
                     <input type="text" class="form-control-v2 text-center und-input" value="${und}" name="und" placeholder="Und.">
                 </div>
                 
-                <div class="form-group-v2" style="flex: 1.0;">
-                    <label class="form-label-v2">Cantidad</label>
+                <div class="form-group-v2 col-span-1 md:col-span-1">
+                    <label class="form-label-v2">Cant.</label>
                     <input type="number" class="form-control-v2 text-center cantidad-input no-arrows" min="1" value="${cantidad}" required placeholder="Cant.">
                 </div>
                 
-                <div class="form-group-v2" style="flex: 1.5;">
+                <div class="form-group-v2 col-span-2 md:col-span-1">
                     <label class="form-label-v2">Precio</label>
                     <input type="number" class="form-control-v2 text-center precio-input no-arrows" step="0.01" value="${initialPrice}" required placeholder="Precio">
                 </div>
                 
-                <div class="flex flex-col items-end text-sm font-bold text-green-400" style="flex: 1.0; align-self: flex-end; padding-bottom: 1.0rem;">
-                    <span class="text-sm text-slate-400">Subtotal:</span>
-                    <div class="flex">
+                <div class="flex flex-col items-end text-sm font-bold text-emerald-600 col-span-2 md:col-span-1 self-end md:pb-3">
+                    <span class="text-xs text-gray-500 font-normal">Subtotal:</span>
+                    <div class="flex whitespace-nowrap">
                         <span>S/. </span>
                         <span class="subtotal-cell">0.00</span>
                     </div>
                 </div>
                 
-                <div class="flex justify-center" style="flex: 0.5; align-self: flex-end; padding-bottom: 1.5rem;">
-                    <button type="button" class="remove-item-btn p-2 text-rose-400 hover:bg-rose-500/20 rounded-full transition-colors">
+                <div class="flex justify-center col-span-1 md:col-span-1 self-end md:pb-3">
+                    <button type="button" class="remove-item-btn p-2 text-red-500 hover:bg-red-100 rounded-full transition-colors">
                         <i data-lucide="trash-2" class="w-5 h-5"></i>
                     </button>
                 </div>
@@ -980,4 +868,4 @@ h2 {
     updateTotals(); 
 });
 </script>
-{% endblock %}
+{% endblock content %}

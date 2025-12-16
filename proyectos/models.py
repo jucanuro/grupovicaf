@@ -6,6 +6,9 @@ from trabajadores.models import TrabajadorProfile
 from servicios.models import Cotizacion, CotizacionDetalle 
 import os
 import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 def documento_file_path(instance, filename):
     """Genera la ruta de subida para documentos finales basados en cliente y proyecto."""
@@ -16,6 +19,15 @@ def documento_file_path(instance, filename):
 class Proyecto(models.Model):
     """Representa un proyecto de trabajo generado tras la aprobación de una cotización."""
     
+    ESTADOS_PROYECTO = [
+        ('PENDIENTE', 'Pendiente de Inicio'),
+        ('EN_CURSO', 'En Curso'),
+        ('MUESTRAS_ASIGNADAS', 'Técnicos Asignados'),
+        ('MUESTRAS_VALIDADAS', 'Muestras Validadas (Listo para Informe)'),
+        ('FINALIZADO', 'Finalizado'),
+        ('CANCELADO', 'Cancelado'),
+    ]
+
     cotizacion = models.ForeignKey(
         Cotizacion, 
         on_delete=models.SET_NULL, 
@@ -24,15 +36,6 @@ class Proyecto(models.Model):
         verbose_name="Cotización de Origen"
     )
     
-    ESTADOS_PROYECTO = [
-        ('PENDIENTE', 'Pendiente de Inicio'),
-        ('EN_CURSO', 'En Curso'),
-        ('MUESTRAS_ASIGNADAS', 'Técnicos de Muestra Asignados'),
-        ('MUESTRAS_VALIDADAS', 'Muestras Validadas (Listo para Informe)'),
-        ('FINALIZADO', 'Finalizado'),
-        ('CANCELADO', 'Cancelado'),
-    ]
-
     nombre_proyecto = models.CharField(max_length=255, verbose_name="Nombre del Proyecto")
     codigo_proyecto = models.CharField(max_length=50, unique=True, verbose_name="Código del Proyecto (Interno)")
     cliente = models.ForeignKey(
@@ -55,7 +58,54 @@ class Proyecto(models.Model):
 
     creado_en = models.DateTimeField(auto_now_add=True)
     modificado_en = models.DateTimeField(auto_now=True)
+    
+    @property
+    def muestras_registradas_reales(self):
+        return self.muestras.count()
 
+    @property
+    def estado_sugerido_por_muestras(self):
+        muestras_registradas = self.muestras_registradas_reales
+        muestras_totales = self.numero_muestras
+
+        if muestras_registradas == 0:
+            return 'PENDIENTE'
+        
+        if muestras_registradas > 0 and muestras_registradas < muestras_totales:
+            return 'EN_CURSO'
+        
+        if muestras_registradas >= muestras_totales and muestras_totales > 0:
+            return 'MUESTRAS_ASIGNADAS'
+            
+        return 'PENDIENTE' 
+
+    def actualizar_estado_por_muestreo(self):
+        
+        logger.info("-" * 50)
+        logger.info(f"DEBUGGING ESTADO: Proyecto PK={self.pk}, Actual={self.estado}")
+        logger.info(f"Muestras Totales (numero_muestras): {self.numero_muestras}")
+        logger.info(f"Muestras Contadas (muestras_registradas_reales): {self.muestras_registradas_reales}")
+        
+        estado_sugerido = self.estado_sugerido_por_muestras
+        
+        jerarquia = ['PENDIENTE', 'EN_CURSO', 'MUESTRAS_ASIGNADAS', 'MUESTRAS_VALIDADAS', 'FINALIZADO']
+        
+        if self.estado not in ['FINALIZADO', 'CANCELADO']:
+            
+            try:
+                indice_actual = jerarquia.index(self.estado)
+                indice_sugerido = jerarquia.index(estado_sugerido)
+                
+                if indice_sugerido > indice_actual:
+                    Proyecto.objects.filter(pk=self.pk).update(estado=estado_sugerido)
+                    self.estado = estado_sugerido 
+                    return True
+
+            except ValueError:
+                pass
+                
+        return False
+    
     def __str__(self):
         return f"{self.nombre_proyecto} ({self.codigo_proyecto})"
 
@@ -63,7 +113,7 @@ class Proyecto(models.Model):
         verbose_name = "Proyecto"
         verbose_name_plural = "Proyectos"
         ordering = ['-fecha_inicio']
-
+        
 class Laboratorio(models.Model):
     """
     Define las áreas o divisiones de servicio del laboratorio.
@@ -88,7 +138,6 @@ class Laboratorio(models.Model):
         verbose_name_plural = "Laboratorios/Áreas"
         ordering = ['nombre']
         
-
 class TipoMuestra(models.Model):
     """
     Define los tipos de muestras que ingresan al laboratorio.
@@ -326,17 +375,22 @@ class TipoEnsayo(models.Model):
     def __str__(self):
         return self.nombre
 
-
 class SolicitudEnsayo(models.Model):
     """Representa el documento cabecera (la Solicitud/Orden) de una Muestra."""
     
     muestra = models.OneToOneField( 
-        'Muestra', 
+        Muestra, 
         on_delete=models.CASCADE, 
         related_name='solicitud_ensayo', 
         verbose_name="Muestra Asociada"
     )
-    codigo_solicitud = models.CharField(max_length=100, unique=True, verbose_name="Código de Solicitud/Orden") 
+    codigo_solicitud = models.CharField(
+        max_length=100, 
+        unique=True, 
+        verbose_name="Código de Solicitud/Orden",
+        blank=True,
+        null=True
+    ) 
     fecha_solicitud = models.DateField(default=timezone.now, verbose_name="Fecha de Generación de la Solicitud")
     
     generada_por = models.ForeignKey(
@@ -350,7 +404,6 @@ class SolicitudEnsayo(models.Model):
     
     @property
     def cotizacion(self):
-        """Retorna la cotización del proyecto asociado a la muestra."""
         if self.muestra and self.muestra.proyecto:
             return self.muestra.proyecto.cotizacion
         return None
@@ -382,10 +435,36 @@ class SolicitudEnsayo(models.Model):
 
     class Meta:
         verbose_name = "Solicitud de Ensayo (Cabecera)"
-        verbose_name_plural = "Solicitudes de Ensayo (Cabeceras)"   
-# ================================================================
-# 5. NUEVO MODELO: AsignacionTipoEnsayo (TABLA INTERMEDIA CRÍTICA)
-# ================================================================
+        verbose_name_plural = "Solicitudes de Ensayo (Cabeceras)"
+
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.codigo_solicitud:
+            now = timezone.now()
+            year = str(now.year)
+            month = now.strftime('%m')
+            prefix = 'SOL'
+            sub_code = '0^0-01' 
+            
+            base_code_pattern = f'{prefix}-{year}-{month}-{sub_code}'
+            
+            last_solicitud = SolicitudEnsayo.objects.filter(
+                codigo_solicitud__startswith=base_code_pattern
+            ).order_by('-codigo_solicitud').first()
+
+            sequence = 1
+            if last_solicitud:
+                try:
+                    last_sequence_str = last_solicitud.codigo_solicitud.split('-')[-1]
+                    last_sequence = int(last_sequence_str)
+                    sequence = last_sequence + 1
+                except ValueError:
+                    sequence = 1
+
+            sequence_str = str(sequence).zfill(3)
+            self.codigo_solicitud = f'{base_code_pattern}-{sequence_str}'
+
+        super().save(*args, **kwargs)
+
 class AsignacionTipoEnsayo(models.Model):
     """
     Tabla intermedia que conecta DetalleEnsayo (la tarea) con TipoEnsayo (el catálogo) 
@@ -441,30 +520,26 @@ class DetalleEnsayo(models.Model):
         verbose_name="Tipos de Ensayos Asignados"
     )
     
-    # 🌟 CAMBIO: Las Normas y Métodos deben ser Catálogos si ya existen
-    # Asumo que tienes modelos 'NormaEnsayo' y 'MetodoEnsayo' en tu app 'servicios'.
     norma = models.ForeignKey(
-        'servicios.Norma', # Asegúrate de que este 'servicios.NormaEnsayo' sea correcto
+        'servicios.Norma', 
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         verbose_name="Norma de Ensayo"
     )
     metodo = models.ForeignKey(
-        'servicios.Metodo', # Asegúrate de que este 'servicios.MetodoEnsayo' sea correcto
+        'servicios.Metodo', 
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         verbose_name="Método de Ensayo"
     )
     
-    # Se deja la descripción por si se requiere un texto libre adicional al catálogo
     tipo_ensayo_descripcion = models.CharField(max_length=150, verbose_name="Descripción del Ensayo") 
     
     fecha_limite_ejecucion = models.DateField(verbose_name="Fecha Límite de Ejecución (Entrega Programada)")
     fecha_entrega_real = models.DateField(blank=True, null=True, verbose_name="Fecha de Entrega Real (Técnico)")
     
-    # Firma del Técnico
     firma_tecnico = models.ForeignKey(
         TrabajadorProfile, 
         on_delete=models.SET_NULL, 
@@ -508,7 +583,6 @@ class DetalleEnsayo(models.Model):
         verbose_name = "Detalle de Ensayo (Línea de Trabajo)"
         verbose_name_plural = "Detalles de Ensayos (Líneas de Trabajo)"
         
-
 class ReporteIncidencia(models.Model):
     """Registra cualquier incidencia o cambio en la Solicitud de Ensayo."""
 
@@ -553,10 +627,7 @@ class ReporteIncidencia(models.Model):
         verbose_name = "Reporte de Incidencia"
         verbose_name_plural = "Reportes de Incidencias"
         ordering = ['-fecha_ocurrencia']
-# ================================================================
-# 7. MODELO MODIFICADO: ResultadoEnsayo 
-# 🎯 MODIFICACIÓN: Se quita la FK a Muestra (ya está en DetalleEnsayo)
-# ================================================================
+
 class ResultadoEnsayo(models.Model):
     """Almacena los datos y la verificación de un ensayo realizado."""
     
@@ -611,10 +682,6 @@ class ResultadoEnsayo(models.Model):
         verbose_name_plural = "Resultados de Ensayos"
         ordering = ['-fecha_realizacion']
 
-
-# ================================================================
-# 8. Modelo: DocumentoFinal (SIN CAMBIOS)
-# ================================================================
 class DocumentoFinal(models.Model):
     """Representa el informe o documento final de un proyecto."""
     

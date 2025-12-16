@@ -1,0 +1,196 @@
+{% extends "base_vicafpro.html" %} 
+{% load static %}
+
+{% block title %}Registrar Resultado Ensayo{% endblock %}
+
+{% block content %}
+<style>
+    /* El degradado animado se mantiene como elemento de diseño "Alto Top" */
+    .animated-gradient-text {
+        background: linear-gradient(to right, #10B981, #3B82F6, #8B5CF6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+        background-size: 200% auto;
+        animation: text-gradient 3s linear infinite alternate;
+    }
+
+    @keyframes text-gradient {
+        to {
+            background-position: 200% center;
+        }
+    }
+</style>
+<div class="p-4 md:p-6">
+    <div class="border-b border-gray-200 pb-4 mb-6">
+        <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <h1 class="flex text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-500">
+                Gestionar resultados de ensayo
+                <i data-lucide="clipboard-list" class="inline-block w-8 h-8 text-indigo-600 ml-3"></i>
+            </h1>
+            <div class="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+                <a href="{% url 'dashboard' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all duration-300 border border-gray-300 shadow-sm flex-shrink-0">
+                    <i data-lucide="list" class="w-5 h-5"></i>
+                    Regresar a listado
+                </a>
+            </div>
+        </header>
+    </div>
+    <div class="max-w-full mx-auto p-6 bg-white rounded-xl shadow-2xl border border-gray-100">
+
+        <form method="post" id="resultado-form" class="space-y-8">
+            {% csrf_token %}
+            <section id="buscador-section" class="p-6 bg-blue-50 max-w-4xl mx-auto rounded-xl shadow-lg border border-blue-200">
+                <h2 class="text-xl font-bold text-indigo-600 mb-4 flex items-center border-b border-blue-100 pb-3">
+                    <i data-lucide="search" class="w-6 h-6 mr-3"></i>
+                    Buscar Muestra para Registro
+                </h2>
+                
+                <label for="codigo_muestra" class="block text-sm font-medium text-gray-700 mb-2">
+                    Ingrese Código de Muestra: <span class="text-red-600">*</span>
+                </label>
+                
+                <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+                    <input type="text" id="codigo_muestra" name="codigo_muestra" 
+                            value="{{ detalle.codigo_muestra|default:'' }}" 
+                            placeholder="Ej: 1-S-2025-001"
+                            required 
+                            class="flex-grow p-3 rounded-lg bg-white border border-gray-300 text-gray-900 font-mono uppercase text-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 shadow-sm">
+                    
+                    <button type="submit" name="action" value="buscar"
+                            class="px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 transform hover:scale-[1.02] flex items-center justify-center">
+                        <i data-lucide="locate-fixed" class="w-5 h-5 mr-2"></i>
+                        Buscar
+                    </button>
+                </div>
+                
+                <div class="mt-4 p-3 rounded-lg text-sm 
+                    {% if detalle %}bg-green-100 text-green-700 border border-green-300
+                    {% else %}bg-red-100 text-red-700 border border-red-300{% endif %}">
+                    {% if detalle and detalle.pk %}
+                        Muestra **{{ detalle.codigo_muestra }}** cargada. Proceda con el registro.
+                    {% elif detalle and not detalle.pk %}
+                        ⚠️ Muestra **{{ detalle.codigo_muestra }}** encontrada pero pendiente de registro. Complete y Guarde.
+                    {% else %}
+                        ❌ ¡Atención! Debe buscar una muestra válida para continuar con el registro.
+                    {% endif %}
+                </div>
+            </section>
+            {# ================================================================= #}
+
+
+            <hr class="border-gray-200">
+
+            {# Título y Referencia #}
+            <section id="info-ensayo" class="mb-8 border-b border-gray-200 pb-4">
+                <h1 class="text-md font-bold text-gray-800 mb-2">
+                    {% if es_edicion %}
+                        📝 Edición de Resultado de Ensayo
+                    {% else %}
+                        ✅ Registro de Resultado de Ensayo
+                    {% endif %}
+                </h1>
+                <p class="text-gray-600">
+                    Cliente: <span class="font-semibold text-gray-900"></span> | 
+                    Empresa: RONGFEI SAC
+                </p>
+                <div class="mt-2 text-sm text-gray-500">
+                    <span class="mr-4">Norma/Cotización: {{ detalle.norma|default:'N/A' }}</span> | 
+                    <span>Muestra Cargada: <span class="font-bold text-indigo-600">{{ detalle.codigo_muestra|default:'Terminado' }}</span></span>
+                </div>
+            </section>
+
+            <input type="hidden" name="detalle_ensayo_id" value="{{ detalle.pk|default:'' }}">
+            {% if resultado %}
+            <input type="hidden" name="resultado_id" value="{{ resultado.pk }}">
+            {% endif %}
+            
+            <h2 class="text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2 flex items-center">
+                <i data-lucide="file-text" class="w-5 h-5 mr-2 text-indigo-600"></i>
+                Datos Generales del Registro
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-5 rounded-lg border border-gray-200">
+                
+                <div>
+                    <label for="tecnico_registro" class="block text-sm font-medium text-gray-700 mb-1">Técnico que Registra:</label>
+                    <input type="text" id="tecnico_registro" 
+                            value="{{ request.user.get_full_name|default:'[Usuario Logueado]' }}" 
+                            readonly 
+                            class="w-full p-3 rounded-lg bg-gray-100 border border-gray-300 text-gray-500 cursor-not-allowed">
+                </div>
+
+                <div>
+                    <label for="fecha_realizacion" class="block text-sm font-medium text-gray-700 mb-1">Fecha de Realización/Registro <span class="text-red-600">*</span>:</label>
+                    <input type="date" id="fecha_realizacion" name="fecha_realizacion" 
+                            value="{% if resultado.fecha_realizacion %}{{ resultado.fecha_realizacion|date:'Y-m-d' }}{% else %}{{ today|date:'Y-m-d' }}{% endif %}" 
+                            required 
+                            class="w-full p-3 rounded-lg bg-white border border-gray-300 text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
+                </div>
+            </div>
+
+            <h2 class="text-xl font-semibold text-gray-800 mt-8 border-b border-gray-200 pb-2 flex items-center">
+                <i data-lucide="calculator" class="w-5 h-5 mr-2 text-green-600"></i>
+                Resultados Obtenidos (Ensayos)
+            </h2>
+            
+            <div id="resultados_dinamicos" class="space-y-4 p-5 bg-gray-50 rounded-lg border border-gray-200">
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    <div>
+                        <label for="pasa_tamiz_200" class="block text-sm font-medium text-gray-700 mb-1">Pasa Tamiz #200 (%):</label>
+                        <input type="number" step="0.01" id="pasa_tamiz_200" name="pasa_tamiz_200" 
+                                placeholder="Ej: 55.45"
+                                value="{{ resultado.resultados_data.pasa_tamiz_200|default:'' }}"
+                                class="w-full p-3 rounded-lg bg-white border border-gray-300 text-gray-900 focus:ring-green-600 focus:border-green-600 shadow-sm">
+                    </div>
+                    
+                    <div>
+                        <label for="densidad_aparente" class="block text-sm font-medium text-gray-700 mb-1">Densidad Aparente (g/cm³):</label>
+                        <input type="number" step="0.001" id="densidad_aparente" name="densidad_aparente" 
+                                placeholder="Ej: 2.65"
+                                value="{{ resultado.resultados_data.densidad_aparente|default:'' }}"
+                                class="w-full p-3 rounded-lg bg-white border border-gray-300 text-gray-900 focus:ring-green-600 focus:border-green-600 shadow-sm">
+                    </div>
+
+                    <div class="flex items-center pt-5">
+                        <input type="checkbox" id="ensayo_conforme" name="ensayo_conforme" 
+                                {% if resultado.resultados_data.ensayo_conforme %} checked {% endif %}
+                                class="h-6 w-6 rounded border-gray-300 text-green-600 bg-white focus:ring-green-500 transition duration-150">
+                        <label for="ensayo_conforme" class="ml-3 text-sm font-medium text-gray-700">¿Ensayo Conforme?</label>
+                    </div>
+                </div>
+            </div>
+            
+            {# SECCIÓN DE OBSERVACIONES #}
+            <div class="mt-6">
+                <label for="observaciones" class="block text-sm font-medium text-gray-700 mb-1">Observaciones del Ensayo:</label>
+                <textarea id="observaciones" name="observaciones" rows="3" 
+                            placeholder="Ingrese cualquier nota relevante sobre el ensayo aquí..."
+                            class="w-full p-3 rounded-lg bg-white border border-gray-300 text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm resize-none">{% if resultado %}{{ resultado.observaciones }}{% endif %}</textarea>
+            </div>
+
+            {# BOTONES DE ACCIÓN #}
+            <div class="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+                <a href="{% url 'dashboard' %}" class="px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-100 transition duration-150 shadow-md">
+                    <i data-lucide="x" class="w-5 h-5 inline-block mr-1"></i>
+                    Cancelar
+                </a>
+                <button type="submit" name="action" value="guardar" id="submit-button"
+                        class="px-8 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-xl hover:bg-indigo-700 transition duration-150 transform hover:scale-[1.02] flex items-center">
+                    <i data-lucide="save" class="w-5 h-5 mr-2"></i>
+                    {% if es_edicion %}
+                        Actualizar Resultado
+                    {% else %}
+                        Guardar Resultado
+                    {% endif %}
+                </button>
+            </div>
+            
+        </form>
+
+    </div>
+</div>
+{% endblock %}

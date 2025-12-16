@@ -8,32 +8,28 @@
 <div id="inicio-content">
     <header id="main-header" class="flex justify-between items-center mb-10 animate-fade-in-up">
         <div>
-            <h1 class="text-4xl font-extrabold text-white">Panel de Control</h1>
-            <p class="text-slate-400 mt-1">Hola, {{ user.get_full_name|default:user.username }}. Bienvenido al futuro de la gestión.</p>
+            <h1 class="text-xl font-extrabold">Panel de Control</h1>
+            <p class="text-slate-400 mt-3">Hola, {{ user.get_full_name|default:user.username }}. Bienvenido al futuro de la gestión.</p>
         </div>
-        <button id="command-palette-button-main"
-            class="px-4 py-2 glass-card rounded-lg text-slate-300 hover:text-white hover:border-slate-400/50 transition-colors flex items-center gap-2">
-            Búsqueda rápida <span class="text-xs border border-slate-500 rounded px-1.5 py-0.5">Ctrl K</span>
-        </button>
     </header>
     <div id="card-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
     </div>
 </div>
 
 <div id="analisis-content" class="hidden">
-    </div>
+</div>
 
 <div id="card-overlay"
     class="fixed inset-0 z-40 flex justify-center items-center bg-black/50 backdrop-blur-sm hidden transition-opacity duration-300">
     <div id="submenu-modal" class="glass-card rounded-2xl shadow-2xl overflow-hidden w-full max-w-sm m-4 p-4 transform scale-95 opacity-0 transition-all duration-300">
         <header class="flex justify-between items-center mb-4 pb-2 border-b border-white/10">
-            <h3 id="submenu-title" class="text-xl font-bold text-white"></h3>
+            <h3 id="submenu-title" class="text-xl font-bold"></h3>
             <button id="close-submenu" class="text-slate-400 hover:text-white transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
         </header>
         <ul id="submenu-list" class="space-y-2">
-            </ul>
+        </ul>
     </div>
 </div>
 
@@ -53,6 +49,7 @@
 {% block extra_scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+        // --- 1. DATA (Propiedad 'isLight' añadida a 'analisis' como ejemplo) ---
         const navigationData = [
             {
                 id: 'clientes',
@@ -182,18 +179,32 @@
                 title: 'Dashboard de Análisis',
                 desc: 'Métricas y KPIs de tus proyectos.',
                 glow: '#ef4444',
-                action: 'show_analysis_view'
+                action: 'show_analysis_view',
+                isLight: true // <-- EJEMPLO DE CARD CON FONDO CLARO (DEBE USAR TEXTO OSCURO)
             },
         ];
 
+        // --- 2. SELECTORES DE ELEMENTOS ---
         const cardContainer = document.getElementById('card-container');
         const inicioContent = document.getElementById('inicio-content');
         const analisisContent = document.getElementById('analisis-content');
+        
+        // Modal / Submenu
         const cardOverlay = document.getElementById('card-overlay');
         const submenuModal = document.getElementById('submenu-modal');
         const submenuTitle = document.getElementById('submenu-title');
         const submenuList = document.getElementById('submenu-list');
         const closeSubmenuButton = document.getElementById('close-submenu');
+
+        // Command Palette (TODOS DENTRO DE DOMContentLoaded)
+        const commandPalette = document.getElementById('command-palette');
+        const commandInput = document.getElementById('command-input');
+        const commandList = document.getElementById('command-list');
+        const commandButtons = document.querySelectorAll('#command-palette-button-main');
+        
+        let selectedIndex = 0;
+
+        // --- 3. FUNCIONES DE CONTROL ---
 
         const setActiveView = (viewName) => {
             const isInicio = viewName === 'inicio';
@@ -201,10 +212,28 @@
             analisisContent.classList.toggle('hidden', isInicio);
         };
         
-        const closeSubmenu = () => {
-            cardOverlay.classList.add('hidden', 'opacity-0');
+        const closeSubmenuModal = () => {
             submenuModal.classList.remove('scale-100', 'opacity-100');
             submenuModal.classList.add('scale-95', 'opacity-0');
+            
+            setTimeout(() => {
+                cardOverlay.classList.add('hidden');
+            }, 300);
+        };
+
+        const openCommandPalette = () => { 
+            if (commandPalette && commandInput) {
+                commandPalette.classList.remove('hidden'); 
+                commandInput.focus(); 
+                renderCommandList(commands); 
+            }
+        };
+        
+        const closeCommandPalette = () => { 
+            if (commandPalette && commandInput) {
+                commandPalette.classList.add('hidden'); 
+                commandInput.value = ''; 
+            }
         };
 
         const renderCards = (items) => {
@@ -212,7 +241,13 @@
             items.forEach(card => {
                 const cardElement = document.createElement('a');
                 
-                cardElement.className = 'dashboard-card glass-card rounded-2xl border border-white/10 p-6 flex flex-col justify-between h-52 group cursor-pointer block animate-fade-in-up transition-all duration-300 hover:shadow-[0_0_2rem_0.25rem] hover:scale-[1.01]';
+                // Determina la clase de texto condicionalmente
+                const titleTextColorClass = card.isLight ? 'text-sky-900' : 'text-sky-900';
+                const descTextColorClass = card.isLight ? 'text-slate-400' : 'text-slate-400';
+
+                // Si la tarjeta es clara, añade una clase de fondo claro para que se vea bien
+                cardElement.className = `dashboard-card glass-card rounded-2xl border border-white/10 p-6 flex flex-col justify-between h-52 group cursor-pointer block animate-fade-in-up transition-all duration-300 hover:shadow-[0_0_2rem_0.25rem] hover:scale-[1.01] ${card.isLight ? 'bg-white/90 !border-gray-200' : ''}`;
+                
                 cardElement.style.boxShadow = `0 0 1rem 0.1rem ${card.glow}20`;
                 cardElement.href = card.url || '#';
                 
@@ -222,8 +257,8 @@
                         ${card.category ? `<span class="text-xs font-bold uppercase" style="color:${card.glow};">${card.category}</span>` : ''}
                     </div>
                     <div class="transition-transform duration-300 group-hover:-translate-y-1">
-                        <h4 class="text-xl font-bold text-white">${card.title}</h4>
-                        <p class="text-sm text-slate-400">${card.desc}</p>
+                        <h4 class="text-md font-bold ${titleTextColorClass}">${card.title}</h4>
+                        <p class="text-sm ${descTextColorClass}">${card.desc}</p>
                     </div>
                 `;
 
@@ -244,7 +279,6 @@
             submenuTitle.textContent = parentCard.title;
             submenuList.innerHTML = '';
             
-            // Función auxiliar para aplanar elementos con sub-children (como en Cotizaciones y Proyectos)
             const flattenChildren = (item) => {
                 if (item.children && item.children.length > 0) {
                     item.children.forEach(subChild => flattenChildren(subChild));
@@ -263,7 +297,7 @@
                     
                     link.addEventListener('click', (e) => {
                         if (item.url && item.url !== '#') {
-                            closeSubmenu();
+                            closeSubmenuModal(); 
                             window.location.href = item.url;
                         }
                     });
@@ -275,7 +309,6 @@
             
             parentCard.children.forEach(child => flattenChildren(child));
 
-            // Muestra el overlay y el modal con transición
             cardOverlay.classList.remove('hidden');
             setTimeout(() => {
                 cardOverlay.classList.remove('opacity-0');
@@ -288,7 +321,7 @@
             analisisContent.innerHTML = `
             <header class="flex justify-between items-center mb-10 animate-fade-in-up">
                 <div>
-                    <h1 class="text-4xl font-extrabold text-white">Dashboard de Análisis</h1>
+                    <h1 class="text-4xl font-extrabold">Dashboard de Análisis</h1>
                     <p class="text-slate-400 mt-1">Avance y métricas clave de tus proyectos.</p>
                 </div>
                 <button id="back-from-analysis" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-700/50 text-slate-300 font-semibold rounded-full hover:bg-slate-700 hover:text-white transition-all duration-300">
@@ -300,13 +333,14 @@
             document.getElementById('back-from-analysis').addEventListener('click', () => setActiveView('inicio'));
         };
 
+        // Pre-procesar comandos para la Paleta
         const commandItems = [];
         const processItems = (items) => {
             items.forEach(item => {
                 if (item.children && item.children.length > 0) {
-                    processItems(item.children); // Recurrir para sub-menús
+                    processItems(item.children);
                 } else {
-                    commandItems.push(item); // Agregar elemento final
+                    commandItems.push(item);
                 }
             });
         };
@@ -322,15 +356,6 @@
             })),
             { name: 'Cerrar Sesión', category: 'Sistema', action: () => { window.location.href = "#" } }
         ];
-
-        const commandPalette = document.getElementById('command-palette');
-        const commandInput = document.getElementById('command-input');
-        const commandList = document.getElementById('command-list');
-        const commandButtons = document.querySelectorAll('#command-palette-button-main');
-        const openCommandPalette = () => { commandPalette.classList.remove('hidden'); commandInput.focus(); renderCommandList(commands); };
-        const closeCommandPalette = () => { commandPalette.classList.add('hidden'); commandInput.value = ''; };
-        
-        let selectedIndex = 0;
 
         const renderCommandList = (items) => {
             commandList.innerHTML = '';
@@ -352,6 +377,8 @@
         };
 
         const navigateCommands = (direction) => {
+            if (!commandInput) return; 
+
             const query = commandInput.value.toLowerCase();
             const filteredCommands = commands.filter(c => c.name.toLowerCase().includes(query) || c.category.toLowerCase().includes(query));
             if (filteredCommands.length === 0) return;
@@ -362,46 +389,54 @@
                 selectedIndex = (selectedIndex - 1 + filteredCommands.length) % filteredCommands.length;
             } else if (direction === 'enter') {
                 filteredCommands[selectedIndex].action();
+                closeCommandPalette();
                 return;
             }
 
             renderCommandList(filteredCommands);
         };
 
+        // --- 4. INICIALIZACIÓN Y ASIGNACIÓN DE LISTENERS ---
         renderCards(navigationData);
         renderAnalysisDashboard();
         setActiveView('inicio');
 
+        // Listeners de la Paleta de Comandos
         commandButtons.forEach(btn => btn.addEventListener('click', openCommandPalette));
         
-        commandInput.addEventListener('input', () => {
-            selectedIndex = 0;
-            const query = commandInput.value.toLowerCase();
-            const filteredCommands = commands.filter(c => c.name.toLowerCase().includes(query) || c.category.toLowerCase().includes(query));
-            renderCommandList(filteredCommands);
-        });
-
-        // Listeners para el overlay y el submenú
-        closeSubmenuButton.addEventListener('click', closeSubmenu);
+        // SOLUCIÓN AL ERROR: Comprobamos si commandInput existe antes de intentar añadir el listener
+        if (commandInput) {
+            commandInput.addEventListener('input', () => {
+                selectedIndex = 0;
+                const query = commandInput.value.toLowerCase();
+                const filteredCommands = commands.filter(c => c.name.toLowerCase().includes(query) || c.category.toLowerCase().includes(query));
+                renderCommandList(filteredCommands);
+            });
+        }
+        
+        // Listeners del Submenú Modal
+        closeSubmenuButton.addEventListener('click', closeSubmenuModal);
         cardOverlay.addEventListener('click', (e) => {
             if (e.target === cardOverlay) {
-                closeSubmenu();
+                closeSubmenuModal();
             }
         });
 
         // Listener global para atajos de teclado y navegación
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') { 
-                if (!cardOverlay.classList.contains('hidden')) { closeSubmenu(); }
+                if (!cardOverlay.classList.contains('hidden')) { closeSubmenuModal(); }
                 if (!commandPalette.classList.contains('hidden')) { closeCommandPalette(); }
             }
 
             if ((e.metaKey || e.ctrlKey) && e.key === 'k') { 
                 e.preventDefault(); 
-                commandPalette.classList.contains('hidden') ? openCommandPalette() : closeCommandPalette(); 
+                if (commandPalette) {
+                    commandPalette.classList.contains('hidden') ? openCommandPalette() : closeCommandPalette(); 
+                }
             }
 
-            if (!commandPalette.classList.contains('hidden')) {
+            if (commandPalette && !commandPalette.classList.contains('hidden')) {
                 if (e.key === 'ArrowDown') {
                     e.preventDefault();
                     navigateCommands('down');

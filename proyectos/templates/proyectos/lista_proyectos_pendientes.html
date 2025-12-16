@@ -2,23 +2,52 @@
 {% load static %}
 {% block content %}
 <style>
-    /* Estilos de la tarjeta de cristal */
-    .glass-card {
-        background: rgba(45, 55, 72, 0.2);
-        backdrop-filter: blur(20px) saturate(150%);
-        -webkit-backdrop-filter: blur(20px) saturate(150%);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+
+    .animated-gradient-text {
+        background: linear-gradient(to right, #10B981, #3B82F6, #8B5CF6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+        background-size: 200% auto;
+        animation: text-gradient 3s linear infinite alternate;
+    }
+
+    @keyframes text-gradient {
+        to {
+            background-position: 200% center;
+        }
+    }
+    /* Estilos base para el tema claro/fondo blanco (Overriding dark styles) */
+    :root {
+        --color-bg-main: #F8FAFC; 
+        --color-bg-card: #FFFFFF; 
+        --color-border: #E2E8F0; 
+        --color-text-dark: #1E293B; 
+        --color-text-faded: #475569; 
+        --color-primary: #0EA5E9; 
+    }
+
+    body {
+        background-color: var(--color-bg-main);
+        color: var(--color-text-dark);
+    }
+    
+    /* Estilos de la tarjeta limpia (Reemplaza glass-card) */
+    .clean-card {
+        background-color: var(--color-bg-card);
+        border: 1px solid var(--color-border);
         border-radius: 1.5rem;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         transition: all 0.3s ease-in-out;
     }
 
-    .glass-card:hover {
-        background: rgba(45, 55, 72, 0.3);
-        transform: translateY(-5px);
+    .clean-card:hover {
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+        transform: translateY(-2px);
     }
     
-    /* Animaciones mejoradas */
+    /* Animaciones */
     @keyframes slideInUp {
         from { opacity: 0; transform: translateY(40px); }
         to { opacity: 1; transform: translateY(0); }
@@ -27,26 +56,32 @@
         animation: slideInUp 0.8s ease-out forwards;
     }
 
-    /* Ocultar inicialmente el panel de muestras */
+    /* Ocultar inicialmente el panel de muestras (Si se usa) */
     #samples-view {
         display: none;
     }
 
-    /* Estilo de los campos de formulario */
-    .form-input-dark {
-        background-color: rgba(30, 41, 59, 0.8);
-        border: 1px solid rgba(71, 85, 105, 0.6);
-        color: #E2E8F0;
+    /* Estilo de los campos de formulario (Tema Claro) */
+    .form-input-light {
+        background-color: #F1F5F9;
+        border: 1px solid var(--color-border);
+        color: var(--color-text-dark);
         transition: all 0.2s ease-in-out;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
-    .form-input-dark:focus {
-        border-color: #6366F1;
+    .form-input-light::placeholder {
+        color: var(--color-text-faded);
+    }
+
+    .form-input-light:focus {
+        border-color: var(--color-primary);
+        background-color: #FFFFFF;
         outline: none;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.3);
     }
-
-    /* Estilos del modal */
+    
+    /* Estilos del modal (Base, no definidos aquí pero se mantendrían si existen) */
     .modal {
         position: fixed;
         z-index: 1000;
@@ -66,34 +101,41 @@
     }
 </style>
 
-<div id="projects-list-view" class="space-y-8 animate-slide-in-up">
-    <header class="flex flex-col md:flex-row items-center justify-between gap-6">
-        <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-            Proyectos Pendientes
-            <i data-lucide="clipboard-list" class="inline-block w-8 h-8 text-blue-400"></i>
-        </h1>
-        <div class="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-            <div class="relative w-full md:w-64">
-                <input type="text" id="search-input" placeholder="Buscar por cliente o proyecto..." 
-                        class="w-full pl-10 pr-4 py-2 form-input-dark rounded-full placeholder-slate-400">
-                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 text-xs"></i>
+<div id="projects-list-view" class="space-y-8 p-4 md:p-4 animate-slide-in-up">
+    <div class="border-b border-gray-200 pb-4 mb-6">
+        <header class="flex flex-col md:flex-row items-center justify-between gap-6">
+            <h1 class="text-xl font-extrabold animated-gradient-text">
+                Proyectos Pendientes
+                <i data-lucide="clipboard-list" class="inline-block w-6 h-6 text-blue-600"></i>
+            </h1>
+            <div class="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+                <div class="relative w-full md:w-64">
+                    <input type="text" id="search-input" placeholder="Buscar por cliente o proyecto..." 
+                            class="w-full pl-10 pr-4 py-3 form-input-light rounded-full placeholder-gray-500 text-sm">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500"></i>
+                </div>
+                <a href="{% url 'dashboard' %}" class="inline-flex items-center text-sm gap-2 px-6 py-3 bg-gray-200 text-gray-800 font-semibold rounded-full hover:bg-gray-300 transition-all duration-300 transform hover:scale-105 shadow-md">
+                    <i data-lucide="list" class="w-5 h-5"></i>
+                    Regresar al Dashboard
+                </a>
             </div>
-            <a href="{% url 'dashboard' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-slate-700 text-white font-semibold rounded-full hover:bg-slate-600 transition-all duration-300 transform hover:scale-105">
-                <i data-lucide="list" class="w-5 h-5"></i>
-                Regresar al Dashboard
-            </a>
-        </div>
-    </header>
-    {% comment %} Incluimos el fragmento de la lista de proyectos aquí {% endcomment %}
+        </header>
+    </div>
+    
     {% include 'proyectos/includes/lista_proyectos.html' %} 
     
 </div>
-
-
 
 {% endblock %}
 
 {% block extra_scripts %}
 <script src="https://unpkg.com/lucide@latest"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    });
+</script>
 <script src="{% static 'js/projects_list.js' %}"></script>
 {% endblock %}

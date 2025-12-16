@@ -1,0 +1,122 @@
+{% extends "base_vicafpro.html" %} 
+{% load static %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<style>
+    /* El degradado animado se mantiene como elemento de diseño "Alto Top" */
+    .animated-gradient-text {
+        background: linear-gradient(to right, #10B981, #3B82F6, #8B5CF6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+        background-size: 200% auto;
+        animation: text-gradient 3s linear infinite alternate;
+    }
+
+    @keyframes text-gradient {
+        to {
+            background-position: 200% center;
+        }
+    }
+</style>
+<div class="max-w-full mx-auto p-4">
+    <div class="border-b border-gray-200 pb-4 mb-6">
+        <header class="flex justify-between items-center">
+            <h1 class="text-xl font-bold text-indigo-700 animated-gradient-text">{{ titulo }}</h1> 
+            <a href="{% url 'proyectos:registrar_resultado_ensayo' %}" 
+                class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                </svg>
+                Nuevo Resultado
+            </a>
+        </header>
+    </div>
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Solicitud</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tarea / Método</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha de Registro</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Técnico</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                    </tr>
+                </thead>
+                
+                {# Cuerpo de la tabla: Fondo blanco, divisores claros #}
+                <tbody class="divide-y divide-gray-200 bg-white">
+                    {% for resultado in resultados %}
+                    {# Fila: Hover sutil en gris claro #}
+                    <tr class="hover:bg-gray-50 transition duration-150">
+                        {# Código Solicitud: Color primario para resaltarlo #}
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-indigo-600">
+                            {{ resultado.detalle_ensayo.solicitud.codigo_solicitud }}
+                        </td>
+                        {# Tarea / Método #}
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+                            {{ resultado.detalle_ensayo.tarea_nombre }} <br>
+                            <span class="text-xs text-gray-500">{{ resultado.detalle_ensayo.metodo.nombre_metodo }}</span>
+                        </td>
+                        {# Fecha #}
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {{ resultado.fecha_realizacion|date:"Y-m-d" }}
+                        </td>
+                        {# Técnico #}
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                            {{ resultado.tecnico_registro.user.get_full_name|default:"N/A" }}
+                        </td>
+                        
+                        {# Estado #}
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            {% if resultado.es_valido %}
+                                {# VERIFICADO: Verde en fondo verde claro #}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                    VERIFICADO
+                                </span>
+                            {% else %}
+                                {# PENDIENTE: Amarillo en fondo amarillo claro #}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                    PENDIENTE
+                                </span>
+                            {% endif %}
+                        </td>
+                        
+                        {# Acciones #}
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            {# Enlaces de acción: Color primario (indigo) o secundario (blue) para contraste #}
+                            <a href="{% url 'registrar_resultado_ensayo' detalle_id=resultado.detalle_ensayo.pk %}" 
+                               class="text-indigo-600 hover:text-indigo-900 mr-3 transition duration-150" title="Editar Resultado">
+                                Editar
+                            </a>
+                            <a href="" 
+                               class="text-blue-600 hover:text-blue-900 transition duration-150" title="Ver Detalle">
+                                Ver
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        {# Mensaje Empty: Texto gris medio, fondo sutil #}
+                        <td colspan="6" class="px-6 py-8 text-center text-gray-500 bg-gray-50">
+                            No se han registrado resultados de ensayos aún.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    {# Paginación (Placeholder) #}
+    <div class="mt-4 text-center text-sm text-gray-500">
+        [Aquí iría la barra de paginación de Django si la implementas]
+    </div>
+
+</div>
+{% endblock content %}

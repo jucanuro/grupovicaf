@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_head %}
-    <title>Solicitud {{ solicitud.codigo_solicitud }} - Muestra {{ muestra.codigo_muestra }}</title>
+    <title>Solicitud {{ solicitud.codigo_solicitud|default:"NUEVA" }} - Muestra {{ muestra.codigo_muestra }}</title>
     
     <style>
         /* Estilos para la barra de desplazamiento en la asignación */
@@ -33,13 +33,14 @@
     <header class="mb-10 p-6 bg-blue-900 rounded-xl shadow-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center border-t-4 border-blue-500">
         <div class="mb-4 sm:mb-0">
             <h1 class="text-4xl font-extrabold tracking-tight text-white">Generar Solicitud de Ensayo 🧪</h1>
-            <p class="text-gray-300 mt-1 text-lg">Llenado y asignación de tareas para la solicitud.</p>
+            <p class="text-gray-300 mt-1 text-lg">Llenado y asignación de tareas para la solicitud de muestra: **{{ muestra.codigo_muestra }}**</p>
         </div>
         <div class="text-right p-3 bg-gray-700/50 rounded-lg">
             <span class="text-sm font-light text-blue-400 uppercase">SOLICITUD:</span>
             <span id="solicitud-codigo-display" class="block text-3xl font-bold text-white mt-0.5">{{ solicitud.codigo_solicitud|default:"PENDIENTE" }}</span>
-            <input type="hidden" id="solicitud-id" value="{{ solicitud.id }}">
+            <input type="hidden" id="solicitud-id" value="{{ solicitud.id|default:'' }}">
             <input type="hidden" id="muestra-id" value="{{ muestra.id }}">
+            <input type="hidden" id="proyecto-id" value="{{ muestra.proyecto.id }}">
         </div>
     </header>
 
@@ -59,7 +60,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div>
                     <label for="codigo_solicitud" class="block text-sm font-semibold text-gray-300 mb-2">Código de Solicitud</label>
-                    <input type="text" id="codigo_solicitud" value="{{ solicitud.codigo_solicitud }}" class="w-full p-3 rounded-lg bg-gray-700 text-gray-400 border border-gray-600 cursor-not-allowed" readonly>
+                    <input type="text" id="codigo_solicitud" value="{{ solicitud.codigo_solicitud|default:"ASIGNADO AL GUARDAR" }}" class="w-full p-3 rounded-lg bg-gray-700 text-gray-400 border border-gray-600 cursor-not-allowed" readonly>
                 </div>
                 <div>
                     <label for="generada_por_id" class="block text-sm font-semibold text-gray-300 mb-2">Generada Por (Técnico/Jefe)</label>
@@ -67,7 +68,7 @@
                         <option value="">Seleccione Usuario</option>
                         {% for tecnico in tecnicos %}
                         <option value="{{ tecnico.id }}" 
-                            {% if tecnico_generador_id and tecnico.id == tecnico_generador_id %}
+                            {% if solicitud.generada_por_id == tecnico.id %}
                                 selected
                             {% endif %}
                         >
@@ -94,7 +95,102 @@
             </div>
             
             <div id="detalles-container" class="space-y-8">
-                </div>
+                {# Los detalles existentes se renderizarán aquí en el DOM de forma dinámica #}
+                {% for detalle in detalles_existentes %}
+                    <div id="detalle-card-{{ forloop.counter0 }}" data-index="{{ forloop.counter0 }}" data-pk="{{ detalle.id }}" class="detalle-card p-6 border-l-4 border-blue-400 rounded-xl bg-gray-800/40 shadow-xl">
+                        <div class="flex justify-between items-start mb-4 pb-2 border-b border-gray-700">
+                            <h3 class="text-2xl font-bold text-white flex items-center">
+                                <span class="inline-flex items-center justify-center w-8 h-8 mr-3 text-sm font-semibold text-blue-400 bg-blue-400/20 rounded-full">
+                                    {{ forloop.counter }}
+                                </span>
+                                Tarea Existente (ID: {{ detalle.id }})
+                            </h3>
+                            <button type="button" onclick="removerDetalle({{ forloop.counter0 }})" class="p-1 text-red-500 hover:text-red-400 transition duration-150 rounded-full bg-gray-700 hover:bg-gray-600" title="Eliminar Tarea" {% if solicitud_ya_detallada %}disabled style="opacity: 0.5;"{% endif %}>
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
+                            <input type="hidden" name="detalle_pk" value="{{ detalle.id }}">
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-semibold text-gray-300 mb-1">Descripción de la Tarea <span class="text-red-500">*</span></label>
+                                <input type="text" name="descripcion" placeholder="Ej: Ensayos de Resistencia" value="{{ detalle.tipo_ensayo_descripcion }}" class="w-full p-2.5 rounded-md bg-gray-700 text-white border border-gray-600 focus:border-blue-500" required {% if solicitud_ya_detallada %}disabled{% endif %}>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-300 mb-1">Norma Aplicable</label>
+                                <select name="norma" class="w-full p-2.5 rounded-md bg-gray-700 text-white border border-gray-600 focus:border-blue-500" {% if solicitud_ya_detallada %}disabled{% endif %}>
+                                    <option value="">Seleccione Norma (Opcional)</option>
+                                    {% for norma_cat in normas %}
+                                        <option value="{{ norma_cat.id }}" {% if detalle.norma_id == norma_cat.id %}selected{% endif %}>{{ norma_cat.nombre }} ({{ norma_cat.codigo }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-300 mb-1">Método Aplicable</label>
+                                <select name="metodo" class="w-full p-2.5 rounded-md bg-gray-700 text-white border border-gray-600 focus:border-blue-500" {% if solicitud_ya_detallada %}disabled{% endif %}>
+                                    <option value="">Seleccione Método (Opcional)</option>
+                                    {% for metodo_cat in metodos %}
+                                        <option value="{{ metodo_cat.id }}" {% if detalle.metodo_id == metodo_cat.id %}selected{% endif %}>{{ metodo_cat.nombre }} ({{ metodo_cat.codigo }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-300 mb-1">Fecha Límite <span class="text-red-500">*</span></label>
+                                <input type="date" name="fecha_limite" value="{{ detalle.fecha_limite_ejecucion|date:'Y-m-d' }}" class="w-full p-2.5 rounded-md bg-gray-700 text-white border border-gray-600" required {% if solicitud_ya_detallada %}disabled{% endif %}>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-sm font-semibold text-gray-300 mb-1">Observaciones del Detalle</label>
+                            <textarea name="observaciones_detalle" placeholder="Notas importantes sobre el ensayo..." rows="2" class="w-full p-2.5 rounded-md bg-gray-700 text-white border border-gray-600 focus:border-blue-500" {% if solicitud_ya_detallada %}disabled{% endif %}>{{ detalle.observaciones_detalle|default:"" }}</textarea>
+                        </div>
+    
+                        <input type="hidden" name="cotizacion_detalle_id" value="{{ detalle.detalle_cotizacion_id|default:'' }}">
+    
+                        <div class="mt-6 p-5 rounded-lg bg-gray-900 border border-green-500/20">
+                            <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                                <h4 class="text-lg font-bold text-green-400 flex items-center">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20h-5v-2a3 3 0 00-5.356-1.857M9 20V8m3 4h.01M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                                    Asignación de Ensayos por Técnico (Modelo: AsignacionTipoEnsayo)
+                                </h4>
+                                <button type="button" onclick="agregarAsignacion({{ forloop.counter0 }})" class="bg-green-500/20 text-green-400 hover:bg-green-500/40 text-xs font-bold py-1.5 px-3 rounded-full transition duration-150" {% if solicitud_ya_detallada %}disabled{% endif %}>
+                                    + Añadir Tipo/Técnico
+                                </button>
+                            </div>
+                            <div id="asignaciones-container-{{ forloop.counter0 }}" class="space-y-3 asignaciones-scroll-area">
+                                {# Renderizar asignaciones existentes #}
+                                {% for asignacion in detalle.asignacion_tipos_ensayo.all %}
+                                    <div id="asignacion-{{ forloop.parentloop.counter0 }}-{{ forloop.counter0 }}" class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 items-end bg-gray-800/70 p-4 rounded-lg border border-gray-700 transition duration-200 hover:border-green-500">
+                                        <div class="flex-grow w-full">
+                                            <label class="block text-xs font-medium text-white mb-1">Tipo de Ensayo <span class="text-red-500">*</span></label>
+                                            <select name="tipo_ensayo_id" class="w-full p-2 text-sm rounded-md bg-gray-700 text-white border border-gray-600 focus:border-green-400" required {% if solicitud_ya_detallada %}disabled{% endif %}>
+                                                <option value="">Seleccione Tipo</option>
+                                                {% for tipo_cat in tipos_ensayo %}
+                                                    <option value="{{ tipo_cat.id }}" {% if asignacion.tipo_ensayo_id == tipo_cat.id %}selected{% endif %}>{{ tipo_cat.nombre }} ({{ tipo_cat.codigo_interno }})</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="flex-grow w-full">
+                                            <label class="block text-xs font-medium text-white mb-1">Técnico Asignado <span class="text-red-500">*</span></label>
+                                            <select name="tecnico_asignado_id" class="w-full p-2 text-sm rounded-md bg-gray-700 text-white border border-gray-600 focus:border-green-400" required {% if solicitud_ya_detallada %}disabled{% endif %}>
+                                                <option value="">Seleccione Técnico</option>
+                                                {% for tecnico_cat in tecnicos %}
+                                                    <option value="{{ tecnico_cat.id }}" {% if asignacion.tecnico_asignado_id == tecnico_cat.id %}selected{% endif %}>{{ tecnico_cat.nombre_completo }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <button type="button" onclick="removerAsignacion('asignacion-{{ forloop.parentloop.counter0 }}-{{ forloop.counter0 }}')" 
+                                                class="p-2 w-full sm:w-auto bg-red-600/20 text-red-400 hover:bg-red-600/40 transition-colors rounded-lg flex-shrink-0" title="Eliminar Asignación" {% if solicitud_ya_detallada %}disabled{% endif %}>
+                                            <svg class="w-5 h-5 mx-auto sm:mx-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        </button>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                {# No hay detalles existentes, el contenedor queda vacío inicialmente #}
+                {% endfor %}
+            </div>
 
             <p id="detalle-vacio-msg" class="text-center text-gray-500 mt-8 p-6 border border-dashed border-gray-700 rounded-lg italic hidden">
                 <svg class="w-6 h-6 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 5h4"></path></svg>
@@ -121,9 +217,38 @@
     
     <div id="alert-container" class="fixed bottom-5 right-5 w-96 space-y-3 z-50"></div>
     
+    {# Catálogos de Datos para JS (necesarios para selects dinámicos) #}
     {{ detalles_cotizacion_json | default_if_none:"[]" | json_script:"cotizacion-data" }}
-    {{ normas|default_if_none:"[]"|json_script:"normas-data" }}
-    {{ metodos|default_if_none:"[]"|json_script:"metodos-data" }}
+    {{ normas | default_if_none:"[]" | json_script:"normas-data" }}
+    {{ metodos | default_if_none:"[]" | json_script:"metodos-data" }}
+    {# Pasa los detalles existentes para re-contar si es necesario #}
+    {% if detalles_existentes %}
+        <script id="existentes-data" type="application/json">
+            [
+            {% for detalle in detalles_existentes %}
+                { 
+                    "pk": {{ detalle.id }}, 
+                    "descripcion": "{{ detalle.tipo_ensayo_descripcion|escapejs }}",
+                    "norma_id": {{ detalle.norma_id|default:"null" }},
+                    "metodo_id": {{ detalle.metodo_id|default:"null" }},
+                    "fecha_limite": "{{ detalle.fecha_limite_ejecucion|date:'Y-m-d' }}",
+                    "cotizacion_detalle_id": {{ detalle.detalle_cotizacion_id|default:"null" }},
+                    "observaciones_detalle": "{{ detalle.observaciones_detalle|escapejs|default:"" }}",
+                    "asignaciones": [
+                        {% for asignacion in detalle.asignacion_tipos_ensayo.all %}
+                            { 
+                                "tipo_ensayo_id": {{ asignacion.tipo_ensayo_id }}, 
+                                "tecnico_asignado_id": {{ asignacion.tecnico_asignado_id }}
+                            }{% if not forloop.last %},{% endif %}
+                        {% endfor %}
+                    ]
+                }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+            ]
+        </script>
+    {% else %}
+        <script id="existentes-data" type="application/json">[]</script>
+    {% endif %}
 
 </div>
 
@@ -139,48 +264,49 @@
             {% endfor %}
         ];
         
+        // **IMPORTANTE:** Aquí se inyecta el nombre_completo de los técnicos, que es lo que usas en el renderizado
         const CAT_TECNICOS = [
             {% for tecnico in tecnicos %}
-            { id: {{ tecnico.id }}, nombre: "{{ tecnico.user__username|escapejs }}" }{% if not forloop.last %},{% endif %}
+            { id: {{ tecnico.id }}, nombre: "{{ tecnico.user__username|escapejs }}", nombre_completo: "{{ tecnico.nombre_completo|escapejs }}" }{% if not forloop.last %},{% endif %}
             {% endfor %}
         ];
         
-        // 💥 NUEVOS CATÁLOGOS PARA SELECTORES DINÁMICOS 💥
+        // 💥 CATÁLOGOS JSON DESDE <script type="application/json"> 💥
         const CAT_NORMAS = JSON.parse(document.getElementById('normas-data').textContent);
         const CAT_METODOS = JSON.parse(document.getElementById('metodos-data').textContent);
+        const DETALLES_EXISTENTES = JSON.parse(document.getElementById('existentes-data').textContent);
         
-        const LOGGED_USER_ID = parseInt('{{ logged_user_id|default:0 }}');
-        
-        function getCotizacionData() {
-            const scriptElement = document.getElementById('cotizacion-data');
-            if (scriptElement) {
-                try {
-                    return JSON.parse(scriptElement.textContent);
-                } catch (e) {
-                    console.error("Error al parsear el JSON de la cotización:", e);
-                    return [];
-                }
+        // Función general para obtener datos JSON
+        function getJsonData(elementId) {
+            try {
+                const scriptElement = document.getElementById(elementId);
+                return scriptElement ? JSON.parse(scriptElement.textContent) : [];
+            } catch (e) {
+                console.error(`Error al parsear el JSON de ${elementId}:`, e);
+                return [];
             }
-            return [];
         }
         
         // =========================================================================
         // LÓGICA FUNCIONAL (DOM, ASIGNACIONES Y AJAX)
         // =========================================================================
         
-        const SOLICITUD_ID = document.getElementById('solicitud-id').value;
-        const AJAX_URL = "{% url 'proyectos:actualizar_solicitud_detalles' solicitud.id %}";
-        let detalleCounter = 0; 
+        const MUESTRA_ID = document.getElementById('muestra-id').value;
+        // 💡 Ajustar URL: Usamos la URL de gestión por Muestra ID para el POST
+        const AJAX_URL = `/muestra/${MUESTRA_ID}/solicitud/gestion/`; 
+
+        // El contador debe empezar después de los elementos renderizados por Django.
+        let detalleCounter = document.querySelectorAll('.detalle-card').length; 
 
         /* Funciones de Asignación (Tipo Ensayo + Técnico) */
-        function getAsignacionRowHtml(detalleIndex, asignacionIndex, defaultTipoEnsayoId = null, defaultTecnicoId = null) {
-            const rowId = `asignacion-${detalleIndex}-${asignacionIndex}`;
+        function getAsignacionRowHtml(detalleIndex, asignacionIndex, defaultTipoEnsayoId = null, defaultTecnicoId = null, isReadOnly = false) {
+            const rowId = `asignacion-${detalleIndex}-${asignacionIndex}-${Date.now()}`; // ID único en tiempo de ejecución
+            const disabledAttr = isReadOnly ? 'disabled' : '';
             
             const tipoEnsayoOptions = CAT_TIPOS_ENSAYO.map(t => 
                 `<option value="${t.id}" ${t.id == defaultTipoEnsayoId ? 'selected' : ''}>${t.nombre} (${t.codigo})</option>`
             ).join('');
 
-            // 💡 CAMBIO 1: Usar t.nombre_completo para mostrar el nombre completo
             const tecnicoOptions = CAT_TECNICOS.map(t => 
                 `<option value="${t.id}" ${t.id == defaultTecnicoId ? 'selected' : ''}>${t.nombre_completo}</option>`
             ).join('');
@@ -188,67 +314,66 @@
             return `
                 <div id="${rowId}" class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 items-end bg-gray-800/70 p-4 rounded-lg border border-gray-700 transition duration-200 hover:border-green-500">
                     <div class="flex-grow w-full">
-                        <!-- 💡 CAMBIO 2: Cambiado a text-white para letras blancas -->
                         <label class="block text-xs font-medium text-white mb-1">Tipo de Ensayo <span class="text-red-500">*</span></label>
-                        <select name="tipo_ensayo_id" class="w-full p-2 text-sm rounded-md bg-gray-700 text-white border border-gray-600 focus:border-green-400 focus:ring-1 focus:ring-green-400" required>
+                        <select name="tipo_ensayo_id" class="w-full p-2 text-sm rounded-md bg-gray-700 text-white border border-gray-600 focus:border-green-400 focus:ring-1 focus:ring-green-400" required ${disabledAttr}>
                             <option value="">Seleccione Tipo</option>
                             ${tipoEnsayoOptions}
                         </select>
                     </div>
                     <div class="flex-grow w-full">
-                        <!-- 💡 CAMBIO 3: Cambiado a text-white para letras blancas -->
                         <label class="block text-xs font-medium text-white mb-1">Técnico Asignado <span class="text-red-500">*</span></label>
-                        <select name="tecnico_asignado_id" class="w-full p-2 text-sm rounded-md bg-gray-700 text-white border border-gray-600 focus:border-green-400 focus:ring-1 focus:ring-green-400" required>
+                        <select name="tecnico_asignado_id" class="w-full p-2 text-sm rounded-md bg-gray-700 text-white border border-gray-600 focus:border-green-400 focus:ring-1 focus:ring-green-400" required ${disabledAttr}>
                             <option value="">Seleccione Técnico</option>
                             ${tecnicoOptions}
                         </select>
                     </div>
                     <button type="button" onclick="removerAsignacion('${rowId}')" 
-                            class="p-2 w-full sm:w-auto bg-red-600/20 text-red-400 hover:bg-red-600/40 transition-colors rounded-lg flex-shrink-0" title="Eliminar Asignación">
+                            class="p-2 w-full sm:w-auto bg-red-600/20 text-red-400 hover:bg-red-600/40 transition-colors rounded-lg flex-shrink-0" title="Eliminar Asignación" ${disabledAttr}>
                         <svg class="w-5 h-5 mx-auto sm:mx-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     </button>
                 </div>
             `;
         }
 
-        function agregarAsignacion(detalleIndex, tipoEnsayoId = null, tecnicoId = null) {
+        window.agregarAsignacion = function(detalleIndex, tipoEnsayoId = null, tecnicoId = null) {
             const container = document.getElementById(`asignaciones-container-${detalleIndex}`);
             if (!container) return;
-            const asignacionIndex = container.children.length;
-            container.insertAdjacentHTML('beforeend', getAsignacionRowHtml(detalleIndex, asignacionIndex, tipoEnsayoId, tecnicoId));
+            const isReadOnly = document.getElementById('solicitud-form').style.pointerEvents === 'none';
+            container.insertAdjacentHTML('beforeend', getAsignacionRowHtml(detalleIndex, container.children.length, tipoEnsayoId, tecnicoId, isReadOnly));
         }
 
-        function removerAsignacion(rowId) {
+        window.removerAsignacion = function(rowId) {
             document.getElementById(rowId).remove();
         }
 
         /* Funciones de Detalle (Tarea Principal) */
         function getNormaOptions(defaultValue = '') {
             return CAT_NORMAS.map(n => 
-                `<option value="${n.nombre}" ${n.nombre === defaultValue ? 'selected' : ''}>${n.nombre} (${n.codigo})</option>`
+                `<option value="${n.id}" ${n.id == defaultValue ? 'selected' : ''}>${n.nombre} (${n.codigo_norma})</option>` // Usar n.id
             ).join('');
         }
 
         function getMetodoOptions(defaultValue = '') {
             return CAT_METODOS.map(m => 
-                `<option value="${m.nombre}" ${m.nombre === defaultValue ? 'selected' : ''}>${m.nombre} (${m.codigo})</option>`
+                `<option value="${m.id}" ${m.id == defaultValue ? 'selected' : ''}>${m.nombre} (${m.codigo_metodo})</option>` // Usar m.id
             ).join('');
         }
 
         function getDetalleHtml(index, data = {}) {
-            const descripcion = data.descripcion || '';
-            // Usamos 'norma_precargada' o 'metodo_precargado' si vienen de la cotización
-            const norma = data.norma_precargada || data.norma || '';
-            const metodo = data.metodo_precargado || data.metodo || ''; 
+            const isReadOnly = document.getElementById('solicitud-form').style.pointerEvents === 'none';
+            const detallePk = data.pk || '';
+            const descripcion = data.descripcion_servicio || data.descripcion || ''; // Maneja el campo de cotización
+            const normaId = data.norma__pk || data.norma_id || ''; 
+            const metodoId = data.metodo__pk || data.metodo_id || ''; 
             const fecha_limite = data.fecha_limite || new Date().toISOString().substring(0, 10);
-            const observaciones_detalle = data.observaciones_detalle || ''; // Nuevo
-            const cotizacion_id = data.cotizacion_detalle_id || ''; 
-            const isPrecharged = !!data.cotizacion_detalle_id;
+            const observaciones_detalle = data.observaciones_detalle || '';
+            const cotizacion_id = data.pk || data.cotizacion_detalle_id || ''; // Usa el PK de CotizacionDetalle si viene de ahí
+            const isPrecharged = !!data.cotizacion_detalle_id || !!data.pk;
 
             const headerTitle = isPrecharged ? `Tarea de Cotización (ID: ${cotizacion_id})` : `Tarea Manual`;
             
             return `
-                <div id="detalle-card-${index}" data-index="${index}" class="detalle-card p-6 border-l-4 ${isPrecharged ? 'border-green-500' : 'border-blue-400'} rounded-xl bg-gray-800/40 shadow-xl">
+                <div id="detalle-card-${index}" data-index="${index}" data-pk="${detallePk}" class="detalle-card p-6 border-l-4 ${isPrecharged ? 'border-green-500' : 'border-blue-400'} rounded-xl bg-gray-800/40 shadow-xl">
                     <div class="flex justify-between items-start mb-4 pb-2 border-b border-gray-700">
                         <h3 class="text-2xl font-bold text-white flex items-center">
                             <span class="inline-flex items-center justify-center w-8 h-8 mr-3 text-sm font-semibold ${isPrecharged ? 'text-green-500 bg-green-500/20' : 'text-blue-400 bg-blue-400/20'} rounded-full">
@@ -256,42 +381,43 @@
                             </span>
                             ${headerTitle}
                         </h3>
-                        <button type="button" onclick="removerDetalle(${index})" class="p-1 text-red-500 hover:text-red-400 transition duration-150 rounded-full bg-gray-700 hover:bg-gray-600" title="Eliminar Tarea" ${isPrecharged ? 'disabled style="opacity: 0.5;"' : ''}>
+                        <button type="button" onclick="removerDetalle(${index})" class="p-1 text-red-500 hover:text-red-400 transition duration-150 rounded-full bg-gray-700 hover:bg-gray-600" title="Eliminar Tarea" ${isPrecharged || isReadOnly ? 'disabled style="opacity: 0.5;"' : ''}>
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                         </button>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
+                        <input type="hidden" name="detalle_pk" value="${detallePk}">
                         <div class="md:col-span-2">
                             <label class="block text-sm font-semibold text-gray-300 mb-1">Descripción de la Tarea <span class="text-red-500">*</span></label>
-                            <input type="text" name="descripcion" placeholder="Ej: Ensayos de Resistencia" value="${descripcion}" class="w-full p-2.5 rounded-md bg-gray-700 text-white border border-gray-600 focus:border-blue-500" required>
+                            <input type="text" name="descripcion" placeholder="Ej: Ensayos de Resistencia" value="${descripcion}" class="w-full p-2.5 rounded-md bg-gray-700 text-white border border-gray-600 focus:border-blue-500" required ${isReadOnly ? 'disabled' : ''}>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-300 mb-1">Norma Aplicable</label>
-                            <select name="norma" class="w-full p-2.5 rounded-md bg-gray-700 text-white border border-gray-600 focus:border-blue-500">
+                            <select name="norma_id" class="w-full p-2.5 rounded-md bg-gray-700 text-white border border-gray-600 focus:border-blue-500" ${isReadOnly ? 'disabled' : ''}>
                                 <option value="">Seleccione Norma (Opcional)</option>
-                                ${getNormaOptions(norma)}
+                                ${getNormaOptions(normaId)}
                             </select>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-300 mb-1">Método Aplicable</label>
-                            <select name="metodo" class="w-full p-2.5 rounded-md bg-gray-700 text-white border border-gray-600 focus:border-blue-500">
+                            <select name="metodo_id" class="w-full p-2.5 rounded-md bg-gray-700 text-white border border-gray-600 focus:border-blue-500" ${isReadOnly ? 'disabled' : ''}>
                                 <option value="">Seleccione Método (Opcional)</option>
-                                ${getMetodoOptions(metodo)}
+                                ${getMetodoOptions(metodoId)}
                             </select>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-300 mb-1">Fecha Límite <span class="text-red-500">*</span></label>
-                            <input type="date" name="fecha_limite" value="${fecha_limite}" class="w-full p-2.5 rounded-md bg-gray-700 text-white border border-gray-600" required>
+                            <input type="date" name="fecha_limite_ejecucion" value="${fecha_limite}" class="w-full p-2.5 rounded-md bg-gray-700 text-white border border-gray-600" required ${isReadOnly ? 'disabled' : ''}>
                         </div>
                     </div>
                     
                     <div class="mb-6">
                         <label class="block text-sm font-semibold text-gray-300 mb-1">Observaciones del Detalle</label>
-                        <textarea name="observaciones_detalle" placeholder="Notas importantes sobre el ensayo..." rows="2" class="w-full p-2.5 rounded-md bg-gray-700 text-white border border-gray-600 focus:border-blue-500">${observaciones_detalle}</textarea>
+                        <textarea name="observaciones_detalle" placeholder="Notas importantes sobre el ensayo..." rows="2" class="w-full p-2.5 rounded-md bg-gray-700 text-white border border-gray-600 focus:border-blue-500" ${isReadOnly ? 'disabled' : ''}>${observaciones_detalle}</textarea>
                     </div>
 
-                    <input type="hidden" name="cotizacion_detalle_id" value="${cotizacion_id}">
+                    <input type="hidden" name="detalle_cotizacion_id" value="${cotizacion_id}">
 
                     <div class="mt-6 p-5 rounded-lg bg-gray-900 border border-green-500/20">
                         <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
@@ -299,28 +425,52 @@
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20h-5v-2a3 3 0 00-5.356-1.857M9 20V8m3 4h.01M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                                 Asignación de Ensayos por Técnico (Modelo: AsignacionTipoEnsayo)
                             </h4>
-                            <button type="button" onclick="agregarAsignacion(${index})" class="bg-green-500/20 text-green-400 hover:bg-green-500/40 text-xs font-bold py-1.5 px-3 rounded-full transition duration-150">
+                            <button type="button" onclick="agregarAsignacion(${index})" class="bg-green-500/20 text-green-400 hover:bg-green-500/40 text-xs font-bold py-1.5 px-3 rounded-full transition duration-150" ${isReadOnly ? 'disabled' : ''}>
                                 + Añadir Tipo/Técnico
                             </button>
                         </div>
                         <div id="asignaciones-container-${index}" class="space-y-3 asignaciones-scroll-area">
-                            </div>
+                            {# Las asignaciones se cargarán aquí si es un detalle nuevo/de cotización #}
+                        </div>
                     </div>
                 </div>
             `;
         }
 
-        function agregarDetalle() {
+        window.agregarDetalle = function(data = {}) {
             const container = document.getElementById('detalles-container');
             const cardIndex = detalleCounter++;
-            container.insertAdjacentHTML('beforeend', getDetalleHtml(cardIndex));
-            document.getElementById('detalle-vacio-msg').classList.add('hidden');
-            // Por defecto, añade la primera asignación al detalle creado
-            agregarAsignacion(cardIndex, null, null); 
+            
+            // 1. Renderiza la tarjeta de Detalle
+            container.insertAdjacentHTML('beforeend', getDetalleHtml(cardIndex, data));
+            
+            // 2. Carga las asignaciones (si vienen en los datos, o una por defecto)
+            const asignacionesData = data.asignaciones || [{ tipo_ensayo_id: null, tecnico_asignado_id: null }];
+            
+            // Si viene de cotización, usa el ID de CotizacionDetalle como PK inicial
+            const isPrechargedFromCotizacion = !!data.pk && !data.detalle_pk;
+
+            asignacionesData.forEach(asignacion => {
+                const tipoEnsayoId = asignacion.tipo_ensayo_id || null;
+                const tecnicoId = asignacion.tecnico_asignado_id || null;
+                // Si es precargado de cotización, se inicializa la asignación con los IDs
+                if (isPrechargedFromCotizacion && asignacion.tipo_ensayo_id) {
+                     agregarAsignacion(cardIndex, tipoEnsayoId, tecnicoId);
+                } else if (!isPrechargedFromCotizacion) {
+                     // Si es manual, se añade una línea vacía
+                     agregarAsignacion(cardIndex, tipoEnsayoId, tecnicoId);
+                }
+            });
+
+            // Si es un detalle manual y no se precargó nada, asegura al menos 1 asignación
+            if (!data.asignaciones && !isPrechargedFromCotizacion) {
+                agregarAsignacion(cardIndex, null, null);
+            }
+            
             checkDetallesCount();
         }
 
-        function removerDetalle(index) {
+        window.removerDetalle = function(index) {
             document.getElementById(`detalle-card-${index}`).remove();
             checkDetallesCount();
         }
@@ -330,49 +480,38 @@
             document.getElementById('detalle-vacio-msg').classList.toggle('hidden', count > 0);
         }
         
-        // ... (Función showNotification permanece igual) ...
         function showNotification(message, type = 'success') {
-             const alertContainer = document.getElementById('alert-container');
-             let color = { success: 'bg-green-600 border-green-800', error: 'bg-red-600 border-red-800' }[type];
-             let icon = { success: '✅', error: '❌' }[type];
-             const alertHtml = `<div class="${color} p-4 rounded-xl shadow-xl border text-white font-medium flex items-center transform transition-all duration-300 opacity-0 translate-x-full" role="alert"><span class="mr-2">${icon}</span>${message}</div>`;
-             alertContainer.insertAdjacentHTML('beforeend', alertHtml);
-             const newAlert = alertContainer.lastElementChild;
-             setTimeout(() => newAlert.classList.remove('opacity-0', 'translate-x-full'), 10);
-             setTimeout(() => {
-                 newAlert.classList.add('opacity-0', 'translate-x-full');
-                 newAlert.addEventListener('transitionend', () => newAlert.remove());
-             }, 5000);
+            const alertContainer = document.getElementById('alert-container');
+            let color = { success: 'bg-green-600 border-green-800', error: 'bg-red-600 border-red-800' }[type];
+            let icon = { success: '✅', error: '❌' }[type];
+            const alertHtml = `<div class="${color} p-4 rounded-xl shadow-xl border text-white font-medium flex items-center transform transition-all duration-300 opacity-0 translate-x-full" role="alert"><span class="mr-2">${icon}</span>${message}</div>`;
+            alertContainer.insertAdjacentHTML('beforeend', alertHtml);
+            const newAlert = alertContainer.lastElementChild;
+            setTimeout(() => newAlert.classList.remove('opacity-0', 'translate-x-full'), 10);
+            setTimeout(() => {
+                newAlert.classList.add('opacity-0', 'translate-x-full');
+                newAlert.addEventListener('transitionend', () => newAlert.remove());
+            }, 5000);
         }
 
         function cargarDetallesCotizacion() {
-            const detallesCotizacion = getCotizacionData();
+            const detallesCotizacion = getJsonData('cotizacion-data');
+            const detallesExistentes = getJsonData('existentes-data');
+            
+            // Si ya hay detalles existentes (renderizados por Django), no cargamos los de cotización para evitar duplicados
+            if (detallesExistentes.length > 0) {
+                 checkDetallesCount(); 
+                 return;
+            }
 
-           if (Array.isArray(detallesCotizacion) && detallesCotizacion.length > 0) { 
-                document.getElementById('detalle-vacio-msg').classList.add('hidden');
-
+            if (Array.isArray(detallesCotizacion) && detallesCotizacion.length > 0) { 
                 detallesCotizacion.forEach(data => {
-                    const container = document.getElementById('detalles-container');
-                    const currentIndex = detalleCounter++;
-                    
-                    // 1. Renderiza la tarjeta de Detalle
-                    container.insertAdjacentHTML('beforeend', getDetalleHtml(currentIndex, data));
-                    
-                    // 2. Carga la primera asignación por defecto (si hay datos iniciales)
-                    const tipoEnsayoIdFromCotizacion = data.tipo_ensayo_id || null; 
-                    const tecnicoInicialId = data.tecnico_inicial_id || null; 
-                    
-                    // Si se precarga de cotización, creamos la asignación inicial
-                    if (tipoEnsayoIdFromCotizacion) {
-                        agregarAsignacion(currentIndex, tipoEnsayoIdFromCotizacion, tecnicoInicialId); 
-                    } else {
-                        // Si no hay datos de precarga, crea una fila vacía para que el usuario la llene
-                        // Se usa null, lo cual hará que 'agregarAsignacion' use la lógica del TECNICO_INICIAL_ID
-                        agregarAsignacion(currentIndex, null, null); 
-                    }
+                    // Los datos de Cotizacion vienen con 'pk' de la cotización y usan los campos con doble guion bajo (__)
+                    // Los mapeamos y los agregamos como detalles nuevos.
+                    agregarDetalle(data); 
                 });
-            } else if (!document.querySelector('.detalle-card')) {
-                // Si no hay detalles de cotización y no hay tarjetas creadas, muestra el mensaje vacío.
+            } else if (detalleCounter === 0) {
+                // Si no hay detalles de cotización y no se ha añadido nada manual, muestra el mensaje vacío.
                 checkDetallesCount(); 
             }
         }
@@ -401,19 +540,19 @@
                 }
 
                 detalleCards.forEach(card => {
-                    // Recolección de datos de DetalleEnsayo (incluyendo el nuevo textarea)
-                    const inputs = card.querySelectorAll('input, select, textarea'); 
                     const detalle = {};
                     
-                    inputs.forEach(input => {
-                        // Ignoramos inputs de asignación para recoger solo los de Detalle
-                        if (input.name && input.name !== 'tipo_ensayo_id' && input.name !== 'tecnico_asignado_id') {
-                            detalle[input.name] = input.value;
-                        }
-                    });
+                    // 1. Recolección de datos de DetalleEnsayo
+                    detalle.detalle_pk = card.querySelector('input[name="detalle_pk"]').value || null;
+                    detalle.descripcion = card.querySelector('input[name="descripcion"]').value;
+                    detalle.norma_id = card.querySelector('select[name="norma_id"]').value || null;
+                    detalle.metodo_id = card.querySelector('select[name="metodo_id"]').value || null;
+                    detalle.fecha_limite_ejecucion = card.querySelector('input[name="fecha_limite_ejecucion"]').value;
+                    detalle.observaciones_detalle = card.querySelector('textarea[name="observaciones_detalle"]').value;
+                    detalle.detalle_cotizacion_id = card.querySelector('input[name="detalle_cotizacion_id"]').value || null;
                     
-                    // 💥 RECOLECCIÓN DE ASIGNACIONES ANIDADAS (AsignacionTipoEnsayo) 💥
-                    detalle.tipos_asignaciones = [];
+                    // 2. Recolección de Asignaciones Anidadas
+                    detalle.asignaciones = [];
                     const asignacionRows = card.querySelectorAll('[id^="asignacion-"]');
                     
                     if (asignacionRows.length === 0) {
@@ -428,7 +567,7 @@
                             throw new Error(`Falta seleccionar Tipo de Ensayo o Técnico en una de las asignaciones de Tarea #${card.getAttribute('data-index') * 1 + 1}.`);
                         }
 
-                        detalle.tipos_asignaciones.push({
+                        detalle.asignaciones.push({
                             tipo_ensayo_id: tipoEnsayoSelect.value,
                             tecnico_asignado_id: tecnicoAsignadoSelect.value
                         });
@@ -442,7 +581,7 @@
                     detalles: detallesData
                 };
                 
-                // Envío AJAX al endpoint de ACTUALIZACIÓN
+                // Envío AJAX al endpoint de gestión (Muestra PK)
                 const response = await fetch(AJAX_URL, {
                     method: 'POST',
                     headers: {
@@ -455,11 +594,11 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    showNotification(`✅ Solicitud ${result.codigo} actualizada con éxito y enviada a laboratorio.`, 'success');
-                    // Recarga para que la vista muestre el estado de "Finalizada"
-                    setTimeout(() => window.location.reload(), 3000); 
+                    showNotification(`✅ Solicitud ${result.codigo_solicitud} actualizada con éxito y enviada a laboratorio.`, 'success');
+                    // Redirige o recarga usando el ID de la muestra para volver a la gestión (limpiando el estado si es necesario)
+                    setTimeout(() => window.location.href = `/muestra/${MUESTRA_ID}/solicitud/gestion/`, 3000); 
                 } else {
-                    throw new Error(result.error || `Error ${response.status}: Error desconocido en el servidor.`);
+                    throw new Error(result.message || `Error ${response.status}: Error desconocido en el servidor.`);
                 }
 
             } catch (error) {
@@ -472,7 +611,7 @@
             }
         });
 
-        // INICIALIZACIÓN: Carga los datos de la BD al iniciar la página
+        // INICIALIZACIÓN: Carga los datos de la BD/Cotización al iniciar la página
         document.addEventListener('DOMContentLoaded', cargarDetallesCotizacion);
 
     </script>

@@ -24,3 +24,11 @@ def dashboard_view(request):
     Vista del dashboard que solo es accesible para usuarios autenticados.
     """
     return render(request, 'dashboard.html')
+
+@login_required
+def dashboard_view_analitycs(request):
+    """
+    Vista del dashboard que solo es accesible para usuarios autenticados.
+    """
+    return render(request, 'dashboard_analitycs.html')
+

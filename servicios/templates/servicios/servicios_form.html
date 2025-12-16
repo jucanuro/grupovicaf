@@ -3,42 +3,64 @@
 {% block content %}
 
 <style>
-    /* Estilos existentes */
+    /* * ELIMINACIÓN DE ESTILOS OSCUROS:
+     * El 'input-elegant' y 'glass-card-main' se redefinen 
+     * para usar colores blancos, grises claros y sombras sutiles.
+     */
+    .animated-gradient-text {
+        background: linear-gradient(to right, #10B981, #3B82F6, #8B5CF6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+        background-size: 200% auto;
+        animation: text-gradient 3s linear infinite alternate;
+    }
+
+    @keyframes text-gradient {
+        to {
+            background-position: 200% center;
+        }
+    }
+
     .input-elegant {
-        transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4); 
-        border: 1px solid #334155; 
-        background-color: #0f172a; 
-        color: #e2e8f0;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        /* Fondo Blanco con borde y texto oscuro */
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); /* Sombra sutil */
+        border: 1px solid #d1d5db; /* Borde gris claro */
+        background-color: #ffffff; /* Fondo blanco */
+        color: #1f2937; /* Texto gris muy oscuro */
         padding: 0.75rem 1rem;
         border-radius: 0.75rem; 
         -webkit-appearance: none;
         -moz-appearance: none;
         appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2394a3b8'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.23 8.27a.75.75 0 01.02-1.06z' clip-rule='evenodd' /%3E%3C/svg%3E");
+        /* Flecha del select en gris oscuro */
         background-position: right 1rem center;
         background-repeat: no-repeat;
         background-size: 1.5em 1.5em;
     }
     .input-elegant:focus {
-        background-color: #0c152a;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.4);
+        background-color: #ffffff;
+        border-color: #3b82f6; /* Azul de enfoque */
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); /* Sombra azul de enfoque */
     }
     .glass-card-main {
-        background: rgba(15, 23, 42, 0.7); 
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(51, 65, 85, 0.5); 
+        /* Se convierte en una tarjeta de fondo blanco con sombra pronunciada */
+        background: #ffffff; 
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        border: 1px solid #f3f4f6; /* Borde muy claro */
     }
-    /* NUEVOS ESTILOS PARA LA LISTA DE SELECCIÓN DINÁMICA */
+    /* ESTILOS DE LISTA DE SELECCIÓN DINÁMICA (Tags) */
     .dynamic-list-container {
-        border: 1px solid #334155;
+        border: 1px solid #d1d5db; /* Borde claro */
         border-radius: 0.75rem;
         padding: 0.5rem;
-        background-color: #0c152a;
+        background-color: #f9fafb; /* Fondo gris muy claro */
         min-height: 100px;
     }
     .dynamic-tag {
+        /* Mantenemos el azul de énfasis */
         display: inline-flex;
         align-items: center;
         margin: 0.25rem;
@@ -52,58 +74,64 @@
     .dynamic-tag .remove-btn {
         margin-left: 0.5rem;
         cursor: pointer;
-        color: rgba(255, 255, 255, 0.7);
+        color: rgba(255, 255, 255, 0.8);
         transition: color 0.2s;
     }
     .dynamic-tag .remove-btn:hover {
-        color: white;
+        color: #fca5a5; /* Rojo claro al pasar el ratón */
+    }
+    /* Estilo para el input de tipo file, que debe ser de color oscuro en un tema claro */
+    .input-file-custom {
+        color: #1f2937 !important; /* Texto oscuro en el input file */
     }
 </style>
 
-<div class="space-y-6 bg-blue-950 min-h-screen p-6 md:p-6">
-    <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-up">
-        <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
-            <i data-lucide="wrench" class="inline-block w-8 h-8 mr-2 align-top"></i>
-            {% if servicio %}Editar Servicio{% else %}Crear Nuevo Servicio{% endif %}
-        </h1>
-        <a href="{% url 'servicios:lista_servicios' %}" class="inline-flex items-center gap-2 py-2.5 px-6 bg-slate-800 text-white font-semibold rounded-xl shadow-lg hover:bg-slate-700 transition-all duration-300 transform hover:scale-[1.02] border border-slate-700">
-            <i data-lucide="list" class="w-5 h-5"></i>
-            Regresar a la Lista
-        </a>
-    </header>
-
-    <div class="glass-card-main p-8 rounded-3xl shadow-2xl animate-fade-in-up">
+<div class="space-y-6 min-h-screen p-6 md:p-6">
+    <div class="border-b border-gray-200 pb-4 mb-6">
+        <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-up">
+            <h1 class="text-xl font-extrabold animated-gradient-text">
+                {% if servicio %}Editar Servicio{% else %}Crear Nuevo Servicio{% endif %}
+            </h1>
+            <a href="{% url 'servicios:lista_servicios' %}" class="inline-flex items-center gap-2 py-2.5 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl shadow-md hover:bg-gray-200 transition-all duration-300 transform hover:scale-[1.02] border border-gray-300">
+                <i data-lucide="list" class="w-5 h-5"></i>
+                Regresar a la Lista
+            </a>
+        </header>
+    </div>
+    <div class="glass-card-main p-4 rounded-3xl shadow-xl animate-fade-in-up">
         {% if error %}
-        <div class="bg-red-500/10 text-red-300 p-4 rounded-lg mb-6 border border-red-500">
+        <div class="bg-red-500/10 text-red-700 p-4 rounded-lg mb-6 border border-red-300">
             <p class="font-medium flex items-center gap-2"><i data-lucide="alert-triangle" class="w-5 h-5"></i> {{ error }}</p>
         </div>
         {% endif %}
 
-        <form method="post" class="space-y-12" enctype="multipart/form-data">
+        <form method="post" class="space-y-6" enctype="multipart/form-data">
             {% csrf_token %}
             
             <div class="space-y-6">
-                <h2 class="text-2xl font-bold text-slate-200 border-b-2 border-slate-700/50 pb-3">
-                    <i data-lucide="info" class="inline-block w-5 h-5 mr-2 text-blue-400"></i>
+                <h2 class="text-xl font-bold text-gray-800 border-b-2 border-gray-200 pb-3">
+                    <i data-lucide="info" class="inline-block w-5 h-5 mr-2 text-blue-500"></i>
                     Información Básica
                 </h2>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-                    <div class="space-y-6">
-                        <div>
-                            <label for="id_nombre" class="block text-sm font-medium text-slate-300">Nombre del Servicio</label>
-                            <input type="text" id="id_nombre" name="nombre" value="{{ servicio.nombre|default:'' }}" 
-                                    class="mt-2 block w-full rounded-xl px-4 py-3 input-elegant" required>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                             <div>
-                                <label for="id_codigo_facturacion" class="block text-sm font-medium text-slate-300">Código de Facturación</label>
-                                <input type="text" id="id_codigo_facturacion" name="codigo_facturacion" value="{{ servicio.codigo_facturacion|default:'' }}" 
-                                        class="mt-2 block w-full rounded-xl px-4 py-3 input-elegant" required>
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+                    
+                    <div class="lg:col-span-3 space-y-6">
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label for="id_nombre" class="block text-sm font-medium text-gray-700">Nombre del Servicio</label>
+                                <input type="text" id="id_nombre" name="nombre" value="{{ servicio.nombre|default:'' }}" 
+                                        class="mt-2 block w-full input-elegant" required>
                             </div>
                             <div>
-                                <label for="id_categoria" class="block text-sm font-medium text-slate-300">Categoría</label>
-                                <select id="id_categoria" name="categoria" class="mt-2 block w-full rounded-xl px-4 py-3 input-elegant">
+                                <label for="id_codigo_facturacion" class="block text-sm font-medium text-gray-700">Código de Facturación</label>
+                                <input type="text" id="id_codigo_facturacion" name="codigo_facturacion" value="{{ servicio.codigo_facturacion|default:'' }}" 
+                                        class="mt-2 block w-full input-elegant" required>
+                            </div>
+                            <div>
+                                <label for="id_categoria" class="block text-sm font-medium text-gray-700">Categoría</label>
+                                <select id="id_categoria" name="categoria" class="mt-2 block w-full input-elegant">
                                     <option value="">--- Sin Categoría ---</option>
                                     {% for categoria in categorias_disponibles %}
                                         <option value="{{ categoria.pk }}" {% if servicio.categoria_id == categoria.pk %}selected{% endif %}>
@@ -113,87 +141,91 @@
                                 </select>
                             </div>
                         </div>
+                        
                         <div>
-                            <label for="id_descripcion" class="block text-sm font-medium text-slate-300">Descripción General (Resumen)</label>
+                            <label for="id_descripcion" class="block text-sm font-medium text-gray-700">Descripción General (Resumen)</label>
                             <textarea id="id_descripcion" name="descripcion" rows="4"
-                                      class="mt-2 block w-full rounded-xl px-4 py-3 input-elegant" required>{{ servicio.descripcion|default:'' }}</textarea>
+                                    class="mt-2 block w-full input-elegant" required>{{ servicio.descripcion|default:'' }}</textarea>
                         </div>
+
                     </div>
 
-                    <div class="space-y-6 p-6 bg-slate-800/60 rounded-xl border border-slate-700 shadow-inner">
-                        <h3 class="text-lg font-semibold text-slate-200">Media Principal</h3>
+                    <div class="lg:col-span-1 space-y-6 p-6 bg-gray-50 rounded-xl border border-gray-200 shadow-inner">
+                        <h3 class="text-lg font-semibold text-gray-700">Media Principal</h3>
                         <div>
-                            <label for="id_imagen" class="block text-sm font-medium text-slate-300">Imagen Representativa</label>
-                            <input type="file" id="id_imagen" name="imagen" class="mt-2 block w-full text-white input-elegant input-file-custom">
+                            <label for="id_imagen" class="block text-sm font-medium text-gray-700">Imagen Representativa</label>
+                            <input type="file" id="id_imagen" name="imagen" class="mt-2 block w-full input-elegant input-file-custom">
                             {% if servicio.imagen %}
-                            <p class="mt-2 text-sm text-slate-500">Actual: <a href="{{ servicio.imagen.url }}" target="_blank" class="text-blue-400 hover:underline flex items-center gap-1">Ver Imagen <i data-lucide="external-link" class="w-3 h-3"></i></a></p>
+                            <p class="mt-2 text-sm text-gray-500">Actual: <a href="{{ servicio.imagen.url }}" target="_blank" class="text-blue-600 hover:underline flex items-center gap-1">Ver Imagen <i data-lucide="external-link" class="w-3 h-3"></i></a></p>
                             {% endif %}
                         </div>
                     </div>
+
                 </div>
             </div>
 
             <div class="space-y-6">
-                <h2 class="text-2xl font-bold text-slate-200 border-b-2 border-slate-700/50 pb-3">
-                    <i data-lucide="dollar-sign" class="inline-block w-5 h-5 mr-2 text-green-400"></i>
+                <h2 class="text-xl font-bold text-gray-800 border-b-2 border-gray-200 pb-3">
+                    <i data-lucide="dollar-sign" class="inline-block w-5 h-5 mr-2 text-green-600"></i>
                     Tarifario y Unidades
                 </h2>
 
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-6 p-6 bg-slate-800/60 rounded-xl border border-slate-700 shadow-inner">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 p-6 bg-gray-50 rounded-xl border border-gray-200 shadow-inner">
                     
                     <div>
-                        <label for="id_precio_base" class="block text-sm font-medium text-slate-300">Precio Base (S/)</label>
+                        <label for="id_precio_base" class="block text-sm font-medium text-gray-700">Precio Base (S/)</label>
                         <input type="number" step="0.01" id="id_precio_base" name="precio_base" value="{{ servicio.precio_base|default:'0.00' }}" 
-                                class="mt-2 block w-full rounded-xl px-4 py-3 input-elegant" required>
+                                class="mt-2 block w-full input-elegant" required>
                     </div>
 
                     <div>
-                        <label for="id_precio_urgente" class="block text-sm font-medium text-slate-300">Precio Urgente (S/)</label>
+                        <label for="id_precio_urgente" class="block text-sm font-medium text-gray-700">Precio Urgente (S/)</label>
                         <input type="number" step="0.01" id="id_precio_urgente" name="precio_urgente" value="{{ servicio.precio_urgente|default:'' }}" 
-                                class="mt-2 block w-full rounded-xl px-4 py-3 input-elegant" placeholder="Opcional">
+                                class="mt-2 block w-full input-elegant" placeholder="Opcional">
                     </div>
 
-                    <div class="md:col-span-1">
-                        <label for="id_unidad_base" class="block text-sm font-medium text-slate-300">Unidad Base</label>
+                    <div>
+                        <label for="id_unidad_base" class="block text-sm font-medium text-gray-700">Unidad Base</label>
                         <input type="text" id="id_unidad_base" name="unidad_base" value="{{ servicio.unidad_base|default:'Ensayo' }}" 
-                                class="mt-2 block w-full rounded-xl px-4 py-3 input-elegant" placeholder="Ej: Ensayo, punto, metro">
+                                class="mt-2 block w-full input-elegant" placeholder="Ej: Ensayo, punto, metro">
                     </div>
                     
-                    <div class="md:col-span-2 flex items-center justify-around space-x-6">
+                    <div class="flex flex-col justify-center space-y-3 pt-2">
                         <div class="flex items-center">
                             <input id="id_esta_acreditado" name="esta_acreditado" type="checkbox" 
                                     {% if servicio.esta_acreditado %}checked{% endif %}
-                                    class="w-5 h-5 text-blue-500 bg-gray-700 border-gray-600 rounded focus:ring-blue-500">
-                            <label for="id_esta_acreditado" class="ml-2 text-sm font-medium text-slate-300">¿Acreditado?</label>
-                            <i data-lucide="check-circle" class="w-4 h-4 ml-1 text-blue-400"></i>
+                                    class="w-5 h-5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500">
+                            <label for="id_esta_acreditado" class="ml-2 text-sm font-medium text-gray-700">¿Acreditado?</label>
+                            <i data-lucide="check-circle" class="w-4 h-4 ml-1 text-blue-600"></i>
                         </div>
                         <div class="flex items-center">
                             <input id="id_es_sujeto_a_presupuesto" name="es_sujeto_a_presupuesto" type="checkbox" 
                                     {% if servicio.es_sujeto_a_presupuesto %}checked{% endif %}
-                                    class="w-5 h-5 text-indigo-500 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500">
-                            <label for="id_es_sujeto_a_presupuesto" class="ml-2 text-sm font-medium text-slate-300">Sujeto a Presupuesto (SP)</label>
-                            <i data-lucide="alert-triangle" class="w-4 h-4 ml-1 text-indigo-400" title="Anula los precios si está marcado."></i>
+                                    class="w-5 h-5 text-indigo-600 bg-white border-gray-300 rounded focus:ring-indigo-500">
+                            <label for="id_es_sujeto_a_presupuesto" class="ml-2 text-sm font-medium text-gray-700">Sujeto a Presupuesto (SP)</label>
+                            <i data-lucide="alert-triangle" class="w-4 h-4 ml-1 text-indigo-600" title="Anula los precios si está marcado."></i>
                         </div>
                     </div>
+
                 </div>
             </div>
 
             <div class="space-y-6">
-                <h2 class="text-2xl font-bold text-slate-200 border-b-2 border-slate-700/50 pb-3">
-                    <i data-lucide="tag" class="inline-block w-5 h-5 mr-2 text-cyan-400"></i>
+                <h2 class="text-xl font-bold text-gray-800 border-b-2 border-gray-200 pb-3">
+                    <i data-lucide="tag" class="inline-block w-5 h-5 mr-2 text-cyan-600"></i>
                     Regulaciones Técnicas (Normas y Métodos)
                 </h2>
-                <p class="text-sm text-slate-400 -mt-4 mb-6">Busque el código de la Norma/Método. La selección se guarda al elegir una opción del listado.</p>
+                <p class="text-sm text-gray-500 -mt-4 mb-6">Busque el código de la Norma/Método. La selección se guarda al elegir una opción del listado.</p>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div class="space-y-3">
-                        <label for="input_normas" class="font-bold text-slate-300 block mb-2 text-lg flex items-center gap-2">
-                            <i data-lucide="award" class="w-5 h-5 text-cyan-400"></i> Normas Aplicables
+                        <label for="input_normas" class="font-bold text-gray-700 block mb-2 text-lg flex items-center gap-2">
+                            <i data-lucide="award" class="w-5 h-5 text-cyan-600"></i> Normas Aplicables
                         </label>
                         
                         <div class="flex gap-2">
                             <input type="text" id="input_normas" placeholder="Buscar Código/Nombre..." list="data_normas"
-                                class="block w-full rounded-xl px-4 py-3 input-elegant flex-grow">
+                                class="block w-full input-elegant flex-grow">
                             </div>
 
                         <datalist id="data_normas">
@@ -219,28 +251,28 @@
                     </div>
 
                     <div class="space-y-3">
-                        <label for="input_metodos" class="font-bold text-slate-300 block mb-2 text-lg flex items-center gap-2">
-                            <i data-lucide="microscope" class="w-5 h-5 text-cyan-400"></i> Métodos de Ensayo/Ejecución
+                        <label for="input_metodos" class="font-bold text-gray-700 block mb-2 text-lg flex items-center gap-2">
+                            <i data-lucide="microscope" class="w-5 h-5 text-cyan-600"></i> Métodos de Ensayo/Ejecución
                         </label>
                         
-                         <div class="flex gap-2">
+                            <div class="flex gap-2">
                             <input type="text" id="input_metodos" placeholder="Buscar Código/Nombre..." list="data_metodos"
-                                class="block w-full rounded-xl px-4 py-3 input-elegant flex-grow">
+                                class="block w-full input-elegant flex-grow">
                             </div>
 
-                         <datalist id="data_metodos">
+                        <datalist id="data_metodos">
                             {% for metodo in metodos_disponibles %}
                                 <option value="{{ metodo.codigo }} - {{ metodo.nombre }}" data-id="{{ metodo.pk }}"></option>
                             {% endfor %}
                         </datalist>
 
                         <div id="selected_metodos_display" class="dynamic-list-container">
-                             {% for metodo in servicio.metodos.all %}
-                                <span class="dynamic-tag" data-id="{{ metodo.pk }}">
-                                    {{ metodo.codigo }} - {{ metodo.nombre }}
-                                    <i data-lucide="x" class="remove-btn w-3 h-3 ml-2"></i>
-                                </span>
-                            {% endfor %}
+                            {% for metodo in servicio.metodos.all %}
+                                    <span class="dynamic-tag" data-id="{{ metodo.pk }}">
+                                        {{ metodo.codigo }} - {{ metodo.nombre }}
+                                        <i data-lucide="x" class="remove-btn w-3 h-3 ml-2"></i>
+                                    </span>
+                                {% endfor %}
                         </div>
 
                         <select name="metodos" id="id_metodos" multiple class="hidden">
@@ -251,39 +283,42 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="space-y-6 pt-8">
-                <h2 class="text-2xl font-bold text-slate-200 border-b-2 border-slate-700/50 pb-3">
-                    <i data-lucide="hard-hat" class="inline-block w-5 h-5 mr-2 text-indigo-400"></i>
+                <h2 class="text-xl font-bold text-gray-800 border-b-2 border-gray-200 pb-3">
+                    <i data-lucide="hard-hat" class="inline-block w-5 h-5 mr-2 text-indigo-600"></i>
                     Alcance Técnico y Detalle Web (Página Pública)
                 </h2>
-                <p class="mt-2 text-sm text-slate-400 -mt-4 mb-6">
+                <p class="mt-2 text-sm text-gray-500 -mt-4 mb-6">
                     Esta información es para la visualización ampliada del servicio en la página web pública.
                 </p>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 p-6 rounded-xl space-y-6 bg-slate-800/60 border border-slate-700 shadow-inner">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 rounded-xl bg-gray-50 border border-gray-200 shadow-inner">
+                    
                     <div>
-                        <label for="id_detalle_titulo" class="block text-sm font-medium text-slate-300">Título del Detalle</label>
+                        <label for="id_detalle_titulo" class="block text-sm font-medium text-gray-700">Título del Detalle</label>
                         <input type="text" id="id_detalle_titulo" name="detalle_titulo" value="{{ detalle_servicio.titulo|default:'' }}" 
-                                class="mt-2 block w-full rounded-xl px-4 py-3 input-elegant">
+                                class="mt-2 block w-full input-elegant">
                     </div>
+
                     <div class="md:col-span-2">
-                        <label for="id_detalle_descripcion" class="block text-sm font-medium text-slate-300">Descripción del Detalle (Puntos Clave)</label>
+                        <label for="id_detalle_descripcion" class="block text-sm font-medium text-gray-700">Descripción del Detalle (Puntos Clave)</label>
                         <textarea id="id_detalle_descripcion" name="detalle_descripcion" rows="4"
-                                    class="mt-2 block w-full rounded-xl px-4 py-3 input-elegant">{{ detalle_servicio.descripcion|default:'' }}</textarea>
+                                    class="mt-2 block w-full input-elegant">{{ detalle_servicio.descripcion|default:'' }}</textarea>
                     </div>
-                     <div class="md:col-span-3">
-                        <label for="id_detalle_imagen" class="block text-sm font-medium text-slate-300">Imagen del Detalle (Opcional)</label>
-                        <input type="file" id="id_detalle_imagen" name="detalle_imagen" class="mt-2 block w-full text-white input-elegant input-file-custom">
+                    
+                    <div class="md:col-span-3">
+                        <label for="id_detalle_imagen" class="block text-sm font-medium text-gray-700">Imagen del Detalle (Opcional)</label>
+                        <input type="file" id="id_detalle_imagen" name="detalle_imagen" class="mt-2 block w-full input-elegant input-file-custom">
                         {% if detalle_servicio.imagen %}
-                        <p class="mt-2 text-sm text-slate-500">Imagen actual: <a href="{{ detalle_servicio.imagen.url }}" target="_blank" class="text-blue-400 hover:underline flex items-center gap-1">Ver Imagen <i data-lucide="external-link" class="w-3 h-3"></i></a></p>
+                        <p class="mt-2 text-sm text-gray-500">Imagen actual: <a href="{{ detalle_servicio.imagen.url }}" target="_blank" class="text-blue-600 hover:underline flex items-center gap-1">Ver Imagen <i data-lucide="external-link" class="w-3 h-3"></i></a></p>
                         {% endif %}
                     </div>
                 </div>
             </div>
-
+            
             <div class="flex justify-end pt-8">
-                <button type="submit" class="inline-flex items-center gap-2 px-10 py-3.5 border border-transparent shadow-xl text-base font-bold rounded-full text-white bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-slate-900 transition-all duration-300 transform hover:scale-[1.02]">
+                <button type="submit" class="inline-flex items-center gap-2 px-10 py-3.5 border border-transparent shadow-xl text-base font-bold rounded-full text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-white transition-all duration-300 transform hover:scale-[1.02]">
                     <i data-lucide="save" class="w-6 h-6"></i>
                     {% if servicio %}ACTUALIZAR SERVICIO{% else %}CREAR SERVICIO{% endif %}
                 </button>
@@ -301,11 +336,6 @@
             lucide.createIcons();
         }
 
-        // =========================================================
-        // LÓGICA DE SELECCIÓN HÍBRIDA (Normas y Métodos)
-        // La selección se realiza al elegir una opción del Datalist.
-        // =========================================================
-
         /**
          * Función genérica para manejar la lógica de agregar/eliminar items.
          * @param {string} type - 'normas' o 'metodos'
@@ -316,13 +346,11 @@
             const displayContainer = document.getElementById(`selected_${type}_display`);
             const hiddenSelect = document.getElementById(`id_${type}`);
             
-            // --- FIX ROBUSTO: Comprobación de que el input exista ---
             if (!inputElement) {
                 console.error(`[ERROR ROBUSTO] Faltan elementos clave (input_${type}) para el selector dinámico de: ${type}.`);
                 return; 
             }
 
-            // 1. Inicializar eliminación de tags existentes
             displayContainer.querySelectorAll('.dynamic-tag .remove-btn').forEach(btn => {
                 // Asegurar que el ícono de Lucide exista y el evento de click esté activo
                 if (typeof lucide !== 'undefined') {
@@ -334,7 +362,6 @@
                 btn.onclick = (e) => removeTag(e.target.closest('.dynamic-tag'));
             });
 
-            // 2. Función principal para añadir un Tag (solo si se selecciona del datalist)
             const addTagFromDatalist = (inputValue) => {
                 if (!inputValue) return;
 

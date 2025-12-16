@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="es" class="dark">
+<html lang="es" class="">
 
 <head>
     <meta charset="UTF-8">
@@ -12,7 +12,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
-            darkMode: 'class',
+            // Eliminamos 'darkMode: class' ya que estamos forzando Light Mode en el body.
             theme: {
                 extend: {
                     fontFamily: {
@@ -45,19 +45,27 @@
         }
     </script>
     <style>
-        .glass-card {
-            background: rgba(255, 255, 255, 0.1);
-            -webkit-backdrop-filter: blur(16px);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        /* La tarjeta es ahora un contenedor blanco simple con sombra */
+        .white-card {
+            background: #ffffff;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb; /* Borde sutil */
         }
 
-        .input-glass {
-            background: rgba(45, 52, 64, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        /* Input estándar para Light Mode */
+        .input-light {
+            background: #ffffff;
+            border: 1px solid #d1d5db; /* Gris claro */
+            color: #1f2937; /* Gris oscuro para el texto */
+            transition: all 0.3s;
         }
 
+        .input-light:focus {
+            border-color: #3b82f6; /* Azul al enfocar */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Degradado de texto sin cambios (se ve bien en blanco) */
         .gradient-text {
             background-image: linear-gradient(120deg, #9333ea, #3b82f6, #06b6d4);
             background-clip: text;
@@ -66,70 +74,65 @@
             background-size: 200% 200%;
         }
 
-        /* Adjust the animation for a smoother glow effect on the button */
+        /* Ajuste el color del botón para que el degradado se mantenga visible y vibrante */
         .btn-gradient {
             background: linear-gradient(to right, #10b981, #0ea5e9, #8b5cf6);
+            color: white; /* Texto blanco en el botón */
             background-size: 200% auto;
             transition: all 0.5s ease-in-out;
         }
 
         .btn-gradient:hover {
             background-position: right center;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.5); /* Sombra azul más ligera */
         }
     </style>
 </head>
 
-<body class="font-sans bg-blue-950 text-slate-200 overflow-hidden">
-    <!-- Enhanced and more dynamic Aurora background -->
-    <div id="aurora-background" class="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden transition-all duration-1000 ease-in-out opacity-70">
-        <div class="absolute w-[180vw] h-[180vw] bg-gradient-to-r from-violet-500/50 via-cyan-500/50 to-emerald-500/50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-aurora rounded-full"></div>
-        <div class="absolute w-[120vw] h-[120vw] bg-gradient-to-l from-indigo-500/50 via-pink-500/50 to-orange-500/50 bottom-1/4 right-1/4 animate-aurora rounded-full"></div>
+<body class="font-sans bg-white text-gray-900 overflow-hidden">
+    <div id="aurora-background" class="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden transition-all duration-1000 ease-in-out opacity-40">
+        <div class="absolute w-[180vw] h-[180vw] bg-gradient-to-r from-violet-300/30 via-cyan-300/30 to-emerald-300/30 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-aurora rounded-full"></div>
+        <div class="absolute w-[120vw] h-[120vw] bg-gradient-to-l from-indigo-300/30 via-pink-300/30 to-blue-300/30 bottom-1/4 right-1/4 animate-aurora rounded-full"></div>
     </div>
 
-    <!-- Main container with a new two-column layout for desktop -->
     <div class="flex flex-col lg:flex-row items-center justify-center min-h-screen p-6 relative z-10">
 
-        <!-- Left side: Hero section (hidden on small screens) -->
         <div class="hidden lg:flex flex-col items-start justify-center p-12 w-full lg:w-1/2 h-full text-left">
-            <h1 class="text-6xl font-extrabold text-white mb-4 animate-fade-in-up">
+            <h1 class="text-6xl font-extrabold text-gray-900 mb-4 animate-fade-in-up">
                 <span class="gradient-text">Vicafpro</span>
             </h1>
-            <p class="text-slate-300 text-xl max-w-lg mb-8 animate-fade-in-up" style="animation-delay: 0.2s;">
+            <p class="text-gray-600 text-xl max-w-lg mb-8 animate-fade-in-up" style="animation-delay: 0.2s;">
                 Simplifica tus tareas diarias con nuestra plataforma innovadora y segura.
             </p>
-            <div class="w-2/3 h-64 bg-slate-700/30 rounded-3xl mt-12 glass-card animate-float" style="animation-delay: 0.4s;">
-                <!-- Abstract placeholder for a visual element -->
-            </div>
+            <div class="w-2/3 h-64 bg-gray-100/50 rounded-3xl mt-12 white-card animate-float shadow-xl" style="animation-delay: 0.4s;">
+                </div>
         </div>
 
-        <!-- Right side: Login form container -->
         <div class="w-full max-w-md lg:w-1/2 h-full flex items-center justify-center animate-fade-in-up">
-            <div class="glass-card p-10 rounded-3xl text-center w-full shadow-2xl">
+            <div class="white-card p-10 rounded-3xl text-center w-full shadow-2xl"> 
                 <a href="/" class="mb-8 block">
-                    <!-- Placeholder logo, replace with your static file -->
                     <img src="{% static 'img/LogoF.png' %}" alt="Logo" class="h-16 mx-auto rounded-lg">
                 </a>
-                <h2 class="text-4xl font-extrabold text-white mb-6">Iniciar Sesión</h2>
+                <h2 class="text-4xl font-extrabold text-gray-900 mb-6">Iniciar Sesión</h2> 
                 <form method="post" class="space-y-6">
                     {% csrf_token %}
                     <div class="space-y-4 text-left">
                         <div>
-                            <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-slate-300 mb-2">Usuario</label>
+                            <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">Usuario</label> 
                             <input type="text" name="username" id="{{ form.username.id_for_label }}"
-                                class="w-full p-3 rounded-xl input-glass text-slate-200 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
+                                class="w-full p-3 rounded-xl input-light text-gray-900 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300" 
                                 placeholder="Ingresa tu usuario">
                         </div>
                         <div>
-                            <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-slate-300 mb-2">Contraseña</label>
+                            <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label> 
                             <input type="password" name="password" id="{{ form.password.id_for_label }}"
-                                class="w-full p-3 rounded-xl input-glass text-slate-200 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
+                                class="w-full p-3 rounded-xl input-light text-gray-900 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
                                 placeholder="Ingresa tu contraseña">
                         </div>
                     </div>
 
                     {% if form.errors %}
-                        <div class="text-rose-400 text-sm mt-4 text-center">
+                        <div class="text-rose-600 text-sm mt-4 text-center"> 
                             <p>Tu usuario o contraseña no son correctos. Inténtalo de nuevo.</p>
                         </div>
                     {% endif %}
@@ -137,7 +140,7 @@
                     <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 font-semibold rounded-full transition-all duration-500 btn-gradient hover:scale-105">
                         Iniciar Sesión
                     </button>
-                    <a href="#" class="block text-sm text-slate-400 hover:text-white transition-colors duration-300 mt-4">¿Olvidaste tu contraseña?</a>
+                    <a href="#" class="block text-sm text-gray-500 hover:text-blue-600 transition-colors duration-300 mt-4">¿Olvidaste tu contraseña?</a> 
                 </form>
             </div>
         </div>
