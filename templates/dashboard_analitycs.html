@@ -9,77 +9,80 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
 
     <style>
+        /* El fondo ahora es CLARO */
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #0f172a; /* Slate 900 muy oscuro */
+            background-color: #f8fafc; /* Slate 50 muy claro */
         }
         
-        /* Glassmorphism Cards */
-        .glass-card {
-            background: rgba(30, 41, 59, 0.7); /* Slate 800 semi-transparent */
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        /* White Card Style (Reemplaza glass-card) */
+        .white-card {
+            background-color: #ffffff; /* Fondo blanco puro */
+            border: 1px solid #e2e8f0; /* Borde gris sutil */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05); /* Sombra suave */
         }
 
-        /* Scrollbar personalizado */
+        /* Scrollbar personalizado - Adaptado a tema claro */
         .custom-scroll::-webkit-scrollbar {
             width: 6px;
             height: 6px;
         }
         .custom-scroll::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
+            background: #f1f1f1;
         }
         .custom-scroll::-webkit-scrollbar-thumb {
-            background: #475569;
+            background: #cccccc;
             border-radius: 10px;
         }
         .custom-scroll::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
+            background: #a8a8a8;
         }
 
         /* Animaciones suaves */
         .hover-scale {
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
         .hover-scale:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-            border-color: rgba(99, 102, 241, 0.4); /* Indigo glow */
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1); /* Sombra un poco más visible */
+            border-color: #6366f1; /* Borde Indigo al hacer hover */
         }
     </style>
 {% endblock %}
 
 {% block content %}
 
-<div class="min-h-screen text-slate-200 p-4 md:p-8 relative overflow-hidden">
-    
-    <div class="absolute top-0 left-0 w-96 h-96 bg-blue-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob"></div>
-    <div class="absolute top-0 right-0 w-96 h-96 bg-purple-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob animation-delay-2000"></div>
+{# Contenedor principal: Cambiado de texto oscuro a texto claro #}
+<div class="min-h-screen text-slate-800 p-4 md:p-4 relative overflow-hidden">
 
     <header class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-            <h1 class="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-200">
+            {# Título: Fondo blanco con texto oscuro/gradiente #}
+            <h1 class="text-xl md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-800">
                 Dashboard Operativo
             </h1>
-            <p class="text-slate-400 text-sm mt-1 flex items-center gap-2">
+            <p class="text-slate-500 text-sm mt-3 flex items-center gap-2">
                 <i class="ph ph-buildings"></i> Vicaf Laboratorio de Suelos
-                <span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
-                <span class="text-green-400 flex items-center gap-1 text-xs bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                {# Estado: Mantiene el verde para "en línea", pero ajustado a tema claro #}
+                <span class="text-green-700 flex items-center gap-1 text-xs bg-green-100 px-2 py-0.5 rounded-full border border-green-300">
                     <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Sistema en línea
                 </span>
             </p>
         </div>
 
-        <div class="glass-card p-1.5 rounded-xl flex items-center gap-2">
-            <select class="bg-slate-800/50 border-0 text-xs text-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 py-2 pl-3 pr-8">
+        {# Filtros: Cambiado de glass-card a un estilo limpio y claro #}
+        <div class="white-card p-1.5 rounded-xl flex items-center gap-2">
+            {# Select: Fondo blanco, borde gris, texto oscuro #}
+            <select class="bg-white border border-gray-300 text-xs text-slate-700 rounded-lg focus:ring-1 focus:ring-blue-500 py-2 pl-3 pr-8">
                 <option>Todos los Clientes</option>
                 <option>Rongfei SAC</option>
                 <option>Consorcio Vial</option>
             </select>
-            <input type="date" class="bg-slate-800/50 border-0 text-xs text-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 py-2 px-3">
-            <button class="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition shadow-lg shadow-blue-500/20">
+            {# Input Date: Fondo blanco, borde gris, texto oscuro #}
+            <input type="date" class="bg-white border border-gray-300 text-xs text-slate-700 rounded-lg focus:ring-1 focus:ring-blue-500 py-2 px-3">
+            {# Botón de acción: Mantiene el color primario (azul) #}
+            <button class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition shadow-md shadow-blue-500/30">
                 <i class="ph ph-funnel text-lg"></i>
             </button>
         </div>
@@ -89,58 +92,69 @@
 
         <div class="md:col-span-12 lg:col-span-3 space-y-6">
             
-            <div class="glass-card p-5 rounded-2xl hover-scale relative overflow-hidden group">
-                <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition">
-                    <i class="ph ph-chart-line-up text-6xl text-blue-400"></i>
+            {# Card 1: Eficiencia #}
+            <div class="white-card p-5 rounded-2xl hover-scale relative overflow-hidden group">
+                <div class="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition">
+                    <i class="ph ph-chart-line-up text-6xl text-blue-600"></i>
                 </div>
-                <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Eficiencia de Laboratorio</p>
+                {# Texto oscuro #}
+                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Eficiencia de Laboratorio</p>
                 <div class="mt-2 flex items-baseline gap-2">
-                    <h2 class="text-4xl font-bold text-white">87%</h2>
-                    <span class="text-green-400 text-xs font-medium flex items-center">
+                    {# Número principal: Texto oscuro #}
+                    <h2 class="text-4xl font-bold text-slate-800">87%</h2>
+                    {# Indicador: Mantiene color verde #}
+                    <span class="text-green-600 text-xs font-medium flex items-center">
                         <i class="ph ph-trend-up"></i> +2.4%
                     </span>
                 </div>
-                <div class="w-full bg-slate-700/50 h-1.5 rounded-full mt-3 overflow-hidden">
-                    <div class="bg-gradient-to-r from-blue-500 to-indigo-500 h-1.5 rounded-full" style="width: 87%"></div>
+                {# Barra de progreso: Fondo gris claro #}
+                <div class="w-full bg-gray-200 h-1.5 rounded-full mt-3 overflow-hidden">
+                    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 h-1.5 rounded-full" style="width: 87%"></div>
                 </div>
-                <p class="text-xs text-slate-500 mt-2">Cumplimiento fechas de entrega</p>
+                <p class="text-xs text-slate-400 mt-2">Cumplimiento fechas de entrega</p>
             </div>
 
-            <div class="glass-card rounded-2xl p-5 border-l-4 border-red-500/50">
-                <h3 class="text-slate-200 font-semibold mb-4 flex items-center gap-2">
-                    <i class="ph ph-warning-circle text-red-400 animate-pulse"></i> Atención Requerida
+            {# Card 2: Alertas #}
+            <div class="white-card rounded-2xl p-5 border-l-4 border-red-600">
+                <h3 class="text-slate-800 font-semibold mb-4 flex items-center gap-2">
+                    <i class="ph ph-warning-circle text-red-600 animate-pulse"></i> Atención Requerida
                 </h3>
                 <div class="space-y-3">
-                    <div class="flex justify-between items-center p-2 rounded-lg bg-red-500/10 border border-red-500/10">
+                    {# Elemento 1: Fondo muy claro #}
+                    <div class="flex justify-between items-center p-2 rounded-lg bg-red-50 border border-red-200">
                         <div>
-                            <p class="text-red-300 text-sm font-bold">Muestras Vencidas</p>
-                            <p class="text-xs text-red-400/70">Fuera de plazo</p>
+                            <p class="text-red-700 text-sm font-bold">Muestras Vencidas</p>
+                            <p class="text-xs text-red-500">Fuera de plazo</p>
                         </div>
-                        <span class="text-xl font-bold">8</span>
+                        <span class="text-xl font-bold text-red-800">8</span>
                     </div>
-                    <div class="flex justify-between items-center p-2 rounded-lg bg-orange-500/10 border border-orange-500/10">
+                    {# Elemento 2 #}
+                    <div class="flex justify-between items-center p-2 rounded-lg bg-orange-50 border border-orange-200">
                         <div>
-                            <p class="text-orange-300 text-sm font-bold">Falta Informe</p>
-                            <p class="text-xs text-orange-400/70">Resultados listos</p>
+                            <p class="text-orange-700 text-sm font-bold">Falta Informe</p>
+                            <p class="text-xs text-orange-500">Resultados listos</p>
                         </div>
-                        <span class="text-xl font-bold">12</span>
+                        <span class="text-xl font-bold text-orange-800">12</span>
                     </div>
-                     <div class="flex justify-between items-center p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/10">
+                    {# Elemento 3 #}
+                    <div class="flex justify-between items-center p-2 rounded-lg bg-yellow-50 border border-yellow-200">
                         <div>
-                            <p class="text-yellow-300 text-sm font-bold">Sin Resultados</p>
-                            <p class="text-xs text-yellow-400/70">En proceso lab</p>
+                            <p class="text-yellow-700 text-sm font-bold">Sin Resultados</p>
+                            <p class="text-xs text-yellow-500">En proceso lab</p>
                         </div>
-                        <span class="text-xl font-bold">5</span>
+                        <span class="text-xl font-bold text-yellow-800">5</span>
                     </div>
                 </div>
             </div>
 
-            <div class="glass-card p-5 rounded-2xl flex items-center justify-between hover-scale">
+            {# Card 3: Proyectos Activos #}
+            <div class="white-card p-5 rounded-2xl flex items-center justify-between hover-scale">
                 <div>
-                    <p class="text-slate-400 text-xs uppercase font-semibold">Proyectos Activos</p>
-                    <h2 class="text-3xl font-bold text-white mt-1">24</h2>
+                    <p class="text-slate-500 text-xs uppercase font-semibold">Proyectos Activos</p>
+                    <h2 class="text-3xl font-bold text-slate-800 mt-1">24</h2>
                 </div>
-                <div class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
+                {# Icono: Fondo azul sutil, icono azul oscuro #}
+                <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
                     <i class="ph ph-briefcase text-2xl"></i>
                 </div>
             </div>
@@ -148,19 +162,21 @@
 
         <div class="md:col-span-12 lg:col-span-6 space-y-6">
             
-            <div class="glass-card p-6 rounded-2xl h-[320px] flex flex-col">
+            {# Gráfico 1: Avance por Cliente #}
+            <div class="white-card p-6 rounded-2xl h-[320px] flex flex-col">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-semibold text-slate-200">Avance de Proyectos por Cliente</h3>
-                    <button class="text-xs text-blue-400 hover:text-white transition">Ver detalle</button>
+                    <h3 class="font-semibold text-slate-800">Avance de Proyectos por Cliente</h3>
+                    <button class="text-xs text-blue-600 hover:text-blue-800 transition">Ver detalle</button>
                 </div>
                 <div class="flex-1 w-full relative">
                     <canvas id="chart-clientes"></canvas>
                 </div>
             </div>
 
-            <div class="glass-card p-6 rounded-2xl h-[300px] flex flex-col">
-                <h3 class="font-semibold text-slate-200 mb-4 flex items-center gap-2">
-                    <i class="ph ph-map-pin text-purple-400"></i> Distribución Regional de Proyectos
+            {# Gráfico 2: Distribución Regional #}
+            <div class="white-card p-6 rounded-2xl h-[300px] flex flex-col">
+                <h3 class="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                    <i class="ph ph-map-pin text-purple-600"></i> Distribución Regional de Proyectos
                 </h3>
                 <div class="flex-1 w-full relative">
                     <canvas id="chart-regiones"></canvas>
@@ -170,64 +186,76 @@
 
         <div class="md:col-span-12 lg:col-span-3 space-y-6">
             
-            <div class="glass-card p-6 rounded-2xl flex flex-col items-center justify-center relative">
-                <h3 class="font-semibold text-slate-200 mb-2 text-center w-full">Estado Global Muestras</h3>
+            {# Gráfico 3: Estado Global Muestras (Doughnut) #}
+            <div class="white-card p-6 rounded-2xl flex flex-col items-center justify-center relative">
+                <h3 class="font-semibold text-slate-800 mb-2 text-center w-full">Estado Global Muestras</h3>
                 <div class="h-[200px] w-full relative">
                     <canvas id="chart-estado"></canvas>
                     <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span class="text-3xl font-bold text-white">125</span>
+                        {# Número total: Texto oscuro #}
+                        <span class="text-3xl font-bold text-slate-800">125</span>
                         <span class="text-[10px] uppercase text-slate-500">Total</span>
                     </div>
                 </div>
+                {# Leyenda: Texto oscuro, divisores grises claros #}
                 <div class="mt-4 w-full space-y-2">
-                    <div class="flex justify-between text-xs text-slate-400 border-b border-slate-700 pb-1">
+                    <div class="flex justify-between text-xs text-slate-600 border-b border-gray-200 pb-1">
                         <span><span class="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1"></span>Completado</span>
-                        <span class="text-white">45%</span>
+                        <span class="text-slate-800 font-medium">45%</span>
                     </div>
-                    <div class="flex justify-between text-xs text-slate-400 border-b border-slate-700 pb-1">
-                        <span><span class="inline-block w-2 h-2 rounded-full bg-blue-500 mr-1"></span>En Proceso</span>
-                        <span class="text-white">30%</span>
+                    <div class="flex justify-between text-xs text-slate-600 border-b border-gray-200 pb-1">
+                        <span><span class="inline-block w-2 h-2 rounded-full bg-blue-600 mr-1"></span>En Proceso</span>
+                        <span class="text-slate-800 font-medium">30%</span>
                     </div>
                 </div>
             </div>
 
-             <div class="glass-card p-5 rounded-2xl h-auto">
-                <h3 class="font-semibold text-slate-200 mb-4 text-sm">Próximos Vencimientos</h3>
+            {# Card 4: Próximos Vencimientos #}
+            <div class="white-card p-5 rounded-2xl h-auto">
+                <h3 class="font-semibold text-slate-800 mb-4 text-sm">Próximos Vencimientos</h3>
                 <div class="space-y-3">
+                    {# Elemento 1 #}
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center text-slate-300 font-bold text-xs">
+                        {# Fecha: Fondo gris claro, texto oscuro #}
+                        <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-slate-800 font-bold text-xs border border-gray-300">
                             14<br>OCT
                         </div>
                         <div class="flex-1">
-                            <p class="text-sm font-medium text-white truncate">M-2025-004</p>
+                            <p class="text-sm font-medium text-slate-800 truncate">M-2025-004</p>
                             <p class="text-xs text-slate-500">Rongfei SAC</p>
                         </div>
                         <div class="w-16">
-                             <span class="text-[10px] bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded border border-yellow-500/30">2 días</span>
+                            {# Badge: Fondo amarillo claro #}
+                            <span class="text-[10px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded border border-yellow-300">2 días</span>
                         </div>
                     </div>
+                    {# Elemento 2 #}
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center text-slate-300 font-bold text-xs">
+                        {# Fecha: Fondo gris claro, texto oscuro #}
+                        <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-slate-800 font-bold text-xs border border-gray-300">
                             12<br>OCT
                         </div>
                         <div class="flex-1">
-                            <p class="text-sm font-medium text-white truncate">M-2025-089</p>
+                            <p class="text-sm font-medium text-slate-800 truncate">M-2025-089</p>
                             <p class="text-xs text-slate-500">Consorcio V.</p>
                         </div>
                         <div class="w-16">
-                            <span class="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded border border-red-500/30">Hoy</span>
+                            {# Badge: Fondo rojo claro #}
+                            <span class="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded border border-red-300">Hoy</span>
                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
+        {# Tabla de Detalle de Muestras #}
         <div class="md:col-span-12">
-            <div class="glass-card rounded-2xl overflow-hidden">
-                <div class="p-6 border-b border-slate-700/50 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <h3 class="font-semibold text-lg text-white">Detalle de Muestras en Laboratorio</h3>
+            <div class="white-card rounded-2xl overflow-hidden">
+                <div class="p-6 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <h3 class="font-semibold text-lg text-slate-800">Detalle de Muestras en Laboratorio</h3>
                     <div class="flex gap-2">
-                        <button class="px-3 py-1.5 text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-600 transition">
+                        {# Botón: Ajustado a colores claros #}
+                        <button class="px-3 py-1.5 text-xs font-medium text-slate-700 bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-300 transition">
                             Descargar Reporte
                         </button>
                     </div>
@@ -236,7 +264,8 @@
                 <div class="overflow-x-auto custom-scroll">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="text-xs text-slate-400 uppercase bg-slate-800/50 border-b border-slate-700">
+                            {# Encabezado de tabla: Fondo gris muy claro, texto gris oscuro #}
+                            <tr class="text-xs text-slate-500 uppercase bg-gray-50 border-b border-gray-200">
                                 <th class="px-6 py-4 font-medium">Proyecto / Código</th>
                                 <th class="px-6 py-4 font-medium">Cliente</th>
                                 <th class="px-6 py-4 font-medium text-center">Región</th>
@@ -245,80 +274,90 @@
                                 <th class="px-6 py-4 font-medium text-right">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody class="text-sm divide-y divide-slate-700/50">
+                        <tbody class="text-sm divide-y divide-gray-200 bg-white">
                             
-                            <tr class="hover:bg-slate-700/30 transition duration-150">
+                            {# Fila 1: A Tiempo #}
+                            <tr class="hover:bg-gray-50 transition duration-150">
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                                        {# Icono: Fondo azul muy claro, icono azul oscuro #}
+                                        <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center">
                                             <i class="ph ph-flask"></i>
                                         </div>
                                         <div>
-                                            <p class="font-medium text-white">VFC-OTE-2025-001</p>
+                                            <p class="font-medium text-slate-800">VFC-OTE-2025-001</p>
                                             <p class="text-xs text-slate-500">Suelos / Granulometría</p>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 text-slate-300">Rongfei SAC</td>
+                                <td class="px-6 py-4 text-slate-700">Rongfei SAC</td>
                                 <td class="px-6 py-4 text-center">
-                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-800 border border-slate-600 text-xs text-slate-300">
+                                    {# Badge Región: Fondo gris claro #}
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-100 border border-gray-300 text-xs text-slate-700">
                                         Lima
                                     </span>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex justify-between mb-1">
-                                        <span class="text-xs text-slate-400">Ensayos</span>
-                                        <span class="text-xs font-bold text-blue-400">80%</span>
+                                        <span class="text-xs text-slate-500">Ensayos</span>
+                                        <span class="text-xs font-bold text-blue-600">80%</span>
                                     </div>
-                                    <div class="w-full bg-slate-700 rounded-full h-1.5">
-                                        <div class="bg-blue-500 h-1.5 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" style="width: 80%"></div>
+                                    <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                        {# Barra: Mantiene el azul, se quita la sombra para fondo claro #}
+                                        <div class="bg-blue-600 h-1.5 rounded-full" style="width: 80%"></div>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+                                    {# Estado: Fondo verde claro, texto verde oscuro #}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-300">
                                         A Tiempo
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    <button class="text-slate-400 hover:text-white transition"><i class="ph ph-dots-three-vertical text-lg"></i></button>
+                                    {# Botón: Texto gris/azul, hover a gris oscuro #}
+                                    <button class="text-slate-500 hover:text-slate-800 transition"><i class="ph ph-dots-three-vertical text-lg"></i></button>
                                 </td>
                             </tr>
 
-                            <tr class="hover:bg-slate-700/30 transition duration-150">
+                            {# Fila 2: Atrasado #}
+                            <tr class="hover:bg-gray-50 transition duration-150">
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center">
+                                        {# Icono: Fondo rojo muy claro, icono rojo oscuro #}
+                                        <div class="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
                                             <i class="ph ph-warning"></i>
                                         </div>
                                         <div>
-                                            <p class="font-medium text-white">VFC-OTE-2025-015</p>
+                                            <p class="font-medium text-slate-800">VFC-OTE-2025-015</p>
                                             <p class="text-xs text-slate-500">Concreto / Compresión</p>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 text-slate-300">Consorcio Vial</td>
+                                <td class="px-6 py-4 text-slate-700">Consorcio Vial</td>
                                 <td class="px-6 py-4 text-center">
-                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-800 border border-slate-600 text-xs text-slate-300">
+                                    {# Badge Región: Fondo gris claro #}
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-100 border border-gray-300 text-xs text-slate-700">
                                         Cusco
                                     </span>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex justify-between mb-1">
-                                        <span class="text-xs text-slate-400">Informe</span>
-                                        <span class="text-xs font-bold text-red-400">95%</span>
+                                        <span class="text-xs text-slate-500">Informe</span>
+                                        <span class="text-xs font-bold text-red-600">95%</span>
                                     </div>
-                                    <div class="w-full bg-slate-700 rounded-full h-1.5">
-                                        <div class="bg-red-500 h-1.5 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.5)]" style="width: 95%"></div>
+                                    <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                        <div class="bg-red-600 h-1.5 rounded-full" style="width: 95%"></div>
                                     </div>
-                                    <p class="text-[10px] text-red-400 mt-1">Falta firma final</p>
+                                    <p class="text-[10px] text-red-600 mt-1">Falta firma final</p>
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20 animate-pulse">
+                                    {# Estado: Fondo rojo claro, texto rojo oscuro #}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-300 animate-pulse">
                                         Atrasado
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    <button class="text-slate-400 hover:text-white transition"><i class="ph ph-dots-three-vertical text-lg"></i></button>
+                                    <button class="text-slate-500 hover:text-slate-800 transition"><i class="ph ph-dots-three-vertical text-lg"></i></button>
                                 </td>
                             </tr>
 
@@ -337,18 +376,20 @@
 <script>
     // Configuración global de fuentes y colores para Chart.js
     Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
-    Chart.defaults.color = '#94a3b8';
-    Chart.defaults.borderColor = '#334155';
+    // Color de las etiquetas y ejes: Ahora más oscuro
+    Chart.defaults.color = '#475569'; // Slate 600
+    // Color de las líneas de la cuadrícula: Ahora más claro
+    Chart.defaults.borderColor = '#e2e8f0'; // Gray 200
 
     // ==========================================
     // 1. Gráfico: Avance por Cliente (Barras con Gradiente)
     // ==========================================
     const ctxClientes = document.getElementById('chart-clientes').getContext('2d');
     
-    // Crear gradiente vertical
+    // Crear gradiente vertical (se mantiene la paleta de colores)
     const gradientBlue = ctxClientes.createLinearGradient(0, 0, 0, 300);
-    gradientBlue.addColorStop(0, '#3b82f6'); // Blue 500
-    gradientBlue.addColorStop(1, 'rgba(59, 130, 246, 0.1)');
+    gradientBlue.addColorStop(0, '#2563eb'); // Blue 600
+    gradientBlue.addColorStop(1, 'rgba(37, 99, 235, 0.1)'); // Transparente
 
     new Chart(ctxClientes, {
         type: 'bar',
@@ -360,7 +401,7 @@
                 backgroundColor: gradientBlue,
                 borderRadius: 6,
                 barThickness: 30,
-                hoverBackgroundColor: '#60a5fa'
+                hoverBackgroundColor: '#3b82f6' // Blue 500
             }]
         },
         options: {
@@ -369,11 +410,12 @@
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                    titleColor: '#fff',
-                    bodyColor: '#cbd5e1',
+                    // Tooltip adaptado a tema CLARO
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    titleColor: '#1e293b', // Slate 800
+                    bodyColor: '#334155', // Slate 700
                     padding: 10,
-                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderColor: 'rgba(0,0,0,0.1)',
                     borderWidth: 1,
                     displayColors: false
                 }
@@ -381,19 +423,20 @@
             scales: {
                 y: {
                     beginAtZero: true,
-                    grid: { color: 'rgba(255, 255, 255, 0.05)', borderDash: [5, 5] },
-                    ticks: { color: '#64748b' }
+                    // Cuadrícula más clara y ticks oscuros
+                    grid: { color: 'rgba(0, 0, 0, 0.08)', borderDash: [5, 5] },
+                    ticks: { color: '#64748b' } // Slate 500
                 },
                 x: {
                     grid: { display: false },
-                    ticks: { color: '#94a3b8' }
+                    ticks: { color: '#475569' } // Slate 600
                 }
             }
         }
     });
 
     // ==========================================
-    // 2. Gráfico: Estado Global (Doughnut Neon)
+    // 2. Gráfico: Estado Global (Doughnut)
     // ==========================================
     const ctxEstado = document.getElementById('chart-estado').getContext('2d');
     new Chart(ctxEstado, {
@@ -403,10 +446,10 @@
             datasets: [{
                 data: [45, 30, 15, 10],
                 backgroundColor: [
-                    '#10b981', // Emerald
-                    '#3b82f6', // Blue
-                    '#f59e0b', // Amber
-                    '#ef4444'  // Red
+                    '#10b981', // Emerald 500
+                    '#2563eb', // Blue 600
+                    '#f59e0b', // Amber 500
+                    '#ef4444'  // Red 500
                 ],
                 borderWidth: 0,
                 hoverOffset: 4
@@ -415,30 +458,33 @@
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '75%', // Hace el donut más fino
+            cutout: '75%',
             plugins: {
                 legend: { display: false },
                 tooltip: {
+                    // Tooltip adaptado a tema CLARO
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    titleColor: '#1e293b', 
+                    bodyColor: '#334155', 
                     callbacks: {
                         label: function(context) {
                             return ' ' + context.label + ': ' + context.raw + '%';
                         }
                     },
-                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
                 }
             }
         }
     });
 
     // ==========================================
-    // 3. Gráfico: Regiones (Horizontal Bar simulando mapa)
+    // 3. Gráfico: Regiones (Horizontal Bar)
     // ==========================================
     const ctxRegion = document.getElementById('chart-regiones').getContext('2d');
     
-    // Gradiente purpura
+    // Gradiente purpura (se mantiene la paleta)
     const gradientPurple = ctxRegion.createLinearGradient(300, 0, 0, 0);
-    gradientPurple.addColorStop(0, '#8b5cf6'); // Violet
-    gradientPurple.addColorStop(1, 'rgba(139, 92, 246, 0.2)');
+    gradientPurple.addColorStop(0, '#7c3aed'); // Violet 600
+    gradientPurple.addColorStop(1, 'rgba(124, 58, 237, 0.2)');
 
     new Chart(ctxRegion, {
         type: 'bar',
@@ -461,11 +507,12 @@
             },
             scales: {
                 x: {
-                    display: false // Ocultar eje X para limpieza
+                    display: false
                 },
                 y: {
                     grid: { display: false },
-                    ticks: { color: '#cbd5e1', font: { weight: '600' } }
+                    // Ticks oscuros
+                    ticks: { color: '#475569', font: { weight: '600' } } // Slate 600
                 }
             }
         }

@@ -394,17 +394,23 @@ class ListaSolicitudesEnsayoView(ListView):
     muestra_contexto = None
 
     def get_queryset(self):
-        muestra_pk = self.kwargs.get('muestra_pk') 
+        # Esta línea DEBE tener 8 espacios (o 2 niveles de indentación) desde el borde
+        queryset = SolicitudEnsayo.objects.select_related('muestra').prefetch_related(
+            'detalles_ensayo__asignaciones__tecnico_asignado__user',
+            'detalles_ensayo__metodo'
+        )
         
-        # Corregido el FieldError: Asegúrese que este nombre sea correcto.
+        muestra_pk = self.kwargs.get('muestra_pk')
+        
+        # El nombre del campo para ordenar (asegúrate que exista en SolicitudEnsayo)
         CAMPO_ORDEN = 'creado_en' 
 
         if muestra_pk:
-            self.muestra_contexto = get_object_or_404(Muestra, pk=muestra_pk) 
-            return SolicitudEnsayo.objects.filter(muestra=self.muestra_contexto).order_by(f'-{CAMPO_ORDEN}')
+            self.muestra_contexto = get_object_or_404(Muestra, pk=muestra_pk)
+            return queryset.filter(muestra=self.muestra_contexto).order_by(f'-{CAMPO_ORDEN}')
         else:
             self.muestra_contexto = None
-            return SolicitudEnsayo.objects.all().order_by(f'-{CAMPO_ORDEN}')
+            return queryset.all().order_by(f'-{CAMPO_ORDEN}')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -670,53 +676,84 @@ def generar_pdf_solicitud_ensayo(request, pk):
     
     return response
   
- 
 @login_required
 def listar_resultado_ensayo(request):
-    """
-    Lista todos los resultados de ensayos registrados.
-    """
+    """Lista todos los resultados de ensayos registrados con optimización de consultas."""
     resultados = ResultadoEnsayo.objects.select_related(
         'detalle_ensayo__solicitud',  
         'detalle_ensayo__metodo',     
         'tecnico_registro__user'      
     ).order_by('-fecha_realizacion')
-    
 
-    context = {
+    return render(request, 'listar_resultado_ensayo.html', {
         'resultados': resultados,
         'titulo': "Listado de Resultados de Ensayos",
-    }
-    
-    return render(request, 'listar_resultado_ensayo.html', context)
+    })
     
 @login_required
-def registrar_resultado_ensayo(request: HttpRequest): # ¡YA NO RECIBE EL ARGUMENTO detalle_id!
+def registrar_resultado_ensayo(request):
     """
-    Vista única que lleva al formulario. El detalle_id se maneja via GET/POST.
+    Vista robusta para buscar, crear y editar resultados de ensayo.
+    Maneja la lógica mediante el parámetro 'action' del POST.
     """
     detalle = None
     resultado = None
     es_edicion = False
-    
-    current_detalle_id = request.GET.get('detalle_id') 
-    
+    tecnico = getattr(request.user, 'trabajador_profile', None)
+
+    detalle_id = request.GET.get('detalle_id') or request.POST.get('detalle_ensayo_id')
+    codigo_muestra = request.GET.get('codigo_muestra') or request.POST.get('codigo_muestra')
+
+    if codigo_muestra:
+        detalle = DetalleEnsayo.objects.filter(codigo_muestra__iexact=codigo_muestra).first()
+        if not detalle:
+            messages.error(request, f"No se encontró ninguna tarea con el código: {codigo_muestra}")
+    elif detalle_id:
+        detalle = get_object_or_404(DetalleEnsayo, pk=detalle_id)
+
+    if detalle:
+        resultado = ResultadoEnsayo.objects.filter(detalle_ensayo=detalle).first()
+        es_edicion = resultado is not None
+
     if request.method == 'POST':
-        # Aquí iría la lógica de búsqueda o guardado.
-        # Si encuentra un ID: return redirect(f"{request.path}?detalle_id={id_encontrado}")
-        # Si guarda: return redirect(...)
-        pass
-            
-    # 3. Contexto (Renderizar)
-    inicio_registro = (detalle is None) # True si se accede por primera vez sin ID
-    
+        action = request.POST.get('action')
+
+        if action == 'guardar' and detalle:
+            resultados_data = {
+                'pasa_tamiz_200': request.POST.get('pasa_tamiz_200'),
+                'densidad_aparente': request.POST.get('densidad_aparente'),
+                'ensayo_conforme': request.POST.get('ensayo_conforme') == 'on',
+            }
+
+            try:
+                if not resultado:
+                    resultado = ResultadoEnsayo(
+                        detalle_ensayo=detalle,
+                        tecnico_registro=tecnico,
+                        fecha_realizacion=request.POST.get('fecha_realizacion'),
+                        observaciones=request.POST.get('observaciones'),
+                        resultados_data=resultados_data
+                    )
+                else:
+                    resultado.fecha_realizacion = request.POST.get('fecha_realizacion')
+                    resultado.observaciones = request.POST.get('observaciones')
+                    resultado.resultados_data = resultados_data
+                
+                resultado.save()
+                messages.success(request, "✅ Resultado guardado correctamente.")
+                return redirect('lista_resultados_ensayo')
+
+            except Exception as e:
+                messages.error(request, f"Error al procesar el registro: {str(e)}")
+
     context = {
         'detalle': detalle,
         'resultado': resultado,
         'es_edicion': es_edicion,
-        'inicio_registro': inicio_registro, 
         'today': timezone.now().date(),
     }
     
-    # Esto es lo único que querías: renderizar el HTML
     return render(request, 'registrar_resultado_ensayo.html', context)
+
+
+    
