@@ -628,59 +628,248 @@ class ReporteIncidencia(models.Model):
         verbose_name_plural = "Reportes de Incidencias"
         ordering = ['-fecha_ocurrencia']
 
+
 class ResultadoEnsayo(models.Model):
-    """Almacena los datos y la verificación de un ensayo realizado."""
-    
-    # CLAVE: Apunta al DetalleEnsayo (la tarea individual que ahora incluye el tipo de ensayo y el técnico)
-    detalle_ensayo = models.OneToOneField(
+    """
+    Cabecera formal del registro de resultados de un ensayo de laboratorio.
+    Modelo diseñado para uso profesional (LIMS).
+    """
+
+    # 🔗 RELACIONES CLAVE
+    detalle_ensayo = models.ForeignKey(
         DetalleEnsayo,
         on_delete=models.CASCADE,
-        related_name='resultado', 
-        verbose_name="Detalle de Ensayo de Origen"
+        related_name='resultados',
+        verbose_name="Detalle de Ensayo (Tarea)"
     )
-    
 
-    tecnico_registro = models.ForeignKey(
-        TrabajadorProfile, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name='registros_realizados', 
-        verbose_name="Técnico que Registró"
+    tipo_ensayo = models.ForeignKey(
+        TipoEnsayo,
+        on_delete=models.PROTECT,
+        verbose_name="Tipo de Ensayo Ejecutado"
     )
-    
-    # Resultados almacenados de forma estructurada
-    resultados_data = models.JSONField(
-        blank=True, 
-        null=True, 
-        verbose_name="Resultados del Ensayo (Datos Estructurados)"
-    ) 
-    
-    observaciones = models.TextField(blank=True, null=True, verbose_name="Observaciones del Ensayo")
-    fecha_realizacion = models.DateField(default=timezone.now, verbose_name="Fecha de Realización/Registro")
-    
-    # Auditoría y Validación por Supervisor
-    verificado_por = models.ForeignKey(
-        TrabajadorProfile, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name='resultados_verificados', 
-        verbose_name="Verificado por Supervisor"
+
+    # 🧪 NORMA Y MÉTODO (CONFORME A PERÚ / ASTM / NTP)
+    norma_aplicada = models.ForeignKey(
+        'servicios.Norma',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Norma Aplicada"
     )
-    fecha_verificacion = models.DateTimeField(blank=True, null=True, verbose_name="Fecha de Verificación")
-    es_valido = models.BooleanField(default=False, verbose_name="Resultado Verificado y Válido")
+
+    metodo_aplicado = models.ForeignKey(
+        'servicios.Metodo',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Método de Ensayo"
+    )
+
+    # 🧑‍🔬 RESPONSABILIDAD TÉCNICA
+    tecnico_ejecutor = models.ForeignKey(
+        TrabajadorProfile,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='resultados_ejecutados',
+        verbose_name="Técnico Ejecutor"
+    )
+
+    supervisor_revisor = models.ForeignKey(
+        TrabajadorProfile,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='resultados_revisados',
+        verbose_name="Supervisor Revisor"
+    )
+
+    # 📅 FECHAS CLAVE
+    fecha_inicio_ensayo = models.DateField(
+        verbose_name="Fecha de Inicio del Ensayo"
+    )
+
+    fecha_fin_ensayo = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name="Fecha de Finalización del Ensayo"
+    )
+
+    fecha_registro = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Fecha de Registro en el Sistema"
+    )
+
+    fecha_revision = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name="Fecha de Revisión / Validación"
+    )
+
+    # 🔁 CONTROL DE REENSAYOS
+    es_reensayo = models.BooleanField(
+        default=False,
+        verbose_name="¿Es Reensayo?"
+    )
+
+    resultado_origen = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reensayos',
+        verbose_name="Resultado Original (si es reensayo)"
+    )
+
+    # 📌 ESTADOS DEL RESULTADO (FLUJO REAL DE LABORATORIO)
+    ESTADOS_RESULTADO = (
+        ('BORRADOR', 'Borrador'),
+        ('EN_PROCESO', 'En Proceso'),
+        ('COMPLETADO', 'Completado por Técnico'),
+        ('VALIDADO', 'Validado por Supervisor'),
+        ('APROBADO', 'Aprobado para Informe'),
+        ('OBSERVADO', 'Observado'),
+        ('ANULADO', 'Anulado'),
+    )
+
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADOS_RESULTADO,
+        default='BORRADOR',
+        verbose_name="Estado del Resultado"
+    )
+
+    # 📝 OBSERVACIONES
+    observaciones_tecnicas = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Observaciones Técnicas del Ensayo"
+    )
+
+    observaciones_revision = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Observaciones de Revisión / Supervisor"
+    )
+
+    # 🧾 RESPALDO DE DATOS NO ESTRUCTURADOS
+    datos_crudos = models.JSONField(
+        blank=True,
+        null=True,
+        verbose_name="Datos Crudos / Curvas / Registros de Equipo"
+    )
 
     creado_en = models.DateTimeField(auto_now_add=True)
     modificado_en = models.DateTimeField(auto_now=True)
-    
-    def __str__(self):
-        return f"Resultado de {self.detalle_ensayo.solicitud.codigo_solicitud} - Válido: {self.es_valido}"
 
     class Meta:
         verbose_name = "Resultado de Ensayo"
         verbose_name_plural = "Resultados de Ensayos"
-        ordering = ['-fecha_realizacion']
+        unique_together = ('detalle_ensayo', 'tipo_ensayo')
+        ordering = ['-fecha_inicio_ensayo']
+
+    def __str__(self):
+        return (
+            f"Resultado {self.tipo_ensayo.nombre} | "
+            f"{self.detalle_ensayo.solicitud.codigo_solicitud}"
+        )
+
+
+class EnsayoParametro(models.Model):
+    """
+    Catálogo de parámetros medibles por tipo de ensayo.
+    Ej: Resistencia, Humedad, Densidad, CBR, etc.
+    """
+
+    tipo_ensayo = models.ForeignKey(
+        TipoEnsayo,
+        on_delete=models.CASCADE,
+        related_name='parametros',
+        verbose_name="Tipo de Ensayo"
+    )
+
+    nombre = models.CharField(
+        max_length=100,
+        verbose_name="Nombre del Parámetro"
+    )
+
+    unidad = models.CharField(
+        max_length=30,
+        blank=True,
+        null=True,
+        verbose_name="Unidad (MPa, %, g/cm3, etc.)"
+    )
+
+    es_numerico = models.BooleanField(
+        default=True,
+        verbose_name="¿Valor Numérico?"
+    )
+
+    orden = models.PositiveIntegerField(
+        default=1,
+        verbose_name="Orden de Visualización"
+    )
+
+    class Meta:
+        verbose_name = "Parámetro de Ensayo"
+        verbose_name_plural = "Parámetros de Ensayo"
+        ordering = ('orden',)
+        unique_together = ('tipo_ensayo', 'nombre')
+
+    def __str__(self):
+        return f"{self.nombre} ({self.unidad or '-'})"
+
+
+
+class ResultadoEnsayoValor(models.Model):
+    """
+    Valores obtenidos para cada parámetro del ensayo.
+    """
+
+    resultado = models.ForeignKey(
+        ResultadoEnsayo,
+        on_delete=models.CASCADE,
+        related_name='valores',
+        verbose_name="Resultado de Ensayo"
+    )
+
+    parametro = models.ForeignKey(
+        'EnsayoParametro',
+        on_delete=models.PROTECT,
+        verbose_name="Parámetro Medido"
+    )
+
+    valor_numerico = models.DecimalField(
+        max_digits=15,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        verbose_name="Valor Numérico"
+    )
+
+    valor_texto = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Valor Textual / Cualitativo"
+    )
+
+    cumple = models.BooleanField(
+        null=True,
+        blank=True,
+        verbose_name="¿Cumple Especificación?"
+    )
+
+    class Meta:
+        verbose_name = "Valor del Resultado"
+        verbose_name_plural = "Valores de Resultados"
+        unique_together = ('resultado', 'parametro')
+
+    def __str__(self):
+        return f"{self.parametro.nombre}"
+
+
 
 class DocumentoFinal(models.Model):
     """Representa el informe o documento final de un proyecto."""

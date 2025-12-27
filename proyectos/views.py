@@ -18,7 +18,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
 from django.db import IntegrityError
 from django.utils import timezone
-from .models import Proyecto, SolicitudEnsayo,DetalleEnsayo, Muestra,TipoEnsayo, AsignacionTipoEnsayo, ReporteIncidencia, TipoMuestra, Laboratorio
+from .models import Proyecto, SolicitudEnsayo,DetalleEnsayo, Muestra,TipoEnsayo, AsignacionTipoEnsayo, ReporteIncidencia, TipoMuestra, Laboratorio, ResultadoEnsayo, ResultadoEnsayoValor, EnsayoParametro
 from clientes.models import Cliente as Cliente 
 from servicios.models import Cotizacion,CotizacionDetalle, Norma, Metodo
 from trabajadores.models import TrabajadorProfile
@@ -36,11 +36,9 @@ from xhtml2pdf import pisa
 try:
     from .models import ResultadoEnsayo 
 except ImportError:
-
     class ResultadoEnsayo:
         DoesNotExist = Exception 
         pass 
-# ----------------------------------------------------------------------------------
 
 @login_required
 def lista_proyectos_pendientes(request): 
@@ -679,81 +677,82 @@ def generar_pdf_solicitud_ensayo(request, pk):
 @login_required
 def listar_resultado_ensayo(request):
     """Lista todos los resultados de ensayos registrados con optimización de consultas."""
-    resultados = ResultadoEnsayo.objects.select_related(
-        'detalle_ensayo__solicitud',  
-        'detalle_ensayo__metodo',     
-        'tecnico_registro__user'      
-    ).order_by('-fecha_realizacion')
+    resultados = ResultadoEnsayo.objects.select_related('tecnico_ejecutor').all()
 
-    return render(request, 'listar_resultado_ensayo.html', {
-        'resultados': resultados,
-        'titulo': "Listado de Resultados de Ensayos",
-    })
+    return render(request, 'listar_resultado_ensayo.html', {'resultados': resultados})
     
+
 @login_required
+@transaction.atomic
 def registrar_resultado_ensayo(request):
-    """
-    Vista robusta para buscar, crear y editar resultados de ensayo.
-    Maneja la lógica mediante el parámetro 'action' del POST.
-    """
-    detalle = None
-    resultado = None
-    es_edicion = False
-    tecnico = getattr(request.user, 'trabajador_profile', None)
-
     detalle_id = request.GET.get('detalle_id') or request.POST.get('detalle_ensayo_id')
-    codigo_muestra = request.GET.get('codigo_muestra') or request.POST.get('codigo_muestra')
-
-    if codigo_muestra:
-        detalle = DetalleEnsayo.objects.filter(codigo_muestra__iexact=codigo_muestra).first()
-        if not detalle:
-            messages.error(request, f"No se encontró ninguna tarea con el código: {codigo_muestra}")
-    elif detalle_id:
-        detalle = get_object_or_404(DetalleEnsayo, pk=detalle_id)
-
-    if detalle:
-        resultado = ResultadoEnsayo.objects.filter(detalle_ensayo=detalle).first()
-        es_edicion = resultado is not None
+    detalle = get_object_or_404(DetalleEnsayo, pk=detalle_id)
+    
+    # Obtenemos el tipo de ensayo de la relación ManyToMany (el primero asignado)
+    tipo_ensayo_obj = detalle.tipos_ensayo.all().first()
+    
+    # Intentamos recuperar un resultado previo para edición
+    resultado = ResultadoEnsayo.objects.filter(
+        detalle_ensayo=detalle, 
+        tipo_ensayo=tipo_ensayo_obj
+    ).first()
 
     if request.method == 'POST':
-        action = request.POST.get('action')
+        # 1. Registro/Actualización de la Cabecera (Modelo ResultadoEnsayo)
+        if not resultado:
+            resultado = ResultadoEnsayo(
+                detalle_ensayo=detalle,
+                tipo_ensayo=tipo_ensayo_obj,
+                tecnico_ejecutor=getattr(request.user, 'trabajador_profile', None),
+                estado='BORRADOR'
+            )
+        
+        # Heredar o actualizar Norma y Método del modelo de Detalle o del POST
+        resultado.norma_aplicada = detalle.norma
+        resultado.metodo_aplicado = detalle.metodo
+        resultado.fecha_inicio_ensayo = request.POST.get('fecha_inicio_ensayo')
+        resultado.fecha_fin_ensayo = request.POST.get('fecha_fin_ensayo') or None
+        resultado.es_reensayo = 'es_reensayo' in request.POST
+        resultado.observaciones_tecnicas = request.POST.get('observaciones_tecnicas')
+        
+        resultado.save()
 
-        if action == 'guardar' and detalle:
-            resultados_data = {
-                'pasa_tamiz_200': request.POST.get('pasa_tamiz_200'),
-                'densidad_aparente': request.POST.get('densidad_aparente'),
-                'ensayo_conforme': request.POST.get('ensayo_conforme') == 'on',
-            }
-
-            try:
-                if not resultado:
-                    resultado = ResultadoEnsayo(
-                        detalle_ensayo=detalle,
-                        tecnico_registro=tecnico,
-                        fecha_realizacion=request.POST.get('fecha_realizacion'),
-                        observaciones=request.POST.get('observaciones'),
-                        resultados_data=resultados_data
-                    )
+        # 2. Registro de Valores (Modelo ResultadoEnsayoValor)
+        parametros = EnsayoParametro.objects.filter(tipo_ensayo=tipo_ensayo_obj)
+        for param in parametros:
+            valor_raw = request.POST.get(f'valor_p_{param.id}')
+            cumple = request.POST.get(f'cumple_p_{param.id}') == 'on'
+            
+            if valor_raw is not None and valor_raw != "":
+                val_obj, _ = ResultadoEnsayoValor.objects.get_or_create(
+                    resultado=resultado, 
+                    parametro=param
+                )
+                if param.es_numerico:
+                    val_obj.valor_numerico = float(valor_raw.replace(',', '.'))
                 else:
-                    resultado.fecha_realizacion = request.POST.get('fecha_realizacion')
-                    resultado.observaciones = request.POST.get('observaciones')
-                    resultado.resultados_data = resultados_data
-                
-                resultado.save()
-                messages.success(request, "✅ Resultado guardado correctamente.")
-                return redirect('lista_resultados_ensayo')
+                    val_obj.valor_texto = valor_raw
+                val_obj.cumple = cumple
+                val_obj.save()
 
-            except Exception as e:
-                messages.error(request, f"Error al procesar el registro: {str(e)}")
+        messages.success(request, f"Resultado de {tipo_ensayo_obj.nombre} guardado.")
+        return redirect('/proyectos/resultados/')
 
-    context = {
+    # Preparación de datos para la interfaz
+    parametros_qs = EnsayoParametro.objects.filter(tipo_ensayo=tipo_ensayo_obj)
+    data_final = []
+    for p in parametros_qs:
+        valor_existente = ResultadoEnsayoValor.objects.filter(resultado=resultado, parametro=p).first() if resultado else None
+        data_final.append({
+            'meta': p,
+            'valor': valor_existente.valor_numerico if (valor_existente and p.es_numerico) else (valor_existente.valor_texto if valor_existente else ""),
+            'cumple': valor_existente.cumple if valor_existente else False
+        })
+
+    return render(request, 'registrar_resultado_ensayo.html', {
         'detalle': detalle,
         'resultado': resultado,
-        'es_edicion': es_edicion,
-        'today': timezone.now().date(),
-    }
-    
-    return render(request, 'registrar_resultado_ensayo.html', context)
-
-
-    
+        'tipo_ensayo': tipo_ensayo_obj,
+        'parametros_data': data_final,
+        'today': timezone.now().date()
+    })

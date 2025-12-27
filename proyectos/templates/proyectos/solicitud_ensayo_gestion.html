@@ -49,7 +49,7 @@
 
             {# Formulario principal #}
             <form id="solicitud-form" method="POST" action="." onsubmit="return false;" 
-                data-list-url="{% url 'proyectos:lista_solicitudes_por_muestra' muestra.pk %}">
+                data-list-url="{% url 'proyectos:lista_solicitudes_ensayo_por_muestra' muestra.pk %}">
                 {% csrf_token %}
                 <input type="hidden" id="solicitud-id" value="{{ solicitud.id|default:'' }}">
                 <input type="hidden" id="muestra-id" value="{{ muestra.id }}">

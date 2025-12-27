@@ -128,15 +128,21 @@
                             </td>
 
                             <td class="py-4 px-6 text-center">
-                                <a href="" 
-                                   class="inline-flex items-center px-4 py-2 text-xs font-bold rounded-lg border transition-all
-                                   {% if detalle.estado_detalle == 'PENDIENTE' or detalle.estado_detalle == 'ASIGNADO' or detalle.estado_detalle == 'EN_EJECUCION' %}
-                                        bg-orange-600 text-white border-orange-600 hover:bg-orange-700
-                                   {% else %}
-                                        bg-white text-blue-700 border-blue-200 hover:bg-blue-600 hover:text-white
-                                   {% endif %}">
+                                <a href="/proyectos/ensayo/registrar/?detalle_id={{ detalle.id }}" 
+                                class="inline-flex items-center px-4 py-2 text-xs font-bold rounded-lg border transition-all
+                                {% if detalle.estado_detalle == 'PENDIENTE' or detalle.estado_detalle == 'ASIGNADO' or detalle.estado_detalle == 'EN_EJECUCION' %}
+                                    bg-orange-600 text-white border-orange-600 hover:bg-orange-700
+                                {% else %}
+                                    bg-white text-blue-700 border-blue-200 hover:bg-blue-600 hover:text-white
+                                {% endif %}">
+                                    
                                     <i data-lucide="clipboard-edit" class="w-4 h-4 mr-2"></i>
-                                    {% if detalle.estado_detalle == 'COMPLETADO' or detalle.estado_detalle == 'VALIDADO' %}Gestionar{% else %}Registrar{% endif %}
+                                    
+                                    {% if detalle.estado_detalle == 'COMPLETADO' or detalle.estado_detalle == 'VALIDADO' %}
+                                        Gestionar
+                                    {% else %}
+                                        Registrar
+                                    {% endif %}
                                 </a>
                             </td>
                         </tr>
