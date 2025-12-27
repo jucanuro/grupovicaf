@@ -1,0 +1,90 @@
+{% extends 'base_vicafpro.html' %}
+
+{% block content %}
+<div class="p-6 bg-slate-50 min-h-screen">
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div>
+            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Repositorio de Informes</h1>
+            <p class="text-slate-500 text-sm">Consulta y descarga los documentos finales emitidos.</p>
+        </div>
+        
+        <div class="flex gap-4">
+            <div class="bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+                <span class="block text-[10px] uppercase font-bold text-slate-400">Total</span>
+                <span class="text-xl font-bold text-slate-800">{{ informes.count }}</span>
+            </div>
+            <a href="{% url 'proyectos:gestionar_informes' %}" class="flex items-center px-5 py-2.5 bg-brand-600 text-white rounded-xl font-bold text-sm hover:bg-brand-700 transition-all shadow-lg shadow-brand-200">
+                <i data-lucide="plus" class="w-4 h-4 mr-2"></i> Nuevo Informe
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50/50">
+                <tr>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Proyecto / Documento</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Cliente</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Emisión</th>
+                    <th class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Estado</th>
+                    <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 bg-white">
+                {% for info in informes %}
+                <tr class="hover:bg-slate-50/80 transition-colors group">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-600 mr-3 group-hover:scale-110 transition-transform">
+                                <i data-lucide="file-text" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-slate-900">{{ info.proyecto.codigo_proyecto }}</div>
+                                <div class="text-[11px] text-slate-500 font-medium">{{ info.titulo }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm text-slate-700 font-medium">{{ info.proyecto.cliente.nombre_comercial }}</div>
+                        <div class="text-[11px] text-slate-400">RUC: {{ info.proyecto.cliente.ruc }}</div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-600 font-medium">
+                        {{ info.fecha_emision|date:"d M, Y" }}
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        {% if info.publicado %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 border border-green-200 uppercase">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span> Publicado
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 uppercase">
+                                <span class="w-1.5 h-1.5 rounded-full bg-slate-400 mr-1.5"></span> Borrador
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <div class="flex justify-end gap-2">
+                            <a href="{{ info.archivo_pdf.url }}" target="_blank" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Ver PDF">
+                                <i data-lucide="external-link" class="w-5 h-5"></i>
+                            </a>
+                            <a href="{% url 'proyectos:gestionar_informes' %}" class="p-2 text-slate-400 hover:text-brand-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
+                                <i data-lucide="edit-3" class="w-5 h-5"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="px-6 py-12 text-center">
+                        <div class="flex flex-col items-center">
+                            <i data-lucide="folder-open" class="w-12 h-12 text-slate-200 mb-3"></i>
+                            <p class="text-slate-500 font-medium">No se han emitido informes finales aún.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

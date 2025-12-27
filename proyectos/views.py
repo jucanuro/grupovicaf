@@ -18,7 +18,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
 from django.db import IntegrityError
 from django.utils import timezone
-from .models import Proyecto, SolicitudEnsayo,DetalleEnsayo, Muestra,TipoEnsayo, AsignacionTipoEnsayo, ReporteIncidencia, TipoMuestra, Laboratorio, ResultadoEnsayo, ResultadoEnsayoValor, EnsayoParametro
+from .models import Proyecto,DocumentoFinal, SolicitudEnsayo,DetalleEnsayo, Muestra,TipoEnsayo, AsignacionTipoEnsayo, ReporteIncidencia, TipoMuestra, Laboratorio, ResultadoEnsayo, ResultadoEnsayoValor, EnsayoParametro
 from clientes.models import Cliente as Cliente 
 from servicios.models import Cotizacion,CotizacionDetalle, Norma, Metodo
 from trabajadores.models import TrabajadorProfile
@@ -32,6 +32,7 @@ from django.views.decorators.http import require_http_methods
 from django.db.models import Prefetch
 from django.template.loader import get_template
 from xhtml2pdf import pisa
+from django.contrib import messages
 
 try:
     from .models import ResultadoEnsayo 
@@ -755,4 +756,45 @@ def registrar_resultado_ensayo(request):
         'tipo_ensayo': tipo_ensayo_obj,
         'parametros_data': data_final,
         'today': timezone.now().date()
+    })
+    
+def gestionar_informes(request):
+    if request.method == "POST":
+        proyecto_id = request.POST.get('proyecto_id')
+        titulo = request.POST.get('titulo', 'Informe Técnico Final')
+        archivo = request.FILES.get('archivo_pdf')
+        publicar = request.POST.get('publicar') == 'on'
+
+        if proyecto_id and archivo:
+            proyecto = get_object_or_404(Proyecto, id=proyecto_id)
+            
+            DocumentoFinal.objects.update_or_create(
+                proyecto=proyecto,
+                defaults={
+                    'titulo': titulo,
+                    'archivo_pdf': archivo,
+                    'publicado': publicar
+                }
+            )
+            messages.success(request, f"Informe de {proyecto.codigo_proyecto} guardado con éxito.")
+            # REDIRECCIÓN A LA LISTA
+            return redirect('proyectos:lista_informes_finales') 
+        
+        messages.error(request, "Error: Datos incompletos.")
+        return redirect('proyectos:gestionar_informes')
+
+    # GET: Solo necesitamos los proyectos disponibles para crear nuevos
+    proyectos_sin_informe = Proyecto.objects.filter(documento_final__isnull=True)
+    return render(request, 'gestionar_informes.html', {
+        'proyectos_disponibles': proyectos_sin_informe,
+    })
+    
+def lista_informes_finales(request):
+    informes = DocumentoFinal.objects.all().select_related(
+        'proyecto__cliente', 
+        'proyecto__cotizacion'
+    ).order_by('-fecha_emision')
+    
+    return render(request, 'lista_informes.html', {
+        'informes': informes
     })

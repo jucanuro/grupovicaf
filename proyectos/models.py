@@ -872,42 +872,15 @@ class ResultadoEnsayoValor(models.Model):
 
 
 class DocumentoFinal(models.Model):
-    """Representa el informe o documento final de un proyecto."""
-    
     proyecto = models.OneToOneField(
-        Proyecto, 
+        'Proyecto', 
         on_delete=models.CASCADE, 
-        related_name='documento_final', 
-        verbose_name="Proyecto Asociado"
+        related_name='documento_final'
     )
-    titulo = models.CharField(max_length=255, verbose_name="Título del Documento (Ej: Informe Técnico Final)")
-    
-    # Archivo original (PDF o generado)
-    archivo_original = models.FileField(
-        upload_to=documento_file_path,
-        blank=True,
-        null=True,
-        verbose_name="Archivo del Informe Final (PDF)"
-    )
-    
-    # Contenido generado (o asistido) por IA
-    resumen_ejecutivo_ia = models.TextField(blank=True, null=True, verbose_name="Resumen Ejecutivo (IA)")
-    analisis_detallado_ia = models.TextField(blank=True, null=True, verbose_name="Análisis Detallado de Resultados (IA)")
-    recomendaciones_ia = models.TextField(blank=True, null=True, verbose_name="Recomendaciones (IA)")
-    
-    # Firmas
-    firma_supervisor = models.ImageField(upload_to='firmas/', blank=True, null=True, verbose_name="Firma del Jefe/Supervisor de Laboratorio")
-    firma_cliente = models.ImageField(upload_to='firmas_clientes/', blank=True, null=True, verbose_name="Firma de Conformidad del Cliente")
-    
-    fecha_emision = models.DateField(default=timezone.now, verbose_name="Fecha de Emisión del Informe")
-    
-    creado_en = models.DateTimeField(auto_now_add=True)
-    modificado_en = models.DateTimeField(auto_now=True)
-    
-    def __str__(self):
-        return f"Informe Final de {self.proyecto.codigo_proyecto}: {self.titulo}"
+    titulo = models.CharField(max_length=255, default="Informe Técnico Final")
+    archivo_pdf = models.FileField(upload_to='informes_finales/%Y/%m/')
+    fecha_emision = models.DateField(auto_now_add=True)
+    publicado = models.BooleanField(default=False, help_text="Si está marcado, el cliente puede verlo.")
 
-    class Meta:
-        verbose_name = "Documento Final"
-        verbose_name_plural = "Documentos Finales"
-        ordering = ['-fecha_emision']
+    def __str__(self):
+        return f"Informe: {self.proyecto.codigo_proyecto}"

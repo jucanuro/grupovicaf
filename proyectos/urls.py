@@ -44,6 +44,9 @@ urlpatterns = [
      path('resultados/', views.listar_resultado_ensayo, name='lista_resultados_ensayo'),
      
      path('ensayo/registrar/', views.registrar_resultado_ensayo, name='registrar_resultado_ensayo'),
+     
+     path('informes/gestion/', views.gestionar_informes, name='gestionar_informes'),
+     path('informes/lista/', views.lista_informes_finales, name='lista_informes_finales'),
           
 ]
 
