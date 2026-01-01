@@ -1,0 +1,228 @@
+<div id="cmd-palette" class="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-md hidden transition-all duration-300 opacity-0" aria-hidden="true">
+    <div class="min-h-screen px-4 flex items-start justify-center pt-[12vh]">
+        
+        <div class="w-full max-w-2xl bg-white/90 backdrop-blur-2xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] rounded-3xl border border-white/40 overflow-hidden transition-all transform scale-95 ring-1 ring-black/5" id="cmd-panel">
+            
+            <div class="relative group">
+                <div class="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+                    <i data-lucide="search" class="w-5 h-5 text-slate-400 group-focus-within:text-brand-600 transition-colors"></i>
+                </div>
+                <input type="text" id="cmd-input" 
+                    class="w-full h-20 pl-16 pr-20 bg-transparent border-none text-xl text-slate-800 placeholder-slate-400 focus:ring-0 font-medium" 
+                    placeholder="¿Qué estás buscando?..." autocomplete="off">
+                
+                <div class="absolute right-6 top-1/2 -translate-y-1/2">
+                    <button id="cmd-close" class="text-[10px] font-bold text-slate-400 bg-slate-100/80 border border-slate-200 px-2 py-1 rounded-lg hover:bg-slate-200 transition-colors uppercase tracking-widest">ESC</button>
+                </div>
+            </div>
+
+            <div class="h-[1px] w-full bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+
+            <div class="max-h-[60vh] overflow-y-auto custom-scrollbar p-3 bg-slate-50/20">
+                <div class="px-4 py-3 flex justify-between items-center">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em]" id="cmd-label">Sugerencias del Sistema</span>
+                    <span class="text-[10px] text-slate-300 font-medium">Resultados: <span id="cmd-count" class="text-slate-500">5</span></span>
+                </div>
+                
+                <ul class="space-y-1" id="cmd-list">
+                    <li class="cmd-item">
+                        <a href="{% url 'dashboard' %}" class="flex items-center px-4 py-4 rounded-2xl transition-all duration-200 group outline-none focus:bg-brand-600 hover:bg-white hover:shadow-md">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center mr-4 group-hover:bg-indigo-100 group-focus:bg-brand-500 transition-colors shadow-sm">
+                                <i data-lucide="layout-grid" class="w-5 h-5 text-indigo-500 group-focus:text-white transition-colors"></i>
+                            </div>
+                            <div class="flex flex-col flex-1">
+                                <span class="font-bold text-[15px] text-slate-700 group-focus:text-white title-search">Dashboard General</span>
+                                <span class="text-xs text-slate-400 group-focus:text-brand-100 desc-search">Panel principal de métricas y analítica</span>
+                            </div>
+                            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 group-focus:text-white transition-all"></i>
+                        </a>
+                    </li>
+
+                    <li class="cmd-item">
+                        <a href="{% url 'clientes:lista_clientes' %}" class="flex items-center px-4 py-4 rounded-2xl transition-all duration-200 group outline-none focus:bg-brand-600 hover:bg-white hover:shadow-md">
+                            <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center mr-4 group-hover:bg-blue-100 group-focus:bg-brand-500 transition-colors shadow-sm">
+                                <i data-lucide="users" class="w-5 h-5 text-blue-500 group-focus:text-white transition-colors"></i>
+                            </div>
+                            <div class="flex flex-col flex-1">
+                                <span class="font-bold text-[15px] text-slate-700 group-focus:text-white title-search">Base de Clientes</span>
+                                <span class="text-xs text-slate-400 group-focus:text-brand-100 desc-search">Gestión de cartera, contactos y CRM</span>
+                            </div>
+                            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 group-focus:text-white transition-all"></i>
+                        </a>
+                    </li>
+
+                    <li class="cmd-item">
+                        <a href="{% url 'servicios:lista_cotizaciones' %}" class="flex items-center px-4 py-4 rounded-2xl transition-all duration-200 group outline-none focus:bg-brand-600 hover:bg-white hover:shadow-md">
+                            <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center mr-4 group-hover:bg-amber-100 group-focus:bg-brand-500 transition-colors shadow-sm">
+                                <i data-lucide="file-text" class="w-5 h-5 text-amber-500 group-focus:text-white transition-colors"></i>
+                            </div>
+                            <div class="flex flex-col flex-1">
+                                <span class="font-bold text-[15px] text-slate-700 group-focus:text-white title-search">Cotizaciones</span>
+                                <span class="text-xs text-slate-400 group-focus:text-brand-100 desc-search">Crear y revisar presupuestos comerciales</span>
+                            </div>
+                            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 group-focus:text-white transition-all"></i>
+                        </a>
+                    </li>
+
+                    <li class="cmd-item">
+                        <a href="{% url 'proyectos:lista_proyectos_pendientes' %}" class="flex items-center px-4 py-4 rounded-2xl transition-all duration-200 group outline-none focus:bg-brand-600 hover:bg-white hover:shadow-md">
+                            <div class="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center mr-4 group-hover:bg-rose-100 group-focus:bg-brand-500 transition-colors shadow-sm">
+                                <i data-lucide="clock" class="w-5 h-5 text-rose-500 group-focus:text-white transition-colors"></i>
+                            </div>
+                            <div class="flex flex-col flex-1">
+                                <span class="font-bold text-[15px] text-slate-700 group-focus:text-white title-search">Proyectos Pendientes</span>
+                                <span class="text-xs text-slate-400 group-focus:text-brand-100 desc-search">Tareas en espera de ejecución y cronogramas</span>
+                            </div>
+                            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 group-focus:text-white transition-all"></i>
+                        </a>
+                    </li>
+
+                    <li class="cmd-item">
+                        <a href="{% url 'proyectos:lista_informes_finales' %}" class="flex items-center px-4 py-4 rounded-2xl transition-all duration-200 group outline-none focus:bg-brand-600 hover:bg-white hover:shadow-md">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mr-4 group-hover:bg-emerald-100 group-focus:bg-brand-500 transition-colors shadow-sm">
+                                <i data-lucide="clipboard-check" class="w-5 h-5 text-emerald-500 group-focus:text-white transition-colors"></i>
+                            </div>
+                            <div class="flex flex-col flex-1">
+                                <span class="font-bold text-[15px] text-slate-700 group-focus:text-white title-search">Informes Finales</span>
+                                <span class="text-xs text-slate-400 group-focus:text-brand-100 desc-search">Resultados, entregables y cierre de obra</span>
+                            </div>
+                            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 group-focus:text-white transition-all"></i>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="bg-slate-50/80 backdrop-blur-md px-6 py-4 border-t border-slate-100 flex justify-between items-center text-slate-400">
+                <div class="flex items-center gap-5">
+                    <div class="flex items-center gap-1.5">
+                        <kbd class="min-w-[20px] h-5 flex items-center justify-center bg-white border border-slate-200 rounded text-[10px] font-bold shadow-sm text-slate-500 uppercase">↑↓</kbd>
+                        <span class="text-[11px] font-medium">Navegar</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <kbd class="min-w-[40px] h-5 flex items-center justify-center bg-white border border-slate-200 rounded text-[10px] font-bold shadow-sm text-slate-500 uppercase">Enter</kbd>
+                        <span class="text-[11px] font-medium">Seleccionar</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Vicaf v1.0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { 
+        background: #e2e8f0; 
+        border-radius: 10px; 
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const palette = document.getElementById('cmd-palette');
+    const panel = document.getElementById('cmd-panel');
+    const input = document.getElementById('cmd-input');
+    const items = document.querySelectorAll('.cmd-item');
+    const label = document.getElementById('cmd-label');
+    const countDisplay = document.getElementById('cmd-count');
+    const closeBtn = document.getElementById('cmd-close');
+    let selectedIndex = -1;
+
+    const togglePalette = (show) => {
+        if(show) {
+            palette.classList.remove('hidden');
+            setTimeout(() => {
+                palette.classList.replace('opacity-0', 'opacity-100');
+                panel.classList.replace('scale-95', 'scale-100');
+                input.focus();
+            }, 10);
+        } else {
+            palette.classList.replace('opacity-100', 'opacity-0');
+            panel.classList.replace('scale-100', 'scale-95');
+            setTimeout(() => palette.classList.add('hidden'), 300);
+            input.value = '';
+            filterItems('');
+        }
+    };
+
+    const filterItems = (query) => {
+        let count = 0;
+        const q = query.toLowerCase();
+        items.forEach(item => {
+            const title = item.querySelector('.title-search').textContent.toLowerCase();
+            const desc = item.querySelector('.desc-search').textContent.toLowerCase();
+            const isMatch = title.includes(q) || desc.includes(q);
+            
+            item.classList.toggle('hidden', !isMatch);
+            if(isMatch) count++;
+        });
+        countDisplay.textContent = count;
+        label.textContent = query ? 'Resultados de búsqueda' : 'Sugerencias del Sistema';
+        selectedIndex = -1;
+        updateSelection();
+    };
+
+    const updateSelection = () => {
+        const visibleItems = Array.from(items).filter(i => !i.classList.contains('hidden'));
+        
+        items.forEach(item => {
+            const link = item.querySelector('a');
+            link.classList.remove('bg-brand-600', 'text-white', 'shadow-lg', 'shadow-brand-600/20');
+            item.querySelectorAll('span').forEach(s => {
+                s.classList.remove('text-white', 'text-brand-100');
+                if(s.classList.contains('title-search')) s.classList.add('text-slate-700');
+                if(s.classList.contains('desc-search')) s.classList.add('text-slate-400');
+            });
+            item.querySelector('i').classList.remove('text-white');
+        });
+
+        if (selectedIndex > -1 && visibleItems[selectedIndex]) {
+            const activeLink = visibleItems[selectedIndex].querySelector('a');
+            activeLink.classList.add('bg-brand-600', 'text-white', 'shadow-lg', 'shadow-brand-600/20');
+            visibleItems[selectedIndex].querySelectorAll('span').forEach(s => {
+                s.classList.remove('text-slate-700', 'text-slate-400');
+                s.classList.add('text-white');
+                if(s.classList.contains('desc-search')) s.classList.add('text-brand-100');
+            });
+            visibleItems[selectedIndex].querySelector('i').classList.add('text-white');
+            visibleItems[selectedIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+    };
+
+    input.addEventListener('input', e => filterItems(e.target.value));
+
+    input.addEventListener('keydown', e => {
+        const visibleItems = Array.from(items).filter(i => !i.classList.contains('hidden'));
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            selectedIndex = (selectedIndex + 1) % visibleItems.length;
+            updateSelection();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            selectedIndex = (selectedIndex - 1 + visibleItems.length) % visibleItems.length;
+            updateSelection();
+        } else if (e.key === 'Enter') {
+            if (selectedIndex > -1) {
+                visibleItems[selectedIndex].querySelector('a').click();
+            }
+        } else if (e.key === 'Escape') {
+            togglePalette(false);
+        }
+    });
+
+    // Atajo CTRL+K / CMD+K
+    document.addEventListener('keydown', e => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+            e.preventDefault();
+            togglePalette(true);
+        }
+    });
+
+    closeBtn.onclick = () => togglePalette(false);
+    palette.onclick = (e) => { if(e.target === palette) togglePalette(false); };
+});
+</script>

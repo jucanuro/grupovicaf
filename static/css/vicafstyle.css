@@ -1,0 +1,56 @@
+/* --- CONFIGURACIÓN DE FUENTE & BASE --- */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: #f8fafc;
+    color: #334155;
+    /* Fondo ambiental con gradientes radiales sutiles */
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.03) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(37, 99, 235, 0.03) 0px, transparent 50%);
+    background-attachment: fixed;
+    margin: 0;
+    overflow-x: hidden;
+}
+
+/* --- SIDEBAR GLASSMORPHISM --- */
+.sidebar-glass {
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    box-shadow: 20px 0 40px -15px rgba(0, 0, 0, 0.03);
+}
+
+/* --- OPTIMIZACIÓN DE NAVEGACIÓN --- */
+/* Scrollbar Oculto pero funcional */
+.hide-scrollbar::-webkit-scrollbar { 
+    display: none; 
+}
+.hide-scrollbar { 
+    -ms-overflow-style: none; 
+    scrollbar-width: none; 
+}
+
+/* Tamaño consistente para iconos Lucide */
+.nav-icon-box i, 
+.nav-item i {
+    width: 1.25rem; /* w-5 */
+    height: 1.25rem; /* h-5 */
+    stroke-width: 2.5px; /* Iconos más definidos y elegantes */
+}
+
+/* --- ANIMACIONES EXTRA --- */
+@keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.nav-item {
+    animation: slideInLeft 0.4s ease-out forwards;
+}
+
+/* Efecto de elevación al hacer hover en botones del sidebar */
+.nav-item:hover .nav-icon-box {
+    transform: translateY(-1px);
+}

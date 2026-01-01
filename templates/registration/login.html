@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="es" class="">
+<html lang="es">
 
 <head>
     <meta charset="UTF-8">
@@ -10,141 +10,245 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
     <script>
         tailwind.config = {
-            // Eliminamos 'darkMode: class' ya que estamos forzando Light Mode en el body.
             theme: {
                 extend: {
-                    fontFamily: {
-                        'sans': ['Inter', 'sans-serif'],
-                    },
+                    fontFamily: { 'sans': ['Inter', 'sans-serif'] },
                     keyframes: {
-                        'aurora-spin': { 'from': { transform: 'rotate(0deg)' }, 'to': { transform: 'rotate(360deg)' } },
-                        'fade-in-up': { '0%': { opacity: '0', transform: 'translateY(30px) scale(0.95)' }, '100%': { opacity: '1', transform: 'translateY(0) scale(1)' } },
-                        'gradient-glow': {
-                            '0%': { 'background-position': '0% 50%' },
-                            '50%': { 'background-position': '100% 50%' },
-                            '100%': { 'background-position': '0% 50%' },
-                        },
-                        'float': {
-                            '0%, 100%': { transform: 'translateY(0px)' },
-                            '50%': { transform: 'translateY(-10px)' }
-                        }
+                        'fade-in-up': { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+                        'float': { '0%, 100%': { transform: 'translateY(0px)' }, '50%': { transform: 'translateY(-10px)' } }
                     },
                     animation: {
-                        'aurora': 'aurora-spin 20s linear infinite',
-                        'fade-in-up': 'fade-in-up 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
-                        'gradient-glow': 'gradient-glow 15s ease infinite',
+                        'fade-in-up': 'fade-in-up 0.6s ease-out forwards',
                         'float': 'float 4s ease-in-out infinite'
-                    },
-                    backgroundImage: {
-                        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
                     }
                 }
             }
         }
     </script>
+
     <style>
-        /* La tarjeta es ahora un contenedor blanco simple con sombra */
-        .white-card {
+        body { background-color: #ffffff; overflow-x: hidden; }
+
+        /* Efecto de Corte de Tijera */
+        .scissor-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 50%;
+            height: 100%;
+            background: #f8fafc;
+            z-index: -1;
+            clip-path: polygon(0 0, 100% 0, 85% 100%, 0% 100%);
+        }
+
+        @media (max-width: 1024px) {
+            .scissor-bg { width: 100%; clip-path: none; opacity: 0.5; }
+        }
+
+        .input-container {
+            position: relative;
+            margin-bottom: 1.25rem;
+        }
+
+        .input-premium {
+            width: 100%;
+            padding: 0.875rem 1rem 0.875rem 3.5rem;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
             background: #ffffff;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            border: 1px solid #e5e7eb; /* Borde sutil */
+            color: #1e293b;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
 
-        /* Input estándar para Light Mode */
-        .input-light {
-            background: #ffffff;
-            border: 1px solid #d1d5db; /* Gris claro */
-            color: #1f2937; /* Gris oscuro para el texto */
-            transition: all 0.3s;
+        .input-premium:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15), 0 4px 12px rgba(59, 130, 246, 0.1);
         }
 
-        .input-light:focus {
-            border-color: #3b82f6; /* Azul al enfocar */
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        .input-icon {
+            position: absolute;
+            left: 1.2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            transition: color 0.3s ease;
         }
 
-        /* Degradado de texto sin cambios (se ve bien en blanco) */
-        .gradient-text {
-            background-image: linear-gradient(120deg, #9333ea, #3b82f6, #06b6d4);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-size: 200% 200%;
-        }
+        .input-premium:focus + .input-icon { color: #3b82f6; }
 
-        /* Ajuste el color del botón para que el degradado se mantenga visible y vibrante */
         .btn-gradient {
             background: linear-gradient(to right, #10b981, #0ea5e9, #8b5cf6);
-            color: white; /* Texto blanco en el botón */
             background-size: 200% auto;
-            transition: all 0.5s ease-in-out;
+            transition: 0.5s;
+            color: white;
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
         }
 
         .btn-gradient:hover {
             background-position: right center;
-            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.5); /* Sombra azul más ligera */
+            transform: translateY(-2px);
+        }
+
+        .label-premium {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+            margin-left: 0.25rem;
         }
     </style>
 </head>
 
-<body class="font-sans bg-white text-gray-900 overflow-hidden">
-    <div id="aurora-background" class="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden transition-all duration-1000 ease-in-out opacity-40">
-        <div class="absolute w-[180vw] h-[180vw] bg-gradient-to-r from-violet-300/30 via-cyan-300/30 to-emerald-300/30 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-aurora rounded-full"></div>
-        <div class="absolute w-[120vw] h-[120vw] bg-gradient-to-l from-indigo-300/30 via-pink-300/30 to-blue-300/30 bottom-1/4 right-1/4 animate-aurora rounded-full"></div>
-    </div>
+<body class="font-sans text-slate-900">
+    <div class="scissor-bg"></div>
 
-    <div class="flex flex-col lg:flex-row items-center justify-center min-h-screen p-6 relative z-10">
-
-        <div class="hidden lg:flex flex-col items-start justify-center p-12 w-full lg:w-1/2 h-full text-left">
-            <h1 class="text-6xl font-extrabold text-gray-900 mb-4 animate-fade-in-up">
-                <span class="gradient-text">Vicafpro</span>
-            </h1>
-            <p class="text-gray-600 text-xl max-w-lg mb-8 animate-fade-in-up" style="animation-delay: 0.2s;">
-                Simplifica tus tareas diarias con nuestra plataforma innovadora y segura.
-            </p>
-            <div class="w-2/3 h-64 bg-gray-100/50 rounded-3xl mt-12 white-card animate-float shadow-xl" style="animation-delay: 0.4s;">
+    <div class="flex flex-col lg:flex-row min-h-screen w-full">
+        
+        <div class="hidden lg:flex flex-col justify-center px-8 xl:px-16 py-12 w-1/2 animate-fade-in-up">
+            <div class="space-y-1 mb-6">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="h-px w-8 bg-blue-600"></span>
+                    <span class="text-[10px] font-bold tracking-[0.3em] text-blue-600 uppercase">Plataforma de Gestión</span>
                 </div>
+                <h1 class="text-5xl xl:text-7xl tracking-tighter flex items-center">
+                    <span class="font-black text-slate-900">Vicaf</span>
+                    <span class="font-light bg-gradient-to-br from-blue-600 to-indigo-800 bg-clip-text text-transparent italic">pro</span>
+                    <span class="ml-1 h-3 w-3 rounded-full bg-blue-600"></span>
+                </h1>
+            </div>
+
+            <div class="animate-fade-in-up" style="animation-delay: 0.4s;">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="h-[1px] w-12 bg-blue-500/30"></div>
+                    <span class="text-[11px] font-bold text-blue-600/70 uppercase tracking-[0.2em]">Core Capabilities</span>
+                </div>
+
+                <div class="relative p-8 rounded-[32px] bg-white/50 border border-slate-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.03)] backdrop-blur-sm max-w-lg">
+                    <div class="absolute top-0 right-0 p-4">
+                        <svg class="w-8 h-8 text-blue-500/10" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2L15 8H21L16 12L18 18L12 14L6 18L8 12L3 8H9L12 2Z"/>
+                        </svg>
+                    </div>
+
+                    <p class="text-xl text-slate-600 font-light leading-relaxed">
+                        Potencia la trazabilidad total en tu flujo de trabajo de 
+                        <span class="relative inline-block px-1">
+                            <span class="relative z-10 font-semibold text-slate-900">laboratorio y gestión</span>
+                            <span class="absolute bottom-1 left-0 w-full h-2 bg-blue-100/60 -z-0"></span>
+                        </span>.
+                    </p>
+                    
+                    <div class="grid grid-cols-2 gap-4 mt-8">
+                        <div class="flex items-center gap-3 group">
+                            <div class="p-2 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                <i data-lucide="test-tube-2" class="w-4 h-4"></i>
+                            </div>
+                            <span class="text-xs font-bold text-slate-500 tracking-tight uppercase">Ensayos</span>
+                        </div>
+                        <div class="flex items-center gap-3 group">
+                            <div class="p-2 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                <i data-lucide="file-text" class="w-4 h-4"></i>
+                            </div>
+                            <span class="text-xs font-bold text-slate-500 tracking-tight uppercase">Informes</span>
+                        </div>
+                        <div class="flex items-center gap-3 group">
+                            <div class="p-2 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                <i data-lucide="microscope" class="w-4 h-4"></i>
+                            </div>
+                            <span class="text-xs font-bold text-slate-500 tracking-tight uppercase">Muestras</span>
+                        </div>
+                        <div class="flex items-center gap-3 group">
+                            <div class="p-2 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                <i data-lucide="calculator" class="w-4 h-4"></i>
+                            </div>
+                            <span class="text-xs font-bold text-slate-500 tracking-tight uppercase">Cotización</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 w-full max-w-sm h-48 bg-white/40 border border-white rounded-[40px] shadow-2xl backdrop-blur-md flex items-center justify-center animate-float overflow-hidden relative">
+                <div class="absolute inset-0 opacity-10">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <path fill="#3b82f6" d="M44.7,-76.4C58.3,-69.2,70.1,-57.4,77.6,-43.3C85.1,-29.2,88.3,-12.6,86.5,3.6C84.7,19.8,77.9,35.7,68,49.2C58.1,62.7,45.1,73.8,30.3,78.5C15.5,83.2,-1.1,81.5,-17.1,76.9C-33.1,72.3,-48.5,64.8,-60.2,53C-71.9,41.2,-79.9,25.1,-82.2,8.6C-84.5,-7.9,-81.1,-24.8,-72.6,-38.8C-64.1,-52.8,-50.5,-63.9,-36.3,-70.8C-22.1,-77.7,-7.3,-80.4,8.1,-91.6C23.5,-102.8,31.1,-83.6,44.7,-76.4Z" transform="translate(100 100)" />
+                    </svg>
+                </div>
+                <div class="text-center z-10">
+                    <span class="text-5xl font-bold text-slate-800 tracking-widest block" id="clock">00:00</span>
+                    <span class="text-xs uppercase tracking-[0.3em] text-blue-500 font-bold mt-2 block">Sistema Operativo</span>
+                </div>
+            </div>
         </div>
 
-        <div class="w-full max-w-md lg:w-1/2 h-full flex items-center justify-center animate-fade-in-up">
-            <div class="white-card p-10 rounded-3xl text-center w-full shadow-2xl"> 
-                <a href="/" class="mb-8 block">
-                    <img src="{% static 'img/LogoF.png' %}" alt="Logo" class="h-16 mx-auto rounded-lg">
-                </a>
-                <h2 class="text-4xl font-extrabold text-gray-900 mb-6">Iniciar Sesión</h2> 
-                <form method="post" class="space-y-6">
+        <div class="w-full lg:w-1/2 flex items-center justify-center p-6 md:p-12">
+            <div class="bg-white p-8 md:p-10 rounded-[40px] w-full max-w-md shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-50 animate-fade-in-up" style="animation-delay: 0.2s;">
+                
+                <div class="mb-10 md:mb-16 text-center">
+                    <a href="/" class="inline-block mb-6">
+                        <img src="{% static 'img/LogoF.png' %}" alt="Logo" class="h-12 mx-auto rounded-xl">
+                    </a>
+                    <h2 class="text-3xl font-bold text-slate-800">Iniciar Sesión</h2>
+                    <p class="text-slate-400 text-sm mt-2 font-medium">Bienvenido a la nueva experiencia</p>
+                </div>
+
+                <form method="post" class="space-y-5">
                     {% csrf_token %}
-                    <div class="space-y-4 text-left">
-                        <div>
-                            <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">Usuario</label> 
-                            <input type="text" name="username" id="{{ form.username.id_for_label }}"
-                                class="w-full p-3 rounded-xl input-light text-gray-900 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300" 
-                                placeholder="Ingresa tu usuario">
+                    
+                    <div class="input-container">
+                        <label class="label-premium">Usuario</label>
+                        <input type="text" name="username" class="input-premium" placeholder="Nombre de usuario" required>
+                        <i data-lucide="user" class="input-icon w-5 h-5"></i>
+                    </div>
+
+                    <div class="input-container">
+                        <div class="flex justify-between items-center pr-1">
+                            <label class="label-premium">Contraseña</label>
+                            <a href="#" class="text-[11px] font-bold text-blue-500 hover:underline mb-2">¿La olvidaste?</a>
                         </div>
-                        <div>
-                            <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label> 
-                            <input type="password" name="password" id="{{ form.password.id_for_label }}"
-                                class="w-full p-3 rounded-xl input-light text-gray-900 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
-                                placeholder="Ingresa tu contraseña">
-                        </div>
+                        <input type="password" name="password" class="input-premium" placeholder="••••••••" required>
+                        <i data-lucide="lock" class="input-icon w-5 h-5"></i>
                     </div>
 
                     {% if form.errors %}
-                        <div class="text-rose-600 text-sm mt-4 text-center"> 
-                            <p>Tu usuario o contraseña no son correctos. Inténtalo de nuevo.</p>
+                        <div class="bg-rose-50 text-rose-600 text-xs p-4 rounded-2xl border border-rose-100 flex items-center gap-2">
+                            <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                            <span>Credenciales incorrectas.</span>
                         </div>
                     {% endif %}
 
-                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 font-semibold rounded-full transition-all duration-500 btn-gradient hover:scale-105">
-                        Iniciar Sesión
+                    <button type="submit" class="w-full py-4 rounded-2xl font-bold text-sm tracking-widest uppercase btn-gradient active:scale-95 transition-all duration-200">
+                        Entrar al Sistema
                     </button>
-                    <a href="#" class="block text-sm text-gray-500 hover:text-blue-600 transition-colors duration-300 mt-4">¿Olvidaste tu contraseña?</a> 
+                    
                 </form>
+                
+                <div class="mt-10 pt-8 border-t border-slate-50 text-center">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Vicaf SAC &copy; 2026</p>
+                </div>
             </div>
         </div>
     </div>
-</body>
 
+    <script>
+        lucide.createIcons();
+        function updateClock() {
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('clock').textContent = `${h}:${m}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+</body>
 </html>

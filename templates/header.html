@@ -1,0 +1,324 @@
+<aside class="hidden lg:flex flex-col sidebar-glass fixed left-0 top-0 h-full w-[5.5rem] border-r border-white/50 shadow-[5px_0_30px_rgba(0,0,0,0.02)] transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] z-50 hover:w-[18rem]">
+    
+    <div class="h-24 flex items-center justify-start px-5 mb-2">
+        <div class="flex items-center gap-4 overflow-hidden">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-900 via-brand-700 to-brand-600 flex items-center justify-center shadow-lg shadow-brand-600/20 flex-shrink-0 cursor-pointer hover:scale-[1.03] transition-transform duration-300">
+                <span class="font-bold text-white text-xl tracking-tighter">V</span>
+            </div>
+            <div class="nav-text opacity-0 transition-all duration-300 translate-x-[-10px] sidebar-glass-hover:opacity-100 sidebar-glass-hover:translate-x-0 sidebar-glass-hover:delay-[0.05s] flex flex-col justify-center pointer-events-none">
+                <span class="text-xl font-bold text-slate-900 tracking-tight leading-none">VICAF</span>
+                <span class="text-[10px] font-bold text-brand-600 uppercase tracking-[0.2em] mt-1">Enterprise</span>
+            </div>
+        </div>
+    </div>
+
+    <nav class="flex-1 flex flex-col space-y-2 overflow-y-auto hide-scrollbar py-2">
+        
+        <a href="{% url 'dashboard' %}" 
+            class="nav-item relative flex items-center h-14 min-h-[3.5rem] px-3 mx-3.5 rounded-xl transition-all duration-300 group overflow-hidden 
+                    {% if request.path == '/' or 'dashboard' in request.path %}
+                        bg-white shadow-[0_4px_15px_rgba(37,99,235,0.1)] border border-brand-100
+                    {% endif %}
+                    hover:bg-slate-100">
+            <div class="nav-icon-box w-10 h-10 flex items-center justify-center rounded-[10px] transition-all duration-300 flex-shrink-0 
+                        text-slate-500 group-hover:bg-blue-50 group-hover:text-brand-600 group-hover:shadow-sm
+                        {% if request.path == '/' or 'dashboard' in request.path %}
+                            bg-gradient-to-br from-brand-600 to-brand-700 text-white shadow-[0_2px_10px_rgba(37,99,235,0.5)]
+                        {% endif %}">
+                <i data-lucide="layout-grid"></i>
+            </div>
+            <span class="ml-4 text-sm font-medium whitespace-nowrap nav-text opacity-0 transition-all duration-300 translate-x-[-10px] sidebar-glass-hover:opacity-100 sidebar-glass-hover:translate-x-0 sidebar-glass-hover:delay-[0.05s] pointer-events-none
+                        {% if request.path == '/' or 'dashboard' in request.path %}
+                            text-slate-900 font-bold
+                        {% else %}
+                            text-slate-700 group-hover:text-slate-900
+                        {% endif %}">
+                Dashboard General
+            </span>
+        </a>
+
+        <a href="{% url 'analitycs' %}" 
+            class="nav-item relative flex items-center h-14 min-h-[3.5rem] px-3 mx-3.5 rounded-xl transition-all duration-300 group overflow-hidden 
+                    {% if 'analytics' in request.path %}
+                        bg-white shadow-[0_4px_15px_rgba(37,99,235,0.1)] border border-brand-100
+                    {% endif %}
+                    hover:bg-slate-100">
+            <div class="nav-icon-box w-10 h-10 flex items-center justify-center rounded-[10px] transition-all duration-300 flex-shrink-0 
+                        text-slate-500 group-hover:bg-blue-50 group-hover:text-brand-600 group-hover:shadow-sm
+                        {% if 'analytics' in request.path %}
+                            bg-gradient-to-br from-brand-600 to-brand-700 text-white shadow-[0_2px_10px_rgba(37,99,235,0.5)]
+                        {% endif %}">
+                <i data-lucide="bar-chart-2"></i>
+            </div>
+            <span class="ml-4 text-sm font-medium whitespace-nowrap nav-text opacity-0 transition-all duration-300 translate-x-[-10px] sidebar-glass-hover:opacity-100 sidebar-glass-hover:translate-x-0 sidebar-glass-hover:delay-[0.05s] pointer-events-none
+                        {% if 'analytics' in request.path %}
+                            text-slate-900 font-bold
+                        {% else %}
+                            text-slate-700 group-hover:text-slate-900
+                        {% endif %}">
+                Analíticas
+            </span>
+        </a>
+
+        <div class="my-2 mx-6 border-t border-slate-100/80"></div>
+        
+        <div class="px-6 pt-1 text-[10px] uppercase font-bold text-slate-400 tracking-wider nav-text opacity-0 transition-all duration-300 translate-x-[-10px] sidebar-glass-hover:opacity-100 sidebar-glass-hover:translate-x-0 sidebar-glass-hover:delay-[0.05s]">
+            Gestión
+        </div>
+
+        <a href="{% url 'clientes:lista_clientes' %}" 
+            class="nav-item relative flex items-center h-14 min-h-[3.5rem] px-3 mx-3.5 rounded-xl transition-all duration-300 group overflow-hidden 
+                    {% if 'clientes' in request.path %}
+                        bg-white shadow-[0_4px_15px_rgba(37,99,235,0.1)] border border-brand-100
+                    {% endif %}
+                    hover:bg-slate-100">
+            <div class="nav-icon-box w-10 h-10 flex items-center justify-center rounded-[10px] transition-all duration-300 flex-shrink-0 
+                        text-slate-500 group-hover:bg-blue-50 group-hover:text-brand-600 group-hover:shadow-sm
+                        {% if 'clientes' in request.path %}
+                            bg-gradient-to-br from-brand-600 to-brand-700 text-white shadow-[0_2px_10px_rgba(37,99,235,0.5)]
+                        {% endif %}">
+                <i data-lucide="users"></i>
+            </div>
+            <span class="ml-4 text-sm font-medium whitespace-nowrap nav-text opacity-0 transition-all duration-300 translate-x-[-10px] sidebar-glass-hover:opacity-100 sidebar-glass-hover:translate-x-0 sidebar-glass-hover:delay-[0.05s] pointer-events-none
+                        {% if 'clientes' in request.path %}
+                            text-slate-900 font-bold
+                        {% else %}
+                            text-slate-700 group-hover:text-slate-900
+                        {% endif %}">
+                Base de Clientes
+            </span>
+        </a>
+
+        <a href="{% url 'trabajadores:lista_trabajadores' %}" 
+            class="nav-item relative flex items-center h-14 min-h-[3.5rem] px-3 mx-3.5 rounded-xl transition-all duration-300 group overflow-hidden 
+                    {% if 'trabajadores' in request.path %}
+                        bg-white shadow-[0_4px_15px_rgba(37,99,235,0.1)] border border-brand-100
+                    {% endif %}
+                    hover:bg-slate-100">
+            <div class="nav-icon-box w-10 h-10 flex items-center justify-center rounded-[10px] transition-all duration-300 flex-shrink-0 
+                        text-slate-500 group-hover:bg-blue-50 group-hover:text-brand-600 group-hover:shadow-sm
+                        {% if 'trabajadores' in request.path %}
+                            bg-gradient-to-br from-brand-600 to-brand-700 text-white shadow-[0_2px_10px_rgba(37,99,235,0.5)]
+                        {% endif %}">
+                <i data-lucide="hard-hat"></i>
+            </div>
+            <span class="ml-4 text-sm font-medium whitespace-nowrap nav-text opacity-0 transition-all duration-300 translate-x-[-10px] sidebar-glass-hover:opacity-100 sidebar-glass-hover:translate-x-0 sidebar-glass-hover:delay-[0.05s] pointer-events-none
+                        {% if 'trabajadores' in request.path %}
+                            text-slate-900 font-bold
+                        {% else %}
+                            text-slate-700 group-hover:text-slate-900
+                        {% endif %}">
+                Equipo Técnico
+            </span>
+        </a>
+
+        <a href="{% url 'servicios:lista_servicios' %}" 
+            class="nav-item relative flex items-center h-14 min-h-[3.5rem] px-3 mx-3.5 rounded-xl transition-all duration-300 group overflow-hidden 
+                    {% if 'servicios' in request.path and not 'cotizaciones' in request.path %}
+                        bg-white shadow-[0_4px_15px_rgba(37,99,235,0.1)] border border-brand-100
+                    {% endif %}
+                    hover:bg-slate-100">
+            <div class="nav-icon-box w-10 h-10 flex items-center justify-center rounded-[10px] transition-all duration-300 flex-shrink-0 
+                        text-slate-500 group-hover:bg-blue-50 group-hover:text-brand-600 group-hover:shadow-sm
+                        {% if 'servicios' in request.path and not 'cotizaciones' in request.path %}
+                            bg-gradient-to-br from-brand-600 to-brand-700 text-white shadow-[0_2px_10px_rgba(37,99,235,0.5)]
+                        {% endif %}">
+                <i data-lucide="wrench"></i>
+            </div>
+            <span class="ml-4 text-sm font-medium whitespace-nowrap nav-text opacity-0 transition-all duration-300 translate-x-[-10px] sidebar-glass-hover:opacity-100 sidebar-glass-hover:translate-x-0 sidebar-glass-hover:delay-[0.05s] pointer-events-none
+                        {% if 'servicios' in request.path and not 'cotizaciones' in request.path %}
+                            text-slate-900 font-bold
+                        {% else %}
+                            text-slate-700 group-hover:text-slate-900
+                        {% endif %}">
+                Servicios & Catálogo
+            </span>
+        </a>
+
+        <a href="{% url 'servicios:lista_cotizaciones' %}" 
+            class="nav-item relative flex items-center h-14 min-h-[3.5rem] px-3 mx-3.5 rounded-xl transition-all duration-300 group overflow-hidden 
+                    {% if 'cotizaciones' in request.path %}
+                        bg-white shadow-[0_4px_15px_rgba(37,99,235,0.1)] border border-brand-100
+                    {% endif %}
+                    hover:bg-slate-100">
+            <div class="nav-icon-box w-10 h-10 flex items-center justify-center rounded-[10px] transition-all duration-300 flex-shrink-0 
+                        text-slate-500 group-hover:bg-blue-50 group-hover:text-brand-600 group-hover:shadow-sm
+                        {% if 'cotizaciones' in request.path %}
+                            bg-gradient-to-br from-brand-600 to-brand-700 text-white shadow-[0_2px_10px_rgba(37,99,235,0.5)]
+                        {% endif %}">
+                <i data-lucide="file-text"></i>
+            </div>
+            <span class="ml-4 text-sm font-medium whitespace-nowrap nav-text opacity-0 transition-all duration-300 translate-x-[-10px] sidebar-glass-hover:opacity-100 sidebar-glass-hover:translate-x-0 sidebar-glass-hover:delay-[0.05s] pointer-events-none
+                        {% if 'cotizaciones' in request.path %}
+                            text-slate-900 font-bold
+                        {% else %}
+                            text-slate-700 group-hover:text-slate-900
+                        {% endif %}">
+                Cotizaciones
+            </span>
+        </a>
+
+        <div class="relative group/dropdown">
+            <div id="proyectos-btn" 
+                    class="nav-item cursor-pointer justify-between pr-3 relative flex items-center h-14 min-h-[3.5rem] px-3 mx-3.5 rounded-xl transition-all duration-300 group overflow-hidden 
+                        {% if 'proyectos' in request.path %}
+                            bg-white shadow-[0_4px_15px_rgba(37,99,235,0.1)] border border-brand-100
+                        {% endif %}
+                        hover:bg-slate-100">
+                <div class="flex items-center">
+                    <div class="nav-icon-box w-10 h-10 flex items-center justify-center rounded-[10px] transition-all duration-300 flex-shrink-0 
+                                text-slate-500 group-hover:bg-blue-50 group-hover:text-brand-600 group-hover:shadow-sm
+                                {% if 'proyectos' in request.path %}
+                                    bg-gradient-to-br from-brand-600 to-brand-700 text-white shadow-[0_2px_10px_rgba(37,99,235,0.5)]
+                                {% endif %}">
+                        <i data-lucide="folder-kanban"></i>
+                    </div>
+                    <span class="ml-4 text-sm font-medium whitespace-nowrap nav-text opacity-0 transition-all duration-300 translate-x-[-10px] sidebar-glass-hover:opacity-100 sidebar-glass-hover:translate-x-0 sidebar-glass-hover:delay-[0.05s] pointer-events-none
+                                {% if 'proyectos' in request.path %}
+                                    text-slate-900 font-bold
+                                {% else %}
+                                    text-slate-700 group-hover:text-slate-900
+                                {% endif %}">
+                        Proyectos
+                    </span>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 nav-text opacity-0 transition-all duration-300 translate-x-[-10px] sidebar-glass-hover:opacity-100 sidebar-glass-hover:translate-x-0 sidebar-glass-hover:delay-[0.05s] group-hover/dropdown:rotate-90 flex-shrink-0"></i>
+            </div>
+            
+            <div id="proyectos-menu" class="hidden flex-col bg-slate-50/50 mx-4 rounded-xl border border-slate-100 overflow-hidden mb-2">
+                <a href="{% url 'proyectos:lista_proyectos_pendientes' %}" class="pl-14 pr-4 py-2.5 text-sm text-slate-500 hover:text-brand-600 hover:bg-white transition-colors flex items-center">
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-300 mr-2 hover:bg-brand-600"></span> Pendientes
+                </a>
+                <a href="{% url 'proyectos:lista_solicitudes_ensayo' %}" class="pl-14 pr-4 py-2.5 text-sm text-slate-500 hover:text-brand-600 hover:bg-white transition-colors flex items-center">
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-300 mr-2"></span> Solicitudes
+                </a>
+                <a href="{% url 'proyectos:lista_resultados_ensayo' %}" class="pl-14 pr-4 py-2.5 text-sm text-slate-500 hover:text-brand-600 hover:bg-white transition-colors flex items-center">
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-300 mr-2"></span> Resultados
+                </a>
+            </div>
+        </div>
+
+        <a href="{% url 'proyectos:lista_informes_finales' %}" 
+            class="nav-item relative flex items-center h-14 min-h-[3.5rem] px-3 mx-3.5 rounded-xl transition-all duration-300 group overflow-hidden 
+                    {% if 'informes' in request.path %}
+                        bg-white shadow-[0_4px_15px_rgba(37,99,235,0.1)] border border-brand-100
+                    {% endif %}
+                    hover:bg-slate-100">
+            <div class="nav-icon-box w-10 h-10 flex items-center justify-center rounded-[10px] transition-all duration-300 flex-shrink-0 
+                        text-slate-500 group-hover:bg-blue-50 group-hover:text-brand-600 group-hover:shadow-sm
+                        {% if 'informes' in request.path %}
+                            bg-gradient-to-br from-brand-600 to-brand-700 text-white shadow-[0_2px_10px_rgba(37,99,235,0.5)]
+                        {% endif %}">
+                <i data-lucide="clipboard-check"></i>
+            </div>
+            <span class="ml-4 text-sm font-medium whitespace-nowrap nav-text opacity-0 transition-all duration-300 translate-x-[-10px] sidebar-glass-hover:opacity-100 sidebar-glass-hover:translate-x-0 sidebar-glass-hover:delay-[0.05s] pointer-events-none
+                        {% if 'informes' in request.path %}
+                            text-slate-900 font-bold
+                        {% else %}
+                            text-slate-700 group-hover:text-slate-900
+                        {% endif %}">
+                Informes Finales
+            </span>
+        </a>
+
+    </nav>
+
+    <div class="p-4 border-t border-slate-100 bg-white/40 backdrop-blur-sm">
+        <a href="{% url 'logout' %}" class="nav-item cursor-pointer flex items-center h-12 px-2 m-0 rounded-xl transition-all duration-300 hover:bg-rose-50 border-none shadow-none">
+            <div class="nav-icon-box w-10 h-10 flex items-center justify-center rounded-[10px] transition-all duration-300 flex-shrink-0 text-rose-400 group-hover:bg-rose-100 group-hover:text-rose-600">
+                <i data-lucide="log-out"></i>
+            </div>
+            <span class="ml-4 text-xs font-bold uppercase tracking-wider text-rose-500 whitespace-nowrap nav-text opacity-0 transition-all duration-300 translate-x-[-10px] sidebar-glass-hover:opacity-100 sidebar-glass-hover:translate-x-0 sidebar-glass-hover:delay-[0.05s] pointer-events-none">
+                Cerrar Sesión
+            </span>
+        </a>
+    </div>
+</aside>
+
+<div id="mobile-menu" class="fixed inset-0 z-[100] bg-slate-50/95 backdrop-blur-2xl transform translate-x-full transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] lg:hidden flex flex-col">
+    
+    <div class="h-24 flex items-center justify-between px-8 bg-white/50 border-b border-slate-200/50">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center shadow-lg shadow-brand-600/20">
+                <span class="font-bold text-white text-lg">V</span>
+            </div>
+            <div class="flex flex-col">
+                <span class="text-lg font-black text-slate-900 leading-none">VICAF</span>
+                <span class="text-[10px] font-bold text-brand-600 uppercase tracking-widest">Enterprise</span>
+            </div>
+        </div>
+        <button id="close-mobile" class="w-10 h-10 flex items-center justify-center bg-slate-100 text-slate-500 rounded-full hover:bg-rose-50 hover:text-rose-500 transition-all duration-300">
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+    </div>
+
+    <div class="flex-1 px-6 py-8 overflow-y-auto space-y-6">
+        
+        <div>
+            <p class="px-4 mb-4 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em]">Navegación General</p>
+            <div class="space-y-2">
+                <a href="{% url 'dashboard' %}" class="flex items-center gap-4 p-4 rounded-2xl transition-all {% if request.path == '/' or 'dashboard' in request.path %} bg-brand-600 text-white shadow-xl shadow-brand-600/20 {% else %} bg-white text-slate-600 border border-slate-100 {% endif %}">
+                    <i data-lucide="layout-grid" class="w-5 h-5"></i>
+                    <span class="font-bold">Dashboard General</span>
+                </a>
+                
+                <a href="{% url 'analitycs' %}" class="flex items-center gap-4 p-4 rounded-2xl transition-all {% if 'analytics' in request.path %} bg-brand-600 text-white shadow-xl shadow-brand-600/20 {% else %} bg-white text-slate-600 border border-slate-100 {% endif %}">
+                    <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+                    <span class="font-bold">Analíticas</span>
+                </a>
+            </div>
+        </div>
+
+        <div>
+            <p class="px-4 mb-4 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em]">Operaciones</p>
+            <div class="space-y-2">
+                <a href="{% url 'clientes:lista_clientes' %}" class="flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 text-slate-600 active:scale-95 transition-transform">
+                    <div class="w-8 h-8 rounded-lg bg-blue-50 text-brand-600 flex items-center justify-center">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                    </div>
+                    <span class="font-bold text-sm">Base de Clientes</span>
+                </a>
+
+                <a href="{% url 'servicios:lista_servicios' %}" class="flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 text-slate-600">
+                    <div class="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
+                        <i data-lucide="wrench" class="w-4 h-4"></i>
+                    </div>
+                    <span class="font-bold text-sm">Servicios & Catálogo</span>
+                </a>
+
+                <a href="{% url 'servicios:lista_cotizaciones' %}" class="flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 text-slate-600">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                    </div>
+                    <span class="font-bold text-sm">Cotizaciones</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="p-5 bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl shadow-2xl overflow-hidden relative group">
+            <div class="absolute top-0 right-0 p-4 opacity-10">
+                <i data-lucide="folder-kanban" class="w-20 h-20 text-white"></i>
+            </div>
+            <h3 class="text-white font-bold mb-4 flex items-center gap-2">
+                <i data-lucide="layers" class="w-4 h-4 text-brand-400"></i> Proyectos
+            </h3>
+            <div class="grid grid-cols-1 gap-2 relative z-10">
+                <a href="{% url 'proyectos:lista_proyectos_pendientes' %}" class="flex items-center justify-between p-3 bg-white/10 rounded-xl text-slate-200 text-sm hover:bg-white/20 transition-colors">
+                    <span>Pendientes</span>
+                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </a>
+                <a href="{% url 'proyectos:lista_informes_finales' %}" class="flex items-center justify-between p-3 bg-white/10 rounded-xl text-slate-200 text-sm hover:bg-white/20 transition-colors">
+                    <span>Informes Finales</span>
+                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="p-6 bg-white border-t border-slate-100">
+        <a href="{% url 'logout' %}" class="flex items-center justify-center gap-3 w-full p-4 bg-rose-50 text-rose-600 rounded-2xl font-bold transition-all active:bg-rose-600 active:text-white">
+            <i data-lucide="log-out" class="w-5 h-5"></i>
+            CERRAR SESIÓN
+        </a>
+    </div>
+</div>
