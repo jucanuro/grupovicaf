@@ -3,107 +3,243 @@
 {% block content %}
 
 <style>
-    /* El degradado animado se mantiene, ya que es un toque moderno */
+    /* Fondo Geométrico Abstracto */
+    .bg-geometric {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        background-color: #ffffff;
+        overflow: hidden;
+    }
+
+    /* Elemento: Rombos */
+    .shape-rhombus {
+        position: absolute;
+        width: 150px;
+        height: 150px;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(37, 99, 235, 0.02) 100%);
+        transform: rotate(45deg);
+        border-radius: 20px;
+        top: 10%;
+        left: -50px;
+        animation: float 6s ease-in-out infinite;
+    }
+
+    /* Elemento: Cilindros (Pills) */
+    .shape-cylinder {
+        position: absolute;
+        width: 60px;
+        height: 200px;
+        background: linear-gradient(to bottom, rgba(16, 185, 129, 0.05), transparent);
+        border-radius: 100px;
+        bottom: 5%;
+        right: 15%;
+        transform: rotate(-20deg);
+        animation: float 8s ease-in-out infinite reverse;
+    }
+
+    /* Elemento: Pirámide (Triángulo) */
+    .shape-pyramid {
+        position: absolute;
+        width: 0;
+        height: 0;
+        border-left: 100px solid transparent;
+        border-right: 100px solid transparent;
+        border-bottom: 170px solid rgba(139, 92, 246, 0.04);
+        top: 40%;
+        right: -50px;
+        transform: rotate(15deg);
+    }
+
+    @keyframes float {
+        0% { transform: translateY(0px) rotate(45deg); }
+        50% { transform: translateY(-20px) rotate(48deg); }
+        100% { transform: translateY(0px) rotate(45deg); }
+    }
+
     .animated-gradient-text {
-        background: linear-gradient(to right, #10B981, #3B82F6, #8B5CF6); /* Ajusté un poco los colores */
+        background: linear-gradient(to right, #10B981, #3B82F6, #8B5CF6);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        background-clip: text;
-        text-fill-color: transparent;
         background-size: 200% auto;
         animation: text-gradient 3s linear infinite alternate;
     }
 
     @keyframes text-gradient {
-        to {
-            background-position: 200% center;
-        }
+        to { background-position: 200% center; }
+    }
+
+    /* Glassmorphism para la tarjeta principal */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.04);
     }
 </style>
 
-<div class="space-y-6">
-    <div class="border-b border-gray-200 pb-4 mb-6">
-        <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-up">
-            <h1 class="text-xl font-extrabold animated-gradient-text">Clientes</h1>
-            <div class="flex items-center gap-4 w-full md:w-auto">
-                <div class="relative w-full">
-                    <input type="text" id="searchInput" placeholder="Buscar clientes..." 
-                            class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm">
-                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+<div class="bg-geometric">
+    <div class="shape-rhombus"></div>
+    <div class="shape-cylinder"></div>
+    <div class="shape-pyramid"></div>
+    <div class="shape-rhombus" style="top: 70%; left: 80%; width: 80px; height: 80px; opacity: 0.5;"></div>
+</div>
+
+<div class="space-y-6 relative z-10">
+    <div class="pb-8 mb-4">
+        <header class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 animate-fade-in-up">
+            <div class="relative pl-4 border-l-4 border-blue-600">
+                <h1 class="text-xl font-black tracking-tighter animated-gradient-text uppercase">
+                    Directorio de Clientes
+                </h1>
+                <p class="text-slate-500 text-xs font-bold mt-1 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <span class="w-8 h-[1px] bg-slate-300"></span>
+                    Gestión de Socios Comerciales
+                </p>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+                
+                <div class="relative w-full sm:w-80 group">
+                    <div class="absolute inset-0 bg-slate-100 translate-y-1 translate-x-1 -z-10" 
+                        style="clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);"></div>
+                    
+                    <div class="relative bg-white border border-slate-300 transition-all focus-within:ring-2 focus-within:ring-blue-600" 
+                        style="clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);">
+                        
+                        <i data-lucide="search" class="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                        
+                        <input type="text" id="searchInput" placeholder="BUSCAR RUC O RAZÓN SOCIAL..." 
+                            class="w-full pl-12 pr-8 py-3 bg-transparent border-none text-[13px] font-black tracking-widest text-slate-700 placeholder-slate-300 focus:ring-0 outline-none">
+                    </div>
                 </div>
-                <a href="{% url 'clientes:crear_cliente' %}" class="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-all duration-300 shadow-lg flex-shrink-0">
-                    <i data-lucide="plus" class="w-5 h-5"></i>
-                    Nuevo Cliente
+
+                <a href="{% url 'clientes:crear_cliente' %}" 
+                class="relative inline-flex items-center gap-3 px-8 py-3 bg-slate-900 text-white transition-all duration-300 hover:bg-blue-600 hover:-translate-y-1 group w-full sm:w-auto justify-center"
+                style="clip-path: polygon(15% 0, 100% 0, 85% 100%, 0 100%);">
+                    
+                    <i data-lucide="plus" class="w-4 h-4 group-hover:rotate-90 transition-transform duration-500"></i>
+                    <span class="text-xs font-black uppercase tracking-[0.2em]">Nuevo Registro</span>
+                    
+                    <div class="absolute top-0 left-0 w-full h-full bg-white/5 pointer-events-none" 
+                        style="clip-path: polygon(0 0, 20% 0, 5% 100%, 0 100%);"></div>
                 </a>
+
             </div>
         </header>
-    </div> 
-    <div class="bg-white p-8 rounded-xl shadow-2xl animate-fade-in-up border border-gray-100">
-        {% if clientes.paginator.count > 0 %}
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-left table-auto divide-y divide-gray-200">
-                <thead class="bg-gray-100 border-b border-gray-200">
-                    <tr class="text-gray-600 uppercase tracking-wider">
-                        <th class="py-3 px-4 font-bold text-xs">Razón Social</th>
-                        <th class="py-3 px-4 font-bold text-xs">RUC</th>
-                        <th class="py-3 px-4 font-bold text-xs hidden md:table-cell">Contacto</th>
-                        <th class="py-3 px-4 font-bold text-xs hidden lg:table-cell">Correo</th>
-                        <th class="py-3 px-4 font-bold text-xs hidden lg:table-cell">Creado</th>
-                        <th class="py-3 px-4 font-bold text-xs text-right">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="clientes-table-body" class="divide-y divide-gray-100">
-                    {% for cliente in clientes %}
-                    <tr class="hover:bg-blue-50/50 transition-colors duration-200">
-                        <td class="py-4 px-4 font-medium text-gray-900 text-sm">{{ cliente.razon_social }}</td>
-                        <td class="py-4 px-4 text-gray-700 text-sm">{{ cliente.ruc }}</td>
-                        <td class="py-4 px-4 text-gray-700 text-sm hidden md:table-cell">{{ cliente.persona_contacto }}</td>
-                        <td class="py-4 px-4 text-gray-700 text-sm hidden lg:table-cell">{{ cliente.correo_contacto }}</td>
-                        <td class="py-4 px-4 text-gray-700 text-sm hidden lg:table-cell">{{ cliente.creado_en|date:"d M Y" }}</td>
-                        <td class="py-4 px-4 text-right">
-                            <a href="{% url 'clientes:editar_cliente' pk=cliente.pk %}" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-blue-700 bg-blue-50/70 hover:bg-blue-100 mr-2 transition-colors">
-                                <i data-lucide="edit" class="w-3 h-3 mr-1"></i> Editar
+    </div>
+
+    <div class="relative animate-fade-in-up group/container">
+        <div class="absolute inset-0 bg-slate-200/60 translate-y-3 translate-x-1 -z-10" 
+            style="clip-path: polygon(0 0, 100% 0, 98% 100%, 2% 100%);"></div>
+
+        <div class="glass-card p-1 overflow-hidden shadow-2xl" 
+            style="clip-path: polygon(0 0, 100% 0, 98% 100%, 2% 100%); border-radius: 4px;">
+            
+            <div class="bg-white/95 backdrop-blur-2xl p-4 md:p-10">
+                {% if clientes.paginator.count > 0 %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-left border-separate border-spacing-y-3">
+                        <thead>
+                            <tr class="text-slate-400">
+                                <th class="py-4 px-6 font-black text-[10px] uppercase tracking-[0.25em] border-b border-slate-100">Socio Comercial</th>
+                                <th class="py-4 px-6 font-black text-[10px] uppercase tracking-[0.25em] border-b border-slate-100">RUC / ID</th>
+                                <th class="py-4 px-6 font-black text-[10px] uppercase tracking-[0.25em] border-b border-slate-100 hidden md:table-cell">Contacto Directo</th>
+                                <th class="py-4 px-6 font-black text-[10px] uppercase tracking-[0.25em] border-b border-slate-100 text-right">Gestión</th>
+                            </tr>
+                        </thead>
+                        
+                        <tbody id="clientes-table-body">
+                            {% for cliente in clientes %}
+                            <tr class="group bg-white hover:bg-slate-50/80 transition-all duration-500 shadow-sm border border-slate-100">
+                                <td class="py-5 px-6 first:rounded-l-2xl border-y border-l border-slate-50">
+                                    <div class="flex items-center gap-5">
+                                        <div class="relative">
+                                            <div class="w-12 h-12 bg-slate-900 flex items-center justify-center text-white font-bold text-sm transition-all duration-300 group-hover:bg-blue-600 group-hover:-translate-y-1" 
+                                                style="clip-path: polygon(20% 0, 100% 0, 80% 100%, 0 100%);">
+                                                {{ cliente.razon_social|slice:":1" }}
+                                            </div>
+                                            <div class="absolute inset-0 bg-blue-100 -z-10 translate-y-1 translate-x-1"
+                                                style="clip-path: polygon(20% 0, 100% 0, 80% 100%, 0 100%);"></div>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-slate-800 text-sm tracking-tight leading-none group-hover:text-blue-600 transition-colors">
+                                                {{ cliente.razon_social }}
+                                            </p>
+                                            <div class="flex items-center gap-2 mt-2">
+                                                <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                                                <p class="text-[9px] text-slate-400 uppercase font-black tracking-widest">Activo</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td class="py-5 px-6 border-y border-slate-50">
+                                    <span class="px-3 py-1.5 bg-slate-100 text-slate-600 font-mono text-[11px] font-bold border-l-2 border-blue-500">
+                                        {{ cliente.ruc }}
+                                    </span>
+                                </td>
+
+                                <td class="py-5 px-6 border-y border-slate-50 hidden md:table-cell">
+                                    <div class="flex flex-col">
+                                        <span class="text-[11px] text-slate-800 font-black uppercase tracking-tight">{{ cliente.persona_contacto }}</span>
+                                        <span class="text-[11px] text-slate-400 font-medium mt-1 italic">{{ cliente.correo_contacto }}</span>
+                                    </div>
+                                </td>
+
+                                <td class="py-5 px-6 last:rounded-r-2xl border-y border-r border-slate-50 text-right">
+                                    <div class="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
+                                        <a href="{% url 'clientes:editar_cliente' pk=cliente.pk %}" 
+                                        class="w-10 h-10 bg-slate-100 flex items-center justify-center text-slate-500 hover:text-white hover:bg-blue-600 transition-all shadow-sm"
+                                        style="clip-path: polygon(15% 0, 100% 0, 85% 100%, 0 100%);" title="Editar">
+                                            <i data-lucide="pencil-line" class="w-4 h-4"></i>
+                                        </a>
+                                        <a href="{% url 'clientes:eliminar_cliente' pk=cliente.pk %}" 
+                                        class="w-10 h-10 bg-slate-100 flex items-center justify-center text-slate-500 hover:text-white hover:bg-rose-600 transition-all shadow-sm"
+                                        style="clip-path: polygon(15% 0, 100% 0, 85% 100%, 0 100%);" title="Eliminar">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="pagination-controls" class="flex justify-between items-center mt-12 pt-6 border-t border-slate-50 px-2">
+                    <div class="hidden sm:block">
+                        <p class="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">Sistema de Gestión Vicaf Pro</p>
+                    </div>
+                    
+                    <div class="flex items-center gap-6">
+                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Página {{ clientes.number }} de {{ clientes.paginator.num_pages }}</span>
+                        
+                        <div class="flex items-center gap-1">
+                            {% if clientes.has_previous %}
+                            <a href="?page={{ clientes.previous_page_number }}" class="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white transition-all" style="clip-path: polygon(20% 0, 100% 0, 80% 100%, 0 100%);">
+                                <i data-lucide="chevron-left" class="w-4 h-4"></i>
                             </a>
-                            <a href="{% url 'clientes:eliminar_cliente' pk=cliente.pk %}" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-rose-700 bg-rose-50/70 hover:bg-rose-100 transition-colors">
-                                <i data-lucide="trash-2" class="w-3 h-3 mr-1"></i> Eliminar
+                            {% endif %}
+                            
+                            <div class="h-1.5 w-24 bg-slate-100 rounded-full overflow-hidden mx-2">
+                                <div class="h-full bg-gradient-to-right from-blue-600 to-indigo-600" 
+                                    style="width: {% widthratio clientes.number clientes.paginator.num_pages 100 %}%"></div>
+                            </div>
+
+                            {% if clientes.has_next %}
+                            <a href="?page={{ clientes.next_page_number }}" class="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white transition-all" style="clip-path: polygon(20% 0, 100% 0, 80% 100%, 0 100%);">
+                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
                             </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        
-        <div id="pagination-controls" class="flex justify-center items-center mt-6 space-x-2">
-            {% if clientes.has_previous %}
-            <a href="?page={{ clientes.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" class="p-2 rounded-full text-gray-600 hover:bg-gray-100 transition-colors duration-200 border border-gray-200">
-                <i data-lucide="arrow-left" class="w-4 h-4"></i>
-            </a>
-            {% endif %}
-
-            {% for i in clientes.paginator.page_range %}
-            <a href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}"
-               class="px-4 py-2 rounded-lg font-semibold text-sm transition-colors duration-200
-               {% if clientes.number == i %}
-                   bg-blue-600 text-white shadow-md
-               {% else %}
-                   bg-gray-100 text-gray-700 hover:bg-gray-200
-               {% endif %}">
-                {{ i }}
-            </a>
-            {% endfor %}
-
-            {% if clientes.has_next %}
-            <a href="?page={{ clientes.next_page_number }}{% if query %}&q={{ query }}{% endif %}" class="p-2 rounded-full text-gray-600 hover:bg-gray-100 transition-colors duration-200 border border-gray-200">
-                <i data-lucide="arrow-right" class="w-4 h-4"></i>
-            </a>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        <div id="no-results-message" class="p-6 text-center text-gray-500 hidden">
-            <i data-lucide="file-x" class="w-12 h-12 mx-auto mb-4 text-gray-400"></i>
-            <p class="text-lg">No hay clientes registrados.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
@@ -113,95 +249,54 @@
 {% block extra_scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
+        if (typeof lucide !== 'undefined') lucide.createIcons();
 
         const searchInput = document.getElementById('searchInput');
         const clientesTableBody = document.getElementById('clientes-table-body');
-        const mainTableContainer = clientesTableBody ? clientesTableBody.closest('.divide-y.divide-gray-100').closest('div') : null;
-        const paginationControls = document.getElementById('pagination-controls');
-        const noResultsMessageContainer = document.getElementById('no-results-message').closest('.p-8');
-        const noResultsMessage = document.getElementById('no-results-message');
-
-        const updateTableAppearance = (isEmpty) => {
-            if (mainTableContainer) {
-                mainTableContainer.classList.toggle('hidden', isEmpty);
-            }
-            if (paginationControls) {
-                paginationControls.classList.toggle('hidden', isEmpty);
-            }
-            if (noResultsMessageContainer) {
-                noResultsMessage.classList.toggle('hidden', !isEmpty);
-            }
-        };
+        const pagination = document.getElementById('pagination-controls');
+        const noResults = document.getElementById('no-results-message');
 
         searchInput.addEventListener('keyup', async (e) => {
-            const query = e.target.value;
-
-            // Restablece el estado de los mensajes de no resultados
-            updateTableAppearance(false);
-
-            if (query.length > 0) {
+            const query = e.target.value.trim();
+            if (query.length > 2) {
                 const url = `{% url 'clientes:buscar_clientes_api' %}?q=${query}`;
-                try {
-                    const response = await fetch(url);
-                    const clientes = await response.json();
-                    
-                    clientesTableBody.innerHTML = '';
-                    if (paginationControls) {
-                        paginationControls.classList.add('hidden');
-                    }
+                const response = await fetch(url);
+                const clientes = await response.json();
+                
+                clientesTableBody.innerHTML = '';
+                if(pagination) pagination.classList.add('hidden');
 
-                    if (clientes.length === 0) {
-                        updateTableAppearance(true);
-                        noResultsMessage.innerHTML = '<i data-lucide="file-x" class="w-12 h-12 mx-auto mb-4 text-gray-400"></i><p class="text-lg">No se encontraron clientes que coincidan con la búsqueda.</p>';
-                    } else {
-                        updateTableAppearance(false);
-                        clientes.forEach(cliente => {
-                            const row = `
-                            <tr class="hover:bg-blue-50/50 transition-colors duration-200">
-                                <td class="py-4 px-4 font-medium text-gray-900 text-sm">${cliente.razon_social}</td>
-                                <td class="py-4 px-4 text-gray-700 text-sm">${cliente.ruc}</td>
-                                <td class="py-4 px-4 text-gray-700 text-sm hidden md:table-cell">${cliente.persona_contacto}</td>
-                                <td class="py-4 px-4 text-gray-700 text-sm hidden lg:table-cell">${cliente.correo_contacto}</td>
-                                <td class="py-4 px-4 text-gray-700 text-sm hidden lg:table-cell">${cliente.creado_en}</td>
-                                <td class="py-4 px-4 text-right">
-                                    <a href="/clientes/editar/${cliente.pk}/" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-blue-700 bg-blue-50/70 hover:bg-blue-100 mr-2 transition-colors">
-                                        <i data-lucide="edit" class="w-3 h-3 mr-1"></i> Editar
-                                    </a>
-                                    <a href="/clientes/eliminar/${cliente.pk}/" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full text-rose-700 bg-rose-50/70 hover:bg-rose-100 transition-colors">
-                                        <i data-lucide="trash-2" class="w-3 h-3 mr-1"></i> Eliminar
-                                    </a>
-                                </td>
-                            </tr>
-                            `;
-                            clientesTableBody.innerHTML += row;
-                        });
-                        if (typeof lucide !== 'undefined') {
-                            lucide.createIcons();
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error al buscar clientes:', error);
-                    // Ocultar tabla y mostrar mensaje de error si la API falla
-                    updateTableAppearance(true);
-                    noResultsMessage.innerHTML = '<i data-lucide="alert-triangle" class="w-12 h-12 mx-auto mb-4 text-red-500"></i><p class="text-lg text-red-600">Ocurrió un error al cargar la información.</p>';
+                if (clientes.length === 0) {
+                    noResults.classList.remove('hidden');
+                    clientesTableBody.closest('.overflow-hidden').classList.add('hidden');
+                } else {
+                    noResults.classList.add('hidden');
+                    clientesTableBody.closest('.overflow-hidden').classList.remove('hidden');
+                    
+                    clientes.forEach(cliente => {
+                        clientesTableBody.innerHTML += `
+                        <tr class="group hover:bg-blue-50/40 transition-all">
+                            <td class="py-5 px-6">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-bold border border-blue-100">${cliente.razon_social.charAt(0)}</div>
+                                    <div><p class="font-bold text-gray-900 text-sm">${cliente.razon_social}</p></div>
+                                </div>
+                            </td>
+                            <td class="py-5 px-6"><span class="px-3 py-1 bg-gray-100 rounded-lg text-xs font-bold">${cliente.ruc}</span></td>
+                            <td class="py-5 px-6 hidden md:table-cell"><span class="text-sm text-gray-700">${cliente.persona_contacto}</span></td>
+                            <td class="py-5 px-6 text-right">
+                                <div class="flex justify-end gap-2">
+                                    <a href="/clientes/editar/${cliente.pk}/" class="text-blue-600 p-2 hover:bg-blue-100 rounded-xl transition-colors"><i data-lucide="edit-3" class="w-4 h-4"></i></a>
+                                </div>
+                            </td>
+                        </tr>`;
+                    });
+                    lucide.createIcons();
                 }
-            } else {
-                // Si la búsqueda se vacía, recargar la página para volver a la paginación de Django
-                window.location.href = "{% url 'clientes:lista_clientes' %}";
+            } else if (query.length === 0) {
+                window.location.reload();
             }
         });
-
-        // Asegurar que el mensaje de no resultados inicial se oculte si hay clientes
-        const initialClientCount = clientesTableBody.getElementsByTagName('tr').length;
-        if (initialClientCount === 0 && '{{ clientes.paginator.count }}' == '0') {
-             updateTableAppearance(true);
-             noResultsMessage.innerHTML = '<i data-lucide="file-x" class="w-12 h-12 mx-auto mb-4 text-gray-400"></i><p class="text-lg">No hay clientes registrados.</p>';
-        } else if (initialClientCount > 0) {
-            updateTableAppearance(false);
-        }
     });
 </script>
 {% endblock %}

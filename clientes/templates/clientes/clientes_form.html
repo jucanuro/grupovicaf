@@ -1,10 +1,11 @@
 {% extends "base_vicafpro.html" %}
 {% load static %}
+
 {% block content %}
 <style>
     /* El degradado animado se mantiene, ya que es un toque moderno */
     .animated-gradient-text {
-        background: linear-gradient(to right, #10B981, #3B82F6, #8B5CF6); /* Ajusté un poco los colores */
+        background: linear-gradient(to right, #10B981, #3B82F6, #8B5CF6);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -18,105 +19,141 @@
             background-position: 200% center;
         }
     }
+
+    /* Forma de trapecio para contenedores */
+    .trapezoid-shape {
+        clip-path: polygon(0 0, 100% 0, 98% 100%, 2% 100%);
+    }
+
+    /* Forma de trapecio para botones */
+    .trapezoid-button {
+        clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
+    }
 </style>
+
 <div class="space-y-6">
     <div class="border-b border-gray-200 pb-4 mb-6">
         <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-up">
             <h1 class="text-xl font-extrabold animated-gradient-text">
                 {% if cliente %}Editar Cliente{% else %}Crear Nuevo Cliente{% endif %}
             </h1>
-            <a href="{% url 'clientes:lista_clientes' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all duration-300 border border-gray-300 shadow-sm flex-shrink-0">
+            <a href="{% url 'clientes:lista_clientes' %}" class="trapezoid-button inline-flex items-center gap-2 px-6 py-2 bg-white text-gray-700 font-semibold transition-all duration-300 border border-gray-300 shadow-sm flex-shrink-0 hover:bg-gray-50">
                 <i data-lucide="list" class="w-5 h-5"></i>
                 Regresar a la Lista
             </a>
         </header>
     </div>
-    <div class="bg-white p-6 rounded-2xl shadow-xl border border-gray-200">
+
+    <div class="bg-white p-10 shadow-xl border border-gray-100 trapezoid-shape">
         <form id="cliente-form" method="post" enctype="multipart/form-data" class="space-y-6">
             {% csrf_token %}
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
                 <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">Información Fiscal</h3>
+                    <h3 class="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2 italic uppercase tracking-wider">Información Fiscal</h3>
                     
                     <div>
-                        <label for="id_razon_social" class="block text-sm font-medium text-gray-600">Razón Social</label>
+                        <label for="id_razon_social" class="block text-[11px] font-bold text-gray-400 uppercase">Razón Social</label>
                         <input type="text" name="razon_social" id="id_razon_social" value="{{ cliente.razon_social|default_if_none:'' }}" 
-                                class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200">
+                            class="mt-1 block w-full px-6 py-2 bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200"
+                            style="clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);">
                     </div>
                     
                     <div>
-                        <label for="id_ruc" class="block text-sm font-medium text-gray-600">RUC</label>
+                        <label for="id_ruc" class="block text-[11px] font-bold text-gray-400 uppercase">RUC</label>
                         <input type="text" name="ruc" id="id_ruc" value="{{ cliente.ruc|default_if_none:'' }}" 
-                                class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200">
+                            class="mt-1 block w-full px-6 py-2 bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200"
+                            style="clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);">
                     </div>
                     
                     <div>
-                        <label for="id_direccion" class="block text-sm font-medium text-gray-600">Dirección</label>
+                        <label for="id_direccion" class="block text-[11px] font-bold text-gray-400 uppercase">Dirección</label>
                         <input type="text" name="direccion" id="id_direccion" value="{{ cliente.direccion|default_if_none:'' }}" 
-                                class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200">
+                            class="mt-1 block w-full px-6 py-2 bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200"
+                            style="clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);">
                     </div>
                 </div>
 
                 <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">Información de Contacto</h3>
+                    <h3 class="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2 italic uppercase tracking-wider">Información de Contacto</h3>
                     
                     <div>
-                        <label for="id_persona_contacto" class="block text-sm font-medium text-gray-600">Persona de Contacto</label>
+                        <label for="id_persona_contacto" class="block text-[11px] font-bold text-gray-400 uppercase">Persona de Contacto</label>
                         <input type="text" name="persona_contacto" id="id_persona_contacto" value="{{ cliente.persona_contacto|default_if_none:'' }}" 
-                                class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200">
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label for="id_cargo_contacto" class="block text-sm font-medium text-gray-600">Cargo del Contacto</label>
-                                <input type="text" name="cargo_contacto" id="id_cargo_contacto" value="{{ cliente.cargo_contacto|default_if_none:'' }}" 
-                                        class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200">
-                            </div>
-                            
-                            <div>
-                                <label for="id_celular_contacto" class="block text-sm font-medium text-gray-600">Celular del Contacto</label>
-                                <input type="text" name="celular_contacto" id="id_celular_contacto" value="{{ cliente.celular_contacto|default_if_none:'' }}" 
-                                        class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200">
-                            </div>
+                            class="mt-1 block w-full px-6 py-2 bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200"
+                            style="clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);">
                     </div>
                     
                     <div>
-                        <label for="id_correo_contacto" class="block text-sm font-medium text-gray-600">Correo Electrónico</label>
-                        <input type="email" name="correo_contacto" id="id_correo_contacto" value="{{ cliente.correo_contacto|default_if_none:'' }}" 
-                                class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200">
+                        <label for="id_cargo_contacto" class="block text-[11px] font-bold text-gray-400 uppercase">Cargo del Contacto</label>
+                        <input type="text" name="cargo_contacto" id="id_cargo_contacto" value="{{ cliente.cargo_contacto|default_if_none:'' }}" 
+                            class="mt-1 block w-full px-6 py-2 bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200"
+                            style="clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);">
+                    </div>
+
+                    <div>
+                        <label for="id_celular_contacto" class="block text-[11px] font-bold text-gray-400 uppercase">Celular del Contacto</label>
+                        <input type="text" name="celular_contacto" id="id_celular_contacto" value="{{ cliente.celular_contacto|default_if_none:'' }}" 
+                            class="mt-1 block w-full px-6 py-2 bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200"
+                            style="clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);">
                     </div>
                 </div>
+
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2 italic uppercase tracking-wider">Validación y Firma</h3>
+                    
+                    <div>
+                        <label for="id_correo_contacto" class="block text-[11px] font-bold text-gray-400 uppercase">Correo Electrónico</label>
+                        <input type="email" name="correo_contacto" id="id_correo_contacto" value="{{ cliente.correo_contacto|default_if_none:'' }}" 
+                            class="mt-1 block w-full px-6 py-2 bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200"
+                            style="clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="id_firma_electronica" class="block text-[11px] font-bold text-gray-400 uppercase tracking-widest">Firma</label>
+                        <div class="relative group">
+                            <div class="absolute inset-0 bg-gray-50 border-2 border-dashed border-gray-300 transition-all group-hover:border-primary-accent"
+                                style="clip-path: polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%);"></div>
+                            
+                            <div class="relative h-28 flex flex-col items-center justify-center p-4">
+                                <i data-lucide="upload-cloud" class="w-8 h-8 text-gray-400 group-hover:text-primary-accent mb-2 transition-colors"></i>
+                                <span class="text-[10px] font-black text-gray-500 uppercase tracking-tighter">Click para adjuntar su firma</span>
+                                <input type="file" name="firma_electronica" id="id_firma_electronica"
+                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if cliente and cliente.firma_electronica %}
+                    <div class="mt-2">
+                        <p class="text-[10px] text-gray-500 uppercase font-bold italic">Vista previa:</p>
+                        <img src="{{ cliente.firma_electronica.url }}" alt="Firma actual" class="w-24 h-auto mt-1 rounded border border-gray-200 shadow-sm">
+                    </div>
+                    {% endif %}
+                </div>
             </div>
 
-            <div class="space-y-4">
-                <h3 class="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">Otros Detalles</h3>
-                
-                <div>
-                    <label for="id_firma_electronica" class="block text-sm font-medium text-gray-600">Firma Electrónica</label>
-                    <input type="file" name="firma_electronica" id="id_firma_electronica"
-                            class="mt-1 block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-accent/20 file:text-primary-accent hover:file:bg-primary-accent/30">
-                </div>
-                
-                {% if cliente and cliente.firma_electronica %}
-                <div class="mt-4">
-                    <p class="text-sm text-gray-600">Firma actual:</p>
-                    <img src="{{ cliente.firma_electronica.url }}" alt="Firma actual" class="w-32 h-auto mt-2 rounded-lg border border-gray-300 shadow-lg">
-                </div>
-                {% endif %}
-            </div>
-
-            <div class="flex justify-end pt-4 border-t border-gray-200">
-                <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-blue-900 text-white font-semibold rounded-full hover:bg-emerald-600 transition-all duration-300 shadow-lg">
-                    <i data-lucide="save" class="w-5 h-5"></i>
-                    Guardar Cliente
+            <div class="flex justify-end pt-8 border-t border-slate-50">
+                <button type="submit" 
+                        class="relative inline-flex items-center gap-4 px-12 py-4 bg-blue-600 text-white transition-all duration-300 hover:bg-emerald-600 hover:-translate-y-1 shadow-xl group w-full sm:w-auto justify-center"
+                        style="clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);">
+                    
+                    <i data-lucide="save" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                    
+                    <span class="text-xs font-black uppercase tracking-[0.2em]">
+                        Finalizar Registro
+                    </span>
+                    
+                    <div class="absolute top-0 left-0 w-full h-full bg-white/5 pointer-events-none" 
+                        style="clip-path: polygon(0 0, 20% 0, 5% 100%, 0 100%);"></div>
                 </button>
             </div>
         </form>
     </div>
 </div>
-
 {% endblock %}
+
 {% block extra_scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', () => {

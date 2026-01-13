@@ -1,201 +1,111 @@
-# servicios/admin.py
-
 from django.contrib import admin
-from django.utils.html import format_html
-from decimal import Decimal
 from .models import (
     Servicio,
-    DetalleServicio,
-    Cotizacion,
-    CotizacionDetalle,
-    Voucher,
+    CategoriaServicio,
+    Subcategoria,
     Norma,
     Metodo,
-    CategoriaServicio
+    Cotizacion,
+    CotizacionGrupo,
+    CotizacionDetalle,
+    Voucher
 )
-
-# ================================================================
-# 1. INLINES (Detalles Anidados)
-# ================================================================
 
 class CotizacionDetalleInline(admin.TabularInline):
     model = CotizacionDetalle
     extra = 1
-    
     fields = [
         'servicio', 
-        'norma', 
-        'metodo', 
+        'norma_manual', 
+        'metodo_manual', 
         'descripcion_especifica', 
         'unidad_medida', 
         'cantidad', 
         'precio_unitario',
         'total_detalle'
     ]
-    
-    readonly_fields = ['total_detalle'] 
+    readonly_fields = ['total_detalle']
 
+@admin.register(CotizacionGrupo)
+class CotizacionGrupoAdmin(admin.ModelAdmin):
+    list_display = ('nombre_grupo', 'cotizacion', 'orden')
+    list_filter = ('cotizacion',)
+    inlines = [CotizacionDetalleInline]
 
-class DetalleServicioInline(admin.StackedInline):
-    model = DetalleServicio
+class CotizacionGrupoInline(admin.StackedInline):
+    model = CotizacionGrupo
     extra = 1
-    verbose_name = "Detalle para Web/Portal"
-    verbose_name_plural = "Detalles para Web/Portal"
-
-
-# ================================================================
-# 2. ADMINISTRACIÓN DE MODELOS
-# ================================================================
-
-@admin.register(CotizacionDetalle)
-class CotizacionDetalleAdmin(admin.ModelAdmin):
-    search_fields = (
-        'cotizacion__numero_oferta', 
-        'servicio__nombre', 
-        'norma'
-    )
-    
-    list_display = (
-        'cotizacion', 
-        'servicio', 
-        'cantidad', 
-        'precio_unitario'
-    )
-    list_filter = ('cotizacion__estado',)
-    
+    show_change_link = True
 
 @admin.register(Cotizacion)
 class CotizacionAdmin(admin.ModelAdmin):
     list_display = (
         'numero_oferta', 
         'cliente', 
-        'servicio_general', 
         'asunto_servicio', 
-        'trabajador_responsable',
-        'subtotal', 
-        'impuesto_igv', 
         'monto_total',  
         'estado', 
-        'fecha_creacion'
+        'fecha_generacion'
     )
-    list_filter = ('estado', 'forma_pago', 'fecha_creacion', 'servicio_general')
+    list_filter = ('estado', 'forma_pago', 'fecha_generacion')
     search_fields = ('numero_oferta', 'cliente__razon_social', 'asunto_servicio')
-    date_hierarchy = 'fecha_creacion'
+    date_hierarchy = 'fecha_generacion'
+    readonly_fields = ['subtotal', 'impuesto_igv', 'monto_total', 'fecha_creacion', 'fecha_actualizacion']
+    
+    inlines = [CotizacionGrupoInline]
 
     fieldsets = (
-        ('INFORMACIÓN PRINCIPAL', {
+        ('INFORMACIÓN DE CABECERA', {
             'fields': (
-                ('numero_oferta', 'estado'), 
+                ('numero_oferta', 'fecha_generacion', 'estado'),
                 ('cliente', 'trabajador_responsable'),
-                'servicio_general',
-                'asunto_servicio',
-                'proyecto_asociado',
             )
         }),
-        ('DATOS DE CONTACTO Y CONDICIONES', {
-            'fields': (
-                ('persona_contacto', 'correo_contacto', 'telefono_contacto'),
-                ('plazo_entrega_dias', 'forma_pago', 'validez_oferta_dias'),
-                'observaciones_condiciones',
-            )
+        ('DETALLES DEL PROYECTO', {
+            'fields': ('asunto_servicio', 'proyecto_asociado', 'persona_contacto', 'correo_contacto', 'telefono_contacto')
         }),
-        ('RESUMEN FINANCIERO', {
-            'fields': (
-                'tasa_igv', 
-                'subtotal', 
-                'impuesto_igv', 
-                'monto_total'
-            ),
-            'classes': ('collapse',),
+        ('CONDICIONES COMERCIALES', {
+            'fields': (('plazo_entrega_dias', 'validez_oferta_dias', 'forma_pago'), 'observaciones_condiciones')
+        }),
+        ('RESUMEN ECONÓMICO', {
+            'fields': (('subtotal', 'tasa_igv'), ('impuesto_igv', 'monto_total')),
+            'description': 'Los montos se recalculan automáticamente al guardar.'
         }),
     )
 
-    readonly_fields = [
-        'subtotal', 
-        'impuesto_igv', 
-        'monto_total'
-    ]
-
-    inlines = [CotizacionDetalleInline]
-    
-    def save_model(self, request, obj, form, change):
-        super().save_model(request, obj, form, change)
-        
-    def save_formset(self, request, form, formset, change):
-        super().save_formset(request, form, formset, change)
-        
-        if formset.model == CotizacionDetalle and change:
-            cotizacion = form.instance
-            if cotizacion.pk:
-                cotizacion.calcular_totales()
-                cotizacion.save()
-                
-    def display_monto_total(self, obj):
-        return f"S/. {obj.monto_total:.2f}"
-    display_monto_total.short_description = 'Monto Total'
-
-
-@admin.register(CategoriaServicio)
-class CategoriaAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'descripcion')
-    search_fields = ('nombre',)
-
+    def save_related(self, request, form, formsets, change):
+        super().save_related(request, form, formsets, change)
+        instance = form.instance
+        instance.calcular_totales()
+        instance.save()
 
 @admin.register(Servicio)
 class ServicioAdmin(admin.ModelAdmin):
-    inlines = [DetalleServicioInline]
+    list_display = ('codigo_facturacion', 'nombre', 'norma', 'metodo', 'precio_base', 'esta_acreditado')
+    list_filter = ('esta_acreditado', 'unidad_base')
+    search_fields = ('nombre', 'codigo_facturacion', 'norma__codigo')
     
-    list_display = (
-        'categoria',
-        'codigo_facturacion', 
-        'nombre', 
-        'precio_base_display', 
-        'unidad_base',
-        'esta_acreditado_icon',
-        'get_normas', 
-        'get_metodos',
-    )
-    
-    list_filter = ('categoria','esta_acreditado', 'normas', 'metodos')
-    search_fields = ('codigo_facturacion', 'nombre', 'descripcion')
-    filter_horizontal = ('normas', 'metodos')
-
     fieldsets = (
-        ('I. IDENTIFICACIÓN Y TARIFARIO', {
-            'fields': (
-                'categoria',
-                'codigo_facturacion', 
-                'nombre', 
-                'descripcion',
-                ('precio_base', 'unidad_base'),
-                ('esta_acreditado'),
-                'imagen',
-            )
+        ('IDENTIFICACIÓN', {
+            'fields': (('codigo_facturacion', 'esta_acreditado'), 'nombre')
         }),
-        ('II. DATOS TÉCNICOS (Para OTE)', {
-            'fields': ('normas', 'metodos'),
-            'description': 'Seleccione las normas y métodos asociados a este ensayo.'
+        ('DATOS TÉCNICOS', {
+            'fields': (('norma', 'metodo'),)
+        }),
+        ('DATOS COMERCIALES', {
+            'fields': (('precio_base', 'unidad_base'),)
         }),
     )
 
-    def get_normas(self, obj):
-        return ", ".join([norma.codigo for norma in obj.normas.all()])
-    get_normas.short_description = "Normas (Códigos)"
-    
-    def get_metodos(self, obj):
-        return ", ".join([metodo.codigo for metodo in obj.metodos.all()])
-    get_metodos.short_description = "Métodos"
+@admin.register(CategoriaServicio)
+class CategoriaAdmin(admin.ModelAdmin):
+    list_display = ('nombre',)
+    search_fields = ('nombre',)
 
-    def precio_base_display(self, obj):
-        return f"S/ {obj.precio_base:,.2f}"
-    precio_base_display.short_description = "P. Base (S/)"
-
-    def esta_acreditado_icon(self, obj):
-        if obj.esta_acreditado:
-            return format_html('<span style="color: green;">✔</span>')
-        return format_html('<span style="color: red;">✘</span>')
-    esta_acreditado_icon.short_description = 'Acreditado'
-
+@admin.register(Subcategoria)
+class SubcategoriaAdmin(admin.ModelAdmin):
+    list_display = ('nombre',)
+    search_fields = ('nombre',)
 
 @admin.register(Norma)
 class NormaAdmin(admin.ModelAdmin):
@@ -209,10 +119,5 @@ class MetodoAdmin(admin.ModelAdmin):
 
 @admin.register(Voucher)
 class VoucherAdmin(admin.ModelAdmin):
-    list_display = ('codigo', 'cotizacion', 'monto_pagado', 'fecha_subida', 'get_cliente_razon_social')
-    search_fields = ('codigo', 'cotizacion__numero_oferta', 'cotizacion__cliente__razon_social')
+    list_display = ('codigo', 'cotizacion', 'monto_pagado', 'fecha_subida')
     readonly_fields = ('fecha_subida',)
-
-    def get_cliente_razon_social(self, obj):
-        return obj.cotizacion.cliente.razon_social
-    get_cliente_razon_social.short_description = 'Cliente'
