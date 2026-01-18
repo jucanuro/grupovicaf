@@ -3,869 +3,536 @@
 {% block content %}
 
 <style>
-    /* Estilos base para tema claro y clases funcionales (v2) */
-    :root {
-        --color-bg-main: #F8FAFC; 
-        --color-bg-card: #FFFFFF; 
-        --color-border: #E2E8F0; 
-        --color-text-dark: #1E293B; 
-        --color-text-faded: #475569; 
-        --color-primary: #0EA5E9; 
-        --color-accent-green: #10B981; 
-        --color-accent-red: #EF4444; 
-        --color-bg-input: #F1F5F9; 
+    /* --- DISEÑO GEOMÉTRICO VICAF PRO V2 --- */
+    .bg-geometric {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        z-index: -1; background-color: #ffffff; overflow: hidden;
     }
 
-    body {
-        background-color: var(--color-bg-main);
-        color: var(--color-text-dark);
+    .shape-rhombus {
+        position: absolute; width: 150px; height: 150px;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(37, 99, 235, 0.02) 100%);
+        transform: rotate(45deg); border-radius: 20px; top: 10%; left: -50px;
+        animation: float 6s ease-in-out infinite;
     }
 
-    .form-group-v2 {
-        display: flex;
-        flex-direction: column;
-        gap: 0.25rem;
-        margin-bottom: 1rem;
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(45deg); }
+        50% { transform: translateY(-20px) rotate(48deg); }
     }
 
-    .form-label-v2 {
-        font-size: 0.8rem;
-        color: var(--color-text-faded) !important; 
-        font-weight: 500;
-        transition: all 0.2s ease-in-out;
+    .animated-gradient-text {
+        background: linear-gradient(to right, #10B981, #3B82F6, #8B5CF6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-size: 200% auto;
+        animation: text-gradient 3s linear infinite alternate;
     }
 
-    .form-control-v2 {
-        width: 100%;
-        padding: 0.5rem 0.75rem;
-        background-color: var(--color-bg-input) !important;
-        border: 1px solid var(--color-border);
-        border-radius: 0.5rem;
-        color: var(--color-text-dark) !important; 
-        font-size: 0.9rem;
-        transition: all 0.2s ease-in-out;
-        outline: none;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    @keyframes text-gradient { to { background-position: 200% center; } }
+
+    .glass-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.04);
     }
 
-    .form-control-v2:focus {
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.5);
+    .input-trapezoid {
+        clip-path: polygon(2% 0%, 100% 0%, 98% 100%, 0% 100%);
+        transition: all 0.3s ease;
     }
 
-    .form-control-v2.form-select-v2 {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); 
-        background-position: right 0.75rem center;
-        background-repeat: no-repeat;
-        background-size: 1.5rem;
-        padding-right: 2.5rem;
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
+    /* Ajustes Tom Select para que coincidan con el diseño trapezoidal */
+    .ts-wrapper.vicaf-search .ts-control {
+        clip-path: polygon(2% 0, 100% 0, 98% 100%, 0 100%);
+        border: 1px solid #cbd5e1;
+        padding: 8px 15px !important;
+        font-size: 11px !important;
+        font-weight: 700;
+        text-transform: uppercase;
+        background-color: white;
     }
 
-    .form-control-v2[readonly] {
-        cursor: not-allowed;
-        background-color: var(--color-border) !important; 
-        color: var(--color-text-dark) !important; 
-    }
-
-    .no-arrows::-webkit-outer-spin-button,
-    .no-arrows::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-    .no-arrows {
-        -moz-appearance: textfield;
-    }
-    
-    .ts-wrapper.form-control-v2 {
-        padding: 0;
-        border: none;
-        background-color: transparent;
-    }
-    .ts-control {
-        background-color: var(--color-bg-input) !important;
-        border-color: var(--color-border);
-        color: var(--color-text-dark);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        border-radius: 0.5rem;
-        transition: all 0.2s ease-in-out;
-        padding: 0.5rem 0.75rem;
-    }
-    .ts-control .ts-input {
-        background-color: transparent !important;
-        border: none !important;
-        color: var(--color-text-dark) !important;
-        padding: 0;
-        font-size: 0.9rem;
-        min-height: 1.5rem;
-    }
-    .ts-control .ts-input input {
-        background-color: var(--color-bg-input) !important;
-        color: var(--color-text-dark) !important;
-        padding: 0;
-        height: auto !important;
-    }
-
-    .ts-dropdown {
-        background-color: #FFFFFF; 
-        border-color: var(--color-border);
-        border-radius: 0.5rem;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
-    .ts-dropdown .option {
-        color: var(--color-text-dark);
-        padding: 0.5rem 0.75rem;
-    }
-    .ts-dropdown .option.active, .ts-dropdown .option.selected {
-        background-color: #F1F5F9; 
-        color: var(--color-primary);
-    }
-    .ts-control::after {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg'%3e"); 
-        right: 0.75rem;
-        transform: none;
-    }
-    .ts-control.single::after {
-        border-color: transparent !important;
-    }
-
+    /* Estilos para las filas de items */
     .item-row-v2 {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 0.75rem;
-        padding: 0.75rem;
-        background-color: #FFFFFF; 
-        border-radius: 0.5rem;
-        border: 1px solid var(--color-border);
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-        transition: all 0.3s ease-in-out;
-        align-items: center;
-        margin-bottom: 0.5rem;
+        position: relative;
+        background: white;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1rem;
+        padding: 1.5rem;
+        clip-path: polygon(0 0, 100% 0, 99% 100%, 1% 100%);
     }
 
-    .item-row-v2:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
+    .row-agrupador-cat { border-left: 8px solid #1e293b; background-color: #f8fafc; }
+    .row-agrupador-sub { border-left: 8px solid #64748b; background-color: #ffffff; margin-left: 1rem; }
 
-    .item-row-v2 .subtotal-cell {
-        min-width: 60px;
-        font-weight: bold;
-        color: var(--color-accent-green);
-        text-align: right;
-        padding-right: 0.5rem;
-    }
-
-    .item-row-v2 .remove-item-btn {
-        background: none;
-        border: none;
-        color: var(--color-accent-red);
-        cursor: pointer;
-        font-size: 1.2rem;
-        padding: 0;
-        line-height: 1;
-        transition: color 0.2s;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-
-    .item-row-v2 .remove-item-btn:hover {
-        color: #B91C1C; 
+    .subtotal-cell {
+        font-family: 'Monaco', monospace;
+        font-weight: 900;
+        color: #2563eb;
     }
 </style>
 
-<div class="space-y-8 p-4 bg-gray-50 min-h-screen">
-    <div class="border-b border-gray-200 pb-4 mb-6">
-        <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 animate-fade-in-up">
-            <h1 class="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-500">
-                {% if cotizacion %}Editar Cotización{% else %}Crear Nueva Cotización{% endif %}
-            </h1>
-            <a href="{% url 'servicios:lista_cotizaciones' %}" class="inline-flex items-center gap-2 px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-full hover:bg-gray-300 transition-all duration-300 transform hover:scale-105 shadow-md">
-                <i data-lucide="list" class="w-5 h-5"></i>
-                Regresar a la Lista
-            </a>
-        </header>
-    </div>
-    {% if error %}
-    <div class="p-4 mb-4 text-sm text-red-700 rounded-lg bg-red-100 border border-red-200" role="alert">
-        <span class="font-medium">Error de Guardado:</span> {{ error }}
-    </div>
-    {% endif %}
+<div class="bg-geometric">
+    <div class="shape-rhombus"></div>
+    <div class="shape-rhombus" style="top: 70%; left: 85%; width: 100px; height: 100px; opacity: 0.4;"></div>
+</div>
 
-    <form method="post" class="space-y-8" id="cotizacion-form">
+<div class="max-w-full mx-auto p-4 md:p-6 space-y-6 relative z-10">
+    <header class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-8">
+        <div class="relative pl-4 border-l-4 border-blue-600">
+            <h1 class="text-2xl font-black tracking-tighter animated-gradient-text uppercase">
+                {% if cotizacion %}Editar Cotización #{{ cotizacion.pk }}{% else %}Nueva Oferta Económica{% endif %}
+            </h1>
+            <p class="text-slate-500 text-[10px] font-bold mt-1 uppercase tracking-[0.2em] flex items-center gap-2">
+                <span class="w-8 h-[1px] bg-slate-300"></span>
+                Vicaf Pro v2.0 | Gestión de Proyectos
+            </p>
+        </div>
+        
+        <a href="{% url 'servicios:lista_cotizaciones' %}" 
+           class="relative inline-flex items-center gap-3 px-8 py-3 bg-slate-900 text-white transition-all duration-300 hover:bg-blue-600 hover:-translate-y-1 group"
+           style="clip-path: polygon(15% 0, 100% 0, 85% 100%, 0 100%);">
+            <i data-lucide="arrow-left" class="w-4 h-4 group-hover:-translate-x-1 transition-transform"></i>
+            <span class="text-xs font-black uppercase tracking-[0.2em]">Volver al listado</span>
+        </a>
+    </header>
+
+    <form method="post" id="cotizacion-form" class="space-y-8">
         {% csrf_token %}
 
-        <div class="p-6 rounded-2xl shadow-xl animate-fade-in-up bg-white border border-gray-200">
-            <h2 class="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2">Datos de la Oferta</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-x-12 gap-y-4">
-                <div class="space-y-6 md:col-span-8">
-                    <h3 class="text-lg font-semibold text-gray-700 border-b border-gray-200 pb-2">Empresa y Contacto</h3>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                        
-                        <div class="form-group-v2">
-                            <label for="id_cliente_ruc" class="form-label-v2">RUC del Cliente</label>
-                            <select id="id_cliente_ruc" name="cliente" class="form-control-v2 form-select-v2 tom-select-js" required>
-                                <option value="" selected disabled>Buscar RUC o Razón Social...</option> 
-                                {% for cliente in clientes %}
-                                <option value="{{ cliente.pk }}" data-razon-social="{{ cliente.razon_social }}" data-contacto="{{ cliente.nombre_contacto }}" data-correo="{{ cliente.correo }}" data-telefono="{{ cliente.telefono }}" {% if cotizacion and cotizacion.cliente.pk == cliente.pk %}selected{% endif %}>
-                                    {{ cliente.ruc }} - {{ cliente.razon_social }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-
-                        <div class="form-group-v2">
-                            <label for="id_razon_social" class="form-label-v2">Razón Social</label>
-                            <input type="text" id="id_razon_social" class="form-control-v2" readonly placeholder="Razón Social">
-                        </div>
-                        
-                        <div class="form-group-v2">
-                            <label for="id_persona_contacto" class="form-label-v2">Persona de Contacto</label>
-                            <input type="text" name="persona_contacto" id="id_persona_contacto" class="form-control-v2" required placeholder="Persona de Contacto" {% if cotizacion %}value="{{ cotizacion.persona_contacto }}"{% endif %}>
-                        </div>
-
-                        <div class="form-group-v2">
-                            <label for="id_telefono_contacto" class="form-label-v2">Teléfono</label>
-                            <input type="text" name="telefono_contacto" id="id_telefono_contacto" class="form-control-v2" required placeholder="Teléfono" {% if cotizacion %}value="{{ cotizacion.telefono_contacto }}"{% endif %}>
-                        </div>
-                        
-                        <div class="form-group-v2 md:col-span-2">
-                            <label for="id_correo_contacto" class="form-label-v2">Correo</label>
-                            <input type="email" name="correo_contacto" id="id_correo_contacto" class="form-control-v2" required placeholder="Correo" {% if cotizacion %}value="{{ cotizacion.correo_contacto }}"{% endif %}>
-                        </div>
-                    </div>
-                </div>
-                <div class="space-y-6 md:col-span-4">
-                    <h3 class="text-lg font-semibold text-gray-700 border-b border-gray-200 pb-2">Detalle de la Oferta</h3>    
+        <div class="relative group">
+            <div class="absolute inset-0 bg-slate-200/60 translate-y-2 translate-x-1 -z-10" style="clip-path: polygon(0 0, 100% 0, 99% 100%, 1% 100%);"></div>
+            <div class="glass-card p-8" style="clip-path: polygon(0 0, 100% 0, 99% 100%, 1% 100%);">
+                <h2 class="text-[11px] font-black text-blue-600 uppercase tracking-[0.3em] mb-8 flex items-center gap-3">
+                    <i data-lucide="building-2" class="w-4 h-4"></i> Datos del Solicitante
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div class="form-group-v2">
-                        <label for="id_fecha_generacion" class="form-label-v2">Fecha de Generación</label>
-                        <input type="date" name="fecha_generacion" id="id_fecha_generacion" class="form-control-v2" required 
-                            value="{% if cotizacion %}{{ cotizacion.fecha_generacion|date:'Y-m-d' }}{% endif %}">
-                    </div>
-                    <div class="form-group-v2">
-                        <label for="id_servicio_general" class="form-label-v2">Servicio General / Categoría</label>
-                        <select id="id_servicio_general" name="servicio_general" class="form-control-v2 form-select-v2 tom-select-js">
-                            <option value="" selected disabled>Seleccionar Categoría de Servicio...</option> 
-                            {% for group in servicio_grupos %}
-                            <option value="{{ group.pk }}" {% if cotizacion and cotizacion.servicio_general.pk == group.pk %}selected{% endif %}>
-                                {{ group.nombre }}
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-2">RUC del Cliente</label>
+                        <select name="cliente" id="id_cliente_ruc" required class="vicaf-search-select">
+                            <option value="">SELECCIONAR CLIENTE...</option>
+                            {% for cliente in clientes %}
+                            <option value="{{ cliente.pk }}" 
+                                    data-razon-social="{{ cliente.razon_social|default:'' }}"
+                                    data-contacto="{{ cliente.persona_contacto|default:'' }}"
+                                    data-correo="{{ cliente.correo_contacto|default:'' }}"
+                                    data-telefono="{{ cliente.celular_contacto|default:'' }}"
+                                    {% if cotizacion.cliente.pk == cliente.pk %}selected{% endif %}>
+                                {{ cliente.ruc }} - {{ cliente.razon_social }}
                             </option>
                             {% endfor %}
                         </select>
                     </div>
-
-                    <div class="form-group-v2">
-                        <label for="id_asunto_servicio" class="form-label-v2">Asunto del Servicio / Descripción General</label>
-                        <input type="text" name="asunto_servicio" id="id_asunto_servicio" class="form-control-v2" required placeholder="Ej: Ensayo de suelos para Proyecto X" {% if cotizacion %}value="{{ cotizacion.asunto_servicio }}"{% endif %}>
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3 px-4">Razón Social</label>
+                        <div class="relative group">
+                            <div class="absolute inset-0 bg-slate-100 translate-y-1 translate-x-1 -z-10" style="clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%);"></div>
+                            
+                            <input type="text" id="id_razon_social" 
+                                class="w-full bg-slate-50 border border-slate-200 py-3 px-8 input-trapezoid font-black text-xs uppercase outline-none" 
+                                placeholder="RAZÓN SOCIAL DEL CLIENTE"
+                                readonly>
+                        </div>
                     </div>
-                    
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3 px-4">Atención</label>
+                        <div class="relative group">
+                            <div class="absolute inset-0 bg-slate-100 translate-y-1 translate-x-1 -z-10" style="clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);"></div>
+                            <input type="text" name="persona_contacto" id="id_persona_contacto" 
+                                class="w-full bg-white border border-slate-300 py-3 px-8 input-trapezoid font-black text-xs uppercase focus:ring-2 focus:ring-blue-600 outline-none" 
+                                placeholder="NOMBRE DEL CONTACTO"
+                                value="{{ cotizacion.persona_contacto|default:'' }}">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3 px-4">Correo Electrónico</label>
+                        <div class="relative group">
+                            <div class="absolute inset-0 bg-slate-100 translate-y-1 translate-x-1 -z-10" style="clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);"></div>
+                            <input type="email" name="correo_contacto" id="id_correo_contacto" 
+                                class="w-full bg-white border border-slate-300 py-3 px-8 input-trapezoid font-black text-xs outline-none focus:ring-2 focus:ring-blue-600" 
+                                placeholder="EJEMPLO@CORREO.COM"
+                                value="{{ cotizacion.correo_contacto|default:'' }}">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3 px-4">Teléfono</label>
+                        <div class="relative group">
+                            <div class="absolute inset-0 bg-slate-100 translate-y-1 translate-x-1 -z-10" style="clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);"></div>
+                            <input type="text" name="telefono_contacto" id="id_telefono_contacto" 
+                                class="w-full bg-white border border-slate-300 py-3 px-8 input-trapezoid font-black text-xs uppercase outline-none focus:ring-2 focus:ring-blue-600" 
+                                placeholder="+51 000 000 000"
+                                value="{{ cotizacion.telefono_contacto|default:'' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    <div class="md:col-span-1">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3 px-4">Categoría General</label>
+                        <div class="relative group">
+                            <div class="absolute inset-0 bg-slate-100 translate-y-1 translate-x-1 -z-10" style="clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);"></div>
+                            
+                            <div class="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-slate-400 pointer-events-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+
+                            <select name="servicio_general" id="id_servicio_general" 
+                                    class="w-full bg-white border border-slate-300 py-3 pl-10 pr-10 input-trapezoid text-xs uppercase focus:ring-2 focus:ring-blue-600 outline-none appearance-none cursor-pointer">
+                                <option value="">SELECCIONAR CATEGORÍA...</option>
+                                {% for grupo in servicio_grupos %}
+                                    <option value="{{ grupo.pk }}" 
+                                        {% if cotizacion.servicio_general.id == grupo.pk or cotizacion.servicio_general == grupo %}selected{% endif %}>
+                                        {{ grupo.nombre }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 z-10 text-slate-400 pointer-events-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3 px-4">Asunto / Proyecto</label>
+                        <div class="relative group">
+                            <div class="absolute inset-0 bg-blue-50 translate-y-1 translate-x-1 -z-10" style="clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%);"></div>
+                            
+                            <input type="text" name="asunto_servicio" id="id_asunto_servicio" 
+                                class="w-full bg-white border border-blue-200 py-3 px-8 input-trapezoid font-black text-xs uppercase text-blue-700 outline-none focus:ring-2 focus:ring-blue-600" 
+                                value="{{ cotizacion.asunto_servicio|default:'' }}" 
+                                placeholder="EJ: DISEÑO DE MEZCLA DE CONCRETO">
+                        </div>
+                    </div>
                 </div>
             </div>
-            
-            <input type="hidden" name="tasa_igv" id="tasa_igv" value="{% if cotizacion %}{{ cotizacion.tasa_igv }}{% else %}0.18{% endif %}">
         </div>
-        
-        <div class="p-6 rounded-2xl shadow-xl animate-fade-in-up bg-white border border-gray-200">
-            <div class="flex flex-col md:flex-row justify-between items-center mb-6">
-                <h2 class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-500">
-                    Detalle de la Cotización
-                </h2>
-                <button type="button" id="addItemBtn" class="mt-4 md:mt-0 inline-flex items-center gap-2 px-6 py-2 bg-emerald-500 text-white font-semibold rounded-full hover:bg-emerald-600 transition-all duration-300 transform hover:scale-105 shadow-lg">
-                    <i data-lucide="plus" class="w-5 h-5"></i>
-                    Agregar Ítem
-                </button>
-            </div>
-            
-            <div id="cotizacion-detalles" class="space-y-4">
+
+        <div class="relative group">
+            <div class="absolute inset-0 bg-slate-200/60 translate-y-2 translate-x-1 -z-10" style="clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);"></div>
+            <div class="glass-card p-8">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+                    <h2 class="text-[11px] font-black text-blue-600 uppercase tracking-[0.3em] flex items-center gap-3">
+                        <i data-lucide="list-ordered" class="w-4 h-4"></i> Desglose de Servicios
+                    </h2>
+                    <div class="flex flex-wrap gap-3">
+                        <button type="button" onclick="addRow('categoria')" class="px-5 py-2 bg-slate-800 text-white text-[10px] font-black rounded-sm uppercase tracking-widest hover:bg-black transition-colors" style="clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);">+ Categoría</button>
+                        <button type="button" onclick="addRow('subcategoria')" class="px-5 py-2 bg-slate-500 text-white text-[10px] font-black rounded-sm uppercase tracking-widest hover:bg-slate-700 transition-colors" style="clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);">+ Sub-Cat</button>
+                        <button type="button" onclick="addRow('servicio')" class="px-5 py-2 bg-blue-600 text-white text-[10px] font-black rounded-sm uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-lg shadow-blue-200" style="clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);">
+                            <i data-lucide="plus" class="w-3 h-3 inline mr-1"></i> Agregar Ensayo
+                        </button>
+                    </div>
+                </div>
+
+                <div id="cotizacion-detalles" class="space-y-4 min-h-[100px]">
+                    </div>
+
+                <div class="mt-12 pt-8 border-t border-slate-100 flex flex-col items-end">
+                    <div class="w-full md:w-96 space-y-4 bg-slate-900 p-8 shadow-2xl relative overflow-hidden" style="clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                        
+                        <div class="flex justify-between items-center text-slate-400">
+                            <span class="text-[10px] font-black uppercase tracking-widest">Subtotal Neto</span>
+                            <span class="font-mono text-white text-lg">S/. <span id="subtotal_cotizacion">0.00</span></span>
+                        </div>
+                        <div class="flex justify-between items-center text-slate-400">
+                            <span class="text-[10px] font-black uppercase tracking-widest">I.G.V (18%)</span>
+                            <span class="font-mono text-white">S/. <span id="igv_cotizacion">0.00</span></span>
+                        </div>
+                        <div class="flex justify-between items-center pt-4 border-t border-slate-700">
+                            <span class="text-[11px] font-black text-emerald-400 uppercase tracking-[0.3em]">Total Oferta</span>
+                            <span class="text-2xl font-black text-white italic">S/. <span id="total_final_cotizacion">0.00</span></span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="p-6 rounded-2xl shadow-xl animate-fade-in-up bg-white border border-gray-200">
-            <h2 class="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2">Condiciones y Totales</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                <div class="space-y-4">
-                    <div class="form-group-v2">
-                        <label for="id_forma_pago" class="form-label-v2">Forma de Pago</label>
-                        <select name="forma_pago" id="id_forma_pago" class="form-control-v2 form-select-v2 tom-select-js">
-                            <option value="Credito 30" {% if cotizacion and cotizacion.forma_pago == 'Credito 30' %}selected{% endif %}>Crédito 30 días</option>
-                            <option value="Contado" {% if cotizacion and cotizacion.forma_pago == 'Contado' %}selected{% endif %}>Contado</option>
-                            <option value="Anticipo 50" {% if cotizacion and cotizacion.forma_pago == 'Anticipo 50' %}selected{% endif %}>50% Anticipo, 50% Contra Entrega</option>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="glass-card p-8" style="clip-path: polygon(0 0, 100% 0, 98% 100%, 2% 100%);">
+                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 px-2">Condiciones Comerciales</h3>
+                <div class="grid grid-cols-1 gap-4">
+                    <div>
+                        <label class="text-[9px] font-black text-slate-400 uppercase mb-2 block">Forma de Pago</label>
+                        <select name="forma_pago" id="id_forma_pago" class="vicaf-search-select">
+                            {% for val, text in forma_pago_choices %}
+                            <option value="{{ val }}" {% if cotizacion.forma_pago == val %}selected{% endif %}>{{ text }}</option>
+                            {% endfor %}
                         </select>
                     </div>
-                    <div class="form-group-v2">
-                        <label for="id_validez_oferta_dias" class="form-label-v2">Validez (días)</label>
-                        <input type="number" name="validez_oferta_dias" id="id_validez_oferta_dias" class="form-control-v2" placeholder="Validez" min="1" value="{% if cotizacion %}{{ cotizacion.validez_oferta_dias }}{% else %} {% endif %}">
-                    </div>
-                    <div class="form-group-v2">
-                        <label for="id_plazo_entrega_dias" class="form-label-v2">Plazo de Entrega (días)</label>
-                        <input type="number" name="plazo_entrega_dias" id="id_plazo_entrega_dias" class="form-control-v2" placeholder="Plazo de Entrega" min="30" value="{% if cotizacion %}{{ cotizacion.plazo_entrega_dias }}{% else %} {% endif %}">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[9px] font-black text-slate-400 uppercase mb-2 block">Validez (Días)</label>
+                            <input type="number" name="validez_oferta_dias" class="w-full border border-slate-300 py-2 px-4 input-trapezoid font-bold text-xs" value="{{ cotizacion.validez_oferta_dias|default:15 }}">
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-black text-slate-400 uppercase mb-2 block">Plazo (Días)</label>
+                            <input type="number" name="plazo_entrega_dias" class="w-full border border-slate-300 py-2 px-4 input-trapezoid font-bold text-xs" value="{{ cotizacion.plazo_entrega_dias|default:5 }}">
+                        </div>
                     </div>
                 </div>
-                <div class="flex flex-col justify-end items-end space-y-4 mt-8 md:mt-0 text-right p-4 bg-blue-50/50 rounded-lg border border-blue-100">
-                    <div class="w-full max-w-sm">
-                        <div class="flex justify-between items-center text-gray-700 font-medium text-lg">
-                            <span>Subtotal:</span>
-                            <span>S/. <span id="subtotal_cotizacion">0.00</span></span>
-                        </div>
-                        <div class="flex justify-between items-center text-gray-700 font-medium text-lg">
-                            <span>IGV (18%):</span>
-                            <span>S/. <span id="igv_cotizacion">0.00</span></span>
-                        </div>
-                        <div class="h-px bg-gray-300 my-2"></div>
-                        <div class="flex justify-between items-center text-3xl font-bold text-emerald-600">
-                            <span>Total:</span>
-                            <span>S/. <span id="total_final_cotizacion">0.00</span></span>
-                        </div>
+            </div>
+
+            <div class="flex flex-col justify-center items-end space-y-6">
+                <button type="submit" class="relative group px-16 py-6 bg-blue-600 text-white transition-all duration-300 hover:bg-emerald-600 hover:-translate-y-2 shadow-2xl shadow-blue-500/20"
+                        style="clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);">
+                    <div class="flex items-center gap-4">
+                        <i data-lucide="shield-check" class="w-6 h-6"></i>
+                        <span class="text-sm font-black uppercase tracking-[0.4em]">Guardar Cotización</span>
                     </div>
-                    <input type="hidden" name="monto_total" id="id_monto_total" value="0.00">
-                    <input type="hidden" name="detalles_json" id="detalles_json">
-                </div>
+                </button>
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                    <i data-lucide="info" class="w-3 h-3"></i> Se generará el correlativo VFC-OTE automáticamente
+                </p>
             </div>
         </div>
 
-        <div class="flex justify-end mt-8 animate-fade-in-up">
-            <button type="submit" class="inline-flex items-center gap-2 px-8 py-3 bg-blue-500 text-white font-bold rounded-full hover:bg-blue-600 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-blue-300/50 focus:outline-none focus:ring-4 focus:ring-blue-200">
-                <i data-lucide="save" class="w-5 h-5"></i>
-                Guardar Cotización
-            </button>
-        </div>
+        <input type="hidden" name="monto_total" id="id_monto_total">
+        <input type="hidden" name="detalles_json" id="detalles_json">
     </form>
 </div>
 
+<script id="all-services-data" type="application/json">{{ servicios_con_detalles_json|safe }}</script>
+<script id="servicio-grupos-data" type="application/json">
+    [{% for g in servicio_grupos %}{"pk":"{{g.pk}}","nombre":"{{g.nombre}}"}{% if not forloop.last %},{% endif %}{% endfor %}]
+</script>
+<script id="initial-detalles-json" type="application/json">
+    {% if detalles_cotizacion_json %}{{ detalles_cotizacion_json|safe }}{% else %}[]{% endif %}
+</script>
+<script id="subcategorias-data" type="application/json">
+    [{% for s in subcategorias %}{"pk":"{{s.pk}}","nombre":"{{s.nombre}}"}{% if not forloop.last %},{% endif %}{% endfor %}]
+</script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <script>
-    lucide.createIcons();
-</script>
-<script id="all-services-data" type="application/json">
-    {{ servicios_con_detalles_json|safe }}
-</script>
-
-{% if cotizacion and detalles_cotizacion_json and detalles_cotizacion_json != '[]' %}
-<script id="initial-detalles-json" type="application/json">
-    {{ detalles_cotizacion_json|safe }}
-</script>
-{% endif %}
-<script>
     document.addEventListener('DOMContentLoaded', () => {
-    
-    let ALL_SERVICES_DATA = [];
-    let ALL_SERVICES_OPTIONS = [];
-    let servicesDataLoaded = false;
-    let categoriaTomSelectInstance = null; 
-
-    if (typeof lucide !== 'undefined') {
         lucide.createIcons();
-    }
-    
-    const parseValue = (value) => {
-        if (value === null || value === undefined) return 0;
-        let cleanValue = String(value).trim();
-        cleanValue = cleanValue.replace(',', '.');
-        return parseFloat(cleanValue) || 0;
-    };
 
-    const clientesSelect = document.getElementById('id_cliente_ruc');
-    const formaPagoSelect = document.getElementById('id_forma_pago');
-    const categoriaServicioSelect = document.getElementById('id_servicio_general');
-    const fechaGeneracionInput = document.getElementById('id_fecha_generacion');
-
-    const razonSocialInput = document.getElementById('id_razon_social');
-    const personaContactoInput = document.getElementById('id_persona_contacto');
-    const correoContactoInput = document.getElementById('id_correo_contacto');
-    const telefonoContactoInput = document.getElementById('id_telefono_contacto');
-
-    const detallesContainer = document.getElementById('cotizacion-detalles'); 
-    const addItemBtn = document.getElementById('addItemBtn');
-    const cotizacionForm = document.getElementById('cotizacion-form');
-    
-    const subtotalSpan = document.getElementById('subtotal_cotizacion');
-    const igvSpan = document.getElementById('igv_cotizacion');
-    const totalFinalSpan = document.getElementById('total_final_cotizacion');
-    const montoTotalInput = document.getElementById('id_monto_total');
-    const detallesJsonInput = document.getElementById('detalles_json');
-    const tasaIgvInput = document.getElementById('tasa_igv'); 
-
-    const loadAllServicesData = () => {
-        const dataElement = document.getElementById('all-services-data');
-        if (dataElement) {
-            try {
-                ALL_SERVICES_DATA = JSON.parse(dataElement.textContent || '[]');
-                servicesDataLoaded = true;
-
-                ALL_SERVICES_OPTIONS = ALL_SERVICES_DATA.map(service => ({
-                    value: String(service.pk),
-                    text: `${service.nombre}${service.codigo_facturacion ? ' - (' + service.codigo_facturacion + ')' : ''}` 
-                }));
-
-            } catch (e) {
-                
-            }
-        }
-    };
-
-    const loadClientData = (selectedOption) => {
-        if (selectedOption) {
-            razonSocialInput.value = selectedOption.dataset.razonSocial || '';
-            
-            const isEditing = !!document.getElementById('initial-detalles-json'); 
-
-            if (!isEditing || personaContactoInput.value.trim() === '') {
-                personaContactoInput.value = selectedOption.dataset.contacto || '';
-            }
-            
-            if (!isEditing || telefonoContactoInput.value.trim() === '') {
-                telefonoContactoInput.value = selectedOption.dataset.telefono || '';
-            }
-            
-            if (!isEditing || correoContactoInput.value.trim() === '') {
-                correoContactoInput.value = selectedOption.dataset.correo || '';
-            }
-            
-        } else {
-            razonSocialInput.value = '';
-            personaContactoInput.value = '';
-            correoContactoInput.value = '';
-            telefonoContactoInput.value = '';
-        }
-    };
-
-    const initializeTomSelect = (element, options = {}) => {
-        if (typeof TomSelect !== 'undefined' && element) {
-            if (element.tomselect) {
-                element.tomselect.destroy();
-            }
-            
-            let tsOptions = {
-                create: false,
-                sortField: {
-                    field: "text",
-                    direction: "asc"
-                },
-                placeholder: element.getAttribute('data-placeholder') || 'Seleccione...',
-                allowEmptyOption: true,
-                render: {
-                    option: function(item, escape) { return `<div>${escape(item.text)}</div>`; },
-                    item: function(item, escape) { return `<div>${escape(item.text)}</div>`; }
-                }
-            };
-
-            if (element.matches('.servicio-select')) {
-                 tsOptions = {
-                     ...tsOptions,
-                     persist: false,
-                     maxItems: 1,
-                     valueField: 'value',
-                     labelField: 'text',
-                     searchField: ['text'],
-                     options: ALL_SERVICES_OPTIONS,
-                     items: [element.value], 
-                   };
-            }
-
-            const instance = new TomSelect(element, { ...tsOptions, ...options });
-
-            if (element === categoriaServicioSelect) {
-                categoriaTomSelectInstance = instance;
-                const initialValue = element.value;
-                if (initialValue) {
-                    instance.setValue(initialValue);
-                }
-            }
-        }
-    };
-    
-    const createItemRowHTML = (servicioId = '', cantidad = '1', precio = '0.00', und = 'und', normaId = '', metodoId = '', descripcion = '') => {
-        const initialPrice = String(precio).replace(',', '.'); 
+        // 1. Carga de datos iniciales
+        const ALL_SERVICES = JSON.parse(document.getElementById('all-services-data').textContent || '[]');
+        const GRUPOS = JSON.parse(document.getElementById('servicio-grupos-data').textContent || '[]');
+        const SUBCATEGORIAS = JSON.parse(document.getElementById('subcategorias-data')?.textContent || '[]');
         
-        let servicioText = servicioId ? 'Cargando...' : 'Seleccione servicio';
-        if (servicioId && ALL_SERVICES_OPTIONS.length > 0) {
-            const selectedServiceOption = ALL_SERVICES_OPTIONS.find(opt => opt.value === String(servicioId));
-            if (selectedServiceOption) {
-                servicioText = selectedServiceOption.text;
-            }
-        }
+        const detallesContainer = document.getElementById('cotizacion-detalles');
+        const detallesJsonInput = document.getElementById('detalles_json');
+        const subtotalSpan = document.getElementById('subtotal_cotizacion');
+        const igvSpan = document.getElementById('igv_cotizacion');
+        const totalFinalSpan = document.getElementById('total_final_cotizacion');
+        const montoTotalInput = document.getElementById('id_monto_total');
         
-        return `
-            <div class="item-row-v2 animate-fade-in-up lg:grid lg:grid-cols-10 lg:gap-4 p-4 mb-3 bg-white border border-gray-200 rounded-lg shadow-sm" data-servicio-id="${servicioId}" data-norma-id="${normaId}" data-metodo-id="${metodoId}">
-            
-            <div class="lg:col-span-6 flex flex-col md:flex-row gap-4 mb-4 lg:mb-0">
-                
-                <div class="form-group-v2 flex-1">
-                    <label class="form-label-v2">Servicio</label>
-                    <select class="form-control-v2 form-select-v2 servicio-select tom-select-js" required name="servicio" data-placeholder="Seleccione servicio">
-                        <option value="${servicioId}" selected>${servicioText}</option>
-                    </select>
-                </div>
-                
-                <div class="form-group-v2 flex-1 descripcion-container">
-                    <label class="form-label-v2">Descripción Específica</label>
-                    <input type="text" class="form-control-v2 descripcion-input" name="descripcion_especifica" value="${descripcion}" placeholder="Notas específicas del ítem">
-                </div>
-            </div>
-            
-            <div class="lg:col-span-4 grid grid-cols-4 md:grid-cols-7 gap-4 items-end">
-                
-                <div class="form-group-v2 col-span-2 md:col-span-2">
-                    <label class="form-label-v2">Norma</label>
-                    <select class="form-control-v2 form-select-v2 normas-select" name="norma" data-placeholder="Seleccione norma">
-                        <option value="" ${!normaId ? 'selected' : ''}>Seleccione norma</option>
-                    </select>
-                </div>
-                
-                <div class="form-group-v2 col-span-2 md:col-span-2">
-                    <label class="form-label-v2">Método</label>
-                    <select class="form-control-v2 form-select-v2 metodos-select" name="metodo" data-placeholder="Seleccione método">
-                        <option value="" ${!metodoId ? 'selected' : ''}>Seleccione método</option>
-                    </select>
-                </div>
-                
-                <div class="form-group-v2 col-span-1 md:col-span-1">
-                    <label class="form-label-v2">Und.</label>
-                    <input type="text" class="form-control-v2 text-center und-input" value="${und}" name="und" placeholder="Und.">
-                </div>
-                
-                <div class="form-group-v2 col-span-1 md:col-span-1">
-                    <label class="form-label-v2">Cant.</label>
-                    <input type="number" class="form-control-v2 text-center cantidad-input no-arrows" min="1" value="${cantidad}" required placeholder="Cant.">
-                </div>
-                
-                <div class="form-group-v2 col-span-2 md:col-span-1">
-                    <label class="form-label-v2">Precio</label>
-                    <input type="number" class="form-control-v2 text-center precio-input no-arrows" step="0.01" value="${initialPrice}" required placeholder="Precio">
-                </div>
-                
-                <div class="flex flex-col items-end text-sm font-bold text-emerald-600 col-span-2 md:col-span-1 self-end md:pb-3">
-                    <span class="text-xs text-gray-500 font-normal">Subtotal:</span>
-                    <div class="flex whitespace-nowrap">
-                        <span>S/. </span>
-                        <span class="subtotal-cell">0.00</span>
-                    </div>
-                </div>
-                
-                <div class="flex justify-center col-span-1 md:col-span-1 self-end md:pb-3">
-                    <button type="button" class="remove-item-btn p-2 text-red-500 hover:bg-red-100 rounded-full transition-colors">
-                        <i data-lucide="trash-2" class="w-5 h-5"></i>
-                    </button>
-                </div>
-            </div>
-            </div>
-        `;
-    };
+        const clientesSelect = document.getElementById('id_cliente_ruc');
+        const formaPagoSelect = document.getElementById('id_forma_pago');
+        const servicioGeneralSelect = document.getElementById('id_servicio_general'); 
 
-    const addRow = (servicioId = '', cantidad = '1', precio = '0.00', und = 'und', normaId = '', metodoId = '', descripcion = '') => {
-        const rowHTML = createItemRowHTML(servicioId, cantidad, precio, und, normaId, metodoId, descripcion); 
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = rowHTML.trim();
-        const newRow = tempDiv.firstChild;
-        detallesContainer.appendChild(newRow);
-        
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
-
-        const servicioSelect = newRow.querySelector('.servicio-select');
-        initializeTomSelect(servicioSelect);
-
-        if (servicioId) {
-            loadServiceData(servicioSelect, normaId, metodoId);
-        } else {
-            updateTotals();
-        }
-    };
-    
-    const loadInitialDetailsFromJSON = () => {
-        const initialDetailsElement = document.getElementById('initial-detalles-json');
-        
-        if (!initialDetailsElement) {
-            addRow(); 
-            return;
-        } 
-        
-        let initialDetails = [];
-        try {
-            initialDetails = JSON.parse(initialDetailsElement.textContent || '[]');
-        } catch (e) {
-            addRow();
-            return;
-        }
-        
-        detallesContainer.innerHTML = '';
-        
-        if (initialDetails.length > 0) {
-            initialDetails.forEach(detail => {
-                addRow(
-                    String(detail.servicio_id || ''), 
-                    String(detail.cantidad || '1'), 
-                    String(detail.precio_unitario || '0.00'), 
-                    String(detail.unidad_medida || 'und'), 
-                    String(detail.norma_id || ''), 
-                    String(detail.metodo_id || ''),
-                    String(detail.descripcion_especifica || '')
-                );
+        const initializeTomSelect = (el) => {
+            if (!el) return null;
+            if (el.tomselect) el.tomselect.destroy();
+            return new TomSelect(el, { 
+                create: false, 
+                placeholder: 'Seleccione...',
+                onInitialize: function() { this.wrapper.classList.add('vicaf-search'); }
             });
-        } else {
-            addRow();
-        }
-    };
+        };
 
-    const loadServiceData = (selectElement, selectedNormaId, selectedMetodoId) => {
-        const pk = selectElement.value;
-        const row = selectElement.closest('.item-row-v2'); 
-        const precioInput = row.querySelector('.precio-input');
-        const undInput = row.querySelector('.und-input');
-        const normasSelect = row.querySelector('.normas-select');
-        const metodosSelect = row.querySelector('.metodos-select');
-
-        const servicio = ALL_SERVICES_DATA.find(s => String(s.pk) === pk);
-
-        if (normasSelect && normasSelect.tomselect) normasSelect.tomselect.destroy();
-        if (metodosSelect && metodosSelect.tomselect) metodosSelect.tomselect.destroy();
-
-        normasSelect.innerHTML = '<option value="">Seleccione norma</option>';
-        metodosSelect.innerHTML = '<option value="">Seleccione método</option>';
-
-        if (servicio) {
-            try {
-                if (parseValue(precioInput.value) === 0.00) {
-                    precioInput.value = String(parseValue(servicio.precio_base)).replace(',', '.'); 
-                }
-                undInput.value = servicio.unidad_base || ''; 
-                
-                if (servicio.normas && servicio.normas.length > 0) {
-                    servicio.normas.forEach(norma => {
-                        const option = document.createElement('option');
-                        option.value = norma.pk;
-                        option.textContent = `${norma.codigo || ''} ${norma.nombre}`;
-                        if (String(norma.pk) === String(selectedNormaId)) option.selected = true;
-                        normasSelect.appendChild(option);
-                    });
-                }
-                
-                if (servicio.metodos && servicio.metodos.length > 0) {
-                    servicio.metodos.forEach(metodo => {
-                        const option = document.createElement('option');
-                        option.value = metodo.pk;
-                        option.textContent = `${metodo.codigo || ''} ${metodo.nombre}`; 
-                        if (String(metodo.pk) === String(selectedMetodoId)) option.selected = true;
-                        metodosSelect.appendChild(option);
-                    });
-                }
-
-                if (typeof TomSelect !== 'undefined') {
-                    initializeTomSelect(normasSelect, {
-                        placeholder: 'Seleccione norma',
-                        allowEmptyOption: true 
-                    });
-                    
-                    initializeTomSelect(metodosSelect, {
-                        placeholder: 'Seleccione método',
-                        allowEmptyOption: true
-                    });
-                }
-
-            } catch (error) {
-                precioInput.value = '0.00';
-                undInput.value = '';
-            }
-        } else {
-            precioInput.value = '0.00';
-            undInput.value = '';
-        }
-        updateTotals();
-    };
-    
-    const updateAllServiceSelects = (isMasterCategoryChange = false) => {
-        detallesContainer.querySelectorAll('.item-row-v2').forEach(row => {
-            const servicioSelect = row.querySelector('.servicio-select');
-            
-            if (isMasterCategoryChange) {
-                if (servicioSelect.tomselect) {
-                    servicioSelect.tomselect.setValue('', true);
-                }
-                row.dataset.servicioId = ''; 
-                
-                const normasSelect = row.querySelector('.normas-select');
-                const metodosSelect = row.querySelector('.metodos-select');
-                const precioInput = row.querySelector('.precio-input');
-                const undInput = row.querySelector('.und-input');
-                const descripcionInput = row.querySelector('.descripcion-input');
-                
-                if (normasSelect.tomselect) normasSelect.tomselect.setValue('', true);
-                if (metodosSelect.tomselect) metodosSelect.tomselect.setValue('', true);
-                
-                row.dataset.normaId = '';
-                row.dataset.metodoId = '';
-                precioInput.value = '0.00';
-                undInput.value = '';
-                if (descripcionInput) descripcionInput.value = '';
-            }
-            
-            if (!servicioSelect.tomselect) {
-                initializeTomSelect(servicioSelect);
-            } 
-
-            if (servicioSelect.value) {
-                loadServiceData(servicioSelect, row.dataset.normaId, row.dataset.metodoId);
-            }
-        });
-        updateTotals(); 
-    };
-
-    const updateTotals = () => {
-        let subtotal = 0;
-        const detalles = [];
-        
-        let tasaIgv = 0.18; 
-        
-        if (tasaIgvInput) {
-            tasaIgv = parseValue(tasaIgvInput.value) || 0.18;
-        }
-
-        if (tasaIgv > 1) { 
-             tasaIgv = tasaIgv / 100;
-        }
-
-
-        detallesContainer.querySelectorAll('.item-row-v2').forEach(row => { 
-            const servicioSelect = row.querySelector('.servicio-select');
-            const cantidadInput = row.querySelector('.cantidad-input');
-            const precioInput = row.querySelector('.precio-input');
-            const subtotalCell = row.querySelector('.subtotal-cell');
-            const undInput = row.querySelector('.und-input');
-            const normasSelect = row.querySelector('.normas-select');
-            const metodosSelect = row.querySelector('.metodos-select');
-            const descripcionInput = row.querySelector('.descripcion-input'); 
-
-            const servicioId = servicioSelect.value;
-            
-            const cantidad = parseValue(cantidadInput.value);
-            const precio = parseValue(precioInput.value); 
-            
-            const itemSubtotal = cantidad * precio;
-
-            subtotal += itemSubtotal;
-            subtotalCell.textContent = itemSubtotal.toFixed(2);
-
-            if (servicioId) {
-                detalles.push({
-                    servicio_id: servicioId,
-                    cantidad: cantidad,
-                    precio_unitario: precio.toFixed(2), 
-                    unidad_medida: undInput.value,
-                    norma_id: normasSelect.value || null,
-                    metodo_id: metodosSelect.value || null,
-                    descripcion_especifica: descripcionInput ? descripcionInput.value.trim() : ''
+        const loadClientData = (opt) => {
+            if (!opt || opt.value === "") {
+                const fields = ['id_razon_social', 'id_persona_contacto', 'id_correo_contacto', 'id_telefono_contacto'];
+                fields.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
                 });
+                return;
             }
-        });
 
-        const igv = subtotal * tasaIgv; 
-        const totalFinal = subtotal + igv;
-        
-        subtotalSpan.textContent = subtotal.toFixed(2);
-        igvSpan.textContent = igv.toFixed(2);
-        totalFinalSpan.textContent = totalFinal.toFixed(2);
-        montoTotalInput.value = totalFinal.toFixed(2);
-        detallesJsonInput.value = JSON.stringify(detalles);
-    };
+            const rSocial = document.getElementById('id_razon_social');
+            const pContacto = document.getElementById('id_persona_contacto');
+            const cContacto = document.getElementById('id_correo_contacto');
+            const tContacto = document.getElementById('id_telefono_contacto');
 
-    
-    categoriaServicioSelect.addEventListener('change', () => updateAllServiceSelects(true));
-    
-    if (tasaIgvInput) {
-        tasaIgvInput.addEventListener('input', updateTotals);
-    }
-    
-    clientesSelect.addEventListener('change', (e) => {
-        const selectedOption = clientesSelect.options[clientesSelect.selectedIndex];
-        loadClientData(selectedOption);
-    });
+            if (rSocial) rSocial.value = opt.dataset.razonSocial || '';
+            if (pContacto) pContacto.value = opt.dataset.contacto || '';
+            if (cContacto) cContacto.value = opt.dataset.correo || '';
+            if (tContacto) tContacto.value = opt.dataset.telefono || '';
+        };
 
-    addItemBtn.addEventListener('click', () => {
-        addRow();
-        updateAllServiceSelects(); 
-    });
-    
-    detallesContainer.addEventListener('change', (e) => { 
-        if (e.target.matches('.servicio-select')) {
-            const row = e.target.closest('.item-row-v2');
-            row.dataset.servicioId = e.target.value; 
-            
-            row.dataset.normaId = '';
-            row.dataset.metodoId = '';
+        // 3. Función principal para agregar filas
+        window.addRow = (tipo, data = {}) => {
+            const row = document.createElement('div');
+            row.className = `item-row-v2 row-${tipo === 'categoria' ? 'agrupador-cat' : (tipo === 'subcategoria' ? 'agrupador-sub' : 'servicio-directo')}`;
+            row.dataset.tipoFila = tipo;
 
-            loadServiceData(e.target, row.dataset.normaId, row.dataset.metodoId);
-        }
-        if (e.target.matches('.normas-select')) {
-            const row = e.target.closest('.item-row-v2');
-            row.dataset.normaId = e.target.value;
-        }
-        if (e.target.matches('.metodos-select')) {
-            const row = e.target.closest('.item-row-v2');
-            row.dataset.metodoId = e.target.value;
-        }
+            if (tipo === 'categoria' || tipo === 'subcategoria') {
+                row.innerHTML = `
+                    <div class="flex items-center gap-6">
+                        <div class="flex-1">
+                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">${tipo}</label>
+                            <select class="agrupador-select"></select>
+                        </div>
+                        <button type="button" class="remove-item-btn text-slate-300 hover:text-red-500 pt-4 transition-colors">
+                            <i data-lucide="trash-2" class="w-5 h-5"></i>
+                        </button>
+                    </div>`;
+                detallesContainer.appendChild(row);
+                
+                const sel = row.querySelector('.agrupador-select');
+                const fuenteDatos = (tipo === 'subcategoria') ? SUBCATEGORIAS : GRUPOS;
+                
+                fuenteDatos.forEach(g => {
+                    const isSelected = (g.nombre === data.descripcion_especifica);
+                    sel.add(new Option(g.nombre, g.nombre, isSelected, isSelected));
+                });
+                
+                initializeTomSelect(sel);
+            } else {
+                // ✅ SE ELIMINÓ EL DIV DE DESCRIPCIÓN ESPECÍFICA Y SE AJUSTARON LAS COLUMNAS (md:col-span-9 para el select)
+                row.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                        <div class="md:col-span-9">
+                            <label class="text-[9px] font-black text-slate-400 uppercase mb-2 block">Ensayo / Servicio</label>
+                            <select class="servicio-select"></select>
+                        </div>
+                        <div class="md:col-span-1">
+                            <label class="text-[9px] font-black text-slate-400 uppercase mb-2 block text-center">Cant.</label>
+                            <input type="number" class="w-full bg-slate-50 border border-slate-200 py-2 text-center font-black text-xs cantidad-input" value="${data.cantidad || 1}">
+                        </div>
+                        <div class="md:col-span-2 flex justify-between items-center bg-blue-50 p-2 rounded-sm border border-blue-100">
+                            <span class="subtotal-cell text-sm font-bold text-blue-600">0.00</span>
+                            <button type="button" class="remove-item-btn text-red-400 hover:text-red-600 transition-colors">
+                                <i data-lucide="x-circle" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mt-4 pt-4 border-t border-dashed border-slate-200">
+                        <div class="flex flex-col"><label class="text-[8px] font-black text-slate-400 uppercase">Norma Técnica</label><span class="norma-display text-[10px] font-black text-slate-700 bg-slate-50 px-1">--</span></div>
+                        <div class="flex flex-col"><label class="text-[8px] font-black text-slate-400 uppercase">Método</label><span class="metodo-display text-[10px] font-black text-slate-700 bg-slate-50 px-1">--</span></div>
+                        <div class="flex flex-col"><label class="text-[8px] font-black text-slate-400 uppercase">P. Unitario</label><div class="flex items-center gap-1"><span class="text-[10px] font-bold text-blue-600">S/</span><input type="number" step="0.01" class="w-24 font-black text-xs outline-none precio-input" value="${data.precio_unitario || 0}"></div></div>
+                        <div class="flex flex-col"><label class="text-[8px] font-black text-slate-400 uppercase">Und. Medida</label><input type="text" class="text-[10px] font-black uppercase outline-none und-input" value="${data.unidad_medida || ''}"></div>
+                    </div>`;
+                
+                detallesContainer.appendChild(row);
+                const sSel = row.querySelector('.servicio-select');
+                const opts = ALL_SERVICES.map(s => ({ value: String(s.pk), text: s.nombre }));
+                const ts = initializeTomSelect(sSel);
+                ts.addOptions(opts);
 
-        updateTotals();
-    });
+                if (data.servicio_id) {
+                    ts.setValue(String(data.servicio_id));
+                    updateServiceRow(row, String(data.servicio_id));
+                }
+                sSel.addEventListener('change', () => updateServiceRow(row, sSel.value));
+            }
 
-    detallesContainer.addEventListener('input', (e) => {
-        if (e.target.matches('.cantidad-input, .precio-input, .und-input, .descripcion-input')) {
+            lucide.createIcons();
+            row.querySelector('.remove-item-btn').addEventListener('click', () => { row.remove(); updateTotals(); });
+            row.addEventListener('input', updateTotals);
             updateTotals();
-        }
-    });
+        };
 
-    detallesContainer.addEventListener('paste', (e) => {
-        if (e.target.matches('.cantidad-input, .precio-input, .descripcion-input')) {
-            setTimeout(updateTotals, 50); 
-        }
-    });
-    
-    detallesContainer.addEventListener('click', (e) => {
-        const removeBtn = e.target.closest('.remove-item-btn');
-        if (removeBtn) {
-            removeBtn.closest('.item-row-v2').remove(); 
+        const updateServiceRow = (row, sId) => {
+            const s = ALL_SERVICES.find(x => String(x.pk) === sId);
+            if (s) {
+                if(!row.querySelector('.precio-input').value || row.querySelector('.precio-input').value == 0) {
+                    row.querySelector('.precio-input').value = s.precio_base || 0;
+                }
+                row.querySelector('.und-input').value = row.querySelector('.und-input').value || (s.unidad_base || 'ENSAYO');
+                
+                let normaTxt = s.norma_nombre || (s.normas?.length > 0 ? s.normas[0].codigo : 'N/A');
+                let metodoTxt = s.metodo_nombre || (s.metodos?.length > 0 ? s.metodos[0].codigo : 'N/A');
+                row.querySelector('.norma-display').textContent = normaTxt.toUpperCase();
+                row.querySelector('.metodo-display').textContent = metodoTxt.toUpperCase();
+                row.dataset.normaId = s.norma_id || (s.normas?.length > 0 ? s.normas[0].pk : '');
+                row.dataset.metodoId = s.metodo_id || (s.metodos?.length > 0 ? s.metodos[0].pk : '');
+            }
             updateTotals();
+        };
+
+        const updateTotals = () => {
+            let subtotal = 0;
+            const detalles = [];
+            detallesContainer.querySelectorAll('.item-row-v2').forEach(row => {
+                const tipo = row.dataset.tipoFila;
+                if (tipo === 'servicio') {
+                    const c = parseFloat(row.querySelector('.cantidad-input').value) || 0;
+                    const p = parseFloat(row.querySelector('.precio-input').value) || 0;
+                    const st = c * p;
+                    subtotal += st;
+                    row.querySelector('.subtotal-cell').textContent = st.toFixed(2);
+                    
+                    // ✅ SE RECOLECTA EL NOMBRE DEL SERVICIO PARA LA DESCRIPCIÓN AUTOMÁTICA
+                    const serviceSelect = row.querySelector('.servicio-select');
+                    const serviceText = serviceSelect.options[serviceSelect.selectedIndex]?.text || '';
+
+                    detalles.push({
+                        tipo_fila: 'servicio', 
+                        servicio_id: serviceSelect.value,
+                        cantidad: c, 
+                        precio_unitario: p.toFixed(2), 
+                        unidad_medida: row.querySelector('.und-input').value,
+                        norma_id: row.dataset.normaId || null, 
+                        metodo_id: row.dataset.metodoId || null,
+                        descripcion_especifica: serviceText // Se usa el nombre del servicio automáticamente
+                    });
+                } else {
+                    detalles.push({ 
+                        tipo_fila: tipo, 
+                        descripcion_especifica: row.querySelector('.agrupador-select').value 
+                    });
+                }
+            });
+            const igv = subtotal * 0.18;
+            subtotalSpan.textContent = subtotal.toFixed(2);
+            igvSpan.textContent = igv.toFixed(2);
+            totalFinalSpan.textContent = (subtotal + igv).toFixed(2);
+            if(montoTotalInput) montoTotalInput.value = (subtotal + igv).toFixed(2);
+            detallesJsonInput.value = JSON.stringify(detalles);
+        };
+
+        // 4. Inicialización
+        const tsCliente = initializeTomSelect(clientesSelect);
+        const tsFormaPago = initializeTomSelect(formaPagoSelect);
+        const tsServicioGral = initializeTomSelect(servicioGeneralSelect);
+
+        if (tsCliente) {
+            tsCliente.on('change', function(value) {
+                const selectedOption = clientesSelect.options[clientesSelect.selectedIndex];
+                loadClientData(selectedOption);
+            });
         }
-    });
 
-    cotizacionForm.addEventListener('submit', (e) => {
-        updateTotals();
-        if (!detallesJsonInput.value || JSON.parse(detallesJsonInput.value).length === 0) {
-            e.preventDefault();
-            alert('Debe agregar al menos un ítem a la cotización.');
+        // 5. Cargar detalles
+        const initialDetalles = JSON.parse(document.getElementById('initial-detalles-json').textContent || '[]');
+        if (initialDetalles.length > 0) {
+            detallesContainer.innerHTML = ''; 
+            initialDetalles.forEach(d => addRow(d.tipo_fila, d));
+        } else {
+            addRow('servicio');
         }
+
+        // 6. AUTO-RELLENO AL CARGAR
+        setTimeout(() => {
+            if (servicioGeneralSelect.value && tsServicioGral) {
+                tsServicioGral.setValue(servicioGeneralSelect.value);
+            }
+
+            if (clientesSelect && clientesSelect.value) {
+                const initialOpt = clientesSelect.options[clientesSelect.selectedIndex];
+                if (document.getElementById('id_persona_contacto').value === "") {
+                    loadClientData(initialOpt);
+                }
+            }
+        }, 500);
     });
-
-    
-    loadAllServicesData(); 
-
-    if (typeof TomSelect !== 'undefined') {
-        initializeTomSelect(clientesSelect, {placeholder: 'Seleccione cliente'});
-        initializeTomSelect(formaPagoSelect, {placeholder: 'Seleccione forma de pago'});
-        initializeTomSelect(categoriaServicioSelect, {placeholder: 'Seleccione categoría'}); 
-    }
-
-    const initialSelectedOption = clientesSelect.options[clientesSelect.selectedIndex];
-    if (initialSelectedOption && initialSelectedOption.value) {
-        loadClientData(initialSelectedOption);
-    }
-    
-    loadInitialDetailsFromJSON(); 
-    
-    if (fechaGeneracionInput && !fechaGeneracionInput.value) {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0'); 
-        const day = String(today.getDate()).padStart(2, '0');
-        fechaGeneracionInput.value = `${year}-${month}-${day}`;
-    }
-    
-    updateTotals(); 
-});
 </script>
-{% endblock content %}
+{% endblock %}

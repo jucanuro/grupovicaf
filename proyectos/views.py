@@ -490,11 +490,9 @@ class GestionSolicitudEnsayoView(View):
         context = self.get_object_context(muestra_pk, solicitud_pk)
         return render(request, self.template_name, context)
     
-    
     @transaction.atomic
     def post(self, request, muestra_pk, solicitud_pk=None): 
         muestra = get_object_or_404(Muestra, pk=muestra_pk)
-        
         data = request.POST
         detalles_json = data.get('detalles_ensayo_json')
         
@@ -503,26 +501,22 @@ class GestionSolicitudEnsayoView(View):
         except (TypeError, json.JSONDecodeError):
             return JsonResponse({'success': False, 'message': 'Datos de detalles inválidos (JSON).'}, status=400)
 
-        
         is_new = False
+        # Lógica para identificar si editamos o creamos
         if solicitud_pk:
-            try:
-                solicitud = SolicitudEnsayo.objects.get(pk=solicitud_pk, muestra=muestra)
-            except SolicitudEnsayo.DoesNotExist:
-                 return JsonResponse({'success': False, 'message': 'Solicitud de Ensayo no encontrada.'}, status=404)
+            solicitud = get_object_or_404(SolicitudEnsayo, pk=solicitud_pk, muestra=muestra)
         else:
-            try:
-                solicitud = muestra.solicitud_ensayo
-            except SolicitudEnsayo.DoesNotExist:
-                solicitud = SolicitudEnsayo(muestra=muestra, estado='ASIGNADA') 
+            # Si no viene solicitud_pk, intentamos ver si la muestra ya tiene una o creamos una nueva
+            solicitud = SolicitudEnsayo.objects.filter(muestra=muestra).first()
+            if not solicitud:
+                solicitud = SolicitudEnsayo(muestra=muestra, estado='ASIGNADA')
                 is_new = True
 
         trabajador_profile = getattr(request.user, 'trabajadorprofile', None)
-        
         solicitud.generada_por_id = data.get('generada_por_id') or (trabajador_profile.pk if trabajador_profile else None)
         solicitud.fecha_entrega_programada = data.get('fecha_entrega_programada')
         
-        if is_new:
+        if is_new or not solicitud.codigo_solicitud:
             proyecto_codigo = getattr(muestra.proyecto, 'codigo_proyecto', 'PROYECTO')
             count = SolicitudEnsayo.objects.filter(muestra__proyecto=muestra.proyecto).count() + 1
             solicitud.codigo_solicitud = f"SEC-{proyecto_codigo}-{muestra.pk}-{count}"
@@ -531,16 +525,14 @@ class GestionSolicitudEnsayoView(View):
             solicitud.full_clean()
             solicitud.save()
         except ValidationError as e:
-            return JsonResponse({'success': False, 'message': f'Error de validación en la Solicitud: {e.message_dict}'}, status=400)
+            return JsonResponse({'success': False, 'message': f'Error: {e.message_dict}'}, status=400)
 
-        
+        # Manejo de detalles
         detalles_ids_recibidos = [d.get('detalle_pk') for d in detalles_data if d.get('detalle_pk')]
-        
         DetalleEnsayo.objects.filter(solicitud=solicitud).exclude(pk__in=detalles_ids_recibidos).delete()
         
         for detalle_data in detalles_data:
             detalle_pk = detalle_data.get('detalle_pk')
-            
             if detalle_pk:
                 detalle_ensayo = DetalleEnsayo.objects.get(pk=detalle_pk, solicitud=solicitud)
             else:
@@ -553,50 +545,40 @@ class GestionSolicitudEnsayoView(View):
             detalle_ensayo.detalle_cotizacion_id = detalle_data.get('detalle_cotizacion_id') or None
             detalle_ensayo.observaciones_detalle = detalle_data.get('observaciones_detalle')
             detalle_ensayo.estado_detalle = detalle_data.get('estado_detalle', 'PENDIENTE')
+            detalle_ensayo.save()
             
-            try:
-                detalle_ensayo.full_clean()
-                detalle_ensayo.save()
-            except ValidationError as e:
-                return JsonResponse({'success': False, 'message': f'Error de validación en detalle {detalle_ensayo.pk or "nuevo"}: {e.message_dict}'}, status=400)
-            
-            
+            # Asignaciones
             tecnicos_asignados_data = detalle_data.get('asignaciones', [])
             AsignacionTipoEnsayo.objects.filter(detalle=detalle_ensayo).delete() 
             
-            asignaciones_a_crear = []
-            for asignacion in tecnicos_asignados_data:
-                tipo_ensayo_id = asignacion.get('tipo_ensayo_id')
-                tecnico_id = asignacion.get('tecnico_id')
-                
-                if tipo_ensayo_id and tecnico_id:
-                    asignaciones_a_crear.append(AsignacionTipoEnsayo(
-                        detalle=detalle_ensayo,
-                        tipo_ensayo_id=tipo_ensayo_id,
-                        tecnico_asignado_id=tecnico_id
-                    ))
-            
+            asignaciones_a_crear = [
+                AsignacionTipoEnsayo(
+                    detalle=detalle_ensayo,
+                    tipo_ensayo_id=asignacion.get('tipo_ensayo_id'),
+                    tecnico_asignado_id=asignacion.get('tecnico_id')
+                ) for asignacion in tecnicos_asignados_data if asignacion.get('tipo_ensayo_id') and asignacion.get('tecnico_id')
+            ]
             if asignaciones_a_crear:
                 AsignacionTipoEnsayo.objects.bulk_create(asignaciones_a_crear)
-        
         
         if hasattr(muestra.proyecto, 'actualizar_estado_por_muestreo'):
             muestra.proyecto.actualizar_estado_por_muestreo() 
         
-        # --- Lógica de Redirección (Solución al "se queda pegado") ---
+        # --- AJUSTE DE REDIRECCIÓN DINÁMICA ---
+        # Si acabamos de crear o editar, redirigimos a la vista de edición para que el usuario 
+        # vea los cambios en la misma pantalla o vaya al listado general.
+        
         response_data = {
-            'success': True, 
-            'solicitud_id': solicitud.pk, 
-            'message': 'Solicitud y detalles guardados con éxito.'
+            'success': True,
+            'message': 'Datos guardados correctamente.'
         }
         
-        if is_new:
-            response_data['redirect_url'] = reverse('proyectos:lista_solicitudes_ensayo', kwargs={'muestra_pk': muestra_pk})
-        else:
-            response_data['redirect_url'] = reverse('proyectos:gestion_solicitud_ensayo_editar', kwargs={'muestra_pk': muestra_pk, 'solicitud_pk': solicitud.pk})
+        # Redirigir siempre a la edición de la solicitud recién guardada/creada
+        response_data['redirect_url'] = reverse('proyectos:gestion_solicitud_ensayo_editar', 
+                                              kwargs={'muestra_pk': muestra.pk, 'solicitud_pk': solicitud.pk})
 
         return JsonResponse(response_data)
-    
+
 def link_callback(uri, rel):
     """
     Convierte rutas de recursos HTML (CSS, imágenes) a rutas del sistema de archivos.

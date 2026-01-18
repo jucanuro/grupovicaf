@@ -36,7 +36,7 @@ from .models import (
     CotizacionDetalle, 
     Voucher, 
     CategoriaServicio,
-    Subcategoria
+    Subcategoria, CotizacionGrupo
 )
 
 
@@ -164,20 +164,15 @@ def eliminar_servicio(request, pk):
     
 @login_required
 def lista_cotizaciones(request):
-    """ Lista las cotizaciones, filtradas por usuario no staff o todas para staff. """
     query = request.GET.get('q')
-    
-    # Uso de select_related para cargar el cliente de forma eficiente
     cotizaciones_list = Cotizacion.objects.select_related('cliente').order_by('-fecha_creacion')
     
-    # 🎯 Lógica de filtrado por cliente (adaptar a tu relación de usuario-cliente real)
     if not request.user.is_superuser:
         try:
-            # Asumiendo que el User tiene una relación O2O o FK con Cliente
             cliente_asociado = Cliente.objects.get(usuario=request.user) 
             cotizaciones_list = cotizaciones_list.filter(cliente=cliente_asociado)
         except Cliente.DoesNotExist:
-            cotizaciones_list = Cotizacion.objects.none()
+            pass
 
     if query:
         cotizaciones_list = cotizaciones_list.filter(
@@ -198,23 +193,19 @@ def lista_cotizaciones(request):
 
 @login_required
 def detalle_cotizacion(request, pk):
-    """ Muestra los detalles de una cotización específica. """
-    # Uso de select_related y prefetch_related para cargar todos los datos de una vez
     cotizacion = get_object_or_404(
         Cotizacion.objects.select_related('cliente', 'trabajador_responsable')
-                          .prefetch_related('detalles_cotizacion', 
-                                            'detalles_cotizacion__servicio',
-                                            'detalles_cotizacion__norma',
-                                            'detalles_cotizacion__metodo'), 
+        .prefetch_related(
+            'grupos__detalles_items__servicio'
+        ), 
         pk=pk
     )
     
-    # Obtener el Voucher si existe para auditoría
     voucher = Voucher.objects.filter(cotizacion=cotizacion).first()
 
     context = {
         'cotizacion': cotizacion,
-        'detalles': cotizacion.detalles_cotizacion.all(),
+        'grupos': cotizacion.grupos.all(), # Ahora iteramos por grupos en el template
         'voucher': voucher,
     }
     return render(request, 'servicios/cotizacion_detail.html', context)
@@ -231,6 +222,7 @@ def crear_editar_cotizacion(request, pk=None):
     if request.method == 'POST':
         try:
             with transaction.atomic():
+                # 1. Validación y Obtención de Datos Base
                 cliente_id = request.POST.get('cliente')
                 if not cliente_id:
                     raise ValueError("El campo Cliente es obligatorio.")
@@ -246,12 +238,12 @@ def crear_editar_cotizacion(request, pk=None):
                 if not detalles_data:
                     raise ValueError("La cotización debe tener al menos un servicio.")
 
+                # 2. Inicializar Instancia
                 if not is_editing:
                     cotizacion = Cotizacion(cliente=cliente)
 
-                # --- LÓGICA DE ASIGNACIÓN ORIGINAL RESTITUIDA ---
+                # 3. Asignación del Trabajador Responsable
                 trabajador_id_post = request.POST.get('trabajador_responsable')
-                
                 if trabajador_id_post:
                     try:
                         cotizacion.trabajador_responsable = TrabajadorProfile.objects.get(pk=trabajador_id_post)
@@ -264,8 +256,8 @@ def crear_editar_cotizacion(request, pk=None):
                         cotizacion.trabajador_responsable = None
                 elif is_editing and not trabajador_id_post:
                     cotizacion.trabajador_responsable = None
-                # --- FIN LÓGICA RESTITUIDA ---
                 
+                # 4. Asignación de Campos de Cabecera
                 cotizacion.cliente = cliente
                 cotizacion.asunto_servicio = request.POST.get('asunto_servicio')
                 cotizacion.proyecto_asociado = request.POST.get('proyecto_asociado')
@@ -273,8 +265,8 @@ def crear_editar_cotizacion(request, pk=None):
                 cotizacion.correo_contacto = request.POST.get('correo_contacto')
                 cotizacion.telefono_contacto = request.POST.get('telefono_contacto')
                 
+                # Manejo de Fecha
                 fecha_generacion_str = request.POST.get('fecha_generacion')
-                
                 if fecha_generacion_str:
                     try:
                         cotizacion.fecha_generacion = date.fromisoformat(fecha_generacion_str)
@@ -289,97 +281,98 @@ def crear_editar_cotizacion(request, pk=None):
 
                 servicio_general_pk = request.POST.get('servicio_general')
                 if servicio_general_pk:
-                    servicio_general_obj = CategoriaServicio.objects.get(pk=servicio_general_pk)
-                    cotizacion.servicio_general = servicio_general_obj
-                else:
-                    cotizacion.servicio_general = None
+                    # Aquí se usa el modelo CategoriaServicio para el servicio general
+                    cotizacion.servicio_general = CategoriaServicio.objects.get(pk=servicio_general_pk)
 
                 cotizacion.plazo_entrega_dias = int(request.POST.get('plazo_entrega_dias') or 0)
                 cotizacion.validez_oferta_dias = int(request.POST.get('validez_oferta_dias') or 0)
                 cotizacion.forma_pago = request.POST.get('forma_pago')
                 cotizacion.observaciones_condiciones = request.POST.get('observaciones_condiciones')
 
-                tasa_igv_str = str(request.POST.get('tasa_igv', '0')).strip().replace(',', '.')
-                cotizacion.tasa_igv = Decimal(tasa_igv_str) if tasa_igv_str else Decimal('0.00')
+                # Manejo de IGV (Decimal)
+                tasa_igv_str = str(request.POST.get('tasa_igv', '0.18')).strip().replace(',', '.')
+                cotizacion.tasa_igv = Decimal(tasa_igv_str)
 
+                # 5. Generación del Código de Oferta (Formato VCF-OTE-YYYY-NNN)
                 if not is_editing:
-                    prefix = 'VFC-OTE'
-                    current_year = cotizacion.fecha_generacion.year
-                    year_part = str(current_year)
-                    max_result = Cotizacion.objects.filter(numero_oferta__startswith=f'{prefix}-{year_part}-').aggregate(Max('numero_oferta'))
+                    prefix = 'VCF-OTE'
+                    year_part = str(cotizacion.fecha_generacion.year)
+                    max_result = Cotizacion.objects.filter(
+                        numero_oferta__startswith=f'{prefix}-{year_part}-'
+                    ).aggregate(Max('numero_oferta'))
+                    
                     last_num_oferta = max_result.get('numero_oferta__max')
                     next_order_num = 1
                     if last_num_oferta:
                         try:
-                            last_order_str = last_num_oferta.split('-')[-1]
-                            next_order_num = int(last_order_str) + 1
-                        except (IndexError, ValueError):
-                            pass
-                    cotizacion.numero_oferta = f'{prefix}-{year_part}-{str(next_order_num).zfill(4)}'
+                            next_order_num = int(last_num_oferta.split('-')[-1]) + 1
+                        except (IndexError, ValueError): 
+                            next_order_num = 1
+                    cotizacion.numero_oferta = f'{prefix}-{year_part}-{str(next_order_num).zfill(3)}'
 
+                # Guardado inicial
                 cotizacion.save()
 
+                # 6. Procesamiento de Detalles
                 if is_editing:
-                    cotizacion.detalles_cotizacion.all().delete()
+                    cotizacion.grupos.all().delete()
 
-                detalle_objs = []
+                grupo_padre = CotizacionGrupo.objects.create(
+                    cotizacion=cotizacion,
+                    nombre_grupo="ENSAYOS DE LABORATORIO",
+                    orden=1
+                )
+
                 for item in detalles_data:
-                    servicio_id_str = str(item.get('servicio_id', '')).strip()
-                    if not servicio_id_str: continue
+                    # Omitimos filas decorativas de categoría y subcategoría
+                    if item.get('tipo_fila') in ['categoria', 'subcategoria']:
+                        continue
 
-                    servicio = Servicio.objects.get(pk=int(servicio_id_str))
-
-                    norma_id_str = str(item.get('norma_id', '')).strip()
-                    norma = None
-                    if norma_id_str and norma_id_str != 'null' and norma_id_str.isdigit():
-                         try:
-                             norma = Norma.objects.get(pk=int(norma_id_str))
-                         except Norma.DoesNotExist:
-                             pass
-
-                    metodo_id_str = str(item.get('metodo_id', '')).strip()
-                    metodo = None
-                    if metodo_id_str and metodo_id_str != 'null' and metodo_id_str.isdigit():
-                         try:
-                             metodo = Metodo.objects.get(pk=int(metodo_id_str))
-                         except Metodo.DoesNotExist:
-                             pass
-
-                    cantidad_str = str(item.get('cantidad', '0')).replace(',', '.')
-                    precio_str = str(item.get('precio_unitario', '0')).replace(',', '.')
+                    servicio_id = item.get('servicio_id')
+                    if not servicio_id: continue
                     
-                    cantidad = Decimal(cantidad_str)
-                    precio_unitario = Decimal(precio_str)
+                    servicio = Servicio.objects.get(pk=int(servicio_id))
                     
-                    desc_especifica = item.get('descripcion_especifica', '').strip()
-                    if not desc_especifica:
-                        desc_especifica = servicio.descripcion
+                    # Lógica de Descripción Independiente: CATEGORIA - Subcategoria: Servicio
+                    partes_desc = []
+                    cat_nom = item.get('categoria_nom', '')     # Viene del modelo CategoriaServicio
+                    subcat_nom = item.get('subcategoria_nom', '') # Viene del modelo Subcategoria
+                    
+                    if cat_nom: 
+                        partes_desc.append(cat_nom.upper())
+                    if subcat_nom: 
+                        partes_desc.append(subcat_nom)
+                    
+                    desc_generada = f"{' - '.join(partes_desc)}: {servicio.nombre}" if partes_desc else servicio.nombre
+                    desc_final = item.get('descripcion_especifica') or desc_generada
 
-                    unidad = item.get('unidad_medida', servicio.unidad_base)
+                    # Obtención de Norma y Método
+                    norma_txt = ""
+                    norma_id = item.get('norma_id')
+                    if norma_id and str(norma_id).isdigit():
+                        n = Norma.objects.filter(pk=norma_id).first()
+                        norma_txt = n.codigo if n else ""
+                    
+                    metodo_txt = ""
+                    metodo_id = item.get('metodo_id')
+                    if metodo_id and str(metodo_id).isdigit():
+                        m = Metodo.objects.filter(pk=metodo_id).first()
+                        metodo_txt = m.codigo if m else ""
 
-                    total_linea = (cantidad * precio_unitario).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-
-                    detalle_objs.append(CotizacionDetalle(
-                        cotizacion=cotizacion,
+                    # Crear el item de detalle en la DB
+                    CotizacionDetalle.objects.create(
+                        grupo=grupo_padre,
                         servicio=servicio,
-                        norma=norma,
-                        metodo=metodo,
-                        descripcion_especifica=desc_especifica,
-                        unidad_medida=unidad,
-                        cantidad=cantidad,
-                        precio_unitario=precio_unitario,
-                        total_detalle=total_linea,
-                    ))
+                        norma_manual=norma_txt or item.get('norma_manual', ''),
+                        metodo_manual=metodo_txt or item.get('metodo_manual', ''),
+                        descripcion_especifica=desc_final,
+                        unidad_medida=item.get('unidad_medida') or servicio.unidad_base,
+                        cantidad=Decimal(str(item.get('cantidad', '1')).replace(',', '.')),
+                        precio_unitario=Decimal(str(item.get('precio_unitario', '0')).replace(',', '.')),
+                    )
 
-                CotizacionDetalle.objects.bulk_create(detalle_objs)
-
-                subtotal = cotizacion.detalles_cotizacion.aggregate(Sum('total_detalle'))['total_detalle__sum'] or Decimal('0.00')
-                cotizacion.subtotal = subtotal
-                
-                igv_monto = (subtotal * cotizacion.tasa_igv).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                
-                cotizacion.impuesto_igv = igv_monto
-                cotizacion.monto_total = subtotal + igv_monto
+                # 7. Recálculo Final y Cierre
+                cotizacion.calcular_totales()
                 cotizacion.save()
 
                 accion = "creada" if not is_editing else "actualizada"
@@ -388,55 +381,62 @@ def crear_editar_cotizacion(request, pk=None):
 
         except Exception as e:
             error = f'Error al procesar: {str(e)}'
+            print(f"ERROR EN VISTA: {error}")
             if is_editing and pk:
                 cotizacion = get_object_or_404(Cotizacion, pk=pk)
 
-    clientes = Cliente.objects.all()
-    servicios = Servicio.objects.all().prefetch_related('normas', 'metodos')
-    servicio_grupos = CategoriaServicio.objects.all()
-    trabajadores = TrabajadorProfile.objects.all().select_related('user') # Se mantiene la carga para el select del template
+    # --- Bloque de Carga de Contexto (GET) ---
+    clientes = Cliente.objects.all().order_by('razon_social')
+    servicios_queryset = Servicio.objects.all().select_related('norma', 'metodo')
+    
+    # IMPORTANTE: Cargamos ambos modelos para el front
+    categorias_principales = CategoriaServicio.objects.all()
+    subcategorias_list = Subcategoria.objects.all()
+    
+    trabajadores = TrabajadorProfile.objects.all().select_related('user')
 
-    servicios_con_detalles_json = json.dumps([
-        {
+    # Serialización de servicios
+    servicios_list = []
+    for s in servicios_queryset:
+        n_list = [{'pk': s.norma.pk, 'codigo': s.norma.codigo}] if s.norma else []
+        m_list = [{'pk': s.metodo.pk, 'codigo': s.metodo.codigo}] if s.metodo else []
+        servicios_list.append({
             'pk': s.pk, 
             'nombre': s.nombre, 
             'unidad_base': s.unidad_base,
-            'descripcion': s.descripcion, 
             'precio_base': str(s.precio_base), 
-            'categoria_id': s.categoria_id,
-            'codigo_facturacion': s.codigo_facturacion,
-            'normas': [{'pk': n.pk, 'codigo': n.codigo, 'nombre': n.nombre} for n in s.normas.all()],
-            'metodos': [{'pk': m.pk, 'codigo': m.codigo, 'nombre': m.nombre} for m in s.metodos.all()]
-        } for s in servicios
-    ])
+            'normas': n_list,
+            'metodos': m_list
+        })
 
-    detalles_cotizacion_json = '[]'
+    # Serialización de detalles existentes (Para Edición)
+    detalles_list = []
     if cotizacion:
-        detalles_list = []
-        for detalle in cotizacion.detalles_cotizacion.all():
-            detalles_list.append({
-                'servicio_id': detalle.servicio.pk,
-                'descripcion_especifica': detalle.descripcion_especifica,
-                'norma_id': detalle.norma.pk if detalle.norma else '',
-                'metodo_id': detalle.metodo.pk if detalle.metodo else '',
-                'unidad_medida': detalle.unidad_medida,
-                'cantidad': str(detalle.cantidad),
-                'precio_unitario': str(detalle.precio_unitario),
-                'total_detalle': str(detalle.total_detalle)
-            })
-        detalles_cotizacion_json = json.dumps(detalles_list)
-
+        for grupo in cotizacion.grupos.all():
+            for detalle in grupo.detalles_items.all():
+                detalles_list.append({
+                    'servicio_id': detalle.servicio.pk,
+                    'descripcion_especifica': detalle.descripcion_especifica,
+                    'norma_manual': detalle.norma_manual,
+                    'metodo_manual': detalle.metodo_manual,
+                    'unidad_medida': detalle.unidad_medida,
+                    'cantidad': str(detalle.cantidad),
+                    'precio_unitario': str(detalle.precio_unitario),
+                    'total_detalle': str(detalle.total_detalle)
+                })
+    
     context = {
         'cotizacion': cotizacion,
         'clientes': clientes,
-        'servicios': servicios,
-        'servicio_grupos': servicio_grupos, 
-        'servicios_con_detalles_json': servicios_con_detalles_json,
-        'detalles_cotizacion_json': detalles_cotizacion_json, 
+        'servicios': servicios_queryset,
+        'servicio_grupos': categorias_principales, 
+        'subcategorias': subcategorias_list,        
+        'servicios_con_detalles_json': json.dumps(servicios_list),
+        'detalles_cotizacion_json': json.dumps(detalles_list), 
         'error': error,
         'estados_choices': Cotizacion.ESTADO_CHOICES,
         'forma_pago_choices': Cotizacion.FORMA_PAGO_CHOICES,
-        'trabajadores': trabajadores, # Se mantiene la lista de trabajadores para el select
+        'trabajadores': trabajadores,
     }
     return render(request, 'servicios/cotizaciones_form.html', context)
 
@@ -558,59 +558,41 @@ def generar_pdf_cotizacion(request, pk):
     
     return response
 
-logger = logging.getLogger(__name__) 
-
 @login_required
 @transaction.atomic 
 def aprobar_cotizacion(request, pk):
     """
-    Aprueba una cotización, registra el voucher (con comprobante y oferta firmada) 
-    y crea el proyecto asociado, todo dentro de una transacción.
+    Aprueba una cotización, registra el voucher y crea el proyecto asociado.
+    Corregido para navegar a través de CotizacionGrupo -> CotizacionDetalle.
     """
     cotizacion = get_object_or_404(Cotizacion, pk=pk)
     
-    if cotizacion.estado != 'Pendiente':
-        return render(request, 'servicios/aprobar_cotizacion.html', {
-            'cotizacion': cotizacion, 
-            'error': f"Esta cotización ya tiene estado: {cotizacion.estado}. No se puede aprobar."
-        })
+    # Validar si ya está aceptada para evitar duplicados
+    if cotizacion.estado == 'Aceptada':
+        return redirect('proyectos:lista_proyectos_pendientes')
 
     if request.method == 'POST':
-        # 1. Obtener datos
         codigo_voucher = request.POST.get('codigo_voucher')
         monto_pagado_str = request.POST.get('monto_pagado')
         imagen_voucher = request.FILES.get('imagen_voucher')
-        
-        # 🟢 Archivo del documento firmado por el cliente
         documento_firmado_cliente = request.FILES.get('documento_firmado_cliente')
         
-        # 2. Convertir monto
         try:
-            monto_pagado = Decimal(monto_pagado_str)
+            monto_pagado = Decimal(monto_pagado_str) if monto_pagado_str else Decimal('0.00')
         except (TypeError, InvalidOperation):
             monto_pagado = Decimal('0.00')
-            
-        monto_pagado_value = monto_pagado_str
-        codigo_voucher_value = codigo_voucher
 
-        # 3. Validar campos obligatorios
-        error_message = None
-        if not codigo_voucher:
-            error_message = 'El código de operación es requerido.'
-        elif not imagen_voucher:
-            error_message = 'La imagen del voucher es requerida.'
-        elif not documento_firmado_cliente:
-            error_message = 'El Documento de Oferta Firmado por el Cliente es requerido para la aprobación.'
-
-        if error_message:
+        # Validaciones de archivos y campos
+        if not all([codigo_voucher, imagen_voucher, documento_firmado_cliente]):
             return render(request, 'servicios/aprobar_cotizacion.html', {
                 'cotizacion': cotizacion,
-                'error': error_message,
-                'codigo_voucher_value': codigo_voucher_value,
-                'monto_pagado_value': monto_pagado_value,
+                'error': 'Todos los campos y archivos son obligatorios.',
+                'codigo_voucher_value': codigo_voucher,
+                'monto_pagado_value': monto_pagado_str,
             })
 
         try:
+            # 1. Crear el Voucher
             voucher = Voucher.objects.create(
                 cotizacion=cotizacion,
                 codigo=codigo_voucher,
@@ -619,41 +601,48 @@ def aprobar_cotizacion(request, pk):
                 documento_firmado=documento_firmado_cliente 
             )
             
+            # 2. Actualizar estado de la Cotización
             cotizacion.estado = 'Aceptada'
-            cotizacion.aprobada_por_cliente = True 
+            # Asegúrate de que el campo aprobada_por_cliente exista en tu modelo, 
+            # si no, esta línea se puede comentar:
+            # cotizacion.aprobada_por_cliente = True 
             cotizacion.save()
 
+            # 3. Calcular total de muestras (Navegando: Cotizacion -> Grupo -> Detalle)
+            # ✅ ESTA ES LA CORRECCIÓN CLAVE:
+            total_muestras = CotizacionDetalle.objects.filter(
+                grupo__cotizacion=cotizacion
+            ).aggregate(Sum('cantidad'))['cantidad__sum'] or 0
+            
+            # 4. Crear el Proyecto
             nombre_proyecto = f"{cotizacion.cliente.razon_social} ({cotizacion.numero_oferta})"
             codigo_proyecto = f"P-{cotizacion.numero_oferta}" 
-            total_muestras = cotizacion.detalles_cotizacion.aggregate(Sum('cantidad'))['cantidad__sum'] or 0
             
-            nuevo_proyecto = Proyecto.objects.create(
+            Proyecto.objects.create(
                 cotizacion=cotizacion,
                 nombre_proyecto=nombre_proyecto,
                 codigo_proyecto=codigo_proyecto, 
                 cliente=cotizacion.cliente,
                 estado='PENDIENTE',
-                descripcion_proyecto="Proyecto generado automáticamente a partir de una cotización aceptada.",
+                descripcion_proyecto="Proyecto generado automáticamente.",
                 monto_cotizacion=cotizacion.monto_total,
                 codigo_voucher=voucher.codigo,
                 numero_muestras=total_muestras,
             )
             
+            # 5. Redirigir al éxito
             return redirect('proyectos:lista_proyectos_pendientes')
     
         except Exception as e:
-            logger.error(f"Error en la aprobación de cotización {pk} y creación de proyecto: {e}")
+            logger.error(f"Error en aprobación {pk}: {str(e)}")
             return render(request, 'servicios/aprobar_cotizacion.html', {
                 'cotizacion': cotizacion,
-                'error': f'Error crítico en el proceso de aprobación: {e}',
-                'codigo_voucher_value': codigo_voucher_value,
-                'monto_pagado_value': monto_pagado_value,
+                'error': f'Error crítico: {str(e)}',
+                'codigo_voucher_value': codigo_voucher,
+                'monto_pagado_value': monto_pagado_str,
             })
     
-    context = {
-        'cotizacion': cotizacion
-    }
-    return render(request, 'servicios/aprobar_cotizacion.html', context)
+    return render(request, 'servicios/aprobar_cotizacion.html', {'cotizacion': cotizacion})
 
 def buscar_servicios_api(request):
     """

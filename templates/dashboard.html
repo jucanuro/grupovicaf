@@ -19,17 +19,147 @@
 <div id="analisis-content" class="hidden">
 </div>
 
+<style>
+    :root {
+        --vicaf-primary: #3b82f6;
+        /* Fondo más sólido para mejorar contraste de texto */
+        --vicaf-soft-bg: rgba(255, 255, 255, 0.98); 
+    }
+
+    .glass-modal-vicaf {
+        background: var(--vicaf-soft-bg);
+        backdrop-filter: blur(25px) saturate(200%);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.25);
+        width: auto; 
+        max-width: 95vw;
+        max-height: 85vh; 
+        display: flex;
+        flex-direction: column;
+        border-radius: 32px;
+        overflow: hidden;
+    }
+
+    /* Títulos de Categoría: Más nítidos y con mejor espaciado */
+    .category-label {
+        text-[10px] font-black uppercase tracking-[0.25em];
+        color: #64748b; /* Slate 500 para contraste sobre blanco */
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    #submenu-list {
+        display: flex;
+        flex-direction: row;
+        gap: 3rem; /* Más espacio entre grupos para que no se vea amontonado */
+        padding: 20px 32px; /* Más aire lateral */
+        align-items: flex-start;
+        overflow-x: auto; 
+        scrollbar-width: thin;
+        scrollbar-color: #3b82f6 transparent;
+    }
+
+    /* Columnas fijas para que el texto NO se rompa */
+    #submenu-list > div {
+        flex: 0 0 320px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* TARJETAS: Estilo "Apple" ultra limpio */
+    .submenu-item {
+        background: #ffffff;
+        border: 1px solid #f1f5f9;
+        border-radius: 20px;
+        padding: 18px;
+        margin-bottom: 10px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    .submenu-item:hover {
+        background: #ffffff;
+        border-color: var(--vicaf-primary);
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 12px 20px -5px rgba(59, 130, 246, 0.15);
+    }
+
+    /* Textos dentro de la tarjeta: FUERTE CONTRASTE */
+    .item-title {
+        color: #0f172a; /* Casi negro para legibilidad total */
+        font-weight: 800;
+        font-size: 0.85rem;
+        letter-spacing: -0.01em;
+    }
+
+    .item-desc {
+        color: #64748b; /* Gris oscuro para la descripción */
+        font-size: 11px;
+        line-height: 1.4;
+        margin-top: 2px;
+    }
+
+    /* Iconos con fondo vibrante */
+    .item-icon-wrapper {
+        width: 44px;
+        height: 44px;
+        background: #f8faff;
+        border-radius: 14px;
+        color: var(--vicaf-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        margin-right: 16px;
+        transition: all 0.3s ease;
+    }
+
+    .submenu-item:hover .item-icon-wrapper {
+        background: var(--vicaf-primary);
+        color: white;
+    }
+
+    /* Personalización del Scrollbar para que sea profesional */
+    #submenu-list::-webkit-scrollbar { height: 6px; }
+    #submenu-list::-webkit-scrollbar-track { background: transparent; }
+    #submenu-list::-webkit-scrollbar-thumb { 
+        background: #e2e8f0; 
+        border-radius: 10px; 
+    }
+    #submenu-list::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+</style>
 <div id="card-overlay"
-    class="fixed inset-0 z-40 flex justify-center items-center bg-black/50 backdrop-blur-sm hidden transition-opacity duration-300">
-    <div id="submenu-modal" class="glass-card rounded-2xl shadow-2xl overflow-hidden w-full max-w-sm m-4 p-4 transform scale-95 opacity-0 transition-all duration-300">
-        <header class="flex justify-between items-center mb-4 pb-2 border-b border-white/10">
-            <h3 id="submenu-title" class="text-xl font-bold"></h3>
-            <button id="close-submenu" class="text-slate-400 hover:text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+    class="fixed inset-0 z-[999999] flex justify-center items-center bg-slate-900/40 backdrop-blur-md hidden transition-all duration-300">
+    
+    <div id="submenu-modal" 
+         class="glass-modal-vicaf rounded-[32px] transform scale-95 opacity-0 transition-all duration-300">
+        
+        <header class="p-8 pb-4 flex justify-between items-center">
+            <div>
+                <span class="text-[10px] font-bold text-blue-600 uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-full">Sistema de administración VicafPro</span>
+                <h3 id="submenu-title" class="text-2xl font-extrabold text-slate-800 mt-2 tracking-tight">Opciones</h3>
+            </div>
+            
+            <button id="close-submenu" class="p-3 bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-full transition-all">
+                <i data-lucide="x" class="w-5 h-5"></i>
             </button>
         </header>
-        <ul id="submenu-list" class="space-y-2">
-        </ul>
+
+        <div class="p-8 pt-2 max-h-[70vh] overflow-y-auto custom-scrollbar">
+            <ul id="submenu-list">
+                </ul>
+        </div>
+
+        <footer class="px-8 py-5 bg-slate-50/50 border-t border-slate-100 flex justify-between items-center rounded-b-[32px]">
+            <p class="text-[10px] text-slate-400 font-medium">© 2026 VICAFPRO Premium Resources</p>
+            <div class="flex gap-2">
+                <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+            </div>
+        </footer>
     </div>
 </div>
 
@@ -49,7 +179,7 @@
 {% block extra_scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // --- 1. DATA (Propiedad 'isLight' añadida a 'analisis' como ejemplo) ---
+        // --- 1. DATA (Mantenemos toda tu información intacta) ---
         const navigationData = [
             {
                 id: 'clientes',
@@ -57,7 +187,7 @@
                 category: 'Gestión',
                 title: 'Módulo de Clientes',
                 desc: 'Administra y revisa la base de datos de clientes.',
-                glow: '#14b8a6',
+                glow: '#0ea5e9',
                 children: [
                     { id: 'lista_clientes', url: "{% url 'clientes:lista_clientes' %}", icon: '📋', title: 'Listado de Clientes', desc: 'Ver todos los clientes registrados.', category: 'Clientes' },
                     { id: 'crear_cliente', url: "{% url 'clientes:crear_cliente' %}", icon: '➕', title: 'Crear Cliente', desc: 'Registrar un nuevo perfil de cliente.', category: 'Clientes' },
@@ -96,71 +226,73 @@
                 children: [
                     { id: 'trabajador_list', url: "{% url 'trabajadores:lista_trabajadores' %}", icon: '👨‍👧‍👦', title: 'Listado de Trabajadores', desc: 'Ver todos los trabajadores.', category: 'Trabajadores' },
                     { id: 'trabajador_create', url: "{% url 'trabajadores:crear_trabajador' %}", icon: '➕', title: 'Crear Trabajador', desc: 'Registrar un nuevo empleado.', category: 'Trabajadores' },
+                    { id: 'rol_list', url: "{% url 'trabajadores:lista_roles' %}", icon: '🔐', title: 'Gestión de Roles', desc: 'Administrar los tipos de cargos.', category: 'Roles' },
+                    { id: 'rol_create', url: "", icon: '🛡️', title: 'Crear Nuevo Rol', desc: 'Definir un nuevo rol en el sistema.', category: 'Roles' },
                 ]
             },
             {
-            id: 'proyectos',
-            icon: '📁',
-            category: 'Operaciones',
-            title: 'Módulo de Proyectos',
-            desc: 'Controla el progreso y los detalles de los proyectos.',
-            glow: '#a855f7',
-            children: [
-                {
-                    id: 'gestion_proyectos',
-                    icon: '✅',
-                    title: 'Gestión de Proyectos',
-                    desc: 'Administra los proyectos de la empresa.',
-                    category: 'Proyectos',
-                    children: [
-                        { id: 'proyectos_list', url: "#", icon: '📋', title: 'Listar Proyectos', desc: 'Visualiza el estado de los proyectos.', category: 'Proyectos' },
-                    ]
-                },
-                {
-                    id: 'gestion_ordenes_ensayo',
-                    icon: '📝',
-                    title: 'Gestión de Órdenes de Ensayo',
-                    desc: 'Gestiona las órdenes de ensayo.',
-                    category: 'Órdenes de Ensayo',
-                    children: [
-                        { id: 'ordenes_ensayo_list', url: "#", icon: '📋', title: 'Listar Órdenes', desc: 'Ver y gestionar las órdenes de ensayo existentes.', category: 'Órdenes de Ensayo' },
-                        { id: 'ordenes_ensayo_nuevo', url: "#", icon: '➕', title: 'Nueva Orden', desc: 'Genera una nueva orden de ensayo.', category: 'Órdenes de Ensayo' },
-                    ]
-                },
-                {
-                    id: 'gestion_muestras',
-                    icon: '🔬',
-                    title: 'Gestión de Muestras',
-                    desc: 'Administra el registro de muestras.',
-                    category: 'Muestras',
-                    children: [
-                        { id: 'muestras_list', url: "#", icon: '📋', title: 'Listar Muestras', desc: 'Ver las muestras registradas.', category: 'Muestras' },
-                        { id: 'muestras_nuevo', url: "#", icon: '➕', title: 'Nueva Muestra', desc: 'Registra una nueva muestra.', category: 'Muestras' },
-                    ]
-                },
-                {
-                    id: 'gestion_resultados',
-                    icon: '📊',
-                    title: 'Gestión de Resultados',
-                    desc: 'Administra los resultados de los ensayos.',
-                    category: 'Resultados',
-                    children: [
-                        { id: 'resultados_list', url: "#", icon: '📋', title: 'Listar Resultados', desc: 'Ver los resultados de ensayo.', category: 'Resultados' },
-                        { id: 'resultados_nuevo', url: "#", icon: '➕', title: 'Nuevo Resultado', desc: 'Registra un nuevo resultado.', category: 'Resultados' },
-                    ]
-                },
-                {
-                    id: 'gestion_documentos',
-                    icon: '📄',
-                    title: 'Gestión de Documentos',
-                    desc: 'Administra los informes y documentos finales.',
-                    category: 'Documentos',
-                    children: [
-                        { id: 'documentos_list', url: "#", icon: '📋', title: 'Listar Documentos', desc: 'Ver los documentos finales generados.', category: 'Documentos' },
-                        { id: 'documentos_nuevo', url: "#", icon: '➕', title: 'Nuevo Documento', desc: 'Sube un nuevo informe o documento final.', category: 'Documentos' },
-                    ]
-                },
-            ]
+                id: 'proyectos',
+                icon: '📁',
+                category: 'Operaciones',
+                title: 'Módulo de Proyectos',
+                desc: 'Controla el progreso y los detalles de los proyectos.',
+                glow: '#a855f7',
+                children: [
+                    {
+                        id: 'gestion_proyectos',
+                        icon: '✅',
+                        title: 'Gestión de Proyectos',
+                        desc: 'Administra los proyectos de la empresa.',
+                        category: 'Proyectos',
+                        children: [
+                            { id: 'proyectos_list', url: "#", icon: '📋', title: 'Listar Proyectos', desc: 'Visualiza el estado de los proyectos.', category: 'Proyectos' },
+                        ]
+                    },
+                    {
+                        id: 'gestion_ordenes_ensayo',
+                        icon: '📝',
+                        title: 'Gestión de Órdenes de Ensayo',
+                        desc: 'Gestiona las órdenes de ensayo.',
+                        category: 'Órdenes de Ensayo',
+                        children: [
+                            { id: 'ordenes_ensayo_list', url: "#", icon: '📋', title: 'Listar Órdenes', desc: 'Ver y gestionar las órdenes de ensayo existentes.', category: 'Órdenes de Ensayo' },
+                            { id: 'ordenes_ensayo_nuevo', url: "#", icon: '➕', title: 'Nueva Orden', desc: 'Genera una nueva orden de ensayo.', category: 'Órdenes de Ensayo' },
+                        ]
+                    },
+                    {
+                        id: 'gestion_muestras',
+                        icon: '🔬',
+                        title: 'Gestión de Muestras',
+                        desc: 'Administra el registro de muestras.',
+                        category: 'Muestras',
+                        children: [
+                            { id: 'muestras_list', url: "#", icon: '📋', title: 'Listar Muestras', desc: 'Ver las muestras registradas.', category: 'Muestras' },
+                            { id: 'muestras_nuevo', url: "#", icon: '➕', title: 'Nueva Muestra', desc: 'Registra una nueva muestra.', category: 'Muestras' },
+                        ]
+                    },
+                    {
+                        id: 'gestion_resultados',
+                        icon: '📊',
+                        title: 'Gestión de Resultados',
+                        desc: 'Administra los resultados de los ensayos.',
+                        category: 'Resultados',
+                        children: [
+                            { id: 'resultados_list', url: "#", icon: '📋', title: 'Listar Resultados', desc: 'Ver los resultados de ensayo.', category: 'Resultados' },
+                            { id: 'resultados_nuevo', url: "#", icon: '➕', title: 'Nuevo Resultado', desc: 'Registra un nuevo resultado.', category: 'Resultados' },
+                        ]
+                    },
+                    {
+                        id: 'gestion_documentos',
+                        icon: '📄',
+                        title: 'Gestión de Documentos',
+                        desc: 'Administra los informes y documentos finales.',
+                        category: 'Documentos',
+                        children: [
+                            { id: 'documentos_list', url: "#", icon: '📋', title: 'Listar Documentos', desc: 'Ver los documentos finales generados.', category: 'Documentos' },
+                            { id: 'documentos_nuevo', url: "#", icon: '➕', title: 'Nuevo Documento', desc: 'Sube un nuevo informe o documento final.', category: 'Documentos' },
+                        ]
+                    },
+                ]
             },
             {
                 id: 'bolsa_trabajo',
@@ -180,32 +312,35 @@
                 desc: 'Métricas y KPIs de tus proyectos.',
                 glow: '#ef4444',
                 action: 'show_analysis_view',
-                isLight: true // <-- EJEMPLO DE CARD CON FONDO CLARO (DEBE USAR TEXTO OSCURO)
+                isLight: false 
             },
         ];
 
-        // --- 2. SELECTORES DE ELEMENTOS ---
+        // --- 2. CONFIGURACIÓN DE ELEMENTOS ---
         const cardContainer = document.getElementById('card-container');
         const inicioContent = document.getElementById('inicio-content');
         const analisisContent = document.getElementById('analisis-content');
-        
-        // Modal / Submenu
         const cardOverlay = document.getElementById('card-overlay');
         const submenuModal = document.getElementById('submenu-modal');
         const submenuTitle = document.getElementById('submenu-title');
         const submenuList = document.getElementById('submenu-list');
         const closeSubmenuButton = document.getElementById('close-submenu');
-
-        // Command Palette (TODOS DENTRO DE DOMContentLoaded)
         const commandPalette = document.getElementById('command-palette');
         const commandInput = document.getElementById('command-input');
         const commandList = document.getElementById('command-list');
         const commandButtons = document.querySelectorAll('#command-palette-button-main');
-        
         let selectedIndex = 0;
 
-        // --- 3. FUNCIONES DE CONTROL ---
+        // Fondo Geométrico (Mantenido)
+        document.body.style.backgroundColor = '#ffffff';
+        document.body.style.backgroundImage = `
+            radial-gradient(#e5e7eb 1px, transparent 1px),
+            linear-gradient(to right, #f3f4f6 1px, transparent 1px),
+            linear-gradient(to bottom, #f3f4f6 1px, transparent 1px)
+        `;
+        document.body.style.backgroundSize = '20px 20px, 100px 100px, 100px 100px';
 
+        // --- 3. FUNCIONES DE CONTROL ---
         const setActiveView = (viewName) => {
             const isInicio = viewName === 'inicio';
             inicioContent.classList.toggle('hidden', !isInicio);
@@ -215,10 +350,7 @@
         const closeSubmenuModal = () => {
             submenuModal.classList.remove('scale-100', 'opacity-100');
             submenuModal.classList.add('scale-95', 'opacity-0');
-            
-            setTimeout(() => {
-                cardOverlay.classList.add('hidden');
-            }, 300);
+            setTimeout(() => { cardOverlay.classList.add('hidden'); }, 300);
         };
 
         const openCommandPalette = () => { 
@@ -236,29 +368,23 @@
             }
         };
 
+        // --- 4. RENDERIZADO DE CARDS PRINCIPALES (Mantenido) ---
         const renderCards = (items) => {
             cardContainer.innerHTML = '';
-            items.forEach(card => {
-                const cardElement = document.createElement('a');
-                
-                // Determina la clase de texto condicionalmente
-                const titleTextColorClass = card.isLight ? 'text-sky-900' : 'text-sky-900';
-                const descTextColorClass = card.isLight ? 'text-slate-400' : 'text-slate-400';
+            const pyramidShape = "polygon(15% 0%, 85% 0%, 100% 80%, 50% 100%, 0% 80%)";
 
-                // Si la tarjeta es clara, añade una clase de fondo claro para que se vea bien
-                cardElement.className = `dashboard-card glass-card rounded-2xl border border-white/10 p-6 flex flex-col justify-between h-52 group cursor-pointer block animate-fade-in-up transition-all duration-300 hover:shadow-[0_0_2rem_0.25rem] hover:scale-[1.01] ${card.isLight ? 'bg-white/90 !border-gray-200' : ''}`;
-                
-                cardElement.style.boxShadow = `0 0 1rem 0.1rem ${card.glow}20`;
+            items.forEach((card) => {
+                const cardElement = document.createElement('a');
+                cardElement.className = `relative group cursor-pointer animate-fade-in-up h-56 w-full flex flex-col items-center justify-center transition-all duration-300 hover:-translate-y-2`;
                 cardElement.href = card.url || '#';
-                
+
                 cardElement.innerHTML = `
-                    <div class="flex justify-between items-start transition-transform duration-300 group-hover:-translate-y-1">
-                        <span class="text-5xl">${card.icon}</span>
-                        ${card.category ? `<span class="text-xs font-bold uppercase" style="color:${card.glow};">${card.category}</span>` : ''}
-                    </div>
-                    <div class="transition-transform duration-300 group-hover:-translate-y-1">
-                        <h4 class="text-md font-bold ${titleTextColorClass}">${card.title}</h4>
-                        <p class="text-sm ${descTextColorClass}">${card.desc}</p>
+                    <div class="absolute inset-0 bg-white border border-slate-200 shadow-sm transition-all duration-500 group-hover:shadow-md" style="clip-path: ${pyramidShape};"></div>
+                    <div class="relative z-10 flex flex-col items-center px-4 text-center -mt-2">
+                        <div class="text-3xl mb-2 transition-transform group-hover:scale-110">${card.icon}</div>
+                        <span class="text-[8px] font-bold uppercase tracking-widest text-slate-400 mb-1">${card.category}</span>
+                        <h4 class="text-xs font-black text-slate-800 leading-tight">${card.title}</h4>
+                        <div class="mt-2 w-6 h-[2px] rounded-full transition-all duration-500 group-hover:w-12" style="background: ${card.glow}"></div>
                     </div>
                 `;
 
@@ -275,178 +401,187 @@
             });
         };
 
+        // --- 5. RENDERIZADO DE SUBMENÚ (Ajustado para flujo lateral) ---
+        // --- RENDERIZADO PROFESIONAL: DINÁMICO, LATERAL Y AUTO-AJUSTABLE ---
         const renderSubmenu = (parentCard) => {
             submenuTitle.textContent = parentCard.title;
-            submenuList.innerHTML = '';
+            submenuTitle.style.color = parentCard.glow;
             
-            const flattenChildren = (item) => {
-                if (item.children && item.children.length > 0) {
-                    item.children.forEach(subChild => flattenChildren(subChild));
-                } else {
-                    const li = document.createElement('li');
-                    const link = document.createElement('a');
-                    link.href = item.url || '#';
-                    link.className = 'flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 transition-colors duration-200 group';
-                    link.innerHTML = `
-                        <span class="text-2xl">${item.icon}</span>
-                        <div class="flex-1">
-                            <p class="text-white font-semibold">${item.title}</p>
-                            <p class="text-xs text-slate-400">${item.desc}</p>
-                        </div>
-                    `;
-                    
-                    link.addEventListener('click', (e) => {
-                        if (item.url && item.url !== '#') {
-                            closeSubmenuModal(); 
-                            window.location.href = item.url;
-                        }
-                    });
-                    
-                    li.appendChild(link);
-                    submenuList.appendChild(li);
-                }
-            };
+            // 1. Limpieza total y configuración de flex horizontal
+            submenuList.innerHTML = ''; 
+            // 'w-fit' es la clave: el contenedor medirá solo lo que midan sus hijos
+            // Asegúrate de que esta línea quede así:
+            submenuList.className = "flex flex-row gap-10 p-2 items-start justify-start w-max";
+            // 2. Reset del Modal (Libertad total de crecimiento)
+            submenuModal.style.width = 'auto'; 
+            submenuModal.style.height = 'auto';
+            submenuModal.style.minWidth = '380px';
+            submenuModal.style.maxWidth = '92vw'; // Margen de seguridad lateral
             
-            parentCard.children.forEach(child => flattenChildren(child));
+            // Limitamos el alto a la zona segura entre cabecera y pie
+            submenuModal.style.maxHeight = '85vh'; 
+            // SOLO un scroll, y solo si es estrictamente necesario por altura
+            submenuModal.style.overflowY = 'auto'; 
+            submenuModal.style.overflowX = 'hidden'; 
 
+            // 3. Agrupamiento inteligente
+            const grouped = parentCard.children.reduce((acc, child) => {
+                const cat = child.category || 'Opciones';
+                if (!acc[cat]) acc[cat] = [];
+                acc[cat].push(child);
+                return acc;
+            }, {});
+
+            // 4. Creación de Columnas Dinámicas
+            Object.keys(grouped).forEach(catName => {
+                const column = document.createElement('div');
+                // 'flex-shrink-0' evita que las columnas se aplasten cuando el modal crece
+                column.className = "flex flex-col gap-4 min-w-[320px] flex-shrink-0 mb-4";
+
+                const label = document.createElement('h4');
+                label.className = "text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2 flex items-center gap-3";
+                label.innerHTML = `<span class="w-6 h-[1.5px]" style="background: ${parentCard.glow}44"></span>${catName}`;
+                column.appendChild(label);
+
+                const itemsWrapper = document.createElement('div');
+                itemsWrapper.className = "flex flex-col gap-3";
+
+                grouped[catName].forEach(item => {
+                    // Soporte para niveles profundos de datos
+                    const subItems = (item.children && item.children.length > 0) ? item.children : [item];
+                    
+                    subItems.forEach(subItem => {
+                        const card = document.createElement('a');
+                        card.href = subItem.url || '#';
+                        card.className = "submenu-item group w-full flex items-center p-4 rounded-2xl transition-all duration-300 hover:bg-white hover:shadow-lg border border-transparent hover:border-slate-100";
+                        
+                        card.innerHTML = `
+                            <div class="item-icon-wrapper flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 group-hover:bg-white transition-colors">
+                                <span class="text-xl">${subItem.icon}</span>
+                            </div>
+                            <div class="flex flex-col text-left ml-4 overflow-hidden pr-2">
+                                <span class="text-slate-800 font-bold text-[13px] leading-none mb-1">${subItem.title}</span>
+                                <span class="text-[10px] text-slate-400 font-medium leading-tight line-clamp-2">${subItem.desc || ''}</span>
+                            </div>
+                            <div class="ml-auto opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all">
+                                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+                            </div>
+                        `;
+                        
+                        card.addEventListener('click', (e) => {
+                            if (subItem.url && subItem.url !== '#') closeSubmenuModal();
+                            else e.preventDefault();
+                        });
+
+                        itemsWrapper.appendChild(card);
+                    });
+                });
+
+                column.appendChild(itemsWrapper);
+                submenuList.appendChild(column);
+            });
+
+            // 5. Animación de entrada limpia
             cardOverlay.classList.remove('hidden');
+            // Ajuste fino de Lucide
+            if (window.lucide) lucide.createIcons();
+            
             setTimeout(() => {
-                cardOverlay.classList.remove('opacity-0');
                 submenuModal.classList.remove('scale-95', 'opacity-0');
                 submenuModal.classList.add('scale-100', 'opacity-100');
             }, 10);
         };
-
+        // --- 6. DASHBOARD DE ANÁLISIS (Mantenido) ---
         const renderAnalysisDashboard = () => {
             analisisContent.innerHTML = `
-            <header class="flex justify-between items-center mb-10 animate-fade-in-up">
-                <div>
-                    <h1 class="text-4xl font-extrabold">Dashboard de Análisis</h1>
-                    <p class="text-slate-400 mt-1">Avance y métricas clave de tus proyectos.</p>
+                <header class="flex justify-between items-center mb-6">
+                    <h1 class="text-2xl font-black text-slate-800">Análisis Operativo</h1>
+                    <button id="back-from-analysis" class="text-xs px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors">Volver al Inicio</button>
+                </header>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
+                        <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">Status Global</div>
+                        <div class="text-emerald-500 font-black text-xl">SISTEMA ONLINE</div>
+                    </div>
                 </div>
-                <button id="back-from-analysis" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-700/50 text-slate-300 font-semibold rounded-full hover:bg-slate-700 hover:text-white transition-all duration-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
-                    Volver al Panel
-                </button>
-            </header>
-            <div class="glass-card p-6 rounded-2xl text-center"><p>Aquí irían tus gráficos, KPIs y reportes de avance de proyectos.</p></div>`;
+            `;
             document.getElementById('back-from-analysis').addEventListener('click', () => setActiveView('inicio'));
         };
 
-        // Pre-procesar comandos para la Paleta
+        // --- 7. LÓGICA DE COMANDOS (Mantenido) ---
         const commandItems = [];
         const processItems = (items) => {
             items.forEach(item => {
-                if (item.children && item.children.length > 0) {
-                    processItems(item.children);
-                } else {
-                    commandItems.push(item);
-                }
+                if (item.children && item.children.length > 0) processItems(item.children);
+                else commandItems.push(item);
             });
         };
         processItems(navigationData);
 
         const commands = [
             ...commandItems.map(card => ({
-                name: card.title, category: card.category || 'General',
+                name: card.title, category: card.category || 'Módulo',
                 action: () => {
-                    if (card.action === 'show_analysis_view') { setActiveView('analisis'); }
-                    else { window.location.href = card.url; }
+                    if (card.action === 'show_analysis_view') setActiveView('analisis');
+                    else window.location.href = card.url;
                 }
             })),
-            { name: 'Cerrar Sesión', category: 'Sistema', action: () => { window.location.href = "#" } }
+            { name: 'Cerrar Sesión', category: 'Sistema', action: () => { console.log('Logout'); } }
         ];
 
         const renderCommandList = (items) => {
             commandList.innerHTML = '';
-            if (items.length === 0) { commandList.innerHTML = `<li class="p-3 text-slate-400">No se encontraron resultados.</li>`; return; }
+            if (items.length === 0) {
+                commandList.innerHTML = `<li class="p-4 text-slate-400 text-center text-xs">Sin coincidencias detectadas.</li>`;
+                return;
+            }
             items.forEach((item, index) => {
                 const li = document.createElement('li');
-                li.id = `command-item-${index}`;
-                li.className = `p-3 text-slate-300 flex justify-between items-center rounded-lg cursor-pointer hover:bg-emerald-500/20 transition-colors`;
-                if (index === selectedIndex) {
-                    li.classList.add('bg-emerald-500/20');
-                }
-                li.innerHTML = `<span>${item.name}</span> <span class="text-xs text-slate-500">${item.category}</span>`;
+                li.className = `p-3 flex justify-between rounded-lg cursor-pointer text-xs ${index === selectedIndex ? 'bg-blue-600 text-white' : 'hover:bg-slate-50 text-slate-600'}`;
+                li.innerHTML = `<span>${item.name}</span> <span class="opacity-60 text-[9px] uppercase font-bold">${item.category}</span>`;
                 li.addEventListener('click', () => { item.action(); closeCommandPalette(); });
                 commandList.appendChild(li);
             });
-            if (items.length > 0) {
-                document.getElementById(`command-item-${selectedIndex}`).scrollIntoView({ block: 'nearest' });
-            }
         };
 
         const navigateCommands = (direction) => {
-            if (!commandInput) return; 
-
             const query = commandInput.value.toLowerCase();
-            const filteredCommands = commands.filter(c => c.name.toLowerCase().includes(query) || c.category.toLowerCase().includes(query));
-            if (filteredCommands.length === 0) return;
+            const filtered = commands.filter(c => c.name.toLowerCase().includes(query) || c.category.toLowerCase().includes(query));
+            if (filtered.length === 0) return;
 
-            if (direction === 'down') {
-                selectedIndex = (selectedIndex + 1) % filteredCommands.length;
-            } else if (direction === 'up') {
-                selectedIndex = (selectedIndex - 1 + filteredCommands.length) % filteredCommands.length;
-            } else if (direction === 'enter') {
-                filteredCommands[selectedIndex].action();
-                closeCommandPalette();
-                return;
-            }
-
-            renderCommandList(filteredCommands);
+            if (direction === 'down') selectedIndex = (selectedIndex + 1) % filtered.length;
+            else if (direction === 'up') selectedIndex = (selectedIndex - 1 + filtered.length) % filtered.length;
+            else if (direction === 'enter') { filtered[selectedIndex].action(); closeCommandPalette(); return; }
+            renderCommandList(filtered);
         };
 
-        // --- 4. INICIALIZACIÓN Y ASIGNACIÓN DE LISTENERS ---
+        // --- 8. EVENT LISTENERS ---
         renderCards(navigationData);
         renderAnalysisDashboard();
         setActiveView('inicio');
 
-        // Listeners de la Paleta de Comandos
         commandButtons.forEach(btn => btn.addEventListener('click', openCommandPalette));
-        
-        // SOLUCIÓN AL ERROR: Comprobamos si commandInput existe antes de intentar añadir el listener
         if (commandInput) {
             commandInput.addEventListener('input', () => {
                 selectedIndex = 0;
                 const query = commandInput.value.toLowerCase();
-                const filteredCommands = commands.filter(c => c.name.toLowerCase().includes(query) || c.category.toLowerCase().includes(query));
-                renderCommandList(filteredCommands);
+                renderCommandList(commands.filter(c => c.name.toLowerCase().includes(query) || c.category.toLowerCase().includes(query)));
             });
         }
         
-        // Listeners del Submenú Modal
         closeSubmenuButton.addEventListener('click', closeSubmenuModal);
-        cardOverlay.addEventListener('click', (e) => {
-            if (e.target === cardOverlay) {
-                closeSubmenuModal();
-            }
-        });
+        cardOverlay.addEventListener('click', (e) => { if (e.target === cardOverlay) closeSubmenuModal(); });
 
-        // Listener global para atajos de teclado y navegación
         window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') { 
-                if (!cardOverlay.classList.contains('hidden')) { closeSubmenuModal(); }
-                if (!commandPalette.classList.contains('hidden')) { closeCommandPalette(); }
-            }
-
+            if (e.key === 'Escape') { closeSubmenuModal(); closeCommandPalette(); }
             if ((e.metaKey || e.ctrlKey) && e.key === 'k') { 
                 e.preventDefault(); 
-                if (commandPalette) {
-                    commandPalette.classList.contains('hidden') ? openCommandPalette() : closeCommandPalette(); 
-                }
+                commandPalette.classList.contains('hidden') ? openCommandPalette() : closeCommandPalette(); 
             }
-
-            if (commandPalette && !commandPalette.classList.contains('hidden')) {
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    navigateCommands('down');
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    navigateCommands('up');
-                } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    navigateCommands('enter');
-                }
+            if (!commandPalette.classList.contains('hidden')) {
+                if (e.key === 'ArrowDown') { e.preventDefault(); navigateCommands('down'); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); navigateCommands('up'); }
+                else if (e.key === 'Enter') { e.preventDefault(); navigateCommands('enter'); }
             }
         });
     });

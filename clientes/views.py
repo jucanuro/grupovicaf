@@ -5,28 +5,21 @@ from django.db.models import Q
 from django.db import IntegrityError
 from django.core.paginator import Paginator
 from django.http import JsonResponse
-from .models import Cliente # Importamos el nuevo modelo Cliente
+from .models import Cliente 
 
-# --- Función Auxiliar para Roles ---
-# Importante: Asume que el modelo Trabajador (el AUTH_USER_MODEL) usa el campo is_staff=True
-# para los roles Administrador y Supervisor, como es práctica común.
 def is_admin_or_supervisor(user):
     """Verifica si el usuario es un administrador o supervisor del sistema."""
-    # Usamos is_staff para cubrir a los usuarios con privilegios.
     return user.is_active and user.is_staff 
 
-# --- VISTA: Listado de Clientes y Búsqueda ---
 @login_required
 @user_passes_test(is_admin_or_supervisor)
 def lista_clientes(request):
     """Muestra el listado de todos los clientes con paginación y búsqueda."""
     
     query = request.GET.get('q')
-    # Ordenamos por fecha de creación descendente por defecto
     clientes = Cliente.objects.all().order_by('-creado_en') 
 
     if query:
-        # La lógica de búsqueda es correcta para el nuevo modelo Cliente
         clientes = clientes.filter(
             Q(razon_social__icontains=query) |
             Q(ruc__icontains=query) |
@@ -34,7 +27,8 @@ def lista_clientes(request):
             Q(correo_contacto__icontains=query)
         ).distinct()
 
-    paginator = Paginator(clientes, 10)  # Mostrar 10 clientes por página
+    # Se cambia el parámetro de 10 a 7 para mostrar solo 7 clientes por página
+    paginator = Paginator(clientes, 7) 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -42,11 +36,9 @@ def lista_clientes(request):
         'clientes': page_obj,
         'query': query,
     }
-    # Usaremos una plantilla común para el listado: clientes_list.html
     return render(request, 'clientes/clientes_list.html', context)
 
 
-# --- VISTA: Búsqueda Rápida API (Para Autocompletado) ---
 @login_required
 @user_passes_test(is_admin_or_supervisor)
 def buscar_clientes_api(request):
@@ -76,7 +68,6 @@ def buscar_clientes_api(request):
     return JsonResponse(list(clientes), safe=False)
 
 
-# --- VISTA: Crear y Editar Cliente (CRUD) ---
 @login_required
 @user_passes_test(is_admin_or_supervisor)
 def crear_editar_cliente(request, pk=None):
@@ -174,7 +165,6 @@ def crear_editar_cliente(request, pk=None):
     return render(request, 'clientes/clientes_form.html', context)
 
 
-# --- VISTA: Confirmar Eliminación ---
 @login_required
 @user_passes_test(is_admin_or_supervisor)
 def confirmar_eliminar_cliente(request, pk):

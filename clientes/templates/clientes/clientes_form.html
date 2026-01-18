@@ -3,163 +3,158 @@
 
 {% block content %}
 <style>
-    /* El degradado animado se mantiene, ya que es un toque moderno */
-    .animated-gradient-text {
-        background: linear-gradient(to right, #10B981, #3B82F6, #8B5CF6);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        text-fill-color: transparent;
-        background-size: 200% auto;
-        animation: text-gradient 3s linear infinite alternate;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    
+    .bg-vicaf-engine {
+        position: fixed; inset: 0; z-index: -1; background-color: #f8fafc;
+        background-image: linear-gradient(rgba(226, 232, 240, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(226, 232, 240, 0.5) 1px, transparent 1px);
+        background-size: 40px 40px;
     }
 
-    @keyframes text-gradient {
-        to {
-            background-position: 200% center;
-        }
-    }
-
-    /* Forma de trapecio para contenedores */
-    .trapezoid-shape {
-        clip-path: polygon(0 0, 100% 0, 98% 100%, 2% 100%);
-    }
-
-    /* Forma de trapecio para botones */
-    .trapezoid-button {
-        clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
-    }
+    .font-mono-tech { font-family: 'JetBrains Mono', monospace; }
 </style>
 
-<div class="space-y-6">
-    <div class="border-b border-gray-200 pb-4 mb-6">
-        <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-up">
-            <h1 class="text-xl font-extrabold animated-gradient-text">
-                {% if cliente %}Editar Cliente{% else %}Crear Nuevo Cliente{% endif %}
-            </h1>
-            <a href="{% url 'clientes:lista_clientes' %}" class="trapezoid-button inline-flex items-center gap-2 px-6 py-2 bg-white text-gray-700 font-semibold transition-all duration-300 border border-gray-300 shadow-sm flex-shrink-0 hover:bg-gray-50">
-                <i data-lucide="list" class="w-5 h-5"></i>
-                Regresar a la Lista
-            </a>
-        </header>
-    </div>
+<div class="bg-vicaf-engine"></div>
 
-    <div class="bg-white p-10 shadow-xl border border-gray-100 trapezoid-shape">
-        <form id="cliente-form" method="post" enctype="multipart/form-data" class="space-y-6">
+<div class="max-w-full mx-auto p-4 relative z-10 space-y-6">
+    
+    <header class="bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-between p-4">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-md">
+                <i data-lucide="{% if cliente %}edit-3{% else %}user-plus{% endif %}" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight leading-none">
+                    {% if cliente %}Editar Socio{% else %}Nuevo Registro{% endif %}
+                </h1>
+                <p class="text-[9px] font-mono-tech text-blue-600 mt-1 uppercase tracking-[0.2em]">Formulario de Validación // v2.6</p>
+            </div>
+        </div>
+
+        <a href="{% url 'clientes:lista_clientes' %}" class="bg-white text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Volver
+        </a>
+    </header>
+
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <form id="cliente-form" method="post" enctype="multipart/form-data" class="p-8">
             {% csrf_token %}
             
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
                 
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2 italic uppercase tracking-wider">Información Fiscal</h3>
-                    
-                    <div>
-                        <label for="id_razon_social" class="block text-[11px] font-bold text-gray-400 uppercase">Razón Social</label>
-                        <input type="text" name="razon_social" id="id_razon_social" value="{{ cliente.razon_social|default_if_none:'' }}" 
-                            class="mt-1 block w-full px-6 py-2 bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200"
-                            style="clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);">
+                <div class="space-y-5">
+                    <div class="flex items-center gap-2 mb-2 border-b border-slate-100 pb-2">
+                        <i data-lucide="building-2" class="w-4 h-4 text-blue-500"></i>
+                        <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Información Fiscal</h3>
                     </div>
                     
-                    <div>
-                        <label for="id_ruc" class="block text-[11px] font-bold text-gray-400 uppercase">RUC</label>
-                        <input type="text" name="ruc" id="id_ruc" value="{{ cliente.ruc|default_if_none:'' }}" 
-                            class="mt-1 block w-full px-6 py-2 bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200"
-                            style="clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);">
-                    </div>
-                    
-                    <div>
-                        <label for="id_direccion" class="block text-[11px] font-bold text-gray-400 uppercase">Dirección</label>
-                        <input type="text" name="direccion" id="id_direccion" value="{{ cliente.direccion|default_if_none:'' }}" 
-                            class="mt-1 block w-full px-6 py-2 bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200"
-                            style="clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Razón Social</label>
+                            <input type="text" name="razon_social" value="{{ cliente.razon_social|default:'' }}" 
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Número de RUC</label>
+                            <input type="text" name="ruc" value="{{ cliente.ruc|default:'' }}" 
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono-tech text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Dirección Fiscal</label>
+                            <textarea name="direccion" rows="2" 
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">{{ cliente.direccion|default:'' }}</textarea>
+                        </div>
                     </div>
                 </div>
 
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2 italic uppercase tracking-wider">Información de Contacto</h3>
-                    
-                    <div>
-                        <label for="id_persona_contacto" class="block text-[11px] font-bold text-gray-400 uppercase">Persona de Contacto</label>
-                        <input type="text" name="persona_contacto" id="id_persona_contacto" value="{{ cliente.persona_contacto|default_if_none:'' }}" 
-                            class="mt-1 block w-full px-6 py-2 bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200"
-                            style="clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);">
+                <div class="space-y-5">
+                    <div class="flex items-center gap-2 mb-2 border-b border-slate-100 pb-2">
+                        <i data-lucide="users" class="w-4 h-4 text-blue-500"></i>
+                        <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Contacto Directo</h3>
                     </div>
                     
-                    <div>
-                        <label for="id_cargo_contacto" class="block text-[11px] font-bold text-gray-400 uppercase">Cargo del Contacto</label>
-                        <input type="text" name="cargo_contacto" id="id_cargo_contacto" value="{{ cliente.cargo_contacto|default_if_none:'' }}" 
-                            class="mt-1 block w-full px-6 py-2 bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200"
-                            style="clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);">
-                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Persona Responsable</label>
+                            <input type="text" name="persona_contacto" value="{{ cliente.persona_contacto|default:'' }}" 
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cargo / Puesto</label>
+                            <input type="text" name="cargo_contacto" value="{{ cliente.cargo_contacto|default:'' }}" 
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                        </div>
 
-                    <div>
-                        <label for="id_celular_contacto" class="block text-[11px] font-bold text-gray-400 uppercase">Celular del Contacto</label>
-                        <input type="text" name="celular_contacto" id="id_celular_contacto" value="{{ cliente.celular_contacto|default_if_none:'' }}" 
-                            class="mt-1 block w-full px-6 py-2 bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200"
-                            style="clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);">
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2 italic uppercase tracking-wider">Validación y Firma</h3>
-                    
-                    <div>
-                        <label for="id_correo_contacto" class="block text-[11px] font-bold text-gray-400 uppercase">Correo Electrónico</label>
-                        <input type="email" name="correo_contacto" id="id_correo_contacto" value="{{ cliente.correo_contacto|default_if_none:'' }}" 
-                            class="mt-1 block w-full px-6 py-2 bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-primary-accent transition-all duration-200"
-                            style="clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);">
-                    </div>
-
-                    <div class="space-y-2">
-                        <label for="id_firma_electronica" class="block text-[11px] font-bold text-gray-400 uppercase tracking-widest">Firma</label>
-                        <div class="relative group">
-                            <div class="absolute inset-0 bg-gray-50 border-2 border-dashed border-gray-300 transition-all group-hover:border-primary-accent"
-                                style="clip-path: polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%);"></div>
-                            
-                            <div class="relative h-28 flex flex-col items-center justify-center p-4">
-                                <i data-lucide="upload-cloud" class="w-8 h-8 text-gray-400 group-hover:text-primary-accent mb-2 transition-colors"></i>
-                                <span class="text-[10px] font-black text-gray-500 uppercase tracking-tighter">Click para adjuntar su firma</span>
-                                <input type="file" name="firma_electronica" id="id_firma_electronica"
-                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Teléfono Celular</label>
+                            <div class="relative">
+                                <i data-lucide="phone" class="absolute left-3 top-3 w-3.5 h-3.5 text-slate-400"></i>
+                                <input type="text" name="celular_contacto" value="{{ cliente.celular_contacto|default:'' }}" 
+                                    class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
                             </div>
                         </div>
                     </div>
-                    
-                    {% if cliente and cliente.firma_electronica %}
-                    <div class="mt-2">
-                        <p class="text-[10px] text-gray-500 uppercase font-bold italic">Vista previa:</p>
-                        <img src="{{ cliente.firma_electronica.url }}" alt="Firma actual" class="w-24 h-auto mt-1 rounded border border-gray-200 shadow-sm">
+                </div>
+
+                <div class="space-y-5">
+                    <div class="flex items-center gap-2 mb-2 border-b border-slate-100 pb-2">
+                        <i data-lucide="shield-check" class="w-4 h-4 text-blue-500"></i>
+                        <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Validación Digital</h3>
                     </div>
-                    {% endif %}
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Correo Electrónico</label>
+                            <input type="email" name="correo_contacto" value="{{ cliente.correo_contacto|default:'' }}" 
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Firma Digital / Logo</label>
+                            <div class="relative group mt-1">
+                                <div class="w-full h-32 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 flex flex-col items-center justify-center transition-all group-hover:bg-white group-hover:border-blue-400">
+                                    <i data-lucide="upload-cloud" class="w-6 h-6 text-slate-400 mb-2 group-hover:text-blue-500 group-hover:scale-110 transition-all"></i>
+                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Click para adjuntar archivo</p>
+                                    <input type="file" name="firma" class="absolute inset-0 opacity-0 cursor-pointer">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if cliente.firma %}
+                        <div class="p-3 bg-blue-50/50 border border-blue-100 rounded-xl">
+                            <p class="text-[8px] text-blue-500 uppercase font-black mb-2 tracking-widest text-center">Archivo Actual</p>
+                            <img src="{{ cliente.firma.url }}" class="h-16 mx-auto object-contain mix-blend-multiply">
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
 
-            <div class="flex justify-end pt-8 border-t border-slate-50">
-                <button type="submit" 
-                        class="relative inline-flex items-center gap-4 px-12 py-4 bg-blue-600 text-white transition-all duration-300 hover:bg-emerald-600 hover:-translate-y-1 shadow-xl group w-full sm:w-auto justify-center"
-                        style="clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);">
-                    
-                    <i data-lucide="save" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
-                    
-                    <span class="text-xs font-black uppercase tracking-[0.2em]">
-                        Finalizar Registro
-                    </span>
-                    
-                    <div class="absolute top-0 left-0 w-full h-full bg-white/5 pointer-events-none" 
-                        style="clip-path: polygon(0 0, 20% 0, 5% 100%, 0 100%);"></div>
+            <div class="mt-10 pt-6 border-t border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                    <span class="text-[9px] font-mono-tech text-slate-400 uppercase tracking-widest text-center italic">Conexión Segura VicafCloud Activa</span>
+                </div>
+                
+                <button type="submit" class="bg-slate-900 text-white px-10 py-3 rounded-xl text-xs font-bold hover:bg-blue-600 hover:-translate-y-1 shadow-lg transition-all flex items-center gap-3">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                    GUARDAR CAMBIOS
                 </button>
             </div>
         </form>
     </div>
 </div>
+
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     });
 </script>
 {% endblock %}

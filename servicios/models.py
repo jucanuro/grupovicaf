@@ -123,10 +123,19 @@ class Cotizacion(models.Model):
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
 
+    @property
+    def detalles_cotizacion(self):
+        """
+        Atajo para obtener todos los ítems sin pasar manualmente por grupos.
+        Esto permite que 'cotizacion.detalles_cotizacion.all()' funcione.
+        """
+        from .models import CotizacionDetalle 
+        return CotizacionDetalle.objects.filter(grupo__cotizacion=self)
+
     def calcular_totales(self):
-        total_neto = CotizacionDetalle.objects.filter(
-            grupo__cotizacion=self
-        ).aggregate(sum_total=Sum('total_detalle'))['sum_total'] or Decimal('0.00')
+        total_neto = self.detalles_cotizacion.aggregate(
+            sum_total=Sum('total_detalle')
+        )['sum_total'] or Decimal('0.00')
 
         self.subtotal = total_neto
         self.impuesto_igv = self.subtotal * self.tasa_igv
@@ -136,6 +145,9 @@ class Cotizacion(models.Model):
         super().save(*args, **kwargs)
         self.calcular_totales()
         super().save(update_fields=['subtotal', 'impuesto_igv', 'monto_total'])
+
+    def __str__(self):
+        return f"{self.numero_oferta} - {self.cliente.razon_social}"
 
     class Meta:
         verbose_name = "Cotización"

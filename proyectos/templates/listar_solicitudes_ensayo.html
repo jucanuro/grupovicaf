@@ -37,11 +37,19 @@
             </h1>
             <p class="text-sm text-gray-500 mt-1">Listado de ítems individuales por solicitud de ensayo.</p>
         </div>
-        <div class="flex gap-3">
-            <a href="{% url 'dashboard' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all border border-gray-300 shadow-sm">
-                <i data-lucide="arrow-left" class="w-4 h-4"></i> Volver
+        {% for solicitud in lista_solicitudes %}
+    <div class="flex gap-3">
+        {# Verificamos que exista la muestra antes de intentar crear la URL #}
+        {% if solicitud.muestra %}
+            <a href="{% url 'proyectos:gestion_solicitud_ensayo' muestra_pk=solicitud.muestra.pk %}" 
+               class="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all border border-gray-300 shadow-sm">
+                <i data-lucide="plus" class="w-4 h-4"></i> Nueva
             </a>
-        </div>
+        {% else %}
+            <span class="text-xs text-red-500">Sin muestra vinculada</span>
+        {% endif %}
+    </div>
+{% endfor %}
     </header>
 </div>
 

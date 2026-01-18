@@ -1,0 +1,132 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap');
+    
+    body { 
+        font-family: 'Inter', sans-serif; 
+        background-color: #f8fafc;
+    }
+
+    .bg-vicaf-engine {
+        position: fixed; inset: 0; z-index: -1; background-color: #f8fafc;
+        background-image: linear-gradient(rgba(226, 232, 240, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(226, 232, 240, 0.5) 1px, transparent 1px);
+        background-size: 40px 40px;
+    }
+</style>
+
+<div class="bg-vicaf-engine"></div>
+
+<div class="max-w-full mx-auto p-4 relative z-10 space-y-4 flex flex-col">
+    <header class="bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-between p-4 flex-shrink-0">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-md">
+                <i data-lucide="shield-check" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-extrabold text-slate-900 tracking-tight leading-none">Gestión de Roles</h1>
+                <p class="text-[9px] font-mono text-blue-600 mt-1 uppercase tracking-[0.2em]">Configuración de Privilegios y Cargos</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3 flex-1 max-w-xl justify-end">
+            <form method="GET" action="{% url 'trabajadores:lista_roles' %}" class="bg-slate-100 flex items-center px-4 py-2 w-full max-w-xs rounded-lg border border-transparent focus-within:border-blue-500 focus-within:bg-white transition-all">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 mr-2"></i>
+                <input type="text" name="q" value="{{ query|default:'' }}" class="bg-transparent border-none outline-none text-xs font-semibold text-slate-700 w-full" placeholder="Buscar rol o descripción...">
+            </form>
+            <a href="{% url 'trabajadores:crear_rol' %}" class="bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-600 transition-all flex items-center gap-2">
+                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Nuevo
+            </a>
+        </div>
+    </header>
+
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="py-3 px-6 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nombre del Rol</th>
+                        <th class="py-3 px-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">Descripción</th>
+                        <th class="py-3 px-4 text-center text-[10px] font-bold text-slate-500 uppercase tracking-widest">Personal Asignado</th>
+                        <th class="py-3 px-6 text-right text-[10px] font-bold text-slate-500 uppercase tracking-widest">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="roles-table-body">
+                    {% for rol in roles %}
+                    <tr class="group border-b border-slate-50 last:border-0 hover:bg-blue-50/50 transition-colors">
+                        <td class="py-3 px-6">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-slate-100 text-slate-600 rounded-md flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                    <i data-lucide="briefcase" class="w-4 h-4"></i>
+                                </div>
+                                <span class="text-[13px] font-bold text-slate-800">{{ rol.nombre }}</span>
+                            </div>
+                        </td>
+
+                        <td class="py-3 px-4">
+                            <p class="text-[11px] text-slate-500 italic max-w-xs truncate">
+                                {{ rol.descripcion|default:"Sin descripción definida" }}
+                            </p>
+                        </td>
+
+                        <td class="py-3 px-4 text-center">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                {{ rol.num_trabajadores }} Usuarios
+                            </span>
+                        </td>
+
+                        <td class="py-3 px-6 text-right">
+                            <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                                <a href="{% url 'trabajadores:editar_rol' rol.pk %}" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="Editar Rol">
+                                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                </a>
+                                {% if rol.num_trabajadores == 0 %}
+                                <a href="{% url 'trabajadores:eliminar_rol' rol.pk %}" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg" title="Eliminar Rol">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="p-12 text-center">
+                            <i data-lucide="shield-alert" class="w-12 h-12 mx-auto text-slate-200 mb-3"></i>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No se han definido roles aún</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <footer id="pagination-controls" class="py-3 px-6 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+            <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest">Roles System / {{ roles.paginator.count }} Registros</span>
+            
+            <div class="flex items-center gap-1">
+                {% if roles.has_previous %}
+                    <a href="?page={{ roles.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" class="px-3 py-1 bg-white border border-slate-200 text-[9px] font-bold rounded hover:bg-slate-900 hover:text-white transition-all uppercase">Anterior</a>
+                {% endif %}
+
+                <div class="h-1 w-16 bg-slate-200 rounded-full overflow-hidden mx-2 hidden sm:block">
+                    <div class="h-full bg-blue-500" style="width: {% widthratio roles.number roles.paginator.num_pages 100 %}%"></div>
+                </div>
+
+                {% if roles.has_next %}
+                    <a href="?page={{ roles.next_page_number }}{% if query %}&q={{ query }}{% endif %}" class="px-3 py-1 bg-white border border-slate-200 text-[9px] font-bold rounded hover:bg-slate-900 hover:text-white transition-all uppercase">Siguiente</a>
+                {% endif %}
+            </div>
+        </footer>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
+</script>
+{% endblock %}

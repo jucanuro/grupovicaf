@@ -1,7 +1,13 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from .models import TrabajadorProfile
+from .models import TrabajadorProfile, RolTrabajador
+
+@admin.register(RolTrabajador)
+class RolTrabajadorAdmin(admin.ModelAdmin):
+    """Gestión de los roles disponibles para el personal."""
+    list_display = ('nombre', 'descripcion')
+    search_fields = ('nombre',)
 
 class TrabajadorProfileInline(admin.StackedInline):
     """Permite crear/editar el TrabajadorProfile al crear/editar un User."""
@@ -12,7 +18,8 @@ class TrabajadorProfileInline(admin.StackedInline):
     
     fieldsets = (
         ('INFORMACIÓN PROFESIONAL Y ROL', {
-            'fields': ('nombre_completo', 'role', 'titulo_profesional', 'firma_electronica', 'foto', 'linkedin')
+            # Cambiado 'role' por 'rol'
+            'fields': ('nombre_completo', 'rol', 'titulo_profesional', 'firma_electronica', 'foto', 'linkedin')
         }),
         ('INFORMACIÓN DE CONTACTO', {
             'fields': ('telefono_contacto', 'correo_contacto')
@@ -45,20 +52,19 @@ class TrabajadorUserAdmin(BaseUserAdmin):
         return super().get_inline_instances(request, obj)
 
 
-
 @admin.register(TrabajadorProfile)
 class TrabajadorProfileAdmin(admin.ModelAdmin):
     """Permite la gestión directa de los perfiles."""
     list_display = (
         'nombre_completo', 
-        'role', 
+        'get_rol_nombre',  
         'user_username', 
         'correo_contacto', 
         'user_is_active', 
         'creado_en'
     )
     
-    list_filter = ('role', 'creado_en', 'user__is_active')
+    list_filter = ('rol', 'creado_en', 'user__is_active')
     search_fields = (
         'nombre_completo', 
         'user__username', 
@@ -71,7 +77,7 @@ class TrabajadorProfileAdmin(admin.ModelAdmin):
             'fields': ('user',),
         }),
         ('INFORMACIÓN PROFESIONAL Y ROL', {
-            'fields': ('nombre_completo', 'titulo_profesional', 'role', 'firma_electronica', 'foto', 'linkedin')
+            'fields': ('nombre_completo', 'titulo_profesional', 'rol', 'firma_electronica', 'foto', 'linkedin')
         }),
         ('INFORMACIÓN DE CONTACTO', {
             'fields': ('telefono_contacto', 'correo_contacto')
@@ -83,6 +89,11 @@ class TrabajadorProfileAdmin(admin.ModelAdmin):
     )
     
     readonly_fields = ('creado_en', 'actualizado_en') 
+
+    def get_rol_nombre(self, obj):
+        return obj.rol.nombre if obj.rol else "-"
+    get_rol_nombre.short_description = 'Rol'
+    get_rol_nombre.admin_order_field = 'rol'
 
     def user_username(self, obj):
         return obj.user.username
