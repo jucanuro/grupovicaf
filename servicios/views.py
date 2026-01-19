@@ -18,7 +18,9 @@ import json
 import logging
 from django.conf import settings
 from xhtml2pdf import pisa
-
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.urls import reverse_lazy
+from django.contrib.messages.views import SuccessMessageMixin
 from reportlab.lib.units import cm
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph
@@ -53,7 +55,7 @@ def lista_servicios(request):
             Q(codigo_facturacion__icontains=query)
         )
 
-    paginator = Paginator(servicios_list, 3) 
+    paginator = Paginator(servicios_list, 7) 
     
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -161,6 +163,96 @@ def eliminar_servicio(request, pk):
     
     return render(request, 'servicios/servicio_confirm_delete.html', {'servicio': servicio})
 
+   
+from django.http import JsonResponse
+from .models import Norma, Metodo
+
+def crear_norma_ajax(request):
+    if request.method == 'POST':
+        codigo = request.POST.get('codigo_norma')
+        nombre = request.POST.get('nombre_norma')
+        descripcion = request.POST.get('descripcion_norma', '')
+
+        if not codigo or not nombre:
+            return JsonResponse({'success': False, 'error': 'Código y Nombre son obligatorios.'})
+
+        try:
+            norma = Norma.objects.create(
+                codigo=codigo,
+                nombre=nombre,
+                descripcion=descripcion
+            )
+            return JsonResponse({
+                'success': True,
+                'id': norma.id,
+                'codigo': norma.codigo  # Usamos el código para mostrarlo en el select
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Método no permitido.'})
+
+def crear_metodo_ajax(request):
+    if request.method == 'POST':
+        codigo = request.POST.get('codigo_metodo')
+        nombre = request.POST.get('nombre_metodo')
+        descripcion = request.POST.get('descripcion_metodo', '')
+
+        if not codigo or not nombre:
+            return JsonResponse({'success': False, 'error': 'Código y Nombre son obligatorios.'})
+
+        try:
+            metodo = Metodo.objects.create(
+                codigo=codigo,
+                nombre=nombre,
+                descripcion=descripcion
+            )
+            return JsonResponse({
+                'success': True,
+                'id': metodo.id,
+                'nombre': metodo.nombre,
+                'codigo': metodo.codigo
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Método no permitido.'})
+    
+class NormaListView(ListView):
+    model = Norma
+    template_name = 'servicios/norma_list.html'
+    context_object_name = 'normas'
+
+class NormaCreateView(SuccessMessageMixin, CreateView):
+    model = Norma
+    fields = ['codigo', 'nombre', 'descripcion']
+    template_name = 'servicios/norma_form.html'
+    success_url = reverse_lazy('servicios:norma_list')
+    success_message = "La norma técnica fue creada con éxito."
+
+class NormaUpdateView(SuccessMessageMixin, UpdateView):
+    model = Norma
+    fields = ['codigo', 'nombre', 'descripcion']
+    template_name = 'servicios/norma_form.html'
+    success_url = reverse_lazy('servicios:norma_list')
+    success_message = "La norma técnica fue actualizada con éxito."
+
+class MetodoListView(ListView):
+    model = Metodo
+    template_name = 'servicios/metodo_list.html'
+    context_object_name = 'metodos'
+
+class MetodoCreateView(SuccessMessageMixin, CreateView):
+    model = Metodo
+    fields = ['codigo', 'nombre', 'descripcion']
+    template_name = 'servicios/metodo_form.html'
+    success_url = reverse_lazy('servicios:metodo_list')
+    success_message = "El método de ensayo fue creado con éxito."
+
+class MetodoUpdateView(SuccessMessageMixin, UpdateView):
+    model = Metodo
+    fields = ['codigo', 'nombre', 'descripcion']
+    template_name = 'servicios/metodo_form.html'
+    success_url = reverse_lazy('servicios:metodo_list')
+    success_message = "El método de ensayo fue actualizado con éxito."
     
 @login_required
 def lista_cotizaciones(request):
@@ -181,7 +273,7 @@ def lista_cotizaciones(request):
             Q(estado__icontains=query)
         )
 
-    paginator = Paginator(cotizaciones_list, 10)
+    paginator = Paginator(cotizaciones_list, 9)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 

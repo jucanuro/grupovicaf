@@ -13,6 +13,17 @@ urlpatterns = [
     path('editar/<int:pk>/', views.crear_editar_servicio, name='editar_servicio'),
     
     path('eliminar/<int:pk>/', views.eliminar_servicio, name='eliminar_servicio'),
+    
+    path('ajax/crear-norma/', views.crear_norma_ajax, name='crear_norma_ajax'),
+    path('ajax/crear-metodo/', views.crear_metodo_ajax, name='crear_metodo_ajax'),
+    
+    path('normas/', views.NormaListView.as_view(), name='norma_list'),
+    path('normas/nuevo/', views.NormaCreateView.as_view(), name='norma_create'),
+    path('normas/editar/<int:pk>/', views.NormaUpdateView.as_view(), name='norma_update'),
+    
+    path('metodos/', views.MetodoListView.as_view(), name='metodo_list'),
+    path('metodos/nuevo/', views.MetodoCreateView.as_view(), name='metodo_create'),
+    path('metodos/editar/<int:pk>/', views.MetodoUpdateView.as_view(), name='metodo_update'),
 
     
     path('cotizaciones/', views.lista_cotizaciones, name='lista_cotizaciones'),

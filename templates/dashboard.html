@@ -203,6 +203,20 @@
                 children: [
                     { id: 'servicios', url: "{% url 'servicios:lista_servicios' %}", icon: '📃', title: 'Listado de Servicios', desc: 'Ver el catálogo de servicios.', category: 'Servicios' },
                     { id: 'crear_servicio', url: "{% url 'servicios:crear_servicio' %}", icon: '➕', title: 'Crear Servicio', desc: 'Registrar un nuevo servicio.', category: 'Servicios' },
+                    
+                    // --- NUEVA SECCIÓN: CONFIGURACIÓN TÉCNICA ---
+                    { 
+                        id: 'configuracion_tecnica', 
+                        icon: '⚙️', 
+                        title: 'Base de Datos Técnica', 
+                        desc: 'Configura normas y métodos de ensayo.',
+                        category: 'Configuración',
+                        children: [
+                            { id: 'normas_list', url: "{% url 'servicios:norma_list' %}", icon: '📚', title: 'Normas Técnicas', desc: 'Gestionar NTP, ASTM, ISO.', category: 'Configuración' },
+                            { id: 'metodos_list', url: "{% url 'servicios:metodo_list' %}", icon: '🧪', title: 'Métodos de Ensayo', desc: 'Gestionar protocolos operativos.', category: 'Configuración' },
+                        ]
+                    },
+
                     { 
                         id: 'cotizaciones', 
                         icon: '💸', 
