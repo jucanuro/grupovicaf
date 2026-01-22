@@ -1,195 +1,97 @@
 {% extends "base_vicafpro.html" %}
 {% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/cotizacion-config.css' %}">
+{% endblock %}
+
 {% block content %}
 
-<style>
-    /* --- DISEÑO GEOMÉTRICO VICAF PRO V2 --- */
-    .bg-geometric {
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        z-index: -1; background-color: #ffffff; overflow: hidden;
-    }
-
-    .shape-rhombus {
-        position: absolute; width: 150px; height: 150px;
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(37, 99, 235, 0.02) 100%);
-        transform: rotate(45deg); border-radius: 20px; top: 10%; left: -50px;
-        animation: float 6s ease-in-out infinite;
-    }
-
-    @keyframes float {
-        0%, 100% { transform: translateY(0px) rotate(45deg); }
-        50% { transform: translateY(-20px) rotate(48deg); }
-    }
-
-    .animated-gradient-text {
-        background: linear-gradient(to right, #10B981, #3B82F6, #8B5CF6);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-size: 200% auto;
-        animation: text-gradient 3s linear infinite alternate;
-    }
-
-    @keyframes text-gradient { to { background-position: 200% center; } }
-
-    .glass-card {
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.7);
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.04);
-    }
-
-    .input-trapezoid {
-        clip-path: polygon(2% 0%, 100% 0%, 98% 100%, 0% 100%);
-        transition: all 0.3s ease;
-    }
-
-    /* Ajustes Tom Select para que coincidan con el diseño trapezoidal */
-    .ts-wrapper.vicaf-search .ts-control {
-        clip-path: polygon(2% 0, 100% 0, 98% 100%, 0 100%);
-        border: 1px solid #cbd5e1;
-        padding: 8px 15px !important;
-        font-size: 11px !important;
-        font-weight: 700;
-        text-transform: uppercase;
-        background-color: white;
-    }
-
-    /* Estilos para las filas de items */
-    .item-row-v2 {
-        position: relative;
-        background: white;
-        border: 1px solid #e2e8f0;
-        margin-bottom: 1rem;
-        padding: 1.5rem;
-        clip-path: polygon(0 0, 100% 0, 99% 100%, 1% 100%);
-    }
-
-    .row-agrupador-cat { border-left: 8px solid #1e293b; background-color: #f8fafc; }
-    .row-agrupador-sub { border-left: 8px solid #64748b; background-color: #ffffff; margin-left: 1rem; }
-
-    .subtotal-cell {
-        font-family: 'Monaco', monospace;
-        font-weight: 900;
-        color: #2563eb;
-    }
-</style>
-
-<div class="bg-geometric">
-    <div class="shape-rhombus"></div>
-    <div class="shape-rhombus" style="top: 70%; left: 85%; width: 100px; height: 100px; opacity: 0.4;"></div>
-</div>
-
-<div class="max-w-full mx-auto p-4 md:p-6 space-y-6 relative z-10">
-    <header class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-8">
-        <div class="relative pl-4 border-l-4 border-blue-600">
-            <h1 class="text-2xl font-black tracking-tighter animated-gradient-text uppercase">
-                {% if cotizacion %}Editar Cotización #{{ cotizacion.pk }}{% else %}Nueva Oferta Económica{% endif %}
-            </h1>
-            <p class="text-slate-500 text-[10px] font-bold mt-1 uppercase tracking-[0.2em] flex items-center gap-2">
-                <span class="w-8 h-[1px] bg-slate-300"></span>
-                Vicaf Pro v2.0 | Gestión de Proyectos
-            </p>
+<div class="bg-vicaf-engine"></div>
+<div class="max-w-full mx-auto p-4 relative z-10 space-y-6">
+    
+    <header class="bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-between p-4">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-md">
+                <i data-lucide="file-text" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight leading-none uppercase">Nueva Oferta Económica</h1>
+                <p class="text-[9px] font-mono-tech text-blue-600 mt-1 uppercase tracking-[0.2em]">VICAF PRO V2.0 // Gestión de Proyectos</p>
+            </div>
         </div>
-        
-        <a href="{% url 'servicios:lista_cotizaciones' %}" 
-           class="relative inline-flex items-center gap-3 px-8 py-3 bg-slate-900 text-white transition-all duration-300 hover:bg-blue-600 hover:-translate-y-1 group"
-           style="clip-path: polygon(15% 0, 100% 0, 85% 100%, 0 100%);">
-            <i data-lucide="arrow-left" class="w-4 h-4 group-hover:-translate-x-1 transition-transform"></i>
-            <span class="text-xs font-black uppercase tracking-[0.2em]">Volver al listado</span>
+        <a href="{% url 'servicios:lista_cotizaciones' %}" class="bg-white text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> VOLVER 
         </a>
     </header>
 
-    <form method="post" id="cotizacion-form" class="space-y-8">
+    <form method="post" id="cotizacion-form">
         {% csrf_token %}
-
-        <div class="relative group">
-            <div class="absolute inset-0 bg-slate-200/60 translate-y-2 translate-x-1 -z-10" style="clip-path: polygon(0 0, 100% 0, 99% 100%, 1% 100%);"></div>
-            <div class="glass-card p-8" style="clip-path: polygon(0 0, 100% 0, 99% 100%, 1% 100%);">
-                <h2 class="text-[11px] font-black text-blue-600 uppercase tracking-[0.3em] mb-8 flex items-center gap-3">
-                    <i data-lucide="building-2" class="w-4 h-4"></i> Datos del Solicitante
-                </h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div class="form-group-v2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-2">RUC del Cliente</label>
-                        <select name="cliente" id="id_cliente_ruc" required class="vicaf-search-select">
-                            <option value="">SELECCIONAR CLIENTE...</option>
-                            {% for cliente in clientes %}
-                            <option value="{{ cliente.pk }}" 
-                                    data-razon-social="{{ cliente.razon_social|default:'' }}"
-                                    data-contacto="{{ cliente.persona_contacto|default:'' }}"
-                                    data-correo="{{ cliente.correo_contacto|default:'' }}"
-                                    data-telefono="{{ cliente.celular_contacto|default:'' }}"
-                                    {% if cotizacion.cliente.pk == cliente.pk %}selected{% endif %}>
-                                {{ cliente.ruc }} - {{ cliente.razon_social }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3 px-4">Razón Social</label>
-                        <div class="relative group">
-                            <div class="absolute inset-0 bg-slate-100 translate-y-1 translate-x-1 -z-10" style="clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%);"></div>
-                            
-                            <input type="text" id="id_razon_social" 
-                                class="w-full bg-slate-50 border border-slate-200 py-3 px-8 input-trapezoid font-black text-xs uppercase outline-none" 
-                                placeholder="RAZÓN SOCIAL DEL CLIENTE"
-                                readonly>
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 mb-6">
+            <div class="flex items-center gap-2 mb-6 border-b border-slate-100 pb-3">
+                <i data-lucide="building" class="w-4 h-4 text-blue-500"></i>
+                <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Identificación del Cliente</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">RUC o Nombre del Cliente</label>
+                    <div class="grid grid-cols-12 gap-2">
+                        <div class="col-span-10">
+                            <select name="cliente" id="id_cliente_ruc" required class="vicaf-search-select">
+                                <option value="">SELECCIONAR O BUSCAR CLIENTE...</option>
+                                {% for cliente in clientes %}
+                                <option value="{{ cliente.pk }}" 
+                                        data-razon-social="{{ cliente.razon_social|default:'' }}"
+                                        data-contacto="{{ cliente.persona_contacto|default:'' }}"
+                                        data-correo="{{ cliente.correo_contacto|default:'' }}"
+                                        data-telefono="{{ cliente.celular_contacto|default:'' }}">
+                                    {{ cliente.ruc }} - {{ cliente.razon_social }}
+                                </option>
+                                {% endfor %}
+                            </select>
                         </div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3 px-4">Atención</label>
-                        <div class="relative group">
-                            <div class="absolute inset-0 bg-slate-100 translate-y-1 translate-x-1 -z-10" style="clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);"></div>
-                            <input type="text" name="persona_contacto" id="id_persona_contacto" 
-                                class="w-full bg-white border border-slate-300 py-3 px-8 input-trapezoid font-black text-xs uppercase focus:ring-2 focus:ring-blue-600 outline-none" 
-                                placeholder="NOMBRE DEL CONTACTO"
-                                value="{{ cotizacion.persona_contacto|default:'' }}">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3 px-4">Correo Electrónico</label>
-                        <div class="relative group">
-                            <div class="absolute inset-0 bg-slate-100 translate-y-1 translate-x-1 -z-10" style="clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);"></div>
-                            <input type="email" name="correo_contacto" id="id_correo_contacto" 
-                                class="w-full bg-white border border-slate-300 py-3 px-8 input-trapezoid font-black text-xs outline-none focus:ring-2 focus:ring-blue-600" 
-                                placeholder="EJEMPLO@CORREO.COM"
-                                value="{{ cotizacion.correo_contacto|default:'' }}">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3 px-4">Teléfono</label>
-                        <div class="relative group">
-                            <div class="absolute inset-0 bg-slate-100 translate-y-1 translate-x-1 -z-10" style="clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);"></div>
-                            <input type="text" name="telefono_contacto" id="id_telefono_contacto" 
-                                class="w-full bg-white border border-slate-300 py-3 px-8 input-trapezoid font-black text-xs uppercase outline-none focus:ring-2 focus:ring-blue-600" 
-                                placeholder="+51 000 000 000"
-                                value="{{ cotizacion.telefono_contacto|default:'' }}">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                    <div class="md:col-span-1">
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3 px-4">Categoría General</label>
-                        <div class="relative group">
-                            <div class="absolute inset-0 bg-slate-100 translate-y-1 translate-x-1 -z-10" style="clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);"></div>
-                            
-                            <div class="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-slate-400 pointer-events-none">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
+                        <div class="col-span-2">
+                            <div onclick="openClienteModal()" 
+                                class="w-full h-[38px] cursor-pointer group relative flex items-center justify-center rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-white shadow-sm transition-all hover:border-blue-400 hover:shadow-md active:scale-95">
+                                <i data-lucide="user-plus" class="w-4 h-4 text-blue-600"></i>
+                                <span class="absolute -top-1 -right-1 flex h-2 w-2">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
+                                </span>
                             </div>
-
-                            <select name="servicio_general" id="id_servicio_general" 
-                                    class="w-full bg-white border border-slate-300 py-3 pl-10 pr-10 input-trapezoid text-xs uppercase focus:ring-2 focus:ring-blue-600 outline-none appearance-none cursor-pointer">
-                                <option value="">SELECCIONAR CATEGORÍA...</option>
+                        </div>
+                    </div>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Razón Social Corta</label>
+                    <input type="text" id="id_razon_social" readonly 
+                        class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-400 cursor-not-allowed"
+                        placeholder="RAZÓN SOCIAL">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Atención</label>
+                    <input type="text" name="persona_contacto" id="id_persona_contacto" 
+                        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                        value="{{ cotizacion.persona_contacto|default:'' }}">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Correo Electrónico</label>
+                    <input type="email" name="correo_contacto" id="id_correo_contacto" 
+                        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                        value="{{ cotizacion.correo_contacto|default:'' }}">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Teléfono</label>
+                    <input type="text" name="telefono_contacto" id="id_telefono_contacto" 
+                        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                        value="{{ cotizacion.telefono_contacto|default:'' }}">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Categoría General</label>
+                    <div class="grid grid-cols-12 gap-2">
+                        <div class="col-span-10">
+                            <select name="servicio_general" id="id_servicio_general" required class="vicaf-search-select">
+                                <option value="">SELECCIONAR O BUSCAR CATEGORÍA...</option>
                                 {% for grupo in servicio_grupos %}
                                     <option value="{{ grupo.pk }}" 
                                         {% if cotizacion.servicio_general.id == grupo.pk or cotizacion.servicio_general == grupo %}selected{% endif %}>
@@ -197,113 +99,159 @@
                                     </option>
                                 {% endfor %}
                             </select>
+                        </div>
 
-                            <div class="absolute right-4 top-1/2 -translate-y-1/2 z-10 text-slate-400 pointer-events-none">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                </svg>
+                        <div class="col-span-2">
+                            <div onclick="openCategoriaModal()" 
+                                class="w-full h-[38px] cursor-pointer group relative flex items-center justify-center rounded-lg border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-sm transition-all hover:border-emerald-400 hover:shadow-md active:scale-95"
+                                title="Registrar nueva categoría">
+                                <div class="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/5 rounded-lg transition-colors"></div>
+                                <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-600 group-hover:text-emerald-700 transition-transform group-hover:scale-110"></i>
+                                
+                                <span class="absolute -top-1 -right-1 flex h-2 w-2">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+                                </span>
                             </div>
                         </div>
                     </div>
-
-                    <div class="md:col-span-2">
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3 px-4">Asunto / Proyecto</label>
-                        <div class="relative group">
-                            <div class="absolute inset-0 bg-blue-50 translate-y-1 translate-x-1 -z-10" style="clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%);"></div>
-                            
-                            <input type="text" name="asunto_servicio" id="id_asunto_servicio" 
-                                class="w-full bg-white border border-blue-200 py-3 px-8 input-trapezoid font-black text-xs uppercase text-blue-700 outline-none focus:ring-2 focus:ring-blue-600" 
-                                value="{{ cotizacion.asunto_servicio|default:'' }}" 
-                                placeholder="EJ: DISEÑO DE MEZCLA DE CONCRETO">
-                        </div>
-                    </div>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Asunto / Proyecto</label>
+                    <input type="text" name="asunto_servicio" id="id_asunto_servicio" 
+                        class="w-full px-4 py-2.5 bg-white border border-blue-100 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                        value="{{ cotizacion.asunto_servicio|default:'' }}">
                 </div>
             </div>
         </div>
 
-        <div class="relative group">
-            <div class="absolute inset-0 bg-slate-200/60 translate-y-2 translate-x-1 -z-10" style="clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);"></div>
-            <div class="glass-card p-8">
-                <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
-                    <h2 class="text-[11px] font-black text-blue-600 uppercase tracking-[0.3em] flex items-center gap-3">
-                        <i data-lucide="list-ordered" class="w-4 h-4"></i> Desglose de Servicios
-                    </h2>
-                    <div class="flex flex-wrap gap-3">
-                        <button type="button" onclick="addRow('categoria')" class="px-5 py-2 bg-slate-800 text-white text-[10px] font-black rounded-sm uppercase tracking-widest hover:bg-black transition-colors" style="clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);">+ Categoría</button>
-                        <button type="button" onclick="addRow('subcategoria')" class="px-5 py-2 bg-slate-500 text-white text-[10px] font-black rounded-sm uppercase tracking-widest hover:bg-slate-700 transition-colors" style="clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);">+ Sub-Cat</button>
-                        <button type="button" onclick="addRow('servicio')" class="px-5 py-2 bg-blue-600 text-white text-[10px] font-black rounded-sm uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-lg shadow-blue-200" style="clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);">
-                            <i data-lucide="plus" class="w-3 h-3 inline mr-1"></i> Agregar Ensayo
-                        </button>
-                    </div>
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 mb-6">
+            <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="list-plus" class="w-4 h-4 text-blue-500"></i>
+                    <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Detalle de cotización</h3>
                 </div>
-
-                <div id="cotizacion-detalles" class="space-y-4 min-h-[100px]">
-                    </div>
-
-                <div class="mt-12 pt-8 border-t border-slate-100 flex flex-col items-end">
-                    <div class="w-full md:w-96 space-y-4 bg-slate-900 p-8 shadow-2xl relative overflow-hidden" style="clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);">
-                        <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-                        
-                        <div class="flex justify-between items-center text-slate-400">
-                            <span class="text-[10px] font-black uppercase tracking-widest">Subtotal Neto</span>
-                            <span class="font-mono text-white text-lg">S/. <span id="subtotal_cotizacion">0.00</span></span>
-                        </div>
-                        <div class="flex justify-between items-center text-slate-400">
-                            <span class="text-[10px] font-black uppercase tracking-widest">I.G.V (18%)</span>
-                            <span class="font-mono text-white">S/. <span id="igv_cotizacion">0.00</span></span>
-                        </div>
-                        <div class="flex justify-between items-center pt-4 border-t border-slate-700">
-                            <span class="text-[11px] font-black text-emerald-400 uppercase tracking-[0.3em]">Total Oferta</span>
-                            <span class="text-2xl font-black text-white italic">S/. <span id="total_final_cotizacion">0.00</span></span>
-                        </div>
-                    </div>
+                <div class="flex gap-2">
+                    <button type="button" onclick="document.getElementById('wrapper_categoria').classList.toggle('hidden')" class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold border border-blue-100 hover:bg-blue-100 transition-all">+ CATEGORÍA</button>
+                    <button type="button" onclick="document.getElementById('wrapper_subcategoria').classList.toggle('hidden')" class="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold border border-slate-200 hover:bg-slate-200 transition-all">+ SUB-CATEGORÍA</button>
                 </div>
             </div>
-        </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div class="glass-card p-8" style="clip-path: polygon(0 0, 100% 0, 98% 100%, 2% 100%);">
-                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 px-2">Condiciones Comerciales</h3>
-                <div class="grid grid-cols-1 gap-4">
-                    <div>
-                        <label class="text-[9px] font-black text-slate-400 uppercase mb-2 block">Forma de Pago</label>
-                        <select name="forma_pago" id="id_forma_pago" class="vicaf-search-select">
-                            {% for val, text in forma_pago_choices %}
-                            <option value="{{ val }}" {% if cotizacion.forma_pago == val %}selected{% endif %}>{{ text }}</option>
-                            {% endfor %}
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-4 bg-slate-50/50 p-6 rounded-2xl border border-dashed border-slate-200">
+                <div class="md:col-span-4">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Buscar Servicio (Ensayo)</label>
+                    <select id="reg_servicio" class="vicaf-search-select"></select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Norma de Ensayo</label>
+                    <div id="reg_norma_txt" class="text-xs font-mono-tech p-2.5 bg-white border border-slate-200 rounded-lg text-slate-400 italic">Auto...</div>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Método</label>
+                    <div id="reg_metodo_txt" class="text-xs font-mono-tech p-2.5 bg-white border border-slate-200 rounded-lg text-slate-400 italic">Auto...</div>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cantidad</label>
+                    <input type="number" id="reg_cantidad" value="1" min="1" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Precio Unit. (S/)</label>
+                    <input type="number" step="0.01" id="reg_precio" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-blue-600">
+                </div>
+
+                <div id="wrapper_categoria" class="md:col-span-4 hidden">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cabecera de Grupo (Opcional)</label>
+                    <div class="flex gap-2">
+                        <select id="reg_categoria" class="flex-1 text-[10px] border-slate-200 rounded-lg">
+                            <option value="">-- SELECCIONAR CATEGORÍA --</option>
+                            {% for cat in servicio_grupos %}<option value="{{ cat.nombre }}">{{ cat.nombre }}</option>{% endfor %}
                         </select>
+                        <button type="button" onclick="addHeader('categoria')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-[10px] font-black hover:bg-blue-200">ADD</button>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-[9px] font-black text-slate-400 uppercase mb-2 block">Validez (Días)</label>
-                            <input type="number" name="validez_oferta_dias" class="w-full border border-slate-300 py-2 px-4 input-trapezoid font-bold text-xs" value="{{ cotizacion.validez_oferta_dias|default:15 }}">
-                        </div>
-                        <div>
-                            <label class="text-[9px] font-black text-slate-400 uppercase mb-2 block">Plazo (Días)</label>
-                            <input type="number" name="plazo_entrega_dias" class="w-full border border-slate-300 py-2 px-4 input-trapezoid font-bold text-xs" value="{{ cotizacion.plazo_entrega_dias|default:5 }}">
-                        </div>
+                </div>
+
+                <div id="wrapper_subcategoria" class="md:col-span-4 hidden">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sub-Categoría (Opcional)</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="reg_subcategoria" placeholder="Ej: Agregado Fino" class="flex-1 px-3 py-1 bg-white border border-slate-200 rounded-lg text-[10px]">
+                        <button type="button" onclick="addHeader('subcategoria')" class="px-3 py-1 bg-slate-200 text-slate-600 rounded-lg text-[10px] font-black hover:bg-slate-300">ADD</button>
                     </div>
                 </div>
             </div>
 
-            <div class="flex flex-col justify-center items-end space-y-6">
-                <button type="submit" class="relative group px-16 py-6 bg-blue-600 text-white transition-all duration-300 hover:bg-emerald-600 hover:-translate-y-2 shadow-2xl shadow-blue-500/20"
-                        style="clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);">
-                    <div class="flex items-center gap-4">
-                        <i data-lucide="shield-check" class="w-6 h-6"></i>
-                        <span class="text-sm font-black uppercase tracking-[0.4em]">Guardar Cotización</span>
-                    </div>
+            <div class="flex justify-end mb-8">
+                <button type="button" onclick="addItem()" class="group bg-slate-900 hover:bg-blue-600 text-white font-black py-3 px-8 rounded-xl text-[11px] uppercase tracking-widest shadow-lg shadow-slate-200 hover:shadow-blue-200 transition-all flex items-center gap-3">
+                    <i data-lucide="plus-circle" class="w-4 h-4 text-blue-400 group-hover:text-white transition-colors"></i> 
+                    Agregar Ítem al Detalle
                 </button>
-                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2">
-                    <i data-lucide="info" class="w-3 h-3"></i> Se generará el correlativo VFC-OTE automáticamente
-                </p>
+            </div>
+
+            <div class="overflow-x-auto min-h-[200px]">
+                <table class="w-full border-separate border-spacing-y-2">
+                    <thead>
+                        <tr class="text-[10px] text-slate-400 uppercase tracking-widest font-black">
+                            <th class="pb-3 pl-4 text-left w-12">#</th>
+                            <th class="pb-3 text-left">Descripción del Ensayo</th>
+                            <th class="pb-3 text-center">Norma/Método</th>
+                            <th class="pb-3 text-center w-20">Cant.</th>
+                            <th class="pb-3 text-center w-20">Und.</th>
+                            <th class="pb-3 text-right w-28">P. Unitario</th>
+                            <th class="pb-3 text-right w-28 pr-4">P. Parcial</th>
+                            <th class="pb-3 text-center w-12"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="cotizacion-detalles"></tbody>
+                </table>
+            </div>
+
+            <div class="mt-10 flex flex-col md:grid md:grid-cols-12 gap-6 pt-6 border-t border-slate-100">
+                <div class="md:col-span-7 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1 tracking-tighter">Forma de Pago</label>
+                        <input type="text" name="forma_pago" placeholder="Ej: Contado" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:bg-white transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1 tracking-tighter">Validez de Oferta</label>
+                        <input type="text" name="validez_dias" placeholder="Ej: 15 días" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:bg-white transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1 tracking-tighter">Tiempo de Entrega</label>
+                        <input type="text" name="tiempo_entrega" placeholder="Ej: 03 días" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:bg-white transition-colors">
+                    </div>
+                    <div class="md:col-span-3 text-slate-400 text-[10px] font-medium italic mt-2">
+                        * Los precios mostrados no incluyen IGV a menos que se especifique lo contrario.
+                    </div>
+                </div>
+                
+                <div class="md:col-span-5 space-y-3 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-500 font-bold uppercase tracking-tighter">Subtotal Neto</span>
+                        <span class="text-slate-700 font-mono-tech font-bold" id="subtotal_cotizacion">0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-500 font-bold uppercase tracking-tighter">IGV (18%)</span>
+                        <span class="text-slate-700 font-mono-tech font-bold" id="igv_cotizacion">0.00</span>
+                    </div>
+                    <div class="pt-3 border-t border-slate-200 flex justify-between items-center">
+                        <span class="text-blue-600 font-black text-[11px] uppercase tracking-tighter">Monto Total S/</span>
+                        <span class="text-blue-600 font-mono-tech font-black text-xl" id="total_final_cotizacion">0.00</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 flex justify-end">
+                <button type="submit" form="cotizacion-form" class="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-200 transition-all flex items-center gap-3">
+                    <i data-lucide="save" class="w-5 h-5"></i> Guardar y Generar Oferta
+                </button>
             </div>
         </div>
 
-        <input type="hidden" name="monto_total" id="id_monto_total">
         <input type="hidden" name="detalles_json" id="detalles_json">
+        <input type="hidden" name="monto_total" id="id_monto_total">
     </form>
 </div>
+{% include 'servicios/modals/all_modals.html' %}
+
 
 <script id="all-services-data" type="application/json">{{ servicios_con_detalles_json|safe }}</script>
 <script id="servicio-grupos-data" type="application/json">
@@ -316,223 +264,13 @@
     [{% for s in subcategorias %}{"pk":"{{s.pk}}","nombre":"{{s.nombre}}"}{% if not forloop.last %},{% endif %}{% endfor %}]
 </script>
 <script src="https://unpkg.com/lucide@latest"></script>
+
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        lucide.createIcons();
-
-        // 1. Carga de datos iniciales
-        const ALL_SERVICES = JSON.parse(document.getElementById('all-services-data').textContent || '[]');
-        const GRUPOS = JSON.parse(document.getElementById('servicio-grupos-data').textContent || '[]');
-        const SUBCATEGORIAS = JSON.parse(document.getElementById('subcategorias-data')?.textContent || '[]');
-        
-        const detallesContainer = document.getElementById('cotizacion-detalles');
-        const detallesJsonInput = document.getElementById('detalles_json');
-        const subtotalSpan = document.getElementById('subtotal_cotizacion');
-        const igvSpan = document.getElementById('igv_cotizacion');
-        const totalFinalSpan = document.getElementById('total_final_cotizacion');
-        const montoTotalInput = document.getElementById('id_monto_total');
-        
-        const clientesSelect = document.getElementById('id_cliente_ruc');
-        const formaPagoSelect = document.getElementById('id_forma_pago');
-        const servicioGeneralSelect = document.getElementById('id_servicio_general'); 
-
-        const initializeTomSelect = (el) => {
-            if (!el) return null;
-            if (el.tomselect) el.tomselect.destroy();
-            return new TomSelect(el, { 
-                create: false, 
-                placeholder: 'Seleccione...',
-                onInitialize: function() { this.wrapper.classList.add('vicaf-search'); }
-            });
-        };
-
-        const loadClientData = (opt) => {
-            if (!opt || opt.value === "") {
-                const fields = ['id_razon_social', 'id_persona_contacto', 'id_correo_contacto', 'id_telefono_contacto'];
-                fields.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.value = '';
-                });
-                return;
-            }
-
-            const rSocial = document.getElementById('id_razon_social');
-            const pContacto = document.getElementById('id_persona_contacto');
-            const cContacto = document.getElementById('id_correo_contacto');
-            const tContacto = document.getElementById('id_telefono_contacto');
-
-            if (rSocial) rSocial.value = opt.dataset.razonSocial || '';
-            if (pContacto) pContacto.value = opt.dataset.contacto || '';
-            if (cContacto) cContacto.value = opt.dataset.correo || '';
-            if (tContacto) tContacto.value = opt.dataset.telefono || '';
-        };
-
-        // 3. Función principal para agregar filas
-        window.addRow = (tipo, data = {}) => {
-            const row = document.createElement('div');
-            row.className = `item-row-v2 row-${tipo === 'categoria' ? 'agrupador-cat' : (tipo === 'subcategoria' ? 'agrupador-sub' : 'servicio-directo')}`;
-            row.dataset.tipoFila = tipo;
-
-            if (tipo === 'categoria' || tipo === 'subcategoria') {
-                row.innerHTML = `
-                    <div class="flex items-center gap-6">
-                        <div class="flex-1">
-                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">${tipo}</label>
-                            <select class="agrupador-select"></select>
-                        </div>
-                        <button type="button" class="remove-item-btn text-slate-300 hover:text-red-500 pt-4 transition-colors">
-                            <i data-lucide="trash-2" class="w-5 h-5"></i>
-                        </button>
-                    </div>`;
-                detallesContainer.appendChild(row);
-                
-                const sel = row.querySelector('.agrupador-select');
-                const fuenteDatos = (tipo === 'subcategoria') ? SUBCATEGORIAS : GRUPOS;
-                
-                fuenteDatos.forEach(g => {
-                    const isSelected = (g.nombre === data.descripcion_especifica);
-                    sel.add(new Option(g.nombre, g.nombre, isSelected, isSelected));
-                });
-                
-                initializeTomSelect(sel);
-            } else {
-                // ✅ SE ELIMINÓ EL DIV DE DESCRIPCIÓN ESPECÍFICA Y SE AJUSTARON LAS COLUMNAS (md:col-span-9 para el select)
-                row.innerHTML = `
-                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                        <div class="md:col-span-9">
-                            <label class="text-[9px] font-black text-slate-400 uppercase mb-2 block">Ensayo / Servicio</label>
-                            <select class="servicio-select"></select>
-                        </div>
-                        <div class="md:col-span-1">
-                            <label class="text-[9px] font-black text-slate-400 uppercase mb-2 block text-center">Cant.</label>
-                            <input type="number" class="w-full bg-slate-50 border border-slate-200 py-2 text-center font-black text-xs cantidad-input" value="${data.cantidad || 1}">
-                        </div>
-                        <div class="md:col-span-2 flex justify-between items-center bg-blue-50 p-2 rounded-sm border border-blue-100">
-                            <span class="subtotal-cell text-sm font-bold text-blue-600">0.00</span>
-                            <button type="button" class="remove-item-btn text-red-400 hover:text-red-600 transition-colors">
-                                <i data-lucide="x-circle" class="w-5 h-5"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mt-4 pt-4 border-t border-dashed border-slate-200">
-                        <div class="flex flex-col"><label class="text-[8px] font-black text-slate-400 uppercase">Norma Técnica</label><span class="norma-display text-[10px] font-black text-slate-700 bg-slate-50 px-1">--</span></div>
-                        <div class="flex flex-col"><label class="text-[8px] font-black text-slate-400 uppercase">Método</label><span class="metodo-display text-[10px] font-black text-slate-700 bg-slate-50 px-1">--</span></div>
-                        <div class="flex flex-col"><label class="text-[8px] font-black text-slate-400 uppercase">P. Unitario</label><div class="flex items-center gap-1"><span class="text-[10px] font-bold text-blue-600">S/</span><input type="number" step="0.01" class="w-24 font-black text-xs outline-none precio-input" value="${data.precio_unitario || 0}"></div></div>
-                        <div class="flex flex-col"><label class="text-[8px] font-black text-slate-400 uppercase">Und. Medida</label><input type="text" class="text-[10px] font-black uppercase outline-none und-input" value="${data.unidad_medida || ''}"></div>
-                    </div>`;
-                
-                detallesContainer.appendChild(row);
-                const sSel = row.querySelector('.servicio-select');
-                const opts = ALL_SERVICES.map(s => ({ value: String(s.pk), text: s.nombre }));
-                const ts = initializeTomSelect(sSel);
-                ts.addOptions(opts);
-
-                if (data.servicio_id) {
-                    ts.setValue(String(data.servicio_id));
-                    updateServiceRow(row, String(data.servicio_id));
-                }
-                sSel.addEventListener('change', () => updateServiceRow(row, sSel.value));
-            }
-
-            lucide.createIcons();
-            row.querySelector('.remove-item-btn').addEventListener('click', () => { row.remove(); updateTotals(); });
-            row.addEventListener('input', updateTotals);
-            updateTotals();
-        };
-
-        const updateServiceRow = (row, sId) => {
-            const s = ALL_SERVICES.find(x => String(x.pk) === sId);
-            if (s) {
-                if(!row.querySelector('.precio-input').value || row.querySelector('.precio-input').value == 0) {
-                    row.querySelector('.precio-input').value = s.precio_base || 0;
-                }
-                row.querySelector('.und-input').value = row.querySelector('.und-input').value || (s.unidad_base || 'ENSAYO');
-                
-                let normaTxt = s.norma_nombre || (s.normas?.length > 0 ? s.normas[0].codigo : 'N/A');
-                let metodoTxt = s.metodo_nombre || (s.metodos?.length > 0 ? s.metodos[0].codigo : 'N/A');
-                row.querySelector('.norma-display').textContent = normaTxt.toUpperCase();
-                row.querySelector('.metodo-display').textContent = metodoTxt.toUpperCase();
-                row.dataset.normaId = s.norma_id || (s.normas?.length > 0 ? s.normas[0].pk : '');
-                row.dataset.metodoId = s.metodo_id || (s.metodos?.length > 0 ? s.metodos[0].pk : '');
-            }
-            updateTotals();
-        };
-
-        const updateTotals = () => {
-            let subtotal = 0;
-            const detalles = [];
-            detallesContainer.querySelectorAll('.item-row-v2').forEach(row => {
-                const tipo = row.dataset.tipoFila;
-                if (tipo === 'servicio') {
-                    const c = parseFloat(row.querySelector('.cantidad-input').value) || 0;
-                    const p = parseFloat(row.querySelector('.precio-input').value) || 0;
-                    const st = c * p;
-                    subtotal += st;
-                    row.querySelector('.subtotal-cell').textContent = st.toFixed(2);
-                    
-                    // ✅ SE RECOLECTA EL NOMBRE DEL SERVICIO PARA LA DESCRIPCIÓN AUTOMÁTICA
-                    const serviceSelect = row.querySelector('.servicio-select');
-                    const serviceText = serviceSelect.options[serviceSelect.selectedIndex]?.text || '';
-
-                    detalles.push({
-                        tipo_fila: 'servicio', 
-                        servicio_id: serviceSelect.value,
-                        cantidad: c, 
-                        precio_unitario: p.toFixed(2), 
-                        unidad_medida: row.querySelector('.und-input').value,
-                        norma_id: row.dataset.normaId || null, 
-                        metodo_id: row.dataset.metodoId || null,
-                        descripcion_especifica: serviceText // Se usa el nombre del servicio automáticamente
-                    });
-                } else {
-                    detalles.push({ 
-                        tipo_fila: tipo, 
-                        descripcion_especifica: row.querySelector('.agrupador-select').value 
-                    });
-                }
-            });
-            const igv = subtotal * 0.18;
-            subtotalSpan.textContent = subtotal.toFixed(2);
-            igvSpan.textContent = igv.toFixed(2);
-            totalFinalSpan.textContent = (subtotal + igv).toFixed(2);
-            if(montoTotalInput) montoTotalInput.value = (subtotal + igv).toFixed(2);
-            detallesJsonInput.value = JSON.stringify(detalles);
-        };
-
-        // 4. Inicialización
-        const tsCliente = initializeTomSelect(clientesSelect);
-        const tsFormaPago = initializeTomSelect(formaPagoSelect);
-        const tsServicioGral = initializeTomSelect(servicioGeneralSelect);
-
-        if (tsCliente) {
-            tsCliente.on('change', function(value) {
-                const selectedOption = clientesSelect.options[clientesSelect.selectedIndex];
-                loadClientData(selectedOption);
-            });
-        }
-
-        // 5. Cargar detalles
-        const initialDetalles = JSON.parse(document.getElementById('initial-detalles-json').textContent || '[]');
-        if (initialDetalles.length > 0) {
-            detallesContainer.innerHTML = ''; 
-            initialDetalles.forEach(d => addRow(d.tipo_fila, d));
-        } else {
-            addRow('servicio');
-        }
-
-        // 6. AUTO-RELLENO AL CARGAR
-        setTimeout(() => {
-            if (servicioGeneralSelect.value && tsServicioGral) {
-                tsServicioGral.setValue(servicioGeneralSelect.value);
-            }
-
-            if (clientesSelect && clientesSelect.value) {
-                const initialOpt = clientesSelect.options[clientesSelect.selectedIndex];
-                if (document.getElementById('id_persona_contacto').value === "") {
-                    loadClientData(initialOpt);
-                }
-            }
-        }, 500);
-    });
+    window.CotizacionConfig = {
+        urlCrearCliente: "{% url 'clientes:crear_cliente_ajax' %}",
+        urlCrearCategoria: "{% url 'servicios:crear_categoria_ajax' %}"
+    };
 </script>
+
+<script src="{% static 'js/cotizacion-config.js' %}"></script>
 {% endblock %}

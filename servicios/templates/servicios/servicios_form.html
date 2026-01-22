@@ -2,30 +2,7 @@
 {% load static %}
 
 {% block content %}
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap');
-    body { font-family: 'Inter', sans-serif; }
-    
-    /* Fondo de malla idéntico al de trabajadores */
-    .bg-vicaf-engine {
-        position: fixed; inset: 0; z-index: -1; background-color: #f8fafc;
-        background-image: linear-gradient(rgba(226, 232, 240, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(226, 232, 240, 0.5) 1px, transparent 1px);
-        background-size: 40px 40px;
-    }
 
-    .font-mono-tech { font-family: 'JetBrains Mono', monospace; }
-
-    /* Estilo para los selects de Tom Select para que encajen con el nuevo diseño */
-    .ts-wrapper.vicaf-search .ts-control {
-        border: 1px solid #e2e8f0 !important;
-        background-color: #f8fafc !important;
-        border-radius: 0.5rem !important;
-        padding: 0.625rem 1rem !important;
-        font-size: 12px !important;
-        font-weight: 600 !important;
-        color: #334155 !important;
-    }
-</style>
 
 <div class="bg-vicaf-engine"></div>
 
@@ -267,6 +244,8 @@
         </div>
     </div>
 </div>
+
+
 {% endblock %}
 
 {% block extra_scripts %}

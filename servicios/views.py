@@ -1,5 +1,6 @@
 import os
 from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.http import require_POST
 from django.http import JsonResponse, HttpResponse
 from django.template.loader import get_template
 from django.core.paginator import Paginator
@@ -253,6 +254,41 @@ class MetodoUpdateView(SuccessMessageMixin, UpdateView):
     template_name = 'servicios/metodo_form.html'
     success_url = reverse_lazy('servicios:metodo_list')
     success_message = "El método de ensayo fue actualizado con éxito."
+    
+@require_POST
+def crear_categoria_ajax(request):
+    nombre = request.POST.get('nombre', '').strip()
+    if not nombre:
+        return JsonResponse({'status': 'error', 'message': 'El nombre es obligatorio'}, status=400)
+    
+    try:
+        # get_or_create evita errores si la categoría ya existe
+        categoria, created = CategoriaServicio.objects.get_or_create(nombre=nombre)
+        return JsonResponse({
+            'status': 'success',
+            'id': categoria.pk,
+            'nombre': categoria.nombre,
+            'nuevo': created
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+@require_POST
+def crear_subcategoria_ajax(request):
+    nombre = request.POST.get('nombre', '').strip()
+    if not nombre:
+        return JsonResponse({'status': 'error', 'message': 'El nombre es obligatorio'}, status=400)
+
+    try:
+        subcategoria, created = Subcategoria.objects.get_or_create(nombre=nombre)
+        return JsonResponse({
+            'status': 'success',
+            'id': subcategoria.pk,
+            'nombre': subcategoria.nombre,
+            'nuevo': created
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     
 @login_required
 def lista_cotizaciones(request):

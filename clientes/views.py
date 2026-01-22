@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.db.models import Q
 from django.db import IntegrityError
@@ -27,7 +28,6 @@ def lista_clientes(request):
             Q(correo_contacto__icontains=query)
         ).distinct()
 
-    # Se cambia el parámetro de 10 a 7 para mostrar solo 7 clientes por página
     paginator = Paginator(clientes, 7) 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -44,7 +44,7 @@ def lista_clientes(request):
 def buscar_clientes_api(request):
     """Devuelve un JSON con los resultados de búsqueda de clientes."""
     query = request.GET.get('q', '')
-    clientes = Cliente.objects.filter( # Usamos el nuevo modelo Cliente
+    clientes = Cliente.objects.filter( 
         Q(razon_social__icontains=query) |
         Q(ruc__icontains=query) |
         Q(persona_contacto__icontains=query) |
@@ -58,7 +58,6 @@ def buscar_clientes_api(request):
         'creado_en'
     )[:10]
 
-    # Convertir la fecha a un formato legible antes de devolver JSON
     for cliente in clientes:
         if cliente['creado_en']:
             cliente['creado_en'] = cliente['creado_en'].strftime("%d %b %Y")
@@ -75,25 +74,20 @@ def crear_editar_cliente(request, pk=None):
     cliente = None
     
     if pk:
-        # Importante: Buscamos el Cliente sin filtrar por user, ya que el Admin edita cualquier Cliente.
         cliente = get_object_or_404(Cliente, pk=pk)
 
     errors = {}
     
-    # Preparamos la data para rellenar el formulario en caso de error
     data_cliente = cliente if cliente else {}
 
     if request.method == 'POST':
-        # Capturamos la data POST para rellenar el formulario en caso de error
         data_cliente = request.POST.copy()
         
         ruc = request.POST.get('ruc')
         
-        # Validación de RUC único (excluyendo el cliente actual si es edición)
         if Cliente.objects.filter(ruc=ruc).exclude(pk=pk).exists():
             errors['ruc'] = 'Ya existe un cliente con este número de RUC.'
         
-        # Validación de Razón Social única
         razon_social = request.POST.get('razon_social')
         if Cliente.objects.filter(razon_social=razon_social).exclude(pk=pk).exists():
              errors['razon_social'] = 'Ya existe un cliente con esta Razón Social.'
@@ -101,14 +95,13 @@ def crear_editar_cliente(request, pk=None):
 
         if not errors:
             try:
-                # Mapeo de campos a variables
                 direccion = request.POST.get('direccion')
-                sitio_web = request.POST.get('sitio_web') # Campo nuevo
+                sitio_web = request.POST.get('sitio_web') 
                 persona_contacto = request.POST.get('persona_contacto')
                 cargo_contacto = request.POST.get('cargo_contacto')
                 celular_contacto = request.POST.get('celular_contacto')
                 correo_contacto = request.POST.get('correo_contacto')
-                activo = request.POST.get('activo') == 'on' # Manejo de checkbox
+                activo = request.POST.get('activo') == 'on' 
                 firma_electronica_file = request.FILES.get('firma_electronica')
 
                 if cliente:
@@ -170,7 +163,6 @@ def crear_editar_cliente(request, pk=None):
 def confirmar_eliminar_cliente(request, pk):
     """Muestra la confirmación para eliminar un cliente y lo procesa."""
     
-    # Importante: Buscamos el Cliente sin filtrar por user
     cliente = get_object_or_404(Cliente, pk=pk) 
     
     if request.method == 'POST':
@@ -178,15 +170,36 @@ def confirmar_eliminar_cliente(request, pk):
             nombre = cliente.razon_social
             cliente.delete()
             messages.success(request, f"Cliente '{nombre}' eliminado permanentemente.")
-            # Redirigimos al listado
             return redirect('clientes:lista_clientes') 
         except IntegrityError:
-            # Si el cliente tiene proyectos o cotizaciones, IntegrityError se activará
             messages.error(request, f"No se pudo eliminar el cliente '{cliente.razon_social}'. Tiene datos relacionados (proyectos/cotizaciones) que impiden su eliminación.")
             return redirect('clientes:lista_clientes')
         except Exception as e:
             messages.error(request, f"Error al intentar eliminar el cliente: {e}")
             return redirect('clientes:lista_clientes')
 
-    # Usaremos una plantilla para la confirmación: clientes_confirm_delete.html
     return render(request, 'clientes/clientes_confirm_delete.html', {'cliente': cliente})
+
+@require_POST
+def crear_cliente_ajax(request):
+    try:
+        cliente = Cliente.objects.create(
+            ruc=request.POST.get('ruc'),
+            razon_social=request.POST.get('razon_social'),
+            direccion=request.POST.get('direccion'),
+            persona_contacto=request.POST.get('persona_contacto'),
+            cargo_contacto=request.POST.get('cargo_contacto'),
+            celular_contacto=request.POST.get('celular_contacto'),
+            correo_contacto=request.POST.get('correo_contacto'),
+        )
+        return JsonResponse({
+            'status': 'success',
+            'id': cliente.pk,
+            'ruc': cliente.ruc,
+            'razon_social': cliente.razon_social,
+            'persona_contacto': cliente.persona_contacto,
+            'correo_contacto': cliente.correo_contacto,
+            'celular_contacto': cliente.celular_contacto
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
