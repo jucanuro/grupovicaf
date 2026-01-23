@@ -131,13 +131,45 @@
                     <i data-lucide="list-plus" class="w-4 h-4 text-blue-500"></i>
                     <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Detalle de cotización</h3>
                 </div>
-                <div class="flex gap-2">
-                    <button type="button" onclick="document.getElementById('wrapper_categoria').classList.toggle('hidden')" class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold border border-blue-100 hover:bg-blue-100 transition-all">+ CATEGORÍA</button>
-                    <button type="button" onclick="document.getElementById('wrapper_subcategoria').classList.toggle('hidden')" class="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold border border-slate-200 hover:bg-slate-200 transition-all">+ SUB-CATEGORÍA</button>
-                </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-4 bg-slate-50/50 p-6 rounded-2xl border border-dashed border-slate-200">
+                
+                <div class="md:col-span-6">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cabecera de Grupo (Categoría)</label>
+                    <div class="grid grid-cols-12 gap-2">
+                        <div class="col-span-10"> <select id="reg_categoria" class="w-full text-[10px] border-slate-200 rounded-lg bg-white h-[38px] font-bold text-slate-700">
+                                <option value="">-- SELECCIONAR CATEGORÍA --</option>
+                                {% for cat in servicio_grupos %}
+                                    <option value="{{ cat.nombre }}">{{ cat.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-span-2 flex justify-end">
+                            <div onclick="openCategoriaModal()" class="w-full h-[38px] cursor-pointer group relative flex items-center justify-center rounded-lg border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-sm transition-all hover:border-emerald-400">
+                                <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="md:col-span-6">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sub-Categoría</label>
+                    <div class="grid grid-cols-12 gap-2">
+                        <div class="col-span-10"> <select id="reg_subcategoria" class="w-full text-[10px] border-slate-200 rounded-lg bg-white h-[38px] font-bold text-slate-700">
+                                <option value="">-- SELECCIONAR SUB-CATEGORÍA --</option>
+                                {% for sub in subcategorias %}
+                                    <option value="{{ sub.nombre }}">{{ sub.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-span-2 flex justify-end">
+                            <div onclick="openSubcategoriaModal()" class="w-full h-[38px] cursor-pointer group relative flex items-center justify-center rounded-lg border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white shadow-sm transition-all hover:border-indigo-400">
+                                <i data-lucide="plus-circle" class="w-4 h-4 text-indigo-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="md:col-span-4">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Buscar Servicio (Ensayo)</label>
                     <select id="reg_servicio" class="vicaf-search-select"></select>
@@ -159,29 +191,11 @@
                     <input type="number" step="0.01" id="reg_precio" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-blue-600">
                 </div>
 
-                <div id="wrapper_categoria" class="md:col-span-4 hidden">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cabecera de Grupo (Opcional)</label>
-                    <div class="flex gap-2">
-                        <select id="reg_categoria" class="flex-1 text-[10px] border-slate-200 rounded-lg">
-                            <option value="">-- SELECCIONAR CATEGORÍA --</option>
-                            {% for cat in servicio_grupos %}<option value="{{ cat.nombre }}">{{ cat.nombre }}</option>{% endfor %}
-                        </select>
-                        <button type="button" onclick="addHeader('categoria')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-[10px] font-black hover:bg-blue-200">ADD</button>
-                    </div>
-                </div>
-
-                <div id="wrapper_subcategoria" class="md:col-span-4 hidden">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sub-Categoría (Opcional)</label>
-                    <div class="flex gap-2">
-                        <input type="text" id="reg_subcategoria" placeholder="Ej: Agregado Fino" class="flex-1 px-3 py-1 bg-white border border-slate-200 rounded-lg text-[10px]">
-                        <button type="button" onclick="addHeader('subcategoria')" class="px-3 py-1 bg-slate-200 text-slate-600 rounded-lg text-[10px] font-black hover:bg-slate-300">ADD</button>
-                    </div>
-                </div>
             </div>
 
             <div class="flex justify-end mb-8">
-                <button type="button" onclick="addItem()" class="group bg-slate-900 hover:bg-blue-600 text-white font-black py-3 px-8 rounded-xl text-[11px] uppercase tracking-widest shadow-lg shadow-slate-200 hover:shadow-blue-200 transition-all flex items-center gap-3">
-                    <i data-lucide="plus-circle" class="w-4 h-4 text-blue-400 group-hover:text-white transition-colors"></i> 
+                <button type="button" onclick="addItem()" class="group bg-slate-900 hover:bg-blue-600 text-white font-black py-3 px-8 rounded-xl text-[11px] uppercase tracking-widest shadow-lg transition-all flex items-center gap-3">
+                    <i data-lucide="plus-circle" class="w-4 h-4 text-blue-400 group-hover:text-white"></i> 
                     Agregar Ítem al Detalle
                 </button>
             </div>
@@ -200,7 +214,8 @@
                             <th class="pb-3 text-center w-12"></th>
                         </tr>
                     </thead>
-                    <tbody id="cotizacion-detalles"></tbody>
+                    <tbody id="cotizacion-detalles">
+                        </tbody>
                 </table>
             </div>
 
@@ -208,18 +223,15 @@
                 <div class="md:col-span-7 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-[10px] font-black text-slate-400 uppercase mb-1 tracking-tighter">Forma de Pago</label>
-                        <input type="text" name="forma_pago" placeholder="Ej: Contado" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:bg-white transition-colors">
+                        <input type="text" name="forma_pago" value="{{ cotizacion.forma_pago|default:'' }}" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
                     </div>
                     <div>
                         <label class="block text-[10px] font-black text-slate-400 uppercase mb-1 tracking-tighter">Validez de Oferta</label>
-                        <input type="text" name="validez_dias" placeholder="Ej: 15 días" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:bg-white transition-colors">
+                        <input type="text" name="validez_dias" value="{{ cotizacion.validez_oferta_dias|default:'' }}" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
                     </div>
                     <div>
                         <label class="block text-[10px] font-black text-slate-400 uppercase mb-1 tracking-tighter">Tiempo de Entrega</label>
-                        <input type="text" name="tiempo_entrega" placeholder="Ej: 03 días" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:bg-white transition-colors">
-                    </div>
-                    <div class="md:col-span-3 text-slate-400 text-[10px] font-medium italic mt-2">
-                        * Los precios mostrados no incluyen IGV a menos que se especifique lo contrario.
+                        <input type="text" name="tiempo_entrega" value="{{ cotizacion.plazo_entrega_dias|default:'' }}" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
                     </div>
                 </div>
                 
@@ -238,7 +250,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="mt-8 flex justify-end">
                 <button type="submit" form="cotizacion-form" class="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-200 transition-all flex items-center gap-3">
                     <i data-lucide="save" class="w-5 h-5"></i> Guardar y Generar Oferta

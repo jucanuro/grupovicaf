@@ -320,25 +320,6 @@ def lista_cotizaciones(request):
     return render(request, 'servicios/cotizacion_list.html', context)
 
 @login_required
-def detalle_cotizacion(request, pk):
-    cotizacion = get_object_or_404(
-        Cotizacion.objects.select_related('cliente', 'trabajador_responsable')
-        .prefetch_related(
-            'grupos__detalles_items__servicio'
-        ), 
-        pk=pk
-    )
-    
-    voucher = Voucher.objects.filter(cotizacion=cotizacion).first()
-
-    context = {
-        'cotizacion': cotizacion,
-        'grupos': cotizacion.grupos.all(), # Ahora iteramos por grupos en el template
-        'voucher': voucher,
-    }
-    return render(request, 'servicios/cotizacion_detail.html', context)
-
-@login_required
 def crear_editar_cotizacion(request, pk=None):
     cotizacion = None
     error = None
@@ -526,15 +507,16 @@ def crear_editar_cotizacion(request, pk=None):
     # Serialización de servicios
     servicios_list = []
     for s in servicios_queryset:
-        n_list = [{'pk': s.norma.pk, 'codigo': s.norma.codigo}] if s.norma else []
-        m_list = [{'pk': s.metodo.pk, 'codigo': s.metodo.codigo}] if s.metodo else []
         servicios_list.append({
             'pk': s.pk, 
             'nombre': s.nombre, 
             'unidad_base': s.unidad_base,
             'precio_base': str(s.precio_base), 
-            'normas': n_list,
-            'metodos': m_list
+            # Enviamos los datos como un objeto directo, no como lista
+            'norma_codigo': s.norma.codigo if s.norma else 'N/A',
+            'norma_pk': s.norma.pk if s.norma else '',
+            'metodo_codigo': s.metodo.codigo if s.metodo else 'N/A',
+            'metodo_pk': s.metodo.pk if s.metodo else ''
         })
 
     # Serialización de detalles existentes (Para Edición)

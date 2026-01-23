@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const INITIAL_DATA = JSON.parse(document.getElementById('initial-detalles-json')?.textContent || '[]');
     let DATA_ARRAY = INITIAL_DATA;
 
+    // --- CARGA DE DATOS DE CLIENTE (INTACTO) ---
     const loadClientData = (opt) => {
         const fields = {
             'id_razon_social': opt?.dataset.razonSocial || '',
@@ -47,26 +48,55 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- NUEVOS BUSCADORES PARA CABECERA Y SUB-CATEGORÍA ---
+    // Se inicializan como TomSelect para que funcionen como buscadores y agreguen al seleccionar
+    const tsRegCategoria = new TomSelect('#reg_categoria', {
+        onInitialize: function() { this.wrapper.classList.add('vicaf-search'); },
+        onChange: function(val) {
+            if (val) {
+                window.addHeader('categoria', val);
+                this.clear(true); // Limpia el buscador después de agregar
+            }
+        }
+    });
+
+    const tsRegSubcategoria = new TomSelect('#reg_subcategoria', {
+        onInitialize: function() { this.wrapper.classList.add('vicaf-search'); },
+        onChange: function(val) {
+            if (val) {
+                window.addHeader('subcategoria', val);
+                this.clear(true);
+            }
+        }
+    });
+
+    // --- GESTIÓN DE MODALES (INTACTO) ---
     window.openClienteModal = () => {
         const m = document.getElementById('modalCliente');
         if (m) { m.classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
     };
-
     window.closeClienteModal = () => {
         const m = document.getElementById('modalCliente');
         if (m) { m.classList.add('hidden'); document.body.style.overflow = 'auto'; }
     };
-
     window.openCategoriaModal = () => {
         const m = document.getElementById('modalCategoria');
         if (m) { m.classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
     };
-
     window.closeCategoriaModal = () => {
         const m = document.getElementById('modalCategoria');
         if (m) { m.classList.add('hidden'); document.body.style.overflow = 'auto'; }
     };
+    window.openSubcategoriaModal = () => {
+        const m = document.getElementById('modalSubcategoria');
+        if (m) { m.classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
+    };
+    window.closeSubcategoriaModal = () => {
+        const m = document.getElementById('modalSubcategoria');
+        if (m) { m.classList.add('hidden'); document.body.style.overflow = 'auto'; }
+    };
 
+    // --- FORMULARIOS AJAX (INTACTO) ---
     document.getElementById('formNuevoClienteAjax')?.addEventListener('submit', function(e) {
         e.preventDefault();
         fetch(config.urlCrearCliente, {
@@ -107,79 +137,83 @@ document.addEventListener('DOMContentLoaded', () => {
                 const nombreUpper = data.nombre.toUpperCase();
                 tsCategoria?.addOption({ value: data.id, text: nombreUpper });
                 tsCategoria?.setValue(data.id);
-                const regCat = document.getElementById('reg_categoria');
-                if(regCat) {
-                    const opt = new Option(nombreUpper, nombreUpper);
-                    regCat.add(opt);
-                }
+                // También agregamos al buscador de la tabla
+                tsRegCategoria?.addOption({ value: nombreUpper, text: nombreUpper });
                 closeCategoriaModal();
                 this.reset();
             } else { alert(data.message); }
         });
     });
 
-    document.querySelectorAll('select:not(.vicaf-search-select)').forEach(el => {
-        el.classList.add('w-full', 'px-3', 'py-2', 'bg-slate-50', 'border', 'border-slate-200', 'rounded-lg', 'text-xs', 'font-bold');
-    });
-
+    // --- SELECT DE SERVICIO (INTACTO) ---
     const tsServicio = new TomSelect('#reg_servicio', {
         options: ALL_SERVICES.map(s => ({ value: s.pk, text: s.nombre })),
         placeholder: 'BUSCAR SERVICIO...',
         onInitialize: function() { this.wrapper.classList.add('vicaf-search'); },
         onChange: (val) => {
             const s = ALL_SERVICES.find(x => String(x.pk) === String(val));
-            
             if (s) {
-                document.getElementById('reg_norma_txt').textContent = s.NORMA || '---';
-                document.getElementById('reg_metodo_txt').textContent = s.METODO || '---';
-
-                const precioBase = s["PRECIO BASE"] || s.PRECIO_BASE || s.precio_base || 0;
-                document.getElementById('reg_precio').value = parseFloat(precioBase).toFixed(2);
-
-                document.getElementById('reg_cantidad').value = 1;
-
                 const normaDiv = document.getElementById('reg_norma_txt');
                 const metodoDiv = document.getElementById('reg_metodo_txt');
-                
+                normaDiv.textContent = s.norma_codigo; 
+                metodoDiv.textContent = s.metodo_codigo;
+                document.getElementById('reg_precio').value = s.precio_base;
+                const elServicio = document.getElementById('reg_servicio');
+                elServicio.dataset.normaId = s.norma_pk;
+                elServicio.dataset.metodoId = s.metodo_pk;
+                elServicio.dataset.und = s.unidad_base || 'UND';
                 [normaDiv, metodoDiv].forEach(el => {
                     el.classList.remove('text-slate-400', 'italic');
                     el.classList.add('text-slate-700', 'font-bold');
                 });
-
             } else {
-                document.getElementById('reg_norma_txt').textContent = '---';
-                document.getElementById('reg_metodo_txt').textContent = '---';
+                document.getElementById('reg_norma_txt').textContent = 'Auto...';
+                document.getElementById('reg_metodo_txt').textContent = 'Auto...';
                 document.getElementById('reg_precio').value = '';
             }
         }
     });
 
-    window.addHeader = (tipo) => {
-        const val = document.getElementById(tipo === 'categoria' ? 'reg_categoria' : 'reg_subcategoria')?.value;
+    // --- FUNCIONES DE TABLA CON REINICIO DE NUMERACIÓN ---
+
+    const getLetter = (num, upper = true) => {
+        const char = String.fromCharCode((upper ? 65 : 97) + (num - 1));
+        return char;
+    };
+
+    window.addHeader = (tipo, valOverride = null) => {
+        // Soporta tanto el valor directo de TomSelect como el valor del select nativo
+        let val = valOverride;
+        if (!val) {
+            const select = document.getElementById(tipo === 'categoria' ? 'reg_categoria' : 'reg_subcategoria');
+            val = select?.value;
+        }
+        
         if(!val) return;
+
         DATA_ARRAY.push({ 
             tipo_fila: tipo, 
             descripcion_especifica: val.toUpperCase() 
         });
-        const input = document.getElementById(tipo === 'categoria' ? 'reg_categoria' : 'reg_subcategoria');
-        if (input.tagName === 'INPUT') input.value = '';
+        
         renderTable();
     };
 
     window.addItem = () => {
         const sId = document.getElementById('reg_servicio')?.value;
         if(!sId) return;
-        const sel = document.getElementById('reg_servicio');
+        const sBase = ALL_SERVICES.find(x => String(x.pk) === String(sId));
+
         DATA_ARRAY.push({
             tipo_fila: 'servicio', 
             servicio_id: sId,
-            descripcion_especifica: tsServicio.options[sId].text,
+            descripcion_especifica: sBase.nombre,
             cantidad: parseFloat(document.getElementById('reg_cantidad').value) || 1,
             precio_unitario: parseFloat(document.getElementById('reg_precio').value) || 0,
-            norma_id: sel.dataset.normaId, 
-            metodo_id: sel.dataset.metodoId,
-            norma_nombre: document.getElementById('reg_norma_txt').textContent,
-            unidad_medida: sel.dataset.und
+            norma_id: sBase.norma_pk, 
+            metodo_id: sBase.metodo_pk,
+            norma_nombre: sBase.norma_codigo + (sBase.metodo_codigo ? ' / ' + sBase.metodo_codigo : ''),
+            unidad_medida: sBase.unidad_base || 'UND'
         });
         tsServicio.clear();
         renderTable();
@@ -194,27 +228,59 @@ document.addEventListener('DOMContentLoaded', () => {
         const body = document.getElementById('cotizacion-detalles');
         if (!body) return;
         body.innerHTML = '';
+        
         let subtotal = 0;
+        let catCount = 0;      
+        let subCatCount = 0;   
+        let serviceCount = 0;  
 
         DATA_ARRAY.forEach((item, index) => {
             const tr = document.createElement('tr');
+            
             if(item.tipo_fila === 'categoria'){
-                tr.innerHTML = `<td colspan="7" class="pl-4 italic font-black text-blue-800 bg-blue-50/50 p-2 rounded-l-lg">${item.descripcion_especifica}</td><td class="text-center bg-blue-50/50 rounded-r-lg"><button type="button" class="text-red-400 font-black hover:scale-125 transition-transform" onclick="remove(${index})">×</button></td>`;
-            } else if(item.tipo_fila === 'subcategoria'){
-                tr.innerHTML = `<td></td><td colspan="6" class="font-bold text-slate-600 bg-slate-50 p-2 rounded-l-lg underline decoration-slate-300">${item.descripcion_especifica}</td><td class="text-center bg-slate-50 rounded-r-lg"><button type="button" class="text-red-400 font-black hover:scale-125 transition-transform" onclick="remove(${index})">×</button></td>`;
-            } else {
+                catCount++;
+                subCatCount = 0; 
+                serviceCount = 0; 
+                
+                tr.innerHTML = `
+                    <td class="text-center font-black text-blue-900 bg-blue-50/50 p-2 rounded-l-lg text-[11px]">${getLetter(catCount, true)}</td>
+                    <td colspan="6" class="italic font-black text-blue-900 bg-blue-50/50 p-2 text-[10px] uppercase tracking-widest">
+                        ${item.descripcion_especifica}
+                    </td>
+                    <td class="text-center bg-blue-50/50 rounded-r-lg">
+                        <button type="button" class="text-red-400 font-black hover:scale-125 transition-transform" onclick="remove(${index})">×</button>
+                    </td>`;
+            } 
+            else if(item.tipo_fila === 'subcategoria'){
+                subCatCount++;
+                serviceCount = 0; 
+                
+                tr.innerHTML = `
+                    <td class="text-center font-bold text-slate-600 bg-slate-50 p-2 rounded-l-lg text-[9px]">${getLetter(subCatCount, false)}</td>
+                    <td colspan="6" class="font-bold text-slate-600 bg-slate-50 p-2 underline decoration-slate-300 text-[9px] uppercase">
+                        ${item.descripcion_especifica}
+                    </td>
+                    <td class="text-center bg-slate-50 rounded-r-lg">
+                        <button type="button" class="text-red-400 font-black hover:scale-125 transition-transform" onclick="remove(${index})">×</button>
+                    </td>`;
+            } 
+            else {
+                serviceCount++; 
                 const parcial = item.cantidad * item.precio_unitario;
                 subtotal += parcial;
+                
                 tr.className = "bg-white border-b border-slate-100 hover:bg-blue-50/30 transition-colors";
                 tr.innerHTML = `
-                    <td class="text-center font-mono-tech text-[10px] text-slate-400 pl-4">${index+1}</td>
-                    <td class="font-bold text-slate-700 p-3">${item.descripcion_especifica}</td>
+                    <td class="text-center font-bold text-[10px] text-slate-400 pl-4">${serviceCount.toFixed(2)}</td>
+                    <td class="font-bold text-slate-700 p-3 text-[10px]">${item.descripcion_especifica}</td>
                     <td class="text-center text-[10px] font-semibold text-slate-500">${item.norma_nombre || '--'}</td>
-                    <td class="text-center font-bold text-slate-600">${item.cantidad}</td>
-                    <td class="text-center text-[9px] font-bold text-slate-400 uppercase">${item.unidad_medida}</td>
-                    <td class="text-right font-mono-tech text-slate-500 text-xs">S/ ${parseFloat(item.precio_unitario).toFixed(2)}</td>
-                    <td class="text-right font-bold text-blue-600 font-mono-tech pr-4">S/ ${parcial.toFixed(2)}</td>
-                    <td class="text-center"><button type="button" class="text-red-400 font-black hover:scale-125 transition-transform" onclick="remove(${index})">×</button></td>`;
+                    <td class="text-center font-bold text-slate-600 text-[10px]">${item.cantidad}</td>
+                    <td class="text-center text-[9px] font-bold text-slate-400 uppercase">${item.unidad_medida || 'UND'}</td>
+                    <td class="text-right font-mono text-slate-500 text-xs">S/ ${parseFloat(item.precio_unitario).toFixed(2)}</td>
+                    <td class="text-right font-bold text-blue-600 font-mono pr-4 text-[11px]">S/ ${parcial.toFixed(2)}</td>
+                    <td class="text-center">
+                        <button type="button" class="text-red-400 font-black hover:scale-125 transition-transform" onclick="remove(${index})">×</button>
+                    </td>`;
             }
             body.appendChild(tr);
         });
@@ -224,9 +290,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const igv = subtotal * 0.18;
         const total = subtotal + igv;
 
-        document.getElementById('subtotal_cotizacion').textContent = subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        document.getElementById('igv_cotizacion').textContent = igv.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        document.getElementById('total_final_cotizacion').textContent = total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('subtotal_cotizacion').textContent = subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 });
+        document.getElementById('igv_cotizacion').textContent = igv.toLocaleString('en-US', { minimumFractionDigits: 2 });
+        document.getElementById('total_final_cotizacion').textContent = total.toLocaleString('en-US', { minimumFractionDigits: 2 });
         
         const mi = document.getElementById('id_monto_total');
         if (mi) mi.value = total.toFixed(2);
