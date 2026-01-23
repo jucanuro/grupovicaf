@@ -1,6 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof lucide !== 'undefined') lucide.createIcons();
-
+    document.getElementById('id_forma_pago')?.addEventListener('change', function() {
+        const customContainer = document.getElementById('pago_personalizado_container');
+        if (this.value === 'Personalizado') {
+            customContainer.classList.remove('hidden');
+        } else {
+            customContainer.classList.add('hidden');
+        }
+    });
     const config = window.CotizacionConfig || {};
     const ALL_SERVICES = JSON.parse(document.getElementById('all-services-data')?.textContent || '[]');
     const INITIAL_DATA = JSON.parse(document.getElementById('initial-detalles-json')?.textContent || '[]');
@@ -142,6 +149,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeCategoriaModal();
                 this.reset();
             } else { alert(data.message); }
+        });
+    });
+
+    // --- FORMULARIO AJAX PARA SUBCATEGORÍA ---
+    document.getElementById('formNuevaSubcategoriaAjax')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Usamos la URL configurada en window.CotizacionConfig
+        const url = window.CotizacionConfig.urlCrearSubcategoria;
+
+        fetch(url, {
+            method: 'POST',
+            body: new FormData(this),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.status === 'success') {
+                const nombreUpper = data.nombre.toUpperCase();
+                
+                // 1. Agregamos al buscador de la tabla (TomSelect de Subcategoría)
+                // Asegúrate que 'tsRegSubcategoria' sea el nombre de tu instancia de TomSelect
+                if (typeof tsRegSubcategoria !== 'undefined' && tsRegSubcategoria) {
+                    tsRegSubcategoria.addOption({ value: nombreUpper, text: nombreUpper });
+                    tsRegSubcategoria.setValue(nombreUpper);
+                }
+
+                // 2. Cerramos el modal y limpiamos
+                closeSubcategoriaModal();
+                this.reset();
+                
+                // Refrescamos iconos de Lucide si es necesario
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                
+            } else { 
+                alert("Error: " + data.message); 
+            }
+        })
+        .catch(err => {
+            console.error("Error en la petición:", err);
+            alert("Error de conexión al guardar la subcategoría");
         });
     });
 
