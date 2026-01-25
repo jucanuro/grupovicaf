@@ -388,21 +388,35 @@ def crear_editar_cotizacion(request, pk=None):
                 cotizacion.estado = request.POST.get('estado', cotizacion.estado if is_editing else 'Pendiente')
                 cotizacion.aprobada_por_cliente = request.POST.get('aprobada_por_cliente') == 'on'
 
+                # --- CATEGORÍA GENERAL ---
                 servicio_general_pk = request.POST.get('servicio_general')
                 if servicio_general_pk:
-                    # Aquí se usa el modelo CategoriaServicio para el servicio general
                     cotizacion.servicio_general = CategoriaServicio.objects.get(pk=servicio_general_pk)
 
-                cotizacion.plazo_entrega_dias = int(request.POST.get('plazo_entrega_dias') or 0)
-                cotizacion.validez_oferta_dias = int(request.POST.get('validez_oferta_dias') or 0)
-                cotizacion.forma_pago = request.POST.get('forma_pago')
+                # --- CORRECCIÓN DE GUARDADO: FORMA DE PAGO, VALIDEZ Y ENTREGA ---
+                # Si es 'Personalizado', intentamos tomar el valor del input custom
+                fp_seleccionada = request.POST.get('forma_pago')
+                if fp_seleccionada == 'Personalizado':
+                    fp_custom = request.POST.get('forma_pago_custom')
+                    cotizacion.forma_pago = fp_custom if fp_custom else 'Personalizado'
+                else:
+                    cotizacion.forma_pago = fp_seleccionada
+
+                # Mapeo de nombres del HTML (validez_dias y tiempo_entrega) a campos del Modelo
+                try:
+                    cotizacion.validez_oferta_dias = int(request.POST.get('validez_dias') or 30)
+                    cotizacion.plazo_entrega_dias = int(request.POST.get('tiempo_entrega') or 30)
+                except ValueError:
+                    cotizacion.validez_oferta_dias = 30
+                    cotizacion.plazo_entrega_dias = 30
+
                 cotizacion.observaciones_condiciones = request.POST.get('observaciones_condiciones')
 
-                # Manejo de IGV (Decimal)
+                # Manejo de IGV
                 tasa_igv_str = str(request.POST.get('tasa_igv', '0.18')).strip().replace(',', '.')
                 cotizacion.tasa_igv = Decimal(tasa_igv_str)
 
-                # 5. Generación del Código de Oferta (Formato VCF-OTE-YYYY-NNN)
+                # 5. Código de Oferta
                 if not is_editing:
                     prefix = 'VCF-OTE'
                     year_part = str(cotizacion.fecha_generacion.year)
@@ -419,43 +433,42 @@ def crear_editar_cotizacion(request, pk=None):
                             next_order_num = 1
                     cotizacion.numero_oferta = f'{prefix}-{year_part}-{str(next_order_num).zfill(3)}'
 
-                # Guardado inicial
                 cotizacion.save()
 
                 # 6. Procesamiento de Detalles
                 if is_editing:
                     cotizacion.grupos.all().delete()
 
-                grupo_padre = CotizacionGrupo.objects.create(
+                grupo_actual = CotizacionGrupo.objects.create(
                     cotizacion=cotizacion,
                     nombre_grupo="ENSAYOS DE LABORATORIO",
-                    orden=1
+                    orden=0
                 )
 
-                for item in detalles_data:
-                    # Omitimos filas decorativas de categoría y subcategoría
-                    if item.get('tipo_fila') in ['categoria', 'subcategoria']:
+                for index, item in enumerate(detalles_data):
+                    tipo_fila = item.get('tipo_fila')
+                    if tipo_fila in ['categoria', 'subcategoria']:
+                        grupo_actual = CotizacionGrupo.objects.create(
+                            cotizacion=cotizacion,
+                            nombre_grupo=item.get('descripcion_especifica', '').upper(),
+                            orden=index
+                        )
                         continue
 
                     servicio_id = item.get('servicio_id')
                     if not servicio_id: continue
                     
                     servicio = Servicio.objects.get(pk=int(servicio_id))
-                    
-                    # Lógica de Descripción Independiente: CATEGORIA - Subcategoria: Servicio
                     partes_desc = []
-                    cat_nom = item.get('categoria_nom', '')     # Viene del modelo CategoriaServicio
-                    subcat_nom = item.get('subcategoria_nom', '') # Viene del modelo Subcategoria
+                    cat_nom = item.get('categoria_nom', '') 
+                    subcat_nom = item.get('subcategoria_nom', '') 
                     
-                    if cat_nom: 
-                        partes_desc.append(cat_nom.upper())
-                    if subcat_nom: 
-                        partes_desc.append(subcat_nom)
+                    if cat_nom: partes_desc.append(cat_nom.upper())
+                    if subcat_nom: partes_desc.append(subcat_nom)
                     
                     desc_generada = f"{' - '.join(partes_desc)}: {servicio.nombre}" if partes_desc else servicio.nombre
                     desc_final = item.get('descripcion_especifica') or desc_generada
 
-                    # Obtención de Norma y Método
                     norma_txt = ""
                     norma_id = item.get('norma_id')
                     if norma_id and str(norma_id).isdigit():
@@ -468,9 +481,8 @@ def crear_editar_cotizacion(request, pk=None):
                         m = Metodo.objects.filter(pk=metodo_id).first()
                         metodo_txt = m.codigo if m else ""
 
-                    # Crear el item de detalle en la DB
                     CotizacionDetalle.objects.create(
-                        grupo=grupo_padre,
+                        grupo=grupo_actual,
                         servicio=servicio,
                         norma_manual=norma_txt or item.get('norma_manual', ''),
                         metodo_manual=metodo_txt or item.get('metodo_manual', ''),
@@ -480,7 +492,7 @@ def crear_editar_cotizacion(request, pk=None):
                         precio_unitario=Decimal(str(item.get('precio_unitario', '0')).replace(',', '.')),
                     )
 
-                # 7. Recálculo Final y Cierre
+                # 7. Recálculo Final
                 cotizacion.calcular_totales()
                 cotizacion.save()
 
@@ -490,49 +502,37 @@ def crear_editar_cotizacion(request, pk=None):
 
         except Exception as e:
             error = f'Error al procesar: {str(e)}'
-            print(f"ERROR EN VISTA: {error}")
             if is_editing and pk:
                 cotizacion = get_object_or_404(Cotizacion, pk=pk)
 
     # --- Bloque de Carga de Contexto (GET) ---
     clientes = Cliente.objects.all().order_by('razon_social')
     servicios_queryset = Servicio.objects.all().select_related('norma', 'metodo')
-    
-    # IMPORTANTE: Cargamos ambos modelos para el front
     categorias_principales = CategoriaServicio.objects.all()
     subcategorias_list = Subcategoria.objects.all()
-    
     trabajadores = TrabajadorProfile.objects.all().select_related('user')
 
-    # Serialización de servicios
     servicios_list = []
     for s in servicios_queryset:
         servicios_list.append({
-            'pk': s.pk, 
-            'nombre': s.nombre, 
-            'unidad_base': s.unidad_base,
+            'pk': s.pk, 'nombre': s.nombre, 'unidad_base': s.unidad_base,
             'precio_base': str(s.precio_base), 
-            # Enviamos los datos como un objeto directo, no como lista
             'norma_codigo': s.norma.codigo if s.norma else 'N/A',
-            'norma_pk': s.norma.pk if s.norma else '',
             'metodo_codigo': s.metodo.codigo if s.metodo else 'N/A',
-            'metodo_pk': s.metodo.pk if s.metodo else ''
         })
 
-    # Serialización de detalles existentes (Para Edición)
     detalles_list = []
     if cotizacion:
-        for grupo in cotizacion.grupos.all():
+        for grupo in cotizacion.grupos.all().order_by('orden'):
+            if grupo.nombre_grupo != "ENSAYOS DE LABORATORIO":
+                detalles_list.append({'tipo_fila': 'categoria', 'descripcion_especifica': grupo.nombre_grupo})
             for detalle in grupo.detalles_items.all():
                 detalles_list.append({
-                    'servicio_id': detalle.servicio.pk,
+                    'tipo_fila': 'servicio', 'servicio_id': detalle.servicio.pk,
                     'descripcion_especifica': detalle.descripcion_especifica,
-                    'norma_manual': detalle.norma_manual,
-                    'metodo_manual': detalle.metodo_manual,
-                    'unidad_medida': detalle.unidad_medida,
-                    'cantidad': str(detalle.cantidad),
-                    'precio_unitario': str(detalle.precio_unitario),
-                    'total_detalle': str(detalle.total_detalle)
+                    'norma_manual': detalle.norma_manual, 'metodo_manual': detalle.metodo_manual,
+                    'unidad_medida': detalle.unidad_medida, 'cantidad': str(detalle.cantidad),
+                    'precio_unitario': str(detalle.precio_unitario), 'total_detalle': str(detalle.total_detalle)
                 })
     
     context = {

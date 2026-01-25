@@ -27,100 +27,119 @@
 
     <form method="post" id="cotizacion-form">
         {% csrf_token %}
-        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 mb-6">
-            <div class="flex items-center gap-2 mb-6 border-b border-slate-100 pb-3">
-                <i data-lucide="building" class="w-4 h-4 text-blue-500"></i>
-                <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Identificación del Cliente</h3>
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm mb-6 transition-all duration-300 relative">
+            <div onclick="toggleHeaderSection()" class="flex items-center justify-between px-8 py-4 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors border-b border-slate-100 rounded-t-2xl">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="building" class="w-4 h-4 text-blue-500"></i>
+                    <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Identificación del Cliente</h3>
+                    <div id="header-summary-inline" class="ml-4 hidden">
+                        <span id="summary-text" class="text-[10px] font-bold text-blue-600 truncate max-w-[300px]"></span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="header-status-badge" class="hidden px-2 py-0.5 bg-blue-100 text-blue-700 text-[9px] font-black rounded uppercase">Datos Cargados</span>
+                    <i id="header-chevron" data-lucide="chevron-up" class="w-4 h-4 text-slate-400 transition-transform duration-300"></i>
+                </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div class="md:col-span-2">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">RUC o Nombre del Cliente</label>
-                    <div class="grid grid-cols-12 gap-2">
-                        <div class="col-span-10">
-                            <select name="cliente" id="id_cliente_ruc" required class="vicaf-search-select">
-                                <option value="">SELECCIONAR O BUSCAR CLIENTE...</option>
-                                {% for cliente in clientes %}
-                                <option value="{{ cliente.pk }}" 
-                                        data-razon-social="{{ cliente.razon_social|default:'' }}"
-                                        data-contacto="{{ cliente.persona_contacto|default:'' }}"
-                                        data-correo="{{ cliente.correo_contacto|default:'' }}"
-                                        data-telefono="{{ cliente.celular_contacto|default:'' }}">
-                                    {{ cliente.ruc }} - {{ cliente.razon_social }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-span-2">
-                            <div onclick="openClienteModal()" 
-                                class="w-full h-[38px] cursor-pointer group relative flex items-center justify-center rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-white shadow-sm transition-all hover:border-blue-400 hover:shadow-md active:scale-95">
-                                <i data-lucide="user-plus" class="w-4 h-4 text-blue-600"></i>
-                                <span class="absolute -top-1 -right-1 flex h-2 w-2">
-                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Razón Social Corta</label>
-                    <input type="text" id="id_razon_social" readonly 
-                        class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-400 cursor-not-allowed"
-                        placeholder="RAZÓN SOCIAL">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Atención</label>
-                    <input type="text" name="persona_contacto" id="id_persona_contacto" 
-                        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
-                        value="{{ cotizacion.persona_contacto|default:'' }}">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Correo Electrónico</label>
-                    <input type="email" name="correo_contacto" id="id_correo_contacto" 
-                        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
-                        value="{{ cotizacion.correo_contacto|default:'' }}">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Teléfono</label>
-                    <input type="text" name="telefono_contacto" id="id_telefono_contacto" 
-                        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
-                        value="{{ cotizacion.telefono_contacto|default:'' }}">
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Categoría General</label>
-                    <div class="grid grid-cols-12 gap-2">
-                        <div class="col-span-10">
-                            <select name="servicio_general" id="id_servicio_general" required class="vicaf-search-select">
-                                <option value="">SELECCIONAR O BUSCAR CATEGORÍA...</option>
-                                {% for grupo in servicio_grupos %}
-                                    <option value="{{ grupo.pk }}" 
-                                        {% if cotizacion.servicio_general.id == grupo.pk or cotizacion.servicio_general == grupo %}selected{% endif %}>
-                                        {{ grupo.nombre }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
 
-                        <div class="col-span-2">
-                            <div onclick="openCategoriaModal()" 
-                                class="w-full h-[38px] cursor-pointer group relative flex items-center justify-center rounded-lg border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-sm transition-all hover:border-emerald-400 hover:shadow-md active:scale-95"
-                                title="Registrar nueva categoría">
-                                <div class="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/5 rounded-lg transition-colors"></div>
-                                <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-600 group-hover:text-emerald-700 transition-transform group-hover:scale-110"></i>
-                                
-                                <span class="absolute -top-1 -right-1 flex h-2 w-2">
-                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
-                                </span>
+            <div id="header-content-section" class="p-8 transition-all duration-300 relative z-[60]">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    
+                    <div class="md:col-span-2 relative">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">RUC o Nombre del Cliente</label>
+                        <div class="grid grid-cols-12 gap-2">
+                            <div class="col-span-10">
+                                <select name="cliente" id="id_cliente_ruc" required class="vicaf-search-select">
+                                    <option value="">SELECCIONAR O BUSCAR CLIENTE...</option>
+                                    {% for cliente in clientes %}
+                                    <option value="{{ cliente.pk }}" 
+                                            {% if cotizacion.cliente.pk == cliente.pk %}selected{% endif %}
+                                            data-razon-social="{{ cliente.razon_social|default:'' }}"
+                                            data-contacto="{{ cliente.persona_contacto|default:'' }}"
+                                            data-correo="{{ cliente.correo_contacto|default:'' }}"
+                                            data-telefono="{{ cliente.celular_contacto|default:'' }}">
+                                        {{ cliente.ruc }} - {{ cliente.razon_social }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-span-2">
+                                <div onclick="event.stopPropagation(); openClienteModal()" 
+                                    class="w-full h-[38px] cursor-pointer group relative flex items-center justify-center rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-white shadow-sm transition-all hover:border-blue-400 hover:shadow-md active:scale-95">
+                                    <i data-lucide="user-plus" class="w-4 h-4 text-blue-600"></i>
+                                    <span class="absolute -top-1 -right-1 flex h-2 w-2">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Asunto / Proyecto</label>
-                    <input type="text" name="asunto_servicio" id="id_asunto_servicio" 
-                        class="w-full px-4 py-2.5 bg-white border border-blue-100 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
-                        value="{{ cotizacion.asunto_servicio|default:'' }}">
+
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Razón Social Corta</label>
+                        <input type="text" id="id_razon_social" readonly 
+                            class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-400 cursor-not-allowed"
+                            placeholder="RAZÓN SOCIAL">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Atención</label>
+                        <input type="text" name="persona_contacto" id="id_persona_contacto" 
+                            class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                            value="{{ cotizacion.persona_contacto|default:'' }}">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Correo Electrónico</label>
+                        <input type="email" name="correo_contacto" id="id_correo_contacto" 
+                            class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                            value="{{ cotizacion.correo_contacto|default:'' }}">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Teléfono</label>
+                        <input type="text" name="telefono_contacto" id="id_telefono_contacto" 
+                            class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                            value="{{ cotizacion.telefono_contacto|default:'' }}">
+                    </div>
+
+                    <div class="md:col-span-2 relative">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Categoría General</label>
+                        <div class="grid grid-cols-12 gap-2">
+                            <div class="col-span-10">
+                                <select name="servicio_general" id="id_servicio_general" required class="vicaf-search-select">
+                                    <option value="">SELECCIONAR O BUSCAR CATEGORÍA...</option>
+                                    {% for grupo in servicio_grupos %}
+                                        <option value="{{ grupo.pk }}" 
+                                            {% if cotizacion.servicio_general.pk == grupo.pk %}selected{% endif %}>
+                                            {{ grupo.nombre|upper }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-span-2">
+                                <div onclick="event.stopPropagation(); openCategoriaModal()" 
+                                    class="w-full h-[38px] cursor-pointer group relative flex items-center justify-center rounded-lg border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-sm transition-all hover:border-emerald-400 hover:shadow-md active:scale-95"
+                                    title="Registrar nueva categoría">
+                                    <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-600 group-hover:text-emerald-700 transition-transform group-hover:scale-110"></i>
+                                    <span class="absolute -top-1 -right-1 flex h-2 w-2">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Asunto / Proyecto</label>
+                        <input type="text" name="asunto_servicio" id="id_asunto_servicio" 
+                            class="w-full px-4 py-2.5 bg-white border border-blue-100 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                            value="{{ cotizacion.asunto_servicio|default:'' }}">
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -133,65 +152,86 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-4 bg-slate-50/50 p-6 rounded-2xl border border-dashed border-slate-200">
-                
-                <div class="md:col-span-6">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cabecera de Grupo (Categoría)</label>
-                    <div class="grid grid-cols-12 gap-2">
-                        <div class="col-span-10"> <select id="reg_categoria" class="w-full text-[10px] border-slate-200 rounded-lg bg-white h-[38px] font-bold text-slate-700">
-                                <option value="">-- SELECCIONAR CATEGORÍA --</option>
-                                {% for cat in servicio_grupos %}
-                                    <option value="{{ cat.nombre }}">{{ cat.nombre }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-span-2 flex justify-end">
-                            <div onclick="openCategoriaModal()" class="w-full h-[38px] cursor-pointer group relative flex items-center justify-center rounded-lg border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-sm transition-all hover:border-emerald-400">
-                                <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-600"></i>
-                            </div>
-                        </div>
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm mb-4 relative">
+                <div onclick="toggleRegistroPanel()" class="flex items-center justify-between px-6 py-3 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors border-b border-slate-100 rounded-t-2xl">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="list-plus" class="w-4 h-4 text-indigo-500"></i>
+                        <h3 class="text-[11px] font-black text-slate-500 uppercase tracking-widest">Panel de Selección de Servicios</h3>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[9px] font-bold text-slate-400 uppercase">Configurar Servicio</span>
+                        <i id="icon-registro" data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform duration-300" style="transform: rotate(180deg)"></i>
                     </div>
                 </div>
 
-                <div class="md:col-span-6">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sub-Categoría</label>
-                    <div class="grid grid-cols-12 gap-2">
-                        <div class="col-span-10"> <select id="reg_subcategoria" class="w-full text-[10px] border-slate-200 rounded-lg bg-white h-[38px] font-bold text-slate-700">
-                                <option value="">-- SELECCIONAR SUB-CATEGORÍA --</option>
-                                {% for sub in subcategorias %}
-                                    <option value="{{ sub.nombre }}">{{ sub.nombre }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-span-2 flex justify-end">
-                            <div onclick="openSubcategoriaModal()" 
-                                class="w-full h-[38px] cursor-pointer group relative flex items-center justify-center rounded-lg border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white shadow-sm transition-all hover:border-indigo-400">
-                                <i data-lucide="plus-circle" class="w-4 h-4 text-indigo-600"></i>
+                <div id="content-registro" class="p-6 transition-all duration-300 relative z-50">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-4 bg-slate-50/50 p-6 rounded-2xl border border-dashed border-slate-200">
+                        
+                        <div class="md:col-span-6">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cabecera de Grupo (Categoría)</label>
+                            <div class="grid grid-cols-12 gap-2">
+                                <div class="col-span-10"> 
+                                    <select id="reg_categoria" class="w-full text-[10px] border-slate-200 rounded-lg bg-white h-[38px] font-bold text-slate-700">
+                                        <option value="">-- SELECCIONAR CATEGORÍA --</option>
+                                        {% for cat in servicio_grupos %}
+                                            <option value="{{ cat.nombre }}">{{ cat.nombre }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-span-2 flex justify-end">
+                                    <div onclick="event.stopPropagation(); openCategoriaModal()" class="w-full h-[38px] cursor-pointer group relative flex items-center justify-center rounded-lg border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-sm transition-all hover:border-emerald-400">
+                                        <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-600"></i>
+                                    </div>
+                                </div>
                             </div>
+                        </div>
+
+                        <div class="md:col-span-6">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sub-Categoría</label>
+                            <div class="grid grid-cols-12 gap-2">
+                                <div class="col-span-10"> 
+                                    <select id="reg_subcategoria" class="w-full text-[10px] border-slate-200 rounded-lg bg-white h-[38px] font-bold text-slate-700">
+                                        <option value="">-- SELECCIONAR SUB-CATEGORÍA --</option>
+                                        {% for sub in subcategorias %}
+                                            <option value="{{ sub.nombre }}">{{ sub.nombre }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-span-2 flex justify-end">
+                                    <div onclick="event.stopPropagation(); openSubcategoriaModal()" 
+                                        class="w-full h-[38px] cursor-pointer group relative flex items-center justify-center rounded-lg border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white shadow-sm transition-all hover:border-indigo-400">
+                                        <i data-lucide="plus-circle" class="w-4 h-4 text-indigo-600"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-4 relative">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Buscar Servicio (Ensayo)</label>
+                            <select id="reg_servicio" class="vicaf-search-select"></select>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Norma de Ensayo</label>
+                            <div id="reg_norma_txt" class="text-xs font-mono-tech p-2.5 bg-white border border-slate-200 rounded-lg text-slate-400 italic">Auto...</div>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Método</label>
+                            <div id="reg_metodo_txt" class="text-xs font-mono-tech p-2.5 bg-white border border-slate-200 rounded-lg text-slate-400 italic">Auto...</div>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cantidad</label>
+                            <input type="number" id="reg_cantidad" value="1" min="1" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Precio Unit. (S/)</label>
+                            <input type="number" step="0.01" id="reg_precio" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-blue-600">
                         </div>
                     </div>
                 </div>
-                <div class="md:col-span-4">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Buscar Servicio (Ensayo)</label>
-                    <select id="reg_servicio" class="vicaf-search-select"></select>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Norma de Ensayo</label>
-                    <div id="reg_norma_txt" class="text-xs font-mono-tech p-2.5 bg-white border border-slate-200 rounded-lg text-slate-400 italic">Auto...</div>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Método</label>
-                    <div id="reg_metodo_txt" class="text-xs font-mono-tech p-2.5 bg-white border border-slate-200 rounded-lg text-slate-400 italic">Auto...</div>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cantidad</label>
-                    <input type="number" id="reg_cantidad" value="1" min="1" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Precio Unit. (S/)</label>
-                    <input type="number" step="0.01" id="reg_precio" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-blue-600">
-                </div>
-
             </div>
 
             <div class="flex justify-end mb-8">
@@ -201,22 +241,22 @@
                 </button>
             </div>
 
-            <div class="overflow-x-auto min-h-[200px]">
-                <table class="w-full border-separate border-spacing-y-2">
-                    <thead>
-                        <tr class="text-[10px] text-slate-400 uppercase tracking-widest font-black">
-                            <th class="pb-3 pl-4 text-left w-12">#</th>
-                            <th class="pb-3 text-left">Descripción del Ensayo</th>
-                            <th class="pb-3 text-center">Norma/Método</th>
-                            <th class="pb-3 text-center w-20">Cant.</th>
-                            <th class="pb-3 text-center w-20">Und.</th>
-                            <th class="pb-3 text-right w-28">P. Unitario</th>
-                            <th class="pb-3 text-right w-28 pr-4">P. Parcial</th>
-                            <th class="pb-3 text-center w-12"></th>
+            <div class="overflow-x-auto overflow-y-auto max-h-[400px] min-h-[200px] scrollbar-thin scrollbar-thumb-slate-200">
+                <table class="w-full border-collapse">
+                    <thead class="sticky top-0 z-10 bg-white">
+                        <tr class="text-[10px] text-slate-400 uppercase tracking-widest font-black shadow-[0_1px_0_0_rgba(226,232,240,1)]">
+                            <th class="pb-4 pt-2 pl-4 text-left w-12 bg-white">#</th>
+                            <th class="pb-4 pt-2 text-left bg-white">Descripción del Ensayo</th>
+                            <th class="pb-4 pt-2 text-center bg-white">Norma/Método</th>
+                            <th class="pb-4 pt-2 text-center w-20 bg-white">Cant.</th>
+                            <th class="pb-4 pt-2 text-center w-20 bg-white">Und.</th>
+                            <th class="pb-4 pt-2 text-right w-28 bg-white">P. Unitario</th>
+                            <th class="pb-4 pt-2 text-right w-28 pr-4 bg-white">P. Parcial</th>
+                            <th class="pb-4 pt-2 text-center w-12 bg-white"></th>
                         </tr>
                     </thead>
-                    <tbody id="cotizacion-detalles">
-                        </tbody>
+                    <tbody id="cotizacion-detalles" class="divide-y divide-slate-100">
+                    </tbody>
                 </table>
             </div>
 
@@ -299,6 +339,6 @@
         urlCrearSubcategoria: "{% url 'servicios:crear_subcategoria_ajax' %}"
     };
 </script>
-
+<script src="{% static 'js/acordeon_cotizacion.js' %}"></script>
 <script src="{% static 'js/cotizacion-config.js' %}"></script>
 {% endblock %}

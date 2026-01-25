@@ -85,7 +85,13 @@ class Cotizacion(models.Model):
     
     numero_oferta = models.CharField(max_length=50, unique=True, blank=True, null=True, verbose_name="Número de Oferta (VCF-OTE-YYYY-XXX)")
     fecha_generacion = models.DateField(default=timezone.now, verbose_name="Fecha de Generación")
-    
+    servicio_general = models.ForeignKey(
+        'CategoriaServicio',
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        verbose_name="Categoría General"
+    )
     asunto_servicio = models.CharField(max_length=255, verbose_name="Asunto del Servicio (Ej: Ensayos de Campo)")
     proyecto_asociado = models.CharField(max_length=255, blank=True, null=True, verbose_name="Proyecto del Cliente")
     
