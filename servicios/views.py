@@ -623,14 +623,18 @@ def header_footer_callback(canvas, doc):
     canvas.drawString(doc.width + doc.leftMargin - 1.0 * cm, 1.0 * cm, page_text)
 
 def generar_pdf_cotizacion(request, pk):
+    cotizacion = get_object_or_404(
+        Cotizacion.objects.prefetch_related('grupos__detalles_items__servicio')
+                          .select_related('cliente', 'trabajador_responsable'),
+        pk=pk
+    )
     
-    cotizacion = get_object_or_404(Cotizacion.objects.all(), pk=pk)
-    
-    jefe_laboratorio = None
-    try:
-        jefe_laboratorio = TrabajadorProfile.objects.select_related('user').get(user__username='raquel')
-    except (TrabajadorProfile.DoesNotExist, TrabajadorProfile.MultipleObjectsReturned):
-        pass
+    jefe_laboratorio = cotizacion.trabajador_responsable
+    if not jefe_laboratorio:
+        try:
+            jefe_laboratorio = TrabajadorProfile.objects.select_related('user').get(user__username='raquel')
+        except (TrabajadorProfile.DoesNotExist, TrabajadorProfile.MultipleObjectsReturned):
+            jefe_laboratorio = None
     
     tasa_igv_decimal = cotizacion.tasa_igv if cotizacion.tasa_igv is not None else Decimal('0.18')
     subtotal = cotizacion.subtotal if cotizacion.subtotal is not None else Decimal('0.00')
@@ -641,6 +645,7 @@ def generar_pdf_cotizacion(request, pk):
 
     context = {
         'cotizacion': cotizacion,
+        'grupos': cotizacion.grupos.all().order_by('orden'), # Clave para el ordenamiento
         'subtotal_final': subtotal,
         'igv_monto_final': igv_amount,
         'monto_total_final': monto_total,
@@ -655,7 +660,6 @@ def generar_pdf_cotizacion(request, pk):
 
     nombre_archivo = f"{cotizacion.numero_oferta}.pdf" if cotizacion.numero_oferta else f"Cotizacion_{pk}.pdf"
     response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"' 
-    # ===========================================================================
 
     pisa_status = pisa.CreatePDF(
         html,                   
@@ -671,29 +675,23 @@ def generar_pdf_cotizacion(request, pk):
 @login_required
 @transaction.atomic 
 def aprobar_cotizacion(request, pk):
-    """
-    Aprueba una cotización, registra el voucher y crea el proyecto asociado.
-    Corregido para navegar a través de CotizacionGrupo -> CotizacionDetalle.
-    """
     cotizacion = get_object_or_404(Cotizacion, pk=pk)
     
-    # Validar si ya está aceptada para evitar duplicados
     if cotizacion.estado == 'Aceptada':
         return redirect('proyectos:lista_proyectos_pendientes')
 
     if request.method == 'POST':
-        codigo_voucher = request.POST.get('codigo_voucher')
-        monto_pagado_str = request.POST.get('monto_pagado')
+        codigo_voucher = request.POST.get('codigo_voucher', '').strip()
+        monto_pagado_str = request.POST.get('monto_pagado', '0').strip()
         imagen_voucher = request.FILES.get('imagen_voucher')
         documento_firmado_cliente = request.FILES.get('documento_firmado_cliente')
         
         try:
-            monto_pagado = Decimal(monto_pagado_str) if monto_pagado_str else Decimal('0.00')
-        except (TypeError, InvalidOperation):
+            monto_pagado = Decimal(monto_pagado_str.replace(',', ''))
+        except (TypeError, InvalidOperation, ValueError):
             monto_pagado = Decimal('0.00')
 
-        # Validaciones de archivos y campos
-        if not all([codigo_voucher, imagen_voucher, documento_firmado_cliente]):
+        if not codigo_voucher or not imagen_voucher or not documento_firmado_cliente:
             return render(request, 'servicios/aprobar_cotizacion.html', {
                 'cotizacion': cotizacion,
                 'error': 'Todos los campos y archivos son obligatorios.',
@@ -702,7 +700,6 @@ def aprobar_cotizacion(request, pk):
             })
 
         try:
-            # 1. Crear el Voucher
             voucher = Voucher.objects.create(
                 cotizacion=cotizacion,
                 codigo=codigo_voucher,
@@ -711,43 +708,37 @@ def aprobar_cotizacion(request, pk):
                 documento_firmado=documento_firmado_cliente 
             )
             
-            # 2. Actualizar estado de la Cotización
             cotizacion.estado = 'Aceptada'
-            # Asegúrate de que el campo aprobada_por_cliente exista en tu modelo, 
-            # si no, esta línea se puede comentar:
-            # cotizacion.aprobada_por_cliente = True 
             cotizacion.save()
 
-            # 3. Calcular total de muestras (Navegando: Cotizacion -> Grupo -> Detalle)
-            # ✅ ESTA ES LA CORRECCIÓN CLAVE:
             total_muestras = CotizacionDetalle.objects.filter(
                 grupo__cotizacion=cotizacion
-            ).aggregate(Sum('cantidad'))['cantidad__sum'] or 0
+            ).aggregate(total=Sum('cantidad'))['total'] or 0
             
-            # 4. Crear el Proyecto
             nombre_proyecto = f"{cotizacion.cliente.razon_social} ({cotizacion.numero_oferta})"
             codigo_proyecto = f"P-{cotizacion.numero_oferta}" 
             
-            Proyecto.objects.create(
+            Proyecto.objects.get_or_create(
                 cotizacion=cotizacion,
-                nombre_proyecto=nombre_proyecto,
-                codigo_proyecto=codigo_proyecto, 
-                cliente=cotizacion.cliente,
-                estado='PENDIENTE',
-                descripcion_proyecto="Proyecto generado automáticamente.",
-                monto_cotizacion=cotizacion.monto_total,
-                codigo_voucher=voucher.codigo,
-                numero_muestras=total_muestras,
+                defaults={
+                    'nombre_proyecto': nombre_proyecto,
+                    'codigo_proyecto': codigo_proyecto, 
+                    'cliente': cotizacion.cliente,
+                    'estado': 'PENDIENTE',
+                    'descripcion_proyecto': "Proyecto generado automáticamente.",
+                    'monto_cotizacion': cotizacion.monto_total,
+                    'codigo_voucher': voucher.codigo,
+                    'numero_muestras': total_muestras,
+                }
             )
             
-            # 5. Redirigir al éxito
             return redirect('proyectos:lista_proyectos_pendientes')
     
         except Exception as e:
-            logger.error(f"Error en aprobación {pk}: {str(e)}")
+            logger.error(f"Error en aprobación {pk}: {str(e)}", exc_info=True)
             return render(request, 'servicios/aprobar_cotizacion.html', {
                 'cotizacion': cotizacion,
-                'error': f'Error crítico: {str(e)}',
+                'error': f'Ocurrió un error al procesar la aprobación: {str(e)}',
                 'codigo_voucher_value': codigo_voucher,
                 'monto_pagado_value': monto_pagado_str,
             })
@@ -774,7 +765,6 @@ def buscar_servicios_api(request):
                 'precio_base': str(servicio.precio_base),
             })
     return JsonResponse(servicios, safe=False)
-
 
 def buscar_cotizaciones_api(request):
     """ Endpoint API para la búsqueda dinámica de cotizaciones. """

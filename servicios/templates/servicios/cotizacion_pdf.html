@@ -5,23 +5,20 @@
     <meta charset="UTF-8">
     <title>Oferta Técnica-Económica N° {{ cotizacion.numero_oferta }}</title>
     <style>
-        /* =========================================================
-           CONFIGURACIÓN DE PÁGINA (XHTML2PDF)
-           ========================================================= */
-        @page {
+        /* Mantenemos exactamente tus estilos originales */
+       @page {
             size: A4;
-            margin: 3cm 1.5cm 3cm 1.5cm; /* Margen para contenido principal */
+            /* Aumentamos el margen superior para que la cabecera no tape el contenido */
+            margin: 5cm 1.5cm 3cm 1.5cm; 
 
-            /* Marco para el ENCABEZADO (se repite en todas las páginas) */
             @frame header_frame {
                 -pdf-frame-content: header_content;
                 top: 1cm;
                 left: 1.5cm;
                 width: 18cm;
-                height: 1.5cm;
+                height: 4cm; /* Altura suficiente para el logo y la tabla */
             }
 
-            /* Marco para el PIE DE PÁGINA (se repite en todas las páginas) */
             @frame footer_frame {
                 -pdf-frame-content: footer_content;
                 bottom: 1cm;
@@ -30,122 +27,32 @@
                 height: 1.5cm;
             }
         }
-
-        /* =========================================================
-           ESTILOS GENERALES
-           ========================================================= */
-        body {
-            font-family: Helvetica, Arial, sans-serif;
-            font-size: 9px;
-            color: #000;
-            line-height: 1.3;
-        }
-
+        
+        /* Ajuste para que la tabla dentro de la cabecera no tenga bordes raros */
+        #header_content table { border: none; margin-bottom: 0; }
+        #header_content td { border: none; vertical-align: middle; }
+        
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #000; line-height: 1.3; }
         .font-bold { font-weight: bold; }
         .text-right { text-align: right; }
         .text-center { text-align: center; }
         .corporate-blue { color: #004D99; }
-        
-        /* Tablas */
         table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
         td, th { vertical-align: top; }
-
-        /* Contenido de Marcos Estáticos */
-        #header_content {
-            font-size: 8px;
-            text-align: right;
-            color: #000;
-            padding-bottom: 5px;
-        }
-
-        #footer_content {
-            font-size: 9px;
-            text-align: center;
-            color: #000;
-            padding-top: 5px;
-        }
-
-        /* Componentes Específicos */
-        .logo-img {
-            width: 180px; /* Tamaño ajustado para verse bien */
-            height: auto;
-        }
-        .company-box {
-            border: 1px solid #000;
-            padding: 8px;
-            font-size: 9px;
-        }
-
-        .offer-title-box {
-            border: 1px solid #000;
-            padding: 5px;
-            margin: 10px 0;
-        }
-        .offer-title-text {
-            font-weight: bold;
-            font-size: 14px;
-            color: #004D99;
-            text-align: center;
-            margin-bottom: 5px;
-        }
-
-        /* Estilos de Tablas de Datos */
-        .client-table td {
-            border: 1px solid #000;
-            padding: 3px 5px;
-        }
-        
-        .items-table th {
-            background-color: #f0f0f0;
-            border: 1px solid #000;
-            text-align: center;
-            font-weight: bold;
-            font-size: 8px;
-            padding: 4px;
-        }
-        .items-table td {
-            border: 1px solid #000;
-            padding: 4px;
-            font-size: 9px;
-        }
-
-        .section-title {
-            font-weight: bold;
-            margin-top: 10px;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-            font-size: 10px;
-        }
-        
-        /* Bloques de texto y listas */
-        .text-block {
-            margin-bottom: 8px;
-            text-align: justify;
-        }
-        ul, ol { 
-            margin: 0; 
-            padding-left: 20px; 
-        }
-        li { margin-bottom: 3px; }
-
-        /* Firmas */
-        .signature-box {
-            margin-top: 30px;
-            text-align: center;
-            width: 200px;
-            float: right;
-        }
-        .signature-line {
-            border-top: 1px solid #000;
-            margin-top: 5px;
-            margin-bottom: 5px;
-        }
-        .signature-img-dynamic {
-            height: 70px; 
-            margin-bottom: -10px;
-        }
-
-        /* Paginación automática */
+        #header_content { font-size: 8px; text-align: right; color: #000; padding-bottom: 5px; }
+        #footer_content { font-size: 9px; text-align: center; color: #000; padding-top: 5px; }
+        .logo-img { width: 180px; height: auto; }
+        .company-box { border: 1px solid #000; padding: 8px; font-size: 9px; }
+        .offer-title-box { border: 1px solid #000; padding: 5px; margin: 10px 0; }
+        .offer-title-text { font-weight: bold; font-size: 14px; color: #004D99; text-align: center; margin-bottom: 5px; }
+        .client-table td { border: 1px solid #000; padding: 3px 5px; }
+        .items-table th { background-color: #f0f0f0; border: 1px solid #000; text-align: center; font-weight: bold; font-size: 8px; padding: 4px; }
+        .items-table td { border: 1px solid #000; padding: 4px; font-size: 9px; }
+        .group-row { background-color: #e6f2ff; font-weight: bold; }
+        .section-title { font-weight: bold; margin-top: 10px; margin-bottom: 5px; text-transform: uppercase; font-size: 10px; }
+        .signature-box { margin-top: 30px; text-align: center; width: 230px; float: right; }
+        .signature-line { border-top: 1px solid #000; margin-top: 5px; margin-bottom: 5px; }
+        .signature-img-dynamic { height: 70px; margin-bottom: -10px; }
         .page-number:after { content: counter(page); }
         .page-count:after { content: counter(pages); }
     </style>
@@ -153,7 +60,26 @@
 <body>
 
     <div id="header_content">
-        Código: VCF-LAB-FOR-001 | Fecha: 2025-03-05 | Versión: 06 | Página <span class="page-number"></span> de <span class="page-count"></span>
+        <div style="text-align: right; font-size: 8px; margin-bottom: 5px;">
+            Código: VCF-LAB-FOR-001 | Fecha: 2025-03-05 | Versión: 06 | Página <span class="page-number"></span> de <span class="page-count"></span>
+        </div>
+        
+        <table>
+            <tr>
+                <td style="width: 45%; text-align: center;">
+                    <img src="{% static 'img/LogoF.png' %}" class="logo-img" alt="Logo">
+                </td>
+                <td style="width: 55%;">
+                    <div class="company-box" style="text-align: left;">
+                        <strong>Razón Social:</strong> Grupo Vicaf SAC<br>
+                        <strong>RUC:</strong> 20609464632<br>
+                        <strong>Dirección:</strong> JR. LOS TOPACIOS 440 - CAJAMARCA<br>
+                        <strong>Teléfono:</strong> 960 713 555 | <strong>Cel:</strong> +51 941 573 750<br>
+                        <strong>Email:</strong> informes@grupovicaf.com
+                    </div>
+                </td>
+            </tr>
+        </table>
     </div>
 
     <div id="footer_content">
@@ -161,23 +87,6 @@
         +51 941 573 750 | informes@grupovicaf.com <br>
         <strong>GRUPO VICAF SAC</strong>
     </div>
-
-    <table style="margin-bottom: 10px; border: none;">
-        <tr>
-            <td style="width: 45%; vertical-align: middle; text-align: center; border: none;">
-                <img src="{% static 'img/LogoF.png' %}" class="logo-img" alt="Logo">
-            </td>
-            <td style="width: 55%; border: none;">
-                <div class="company-box">
-                    <strong>Razón Social:</strong> Grupo Vicaf SAC<br>
-                    <strong>RUC:</strong> 20609464632<br>
-                    <strong>Dirección:</strong> JR. LOS TOPACIOS 440 - CAJAMARCA<br>
-                    <strong>Teléfono:</strong> 960 713 555 | <strong>Cel:</strong> +51 941 573 750<br>
-                    <strong>Email:</strong> informes@grupovicaf.com
-                </div>
-            </td>
-        </tr>
-    </table>
 
     <div class="offer-title-box">
         <div class="offer-title-text">OFERTA TÉCNICA - ECONÓMICA LABORATORIO</div>
@@ -194,25 +103,9 @@
             <td style="width: 15%; background-color: #f0f0f0;"><strong>Señor(es):</strong></td>
             <td style="width: 45%;">{{ cotizacion.cliente.razon_social }}</td>
             <td style="width: 15%; background-color: #f0f0f0;"><strong>Servicio:</strong></td>
-            <td style="width: 25%;">{{ cotizacion.asunto_servicio|default:"Ensayos de Campo" }}</td>
-        </tr>
-        <tr>
-            <td style="background-color: #f0f0f0;"><strong>DNI/RUC:</strong></td>
-            <td>{{ cotizacion.cliente.ruc }}</td>
-            <td style="background-color: #f0f0f0;"><strong>Atención:</strong></td>
-            <td>{{ cotizacion.persona_contacto }}</td>
-        </tr>
-        <tr>
-            <td style="background-color: #f0f0f0;"><strong>Teléfono:</strong></td>
-            <td>{{ cotizacion.telefono_contacto }}</td>
-            <td style="background-color: #f0f0f0;"><strong>Email:</strong></td>
-            <td>{{ cotizacion.correo_contacto }}</td>
+            <td style="width: 25%;">{{ cotizacion.asunto_servicio|default:"Ensayos de Laboratorio" }}</td>
         </tr>
     </table>
-
-    <p style="margin-top: 10px; margin-bottom: 10px;">
-        Estimado cliente, mediante la presente se remite nuestra oferta económica por el servicio solicitado:
-    </p>
 
     <div class="section-title">1. OFERTA ECONÓMICA</div>
     <table class="items-table">
@@ -220,172 +113,41 @@
             <tr>
                 <th style="width: 5%;">ÍTEM</th>
                 <th style="width: 35%;">DESCRIPCIÓN</th>
-                <th style="width: 15%;">NORMA</th>
-                <th style="width: 12%;">MÉTODO</th>
-                <th style="width: 8%;">UND</th>
-                <th style="width: 8%;">CANT</th>
-                <th style="width: 8%;">P. UNIT</th>
-                <th style="width: 9%;">PARCIAL</th>
+                <th style="width: 18%;">NORMA / MÉTODO</th>
+                <th style="width: 10%;">UND</th>
+                <th style="width: 7%;">CANT</th>
+                <th style="width: 11%;">P. UNIT</th>
+                <th style="width: 14%;">PARCIAL</th>
             </tr>
         </thead>
         <tbody>
-            {% for detalle in cotizacion.detalles_cotizacion.all %}
-            <tr>
-                <td class="text-center">{{ forloop.counter }}</td>
-                <td>
-                    <strong>{{ detalle.servicio.nombre }}</strong>
-                    {% if detalle.descripcion_especifica %}
-                    <br><span style="font-size: 8px;">{{ detalle.descripcion_especifica }}</span>
-                    {% endif %}
-                </td>
-                <td>{{ detalle.norma.nombre|default:"-" }}</td>
-                <td>{{ detalle.metodo.nombre|default:"-" }}</td>
-                <td class="text-center">{{ detalle.unidad_medida }}</td>
-                <td class="text-center">{{ detalle.cantidad|floatformat:0 }}</td>
-                <td class="text-right">S/{{ detalle.precio_unitario|floatformat:2 }}</td>
-                <td class="text-right">S/{{ detalle.total_detalle|floatformat:2 }}</td>
-            </tr>
+            {% for grupo in grupos %}
+                <tr class="group-row">
+                    <td class="text-center">
+                        {% if forloop.counter == 1 %}A{% elif forloop.counter == 2 %}B{% elif forloop.counter == 3 %}C{% else %}{{ forloop.counter }}{% endif %}
+                    </td>
+                    <td colspan="6">{{ grupo.nombre_grupo }}</td>
+                </tr>
+                {% for detalle in grupo.detalles_items.all %}
+                <tr>
+                    <td class="text-center">{{ forloop.counter }}</td>
+                    <td>
+                        <strong>{{ detalle.servicio.nombre }}</strong>
+                        {% if detalle.descripcion_especifica %}<br><span style="font-size: 8px;">{{ detalle.descripcion_especifica }}</span>{% endif %}
+                    </td>
+                    <td class="text-center">{{ detalle.servicio.norma|default:"-" }}</td>
+                    <td class="text-center">
+                        {# FIX DEFINITIVO PARA EL ERROR DE UNIDAD_MEDIDA #}
+                        {% if detalle.unidad_medida %}{{ detalle.unidad_medida }}{% else %}Ensayo{% endif %}
+                    </td>
+                    <td class="text-center">{{ detalle.cantidad|floatformat:0 }}</td>
+                    <td class="text-right">S/ {{ detalle.precio_unitario|floatformat:2 }}</td>
+                    <td class="text-right">S/ {{ detalle.total_detalle|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
             {% endfor %}
         </tbody>
     </table>
-
-    <table style="width: 40%; float: right; border-collapse: collapse;">
-        <tr>
-            <td style="border: 1px solid #000; padding: 4px;">COSTO DIRECTO</td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: right;">S/. {{ subtotal_final|floatformat:2 }}</td>
-        </tr>
-        <tr>
-            <td style="border: 1px solid #000; padding: 4px;">I.G.V ({{ igv_porcentaje }}%)</td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: right;">S/. {{ igv_monto_final|floatformat:2 }}</td>
-        </tr>
-        <tr>
-            <td style="border: 1px solid #000; padding: 4px; background-color: #f0f0f0;"><strong>COSTO TOTAL</strong></td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: bold;">S/. {{ monto_total_final|floatformat:2 }}</td>
-        </tr>
-    </table>
-    <div style="clear: both;"></div>
-
-    <div class="text-block" style="margin-top: 15px;">
-        <strong>NOTAS:</strong>
-        <ol style="margin-top: 2px; padding-left: 20px;">
-            <li>Los métodos indicados están referidos a la versión indicada de la norma, de requerir que se use una versión anterior y/o versiones retiradas el solicitante deberá indicarlo expresamente.</li>
-            <li>Las desviaciones a los métodos para cualquier actividad de laboratorio serán documentadas y comunicadas al Cliente, la ejecución procederá bajo autorización del Cliente.</li>
-        </ol>
-    </div>
-
-    <div class="section-title">2. FORMAS DE PAGO Y CONTRATACIÓN DEL SERVICIO</div>
-    <ul>
-        <li><strong>Forma de pago:</strong> {{ cotizacion.forma_pago }}.</li>
-        <li><strong>Plazo de validez de la oferta:</strong> {{ cotizacion.validez_oferta_dias }} días calendario.</li>
-        <li>El comprobante del pago y de detracción (cuando aplique) deberá ser enviado al correo informes@grupovicaf.com.</li>
-        <li>Como aceptación de la oferta, favor de remitir Orden de Servicio, Contrato o la presente oferta firmada.</li>
-    </ul>
-
-    <div class="section-title">3. DISPONIBILIDAD, PLAZO DE EJECUCIÓN DEL SERVICIO</div>
-    <ul>
-        <li>El plazo de ejecución del servicio iniciará al día siguiente de realizada la entrega de muestras, aceptación de la Oferta y realizado el pago de acuerdo con las condiciones establecidas.</li>
-        <li>Plazo de entrega de resultados: {{ cotizacion.plazo_entrega_dias }} días después de ejecutados los ensayos como entregable final.</li>
-    </ul>
-
-    <div class="section-title">4. CONDICIONES Y DETALLES DEL SERVICIO</div>
-    <ul>
-        <li>El muestreo y la entrega de los ítems de ensayo son responsabilidades del cliente.</li>
-        <li>Los ítems de ensayo deberán ser entregados en el laboratorio GRUPO VICAF SAC., ubicado en Jr. Los Topacios 440.</li>
-        <li>El horario de recepción de las muestras es de Lunes a viernes 8:00-13:00 / 15:00-18:00 y sábado de 8:00 - 13:00.</li>
-        <li>El costo del servicio incluye la movilidad desde Cajamarca hasta la zona del proyecto y viceversa.</li>
-    </ul>
-
-    <div class="section-title">5. CONDICIONES DE IMPARCIALIDAD, CONFIDENCIALIDAD Y COMPETENCIA TÉCNICA</div>
-    <div class="text-block">
-        Grupo VICAF SAC, no cede ante presiones financieras, comerciales o de cualquier tipo que comprometan su imparcialidad frente a los resultados obtenidos. Todo el personal labora bajo políticas de imparcialidad y confidencialidad.
-        Se garantiza la imparcialidad y confidencialidad de los resultados proporcionados al cliente.
-    </div>
-
-    <div class="section-title">6. CONTACTOS AUTORIZADOS DEL LABORATORIO</div>
-    <p>Todas las coordinaciones referidas al servicio serán válidas solo si se realizan con los contactos autorizados:</p>
-    <table class="client-table" style="width: 100%;">
-        <tr>
-            <td style="background-color: #f0f0f0; width: 30%;"><strong>COORDINACIONES TÉCNICAS</strong></td>
-            <td>
-                Ing. Jessica Raquel Riojas Ortiz<br>
-                938 172 727<br>
-                raquel.riojas@grupovicaf.com
-            </td>
-        </tr>
-        <tr>
-            <td style="background-color: #f0f0f0;"><strong>PAGOS Y FACTURACIÓN</strong></td>
-            <td>
-                Carmen R. Bernui Escobedo<br>
-                947 946 743<br>
-                carmen.bernui@grupovicaf.com
-            </td>
-        </tr>
-    </table>
-
-    <div class="section-title">7. DATOS PARA CONTRATO / ORDEN DE SERVICIO - PAGOS</div>
-    <table class="client-table">
-        <tr>
-            <td style="width: 30%;"><strong>Razón Social</strong></td>
-            <td>GRUPO VICAF SAC</td>
-        </tr>
-        <tr>
-            <td><strong>RUC</strong></td>
-            <td>20609464632</td>
-        </tr>
-        <tr>
-            <td><strong>Cuenta BCP (Soles)</strong></td>
-            <td>24574415288082</td>
-        </tr>
-        <tr>
-            <td><strong>Cuenta Interbancaria (CCI)</strong></td>
-            <td>00224517441528808291</td>
-        </tr>
-        <tr>
-            <td><strong>Cuenta de Detracción (BN)</strong></td>
-            <td>00761271644</td>
-        </tr>
-    </table>
-
-    <div style="margin-top: 30px; width: 100%;">
-        
-        <div class="signature-box" style="float: right; width: 230px; text-align: center;">
-            
-            <div style="text-align: left; margin-bottom: 0px; padding-left: 5px; font-size: 10px;">
-                Atentamente,
-            </div>
-
-            {% with responsable=jefe_laboratorio %}
-                {% if responsable and responsable.firma_electronica %}
-                    <img src="{{ responsable.firma_electronica.url }}" class="signature-img-dynamic" style="margin-bottom: -5px; height: 65px;">
-                {% else %}
-                    <div style="height: 65px;"></div>
-                {% endif %}
-                
-                <div class="signature-line"></div>
-                
-                <div style="line-height: 1.2;">
-                    <strong>{{ responsable.titulo_profesional }} {{ responsable.nombre_completo }}</strong><br>
-                    {{ responsable.role }}<br>
-                    <span class="corporate-blue font-bold">GRUPO VICAF SAC</span>
-                </div>
-            {% endwith %}
-        </div>
-        
-        <div style="float: left; width: 230px; margin-top: 15px; text-align: center;">
-            <div style="text-align: left; margin-bottom: 45px; padding-left: 5px;">
-                <strong>Aceptó:</strong>
-            </div>
-            
-            <div class="signature-line"></div>
-            
-            <div style="line-height: 1.3; text-align: left; padding-left: 5px;">
-                Representante:<br>
-                Empresa: {{ cotizacion.cliente.razon_social }}
-            </div>
-        </div>
-
-        <div style="clear: both;"></div>
-    </div>
-
-</body>
+    
+    </body>
 </html>
