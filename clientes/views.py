@@ -18,10 +18,11 @@ def lista_clientes(request):
     """Muestra el listado de todos los clientes con paginación y búsqueda."""
     
     query = request.GET.get('q')
-    clientes = Cliente.objects.all().order_by('-creado_en') 
+    clientes = Cliente.objects.all().select_related('creado_por').order_by('-creado_en') 
 
     if query:
         clientes = clientes.filter(
+            Q(codigo_confidencial__icontains=query) | 
             Q(razon_social__icontains=query) |
             Q(ruc__icontains=query) |
             Q(persona_contacto__icontains=query) |
@@ -33,65 +34,64 @@ def lista_clientes(request):
     page_obj = paginator.get_page(page_number)
 
     context = {
-        'clientes': page_obj,
+        'clientes': page_obj,  
         'query': query,
     }
     return render(request, 'clientes/clientes_list.html', context)
 
-
 @login_required
 @user_passes_test(is_admin_or_supervisor)
 def buscar_clientes_api(request):
-    """Devuelve un JSON con los resultados de búsqueda de clientes."""
+    """Devuelve un JSON con los resultados de búsqueda de clientes incluyendo ID y Logo."""
     query = request.GET.get('q', '')
-    clientes = Cliente.objects.filter( 
+    
+    clientes_qs = Cliente.objects.filter( 
+        Q(codigo_confidencial__icontains=query) | 
         Q(razon_social__icontains=query) |
         Q(ruc__icontains=query) |
         Q(persona_contacto__icontains=query) |
         Q(correo_contacto__icontains=query)
-    ).values(
-        'pk', 
-        'razon_social', 
-        'ruc', 
-        'persona_contacto', 
-        'correo_contacto', 
-        'creado_en'
+    ).only( 
+        'pk', 'codigo_confidencial', 'razon_social', 'ruc', 
+        'persona_contacto', 'correo_contacto', 'creado_en', 'logo_empresa'
     )[:10]
 
-    for cliente in clientes:
-        if cliente['creado_en']:
-            cliente['creado_en'] = cliente['creado_en'].strftime("%d %b %Y")
-        else:
-            cliente['creado_en'] = 'N/A'
+    resultados = []
+    for cliente in clientes_qs:
+        resultados.append({
+            'pk': cliente.pk,
+            'codigo_confidencial': cliente.codigo_confidencial,
+            'razon_social': cliente.razon_social,
+            'ruc': cliente.ruc,
+            'persona_contacto': cliente.persona_contacto,
+            'correo_contacto': cliente.correo_contacto,
+            'creado_en': cliente.creado_en.strftime("%d %b %Y") if cliente.creado_en else 'N/A',
+            'logo_url': cliente.logo_empresa.url if cliente.logo_empresa else None,
+        })
 
-    return JsonResponse(list(clientes), safe=False)
-
+    return JsonResponse(resultados, safe=False)
 
 @login_required
 @user_passes_test(is_admin_or_supervisor)
 def crear_editar_cliente(request, pk=None):
-    """Permite crear un nuevo cliente o editar uno existente."""
+    """Permite crear un nuevo cliente o editar uno existente incorporando logo y firma."""
     cliente = None
-    
     if pk:
         cliente = get_object_or_404(Cliente, pk=pk)
 
     errors = {}
-    
     data_cliente = cliente if cliente else {}
 
     if request.method == 'POST':
         data_cliente = request.POST.copy()
         
         ruc = request.POST.get('ruc')
-        
         if Cliente.objects.filter(ruc=ruc).exclude(pk=pk).exists():
             errors['ruc'] = 'Ya existe un cliente con este número de RUC.'
         
         razon_social = request.POST.get('razon_social')
         if Cliente.objects.filter(razon_social=razon_social).exclude(pk=pk).exists():
              errors['razon_social'] = 'Ya existe un cliente con esta Razón Social.'
-
 
         if not errors:
             try:
@@ -102,10 +102,11 @@ def crear_editar_cliente(request, pk=None):
                 celular_contacto = request.POST.get('celular_contacto')
                 correo_contacto = request.POST.get('correo_contacto')
                 activo = request.POST.get('activo') == 'on' 
+                
+                logo_empresa_file = request.FILES.get('logo_empresa') # Nuevo campo
                 firma_electronica_file = request.FILES.get('firma_electronica')
 
                 if cliente:
-                    # Lógica de edición
                     cliente.razon_social = razon_social
                     cliente.ruc = ruc
                     cliente.direccion = direccion
@@ -116,15 +117,15 @@ def crear_editar_cliente(request, pk=None):
                     cliente.correo_contacto = correo_contacto
                     cliente.activo = activo
 
+                    if logo_empresa_file:
+                        cliente.logo_empresa = logo_empresa_file
                     if firma_electronica_file:
                         cliente.firma_electronica = firma_electronica_file
                         
                     cliente.save()
                     messages.success(request, f"Cliente '{razon_social}' actualizado exitosamente.")
                 else:
-                    # Lógica de creación - Usamos el modelo Cliente
                     Cliente.objects.create(
-                        # CRUCIAL: Asignamos el usuario logeado al campo de auditoría
                         creado_por=request.user, 
                         razon_social=razon_social,
                         ruc=ruc,
@@ -135,26 +136,23 @@ def crear_editar_cliente(request, pk=None):
                         celular_contacto=celular_contacto,
                         correo_contacto=correo_contacto,
                         activo=activo,
+                        logo_empresa=logo_empresa_file, 
                         firma_electronica=firma_electronica_file
                     )
                     messages.success(request, f"Cliente '{razon_social}' creado exitosamente.")
                 
-                # Redireccionamos al listado de clientes
                 return redirect('clientes:lista_clientes') 
                 
             except IntegrityError:
-                # Esto atraparía errores de unicidad que no se validaron antes
                 errors['general'] = 'Error de base de datos. El RUC o la Razón Social ya existen.'
             except Exception as e:
-                 # Errores generales (por ejemplo, campo obligatorio vacío)
-                 errors['general'] = f'Ocurrió un error inesperado al guardar: {e}'
+                errors['general'] = f'Ocurrió un error inesperado al guardar: {e}'
 
     context = {
-        'cliente': cliente,       # Instancia del cliente para edición
+        'cliente': cliente,
         'errors': errors,
-        'data_cliente': data_cliente # Datos POST/actuales para rellenar formulario
+        'data_cliente': data_cliente
     }
-    # Usaremos una plantilla única para creación y edición: clientes_form.html
     return render(request, 'clientes/clientes_form.html', context)
 
 

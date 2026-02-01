@@ -173,6 +173,10 @@
         </form>
     </div>
 </div>
+<div id="rol-config" 
+         data-url-crear="{% url 'trabajadores:crear_rol_ajax' %}" 
+         data-csrf="{{ csrf_token }}">
+    </div>
 {% include 'trabajadores/modals/all_modals.html' %}
 {% endblock %}
 

@@ -32,10 +32,24 @@
             </div>
         </div>
 
-        <a href="{% url 'clientes:lista_clientes' %}" class="bg-white text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
-            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Volver
-        </a>
+        <div class="flex items-center gap-4">
+            {% if cliente %}
+            <div class="flex flex-col items-end">
+                <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">ID Sistema</span>
+                <span class="text-xs font-mono-tech font-bold text-blue-600">{{ cliente.codigo_confidencial }}</span>
+            </div>
+            {% endif %}
+            <a href="{% url 'clientes:lista_clientes' %}" class="bg-white text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Volver
+            </a>
+        </div>
     </header>
+
+    {% if errors.general %}
+    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-xl mb-4">
+        <p class="text-xs text-red-700 font-bold">{{ errors.general }}</p>
+    </div>
+    {% endif %}
 
     <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         <form id="cliente-form" method="post" enctype="multipart/form-data" class="p-8">
@@ -52,20 +66,27 @@
                     <div class="space-y-4">
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Razón Social</label>
-                            <input type="text" name="razon_social" value="{{ cliente.razon_social|default:'' }}" 
+                            <input type="text" name="razon_social" value="{{ data_cliente.razon_social|default:'' }}" 
                                 class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            {% if errors.razon_social %}<p class="text-[9px] text-red-500 mt-1 font-bold">{{ errors.razon_social }}</p>{% endif %}
                         </div>
                         
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Número de RUC</label>
-                            <input type="text" name="ruc" value="{{ cliente.ruc|default:'' }}" 
+                            <input type="text" name="ruc" value="{{ data_cliente.ruc|default:'' }}" 
                                 class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono-tech text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            {% if errors.ruc %}<p class="text-[9px] text-red-500 mt-1 font-bold">{{ errors.ruc }}</p>{% endif %}
                         </div>
                         
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Dirección Fiscal</label>
                             <textarea name="direccion" rows="2" 
-                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">{{ cliente.direccion|default:'' }}</textarea>
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">{{ data_cliente.direccion|default:'' }}</textarea>
+                        </div>
+
+                        <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <input type="checkbox" name="activo" id="activo" {% if data_cliente.activo or not cliente %}checked{% endif %} class="w-4 h-4 text-blue-600 rounded">
+                            <label for="activo" class="text-[10px] font-bold text-slate-600 uppercase">Socio en Estado Activo</label>
                         </div>
                     </div>
                 </div>
@@ -79,13 +100,13 @@
                     <div class="space-y-4">
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Persona Responsable</label>
-                            <input type="text" name="persona_contacto" value="{{ cliente.persona_contacto|default:'' }}" 
+                            <input type="text" name="persona_contacto" value="{{ data_cliente.persona_contacto|default:'' }}" 
                                 class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
                         </div>
                         
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cargo / Puesto</label>
-                            <input type="text" name="cargo_contacto" value="{{ cliente.cargo_contacto|default:'' }}" 
+                            <input type="text" name="cargo_contacto" value="{{ data_cliente.cargo_contacto|default:'' }}" 
                                 class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
                         </div>
 
@@ -93,7 +114,16 @@
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Teléfono Celular</label>
                             <div class="relative">
                                 <i data-lucide="phone" class="absolute left-3 top-3 w-3.5 h-3.5 text-slate-400"></i>
-                                <input type="text" name="celular_contacto" value="{{ cliente.celular_contacto|default:'' }}" 
+                                <input type="text" name="celular_contacto" value="{{ data_cliente.celular_contacto|default:'' }}" 
+                                    class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sitio Web Corporativo</label>
+                            <div class="relative">
+                                <i data-lucide="globe" class="absolute left-3 top-3 w-3.5 h-3.5 text-slate-400"></i>
+                                <input type="text" name="sitio_web" value="{{ data_cliente.sitio_web|default:'' }}" 
                                     class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
                             </div>
                         </div>
@@ -108,28 +138,49 @@
                     
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Correo Electrónico</label>
-                            <input type="email" name="correo_contacto" value="{{ cliente.correo_contacto|default:'' }}" 
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Correo de Notificación</label>
+                            <input type="email" name="correo_contacto" value="{{ data_cliente.correo_contacto|default:'' }}" 
                                 class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
                         </div>
 
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Firma Digital / Logo</label>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Logo Institucional</label>
                             <div class="relative group mt-1">
-                                <div class="w-full h-32 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 flex flex-col items-center justify-center transition-all group-hover:bg-white group-hover:border-blue-400">
-                                    <i data-lucide="upload-cloud" class="w-6 h-6 text-slate-400 mb-2 group-hover:text-blue-500 group-hover:scale-110 transition-all"></i>
-                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Click para adjuntar archivo</p>
-                                    <input type="file" name="firma" class="absolute inset-0 opacity-0 cursor-pointer">
+                                <div class="w-full h-24 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 flex flex-col items-center justify-center transition-all group-hover:bg-white group-hover:border-blue-400">
+                                    <i data-lucide="image" class="w-5 h-5 text-slate-400 mb-1 group-hover:text-blue-500 transition-all"></i>
+                                    <p id="logo-text" class="text-[8px] font-black text-slate-400 uppercase tracking-tighter text-center px-2">Adjuntar Logo</p>
+                                    <input type="file" name="logo_empresa" 
+                                        onchange="updateFileName(this, 'logo-text')" 
+                                        class="absolute inset-0 opacity-0 cursor-pointer">
                                 </div>
+                                
+                                {% if cliente.logo_empresa %}
+                                <div class="mt-2 flex items-center gap-3 p-2 bg-slate-50 rounded-lg border border-slate-100">
+                                    <img src="{{ cliente.logo_empresa.url }}" class="w-8 h-8 object-cover rounded shadow-sm">
+                                    <span class="text-[8px] font-mono text-slate-400">{{ cliente.logo_empresa.name|truncatechars:20 }}</span>
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
-                        
-                        {% if cliente.firma %}
-                        <div class="p-3 bg-blue-50/50 border border-blue-100 rounded-xl">
-                            <p class="text-[8px] text-blue-500 uppercase font-black mb-2 tracking-widest text-center">Archivo Actual</p>
-                            <img src="{{ cliente.firma.url }}" class="h-16 mx-auto object-contain mix-blend-multiply">
+
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Firma Digital</label>
+                            <div class="relative group mt-1">
+                                <div class="w-full h-24 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 flex flex-col items-center justify-center transition-all group-hover:bg-white group-hover:border-blue-400">
+                                    <i data-lucide="signature" class="w-5 h-5 text-slate-400 mb-1 group-hover:text-blue-500 transition-all"></i>
+                                    <p id="firma-text" class="text-[8px] font-black text-slate-400 uppercase tracking-tighter text-center px-2">Adjuntar Firma</p>
+                                    <input type="file" name="firma_electronica" 
+                                        onchange="updateFileName(this, 'firma-text')" 
+                                        class="absolute inset-0 opacity-0 cursor-pointer">
+                                </div>
+                                {% if cliente.firma_electronica %}
+                                <div class="mt-2 flex items-center gap-3 p-2 bg-slate-50 rounded-lg border border-slate-100">
+                                    <img src="{{ cliente.firma_electronica.url }}" class="h-8 object-contain mix-blend-multiply">
+                                    <span class="text-[8px] font-mono text-slate-400">{{ cliente.firma_electronica.name|truncatechars:20 }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
                         </div>
-                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -137,12 +188,14 @@
             <div class="mt-10 pt-6 border-t border-slate-100 flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                    <span class="text-[9px] font-mono-tech text-slate-400 uppercase tracking-widest text-center italic">Conexión Segura VicafCloud Activa</span>
+                    <span class="text-[9px] font-mono-tech text-slate-400 uppercase tracking-widest text-center italic">
+                        {% if cliente %}Editando: {{ cliente.codigo_confidencial }}{% else %}Creando Nueva Identidad Fiscal{% endif %}
+                    </span>
                 </div>
                 
                 <button type="submit" class="bg-slate-900 text-white px-10 py-3 rounded-xl text-xs font-bold hover:bg-blue-600 hover:-translate-y-1 shadow-lg transition-all flex items-center gap-3">
                     <i data-lucide="save" class="w-4 h-4"></i>
-                    GUARDAR CAMBIOS
+                    {% if cliente %}ACTUALIZAR DATOS{% else %}CONFIRMAR REGISTRO{% endif %}
                 </button>
             </div>
         </form>
@@ -153,6 +206,14 @@
 
 {% block extra_scripts %}
 <script>
+    function updateFileName(input, targetId) {
+        const textElement = document.getElementById(targetId);
+        if (input.files && input.files[0]) {
+            const fileName = input.files[0].name;
+            textElement.textContent = fileName;
+            textElement.classList.add('text-blue-900'); 
+        }
+    }
     document.addEventListener('DOMContentLoaded', () => {
         if (typeof lucide !== 'undefined') lucide.createIcons();
     });
