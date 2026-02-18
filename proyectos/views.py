@@ -1,4 +1,6 @@
+from django.views.generic import ListView
 import datetime
+import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -6,8 +8,9 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.utils import timezone
-from .models import Proyecto, RecepcionMuestraLote, MuestraItem
-from servicios.models import Servicio, CotizacionDetalle, CategoriaServicio, Subcategoria
+from django.views.decorators.http import require_POST
+from .models import Proyecto, TipoMuestra, RecepcionMuestra, MuestraDetalle
+from servicios.models import Servicio, CotizacionDetalle, CategoriaServicio, Subcategoria, CotizacionGrupo,Cotizacion
 
 
 def get_date_or_none(date_string):
@@ -66,76 +69,145 @@ def lista_proyectos_pendientes(request):
     }
     return render(request, 'proyectos/lista_proyectos_pendientes.html', context)
 
-@login_required
-def registrar_recepcion_lote(request, proyecto_id):
-    """
-    Vista Robusta: Gestiona la recepción de muestras vinculando 
-    automáticamente datos de servicios, normas y métodos.
-    """
-    proyecto = get_object_or_404(Proyecto.objects.select_related('cliente', 'cotizacion'), pk=proyecto_id)
+@require_POST
+def crear_tipo_muestra_ajax(request):
+    nombre = request.POST.get('nombre', '').strip()
+    sigla = request.POST.get('sigla', '').upper().strip() 
+    
+    if not nombre or not sigla:
+        return JsonResponse({'status': 'error', 'message': 'Nombre y Sigla son obligatorios'}, status=400)
+    
+    try:
+        tipo, created = TipoMuestra.objects.get_or_create(
+            sigla=sigla, 
+            defaults={'nombre': nombre}
+        )
+        return JsonResponse({
+            'status': 'success',
+            'id': tipo.pk,
+            'nombre': tipo.nombre,
+            'sigla': tipo.sigla,
+            'nuevo': created
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    
+
+def gestionar_recepcion_muestra(request, proyecto_id):
+    proyecto = get_object_or_404(
+        Proyecto.objects.select_related('cotizacion__cliente'), 
+        pk=proyecto_id
+    )
     
     if request.method == 'POST':
-        servicios_ids = request.POST.getlist('servicio_id[]')
-        cantidades = request.POST.getlist('cantidad[]')
-        unidades = request.POST.getlist('unidad[]')
-        descripciones = request.POST.getlist('descripcion[]')
-        masas = request.POST.getlist('masa[]')
-        codigos_cli = request.POST.getlist('codigo_cliente[]')
-        es_adicional_list = request.POST.getlist('es_adicional[]')
-        observaciones = request.POST.getlist('observaciones[]')
-
         try:
             with transaction.atomic():
-                lote = RecepcionMuestraLote.objects.create(
-                    proyecto=proyecto,
-                    numero_registro=generar_correlativo_lote(), 
-                    responsable_entrega=request.POST.get('responsable_entrega'),
-                    telefono_entrega=request.POST.get('telefono_entrega'),
-                    fecha_recepcion=request.POST.get('fecha_recepcion'),
-                    hora_recepcion=request.POST.get('hora_recepcion'),
-                    fecha_muestreo=get_date_or_none(request.POST.get('fecha_muestreo')),
-                    recepcionado_por=request.user.trabajador_profile
+                fecha_str = request.POST.get('fecha_recepcion')
+                hora_str = request.POST.get('hora_recepcion') or "00:00"
+                
+                if fecha_str:
+                    fecha_final_str = f"{fecha_str} {hora_str}"
+                   
+                    fecha_final = fecha_final_str
+                else:
+                    fecha_final = timezone.now()
+
+                recepcion = RecepcionMuestra.objects.create(
+                    cotizacion=proyecto.cotizacion,
+                    procedencia=request.POST.get('procedencia', '').upper(),
+                    responsable_cliente=request.POST.get('responsable_entrega', '').upper(),
+                    telefono=request.POST.get('telefono_entrega', ''),
+                    fecha_recepcion=fecha_final,
+                    fecha_muestreo=request.POST.get('fecha_muestreo') or None,
+                    responsable_recepcion=request.user,
                 )
 
-                for i in range(len(servicios_ids)):
-                    if not servicios_ids[i]: continue
-                    
-                    servicio = Servicio.objects.select_related('norma', 'metodo').get(pk=servicios_ids[i])
-                    
-                    MuestraItem.objects.create(
-                        lote=lote,
-                        servicio=servicio,
-                        categoria=getattr(servicio, 'categoria', None),
-                        subcategoria=getattr(servicio, 'subcategoria', None),
-                        cantidad=cantidades[i],
-                        unidad=unidades[i],
-                        descripcion=descripciones[i],
-                        masa_aproximada=masas[i],
-                        codigo_cliente=codigos_cli[i],
-                        observaciones=observaciones[i] if i < len(observaciones) else '',
-                        es_adicional=(es_adicional_list[i].lower() == 'true'),
-                        codigo_vicaf=generar_codigo_vicaf(servicio) # Tu función de generación de códigos
-                    )
-                
-                proyecto.actualizar_estado_por_muestreo()
+                tipos_ids = request.POST.getlist('tipo_muestra_id[]')
+                cantidades = request.POST.getlist('cantidad[]')
+                unidades = request.POST.getlist('unidad[]')
+                masas = request.POST.getlist('masa[]')
+                descripciones = request.POST.getlist('descripcion[]')
+                observaciones_list = request.POST.getlist('observaciones[]')
 
-                messages.success(request, f"Recepción {lote.numero_registro} procesada con éxito.")
-                return redirect('proyectos:lista_proyectos_pendientes')
+                muestras_a_crear = []
+                for i in range(len(tipos_ids)):
+                    if tipos_ids[i]:
+                        try:
+                            cant_val = int(float(cantidades[i])) if i < len(cantidades) and cantidades[i] else 1
+                            masa_val = float(masas[i]) if i < len(masas) and masas[i] else 0.0
+                        except ValueError:
+                            cant_val = 1
+                            masa_val = 0.0
+
+                        muestra = MuestraDetalle(
+                            recepcion=recepcion,
+                            tipo_muestra_id=tipos_ids[i],
+                            nro_item=i + 1, 
+                            descripcion=descripciones[i][:255] if i < len(descripciones) else '',
+                            masa_aprox=masa_val,
+                            cantidad=cant_val,
+                            unidad=unidades[i].upper() if i < len(unidades) and unidades[i] else 'UND',
+                            observaciones=observaciones_list[i] if i < len(observaciones_list) else ''
+                        )
+                        muestras_a_crear.append(muestra)
+
+                for m in muestras_a_crear:
+                    m.save()
+
+                messages.success(request, f"¡Éxito! Recepción #{recepcion.id} y {len(muestras_a_crear)} muestras registradas.")
+                return redirect('proyectos:lista_muestras_recepcion', recepcion_id=recepcion.id)
 
         except Exception as e:
-            messages.error(request, f"Fallo crítico en el registro: {str(e)}")
+            print(f"Error Crítico: {e}")
+            messages.error(request, f"Ocurrió un error al guardar: {str(e)}")
 
-    detalles_cotizacion = CotizacionDetalle.objects.filter(
-        grupo__cotizacion=proyecto.cotizacion
-    ).select_related('servicio', 'servicio__norma', 'servicio__metodo')
-
-    servicios_catalogo = Servicio.objects.all().select_related('norma', 'metodo')
+    tipos_qs = TipoMuestra.objects.all().order_by('nombre')
+    tipos_muestra_json = json.dumps([
+        {'id': t.id, 'nombre': t.nombre, 'prefijo': t.sigla} for t in tipos_qs
+    ])
 
     context = {
         'proyecto': proyecto,
-        'detalles_cotizacion': detalles_cotizacion,
-        'servicios_catalogo': servicios_catalogo,
-        'fecha_hoy': timezone.now().date().isoformat(),
-        'hora_ahora': timezone.now().time().strftime("%H:%M"),
+        'fecha_hoy': timezone.now().strftime('%Y-%m-%d'),
+        'hora_ahora': timezone.now().strftime('%H:%M'),
+        'tipos_muestra_json': tipos_muestra_json,
     }
-    return render(request, 'proyectos/form_recepcion_muestras.html', context)
+    return render(request, 'proyectos/recepcion_form.html', context)
+
+def lista_muestras_recepcion(request, recepcion_id):
+    recepcion = get_object_or_404(
+        RecepcionMuestra.objects.select_related('cotizacion__cliente', 'responsable_recepcion'), 
+        pk=recepcion_id
+    )
+    
+    proyecto_obj = Proyecto.objects.filter(cotizacion=recepcion.cotizacion).first()
+    
+    muestras = MuestraDetalle.objects.filter(recepcion=recepcion).select_related('tipo_muestra')
+    
+    return render(request, 'proyectos/muestras_list.html', {
+        'recepcion': recepcion,
+        'muestras': muestras,
+        'proyecto': proyecto_obj  
+    })
+    
+
+class RecepcionMuestraListView(ListView):
+    model = RecepcionMuestra
+    template_name = 'proyectos/lista_general_recepciones.html'
+    context_object_name = 'recepciones'
+    paginate_by = 20 
+
+    def get_queryset(self):
+        queryset = RecepcionMuestra.objects.select_related(
+            'cotizacion__cliente', 
+            'responsable_recepcion'
+        ).prefetch_related('muestras').order_by('-fecha_recepcion')
+
+        query = self.request.GET.get('q')
+        if query:
+            queryset = queryset.filter(
+                Q(cotizacion__cliente__nombre__icontains=query) |
+                Q(id__icontains=query) |
+                Q(procedencia__icontains=query)
+            )
+        return queryset

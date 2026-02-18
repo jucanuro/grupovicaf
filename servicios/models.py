@@ -83,8 +83,12 @@ class Cotizacion(models.Model):
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='cotizaciones', verbose_name="Cliente")
     trabajador_responsable = models.ForeignKey(TrabajadorProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='cotizaciones_emitidas', verbose_name="Responsable de la Oferta")
     
-    numero_oferta = models.CharField(max_length=50, unique=True, blank=True, null=True, verbose_name="Número de Oferta (VCF-OTE-YYYY-XXX)")
+    numero_oferta = models.CharField(max_length=50, unique=True, blank=True, null=True, verbose_name="Número de Oferta")
     fecha_generacion = models.DateField(default=timezone.now, verbose_name="Fecha de Generación")
+    
+    es_plantilla = models.BooleanField(default=False, verbose_name="¿Es una Plantilla?")
+    nombre_plantilla = models.CharField(max_length=150, blank=True, null=True, verbose_name="Nombre identificador de la Plantilla")
+    
     servicio_general = models.ForeignKey(
         'CategoriaServicio',
         on_delete=models.SET_NULL, 
@@ -92,10 +96,10 @@ class Cotizacion(models.Model):
         blank=True, 
         verbose_name="Categoría General"
     )
-    asunto_servicio = models.CharField(max_length=255, verbose_name="Asunto del Servicio (Ej: Ensayos de Campo)")
+    asunto_servicio = models.CharField(max_length=255, verbose_name="Asunto del Servicio")
     proyecto_asociado = models.CharField(max_length=255, blank=True, null=True, verbose_name="Proyecto del Cliente")
     
-    persona_contacto = models.CharField(max_length=200, verbose_name="Persona de Contacto (Atención)")
+    persona_contacto = models.CharField(max_length=200, verbose_name="Persona de Contacto")
     correo_contacto = models.EmailField(verbose_name="Correo de Contacto")
     telefono_contacto = models.CharField(max_length=20, verbose_name="Teléfono de Contacto")
     
@@ -109,6 +113,7 @@ class Cotizacion(models.Model):
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='Pendiente', verbose_name="Estado")
     
     plazo_entrega_dias = models.IntegerField(default=30, verbose_name="Plazo de Entrega (Días)")
+    
     FORMA_PAGO_CHOICES = [
         ('Contado', 'Al Contado'),
         ('15_dias', 'A 15 días'),
@@ -131,16 +136,13 @@ class Cotizacion(models.Model):
 
     @property
     def detalles_cotizacion(self):
-        """
-        Atajo para obtener todos los ítems sin pasar manualmente por grupos.
-        Esto permite que 'cotizacion.detalles_cotizacion.all()' funcione.
-        """
         from .models import CotizacionDetalle 
         return CotizacionDetalle.objects.filter(grupo__cotizacion=self)
 
     def calcular_totales(self):
+        """Suma el total de todos los detalles asociados."""
         total_neto = self.detalles_cotizacion.aggregate(
-            sum_total=Sum('total_detalle')
+            sum_total=models.Sum('total_detalle')
         )['sum_total'] or Decimal('0.00')
 
         self.subtotal = total_neto
@@ -148,12 +150,22 @@ class Cotizacion(models.Model):
         self.monto_total = self.subtotal + self.impuesto_igv
 
     def save(self, *args, **kwargs):
+        if self.es_plantilla:
+            self.estado = 'Plantilla'
+            self.numero_oferta = None 
+            if not self.nombre_plantilla:
+                self.nombre_plantilla = f"Modelo: {self.asunto_servicio}"
+        
         super().save(*args, **kwargs)
+        
         self.calcular_totales()
-        super().save(update_fields=['subtotal', 'impuesto_igv', 'monto_total'])
+        
+        super().save(update_fields=['subtotal', 'impuesto_igv', 'monto_total', 'estado', 'numero_oferta', 'nombre_plantilla'])
 
     def __str__(self):
-        return f"{self.numero_oferta} - {self.cliente.razon_social}"
+        if self.es_plantilla:
+            return f"PLANTILLA: {self.nombre_plantilla}"
+        return f"{self.numero_oferta or 'S/N'} - {self.cliente.razon_social}"
 
     class Meta:
         verbose_name = "Cotización"

@@ -25,6 +25,33 @@
         </a>
     </header>
 
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div id="btn-modo-vacio" onclick="seleccionarModo('vacio')" class="cursor-pointer group bg-white border-2 border-blue-500 rounded-2xl p-4 flex items-center gap-4 transition-all hover:shadow-lg">
+            <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <i data-lucide="plus-circle" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h4 class="text-sm font-black text-slate-800 uppercase">Nueva Cotización</h4>
+                <p class="text-[10px] text-slate-500 font-bold uppercase">Empezar con el detalle en blanco</p>
+            </div>
+        </div>
+
+        <div id="btn-modo-plantilla" onclick="seleccionarModo('plantilla')" class="cursor-pointer group bg-white border-2 border-slate-100 rounded-2xl p-4 flex items-center gap-4 transition-all hover:border-emerald-500 hover:shadow-lg">
+            <div class="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                <i data-lucide="copy" class="w-6 h-6"></i>
+            </div>
+            <div class="flex-1">
+                <h4 class="text-sm font-black text-slate-800 uppercase">Usar Plantilla</h4>
+                <select id="select-plantilla" class="w-full mt-1 text-[10px] font-bold border-none bg-transparent text-slate-500 focus:ring-0 cursor-pointer">
+                    <option value="">SELECCIONAR PLANTILLA...</option>
+                    {% for plantilla in plantillas %}
+                        <option value="{{ plantilla.id }}">{{ plantilla.nombre|upper }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
     <form method="post" id="cotizacion-form">
         {% csrf_token %}
         <div class="bg-white border border-slate-200 rounded-2xl shadow-sm mb-6 transition-all duration-300 relative">
@@ -317,8 +344,8 @@
         <input type="hidden" name="monto_total" id="id_monto_total">
     </form>
 </div>
-{% include 'servicios/modals/all_modals.html' %}
 
+{% include 'servicios/modals/all_modals.html' %}
 
 <script id="all-services-data" type="application/json">{{ servicios_con_detalles_json|safe }}</script>
 <script id="servicio-grupos-data" type="application/json">
@@ -330,6 +357,7 @@
 <script id="subcategorias-data" type="application/json">
     [{% for s in subcategorias %}{"pk":"{{s.pk}}","nombre":"{{s.nombre}}"}{% if not forloop.last %},{% endif %}{% endfor %}]
 </script>
+
 <script src="https://unpkg.com/lucide@latest"></script>
 
 <script>
@@ -338,7 +366,30 @@
         urlCrearCategoria: "{% url 'servicios:crear_categoria_ajax' %}",
         urlCrearSubcategoria: "{% url 'servicios:crear_subcategoria_ajax' %}"
     };
+
+    // Función añadida para controlar visualmente el modo
+    function seleccionarModo(modo) {
+        const btnVacio = document.getElementById('btn-modo-vacio');
+        const btnPlantilla = document.getElementById('btn-modo-plantilla');
+        
+        if (modo === 'vacio') {
+            btnVacio.classList.replace('border-slate-100', 'border-blue-500');
+            btnPlantilla.classList.replace('border-emerald-500', 'border-slate-100');
+        } else {
+            btnPlantilla.classList.replace('border-slate-100', 'border-emerald-500');
+            btnVacio.classList.replace('border-blue-500', 'border-slate-100');
+        }
+    }
+
+    // Escuchar cambios en el selector de plantilla
+    document.getElementById('select-plantilla').addEventListener('change', function(e) {
+        if (e.target.value) {
+            seleccionarModo('plantilla');
+            // Aquí iría tu lógica para disparar la carga de datos
+        }
+    });
 </script>
+
 <script src="{% static 'js/acordeon_cotizacion.js' %}"></script>
 <script src="{% static 'js/cotizacion-config.js' %}"></script>
 {% endblock %}

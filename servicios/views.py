@@ -293,7 +293,10 @@ def crear_subcategoria_ajax(request):
 @login_required
 def lista_cotizaciones(request):
     query = request.GET.get('q')
-    cotizaciones_list = Cotizacion.objects.select_related('cliente').order_by('-fecha_creacion')
+    
+    cotizaciones_list = Cotizacion.objects.select_related('cliente')\
+                                          .filter(es_plantilla=False)\
+                                          .order_by('-fecha_creacion')
     
     if not request.user.is_superuser:
         try:
@@ -320,10 +323,34 @@ def lista_cotizaciones(request):
     return render(request, 'servicios/cotizacion_list.html', context)
 
 @login_required
+def lista_plantillas(request):
+    query = request.GET.get('q')
+    
+    plantillas_list = Cotizacion.objects.select_related('cliente')\
+                                        .filter(es_plantilla=True)\
+                                        .order_by('-fecha_creacion')
+
+    if query:
+        plantillas_list = plantillas_list.filter(
+            Q(nombre_plantilla__icontains=query) |
+            Q(asunto_servicio__icontains=query)
+        )
+
+    paginator = Paginator(plantillas_list, 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    context = {
+        'plantillas': page_obj,
+        'query': query,
+    }
+    return render(request, 'servicios/plantillas_list.html', context)
+
+@login_required
 def crear_editar_cotizacion(request, pk=None):
     cotizacion = None
     error = None
     is_editing = pk is not None
+    es_clonacion = request.GET.get('clon') == '1'
 
     if is_editing:
         cotizacion = get_object_or_404(Cotizacion, pk=pk) 
@@ -331,7 +358,6 @@ def crear_editar_cotizacion(request, pk=None):
     if request.method == 'POST':
         try:
             with transaction.atomic():
-                # 1. Validación y Obtención de Datos Base
                 cliente_id = request.POST.get('cliente')
                 if not cliente_id:
                     raise ValueError("El campo Cliente es obligatorio.")
@@ -347,11 +373,9 @@ def crear_editar_cotizacion(request, pk=None):
                 if not detalles_data:
                     raise ValueError("La cotización debe tener al menos un servicio.")
 
-                # 2. Inicializar Instancia
                 if not is_editing:
                     cotizacion = Cotizacion(cliente=cliente)
 
-                # 3. Asignación del Trabajador Responsable
                 trabajador_id_post = request.POST.get('trabajador_responsable')
                 if trabajador_id_post:
                     try:
@@ -366,7 +390,6 @@ def crear_editar_cotizacion(request, pk=None):
                 elif is_editing and not trabajador_id_post:
                     cotizacion.trabajador_responsable = None
                 
-                # 4. Asignación de Campos de Cabecera
                 cotizacion.cliente = cliente
                 cotizacion.asunto_servicio = request.POST.get('asunto_servicio')
                 cotizacion.proyecto_asociado = request.POST.get('proyecto_asociado')
@@ -374,7 +397,9 @@ def crear_editar_cotizacion(request, pk=None):
                 cotizacion.correo_contacto = request.POST.get('correo_contacto')
                 cotizacion.telefono_contacto = request.POST.get('telefono_contacto')
                 
-                # Manejo de Fecha
+                cotizacion.es_plantilla = request.POST.get('es_plantilla') == 'on'
+                cotizacion.nombre_plantilla = request.POST.get('nombre_plantilla') if cotizacion.es_plantilla else None
+
                 fecha_generacion_str = request.POST.get('fecha_generacion')
                 if fecha_generacion_str:
                     try:
@@ -385,16 +410,17 @@ def crear_editar_cotizacion(request, pk=None):
                 if not cotizacion.fecha_generacion:
                     cotizacion.fecha_generacion = date.today()
                 
-                cotizacion.estado = request.POST.get('estado', cotizacion.estado if is_editing else 'Pendiente')
+                if cotizacion.es_plantilla:
+                    cotizacion.estado = 'Plantilla'
+                else:
+                    cotizacion.estado = request.POST.get('estado', cotizacion.estado if is_editing else 'Pendiente')
+                
                 cotizacion.aprobada_por_cliente = request.POST.get('aprobada_por_cliente') == 'on'
 
-                # --- CATEGORÍA GENERAL ---
                 servicio_general_pk = request.POST.get('servicio_general')
                 if servicio_general_pk:
                     cotizacion.servicio_general = CategoriaServicio.objects.get(pk=servicio_general_pk)
 
-                # --- CORRECCIÓN DE GUARDADO: FORMA DE PAGO, VALIDEZ Y ENTREGA ---
-                # Si es 'Personalizado', intentamos tomar el valor del input custom
                 fp_seleccionada = request.POST.get('forma_pago')
                 if fp_seleccionada == 'Personalizado':
                     fp_custom = request.POST.get('forma_pago_custom')
@@ -402,7 +428,6 @@ def crear_editar_cotizacion(request, pk=None):
                 else:
                     cotizacion.forma_pago = fp_seleccionada
 
-                # Mapeo de nombres del HTML (validez_dias y tiempo_entrega) a campos del Modelo
                 try:
                     cotizacion.validez_oferta_dias = int(request.POST.get('validez_dias') or 30)
                     cotizacion.plazo_entrega_dias = int(request.POST.get('tiempo_entrega') or 30)
@@ -412,12 +437,10 @@ def crear_editar_cotizacion(request, pk=None):
 
                 cotizacion.observaciones_condiciones = request.POST.get('observaciones_condiciones')
 
-                # Manejo de IGV
                 tasa_igv_str = str(request.POST.get('tasa_igv', '0.18')).strip().replace(',', '.')
                 cotizacion.tasa_igv = Decimal(tasa_igv_str)
 
-                # 5. Código de Oferta
-                if not is_editing:
+                if not is_editing and not cotizacion.es_plantilla:
                     prefix = 'VCF-OTE'
                     year_part = str(cotizacion.fecha_generacion.year)
                     max_result = Cotizacion.objects.filter(
@@ -432,10 +455,11 @@ def crear_editar_cotizacion(request, pk=None):
                         except (IndexError, ValueError): 
                             next_order_num = 1
                     cotizacion.numero_oferta = f'{prefix}-{year_part}-{str(next_order_num).zfill(3)}'
+                elif cotizacion.es_plantilla:
+                    cotizacion.numero_oferta = None 
 
                 cotizacion.save()
 
-                # 6. Procesamiento de Detalles
                 if is_editing:
                     cotizacion.grupos.all().delete()
 
@@ -492,12 +516,11 @@ def crear_editar_cotizacion(request, pk=None):
                         precio_unitario=Decimal(str(item.get('precio_unitario', '0')).replace(',', '.')),
                     )
 
-                # 7. Recálculo Final
                 cotizacion.calcular_totales()
                 cotizacion.save()
 
-                accion = "creada" if not is_editing else "actualizada"
-                messages.success(request, f"¡Cotización {cotizacion.numero_oferta} {accion} con éxito! ✅")
+                identificador = cotizacion.nombre_plantilla if cotizacion.es_plantilla else cotizacion.numero_oferta
+                messages.success(request, f"¡Cotización/Plantilla {identificador} procesada con éxito! ✅")
                 return redirect('servicios:lista_cotizaciones')
 
         except Exception as e:
@@ -505,7 +528,6 @@ def crear_editar_cotizacion(request, pk=None):
             if is_editing and pk:
                 cotizacion = get_object_or_404(Cotizacion, pk=pk)
 
-    # --- Bloque de Carga de Contexto (GET) ---
     clientes = Cliente.objects.all().order_by('razon_social')
     servicios_queryset = Servicio.objects.all().select_related('norma', 'metodo')
     categorias_principales = CategoriaServicio.objects.all()
@@ -547,11 +569,73 @@ def crear_editar_cotizacion(request, pk=None):
         'estados_choices': Cotizacion.ESTADO_CHOICES,
         'forma_pago_choices': Cotizacion.FORMA_PAGO_CHOICES,
         'trabajadores': trabajadores,
+        'es_clonacion': es_clonacion, 
     }
     return render(request, 'servicios/cotizaciones_form.html', context)
 
 crear_cotizacion = crear_editar_cotizacion
 editar_cotizacion = crear_editar_cotizacion
+
+@login_required
+def usar_plantilla(request, pk):
+    """
+    Toma una cotización o plantilla existente, extrae sus datos y los envía
+    al formulario de creación como si fuera un documento nuevo.
+    """
+    plantilla = get_object_or_404(Cotizacion, pk=pk)
+    
+    detalles_list = []
+
+    for grupo in plantilla.grupos.all().order_by('orden'):
+        if grupo.nombre_grupo != "ENSAYOS DE LABORATORIO":
+            detalles_list.append({
+                'tipo_fila': 'categoria',
+                'descripcion_especifica': grupo.nombre_grupo
+            })
+            
+        for detalle in grupo.detalles_items.all():
+            detalles_list.append({
+                'tipo_fila': 'servicio',
+                'servicio_id': detalle.servicio.pk,
+                'descripcion_especifica': detalle.descripcion_especifica,
+                'norma_manual': detalle.norma_manual,
+                'metodo_manual': detalle.metodo_manual,
+                'unidad_medida': detalle.unidad_medida,
+                'cantidad': str(detalle.cantidad),
+                'precio_unitario': str(detalle.precio_unitario),
+                'total_detalle': str(detalle.total_detalle)
+            })
+
+    clientes = Cliente.objects.all().order_by('razon_social')
+    servicios_queryset = Servicio.objects.all().select_related('norma', 'metodo')
+    categorias_principales = CategoriaServicio.objects.all()
+    subcategorias_list = Subcategoria.objects.all()
+    trabajadores = TrabajadorProfile.objects.all().select_related('user')
+
+    servicios_list = [{
+        'pk': s.pk, 
+        'nombre': s.nombre, 
+        'unidad_base': s.unidad_base,
+        'precio_base': str(s.precio_base),
+        'norma_codigo': s.norma.codigo if s.norma else 'N/A',
+        'metodo_codigo': s.metodo.codigo if s.metodo else 'N/A',
+    } for s in servicios_queryset]
+
+    context = {
+        'cotizacion': plantilla,  
+        'clientes': clientes,
+        'servicios': servicios_queryset,
+        'servicio_grupos': categorias_principales,
+        'subcategorias': subcategorias_list,
+        'servicios_con_detalles_json': json.dumps(servicios_list),
+        'detalles_cotizacion_json': json.dumps(detalles_list), 
+        'trabajadores': trabajadores,
+        'es_clonacion': True, 
+        'estados_choices': Cotizacion.ESTADO_CHOICES,
+        'forma_pago_choices': Cotizacion.FORMA_PAGO_CHOICES,
+    }
+    
+    return render(request, 'servicios/cotizaciones_form.html', context)
 
 @login_required
 def eliminar_cotizacion(request, pk):

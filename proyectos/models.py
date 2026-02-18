@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 from django.utils import timezone
 from django.db import transaction
 from clientes.models import Cliente
@@ -114,39 +115,50 @@ class Proyecto(models.Model):
         verbose_name_plural = "Proyectos"
         ordering = ['-fecha_inicio']
         
-class RecepcionMuestraLote(models.Model):
-    """
-    Representa la cabecera del formato VCF-LAB-FOR-022 (Un ticket de recepción)
-    """
-    proyecto = models.ForeignKey('proyectos.Proyecto', on_delete=models.CASCADE)
-    numero_registro = models.CharField(max_length=50, unique=True) 
-    responsable_entrega = models.CharField(max_length=255)
-    telefono_entrega = models.CharField(max_length=50, blank=True)
-    fecha_recepcion = models.DateField()
-    hora_recepcion = models.TimeField()
+class TipoMuestra(models.Model):
+    nombre = models.CharField(max_length=100)
+    sigla = models.CharField(max_length=5, unique=True) 
+    
+class RecepcionMuestra(models.Model):
+    cotizacion = models.ForeignKey(Cotizacion, on_delete=models.CASCADE, related_name='recepciones')
+    procedencia = models.CharField(max_length=255)
+    responsable_cliente = models.CharField(max_length=255)
+    telefono = models.CharField(max_length=20)
+    
+    fecha_recepcion = models.DateTimeField(default=timezone.now)
+    fecha_fabricacion = models.DateField(null=True, blank=True)
     fecha_muestreo = models.DateField(null=True, blank=True)
-    recepcionado_por = models.ForeignKey(TrabajadorProfile, on_delete=models.PROTECT)
+    fecha_ensayo_programado = models.DateField(null=True, blank=True)
     
-    def __str__(self):
-        return f"Rec. {self.numero_registro} - {self.proyecto.cliente}"
+    responsable_recepcion = models.ForeignKey(User, on_delete=models.PROTECT)
+    
+class MuestraDetalle(models.Model):
+    recepcion = models.ForeignKey(RecepcionMuestra, related_name='muestras', on_delete=models.CASCADE)
+    tipo_muestra = models.ForeignKey(TipoMuestra, on_delete=models.PROTECT)
+    
+    nro_item = models.IntegerField(default=1) 
+    
+    descripcion = models.CharField(max_length=255) 
+    masa_aprox = models.DecimalField(max_digits=10, decimal_places=2)
+    cantidad = models.IntegerField(default=1)
+    unidad = models.CharField(max_length=50, default='UND')
+    observaciones = models.TextField(null=True, blank=True) 
+    
+    codigo_laboratorio = models.CharField(max_length=50, unique=True, blank=True)
 
-class MuestraItem(models.Model):
-    """
-    Cada una de las filas de la tabla 'INFORMACIÓN DE LAS MUESTRAS'
-    """
-    lote = models.ForeignKey(RecepcionMuestraLote, related_name='items', on_delete=models.CASCADE)
-    
-    categoria = models.ForeignKey(CategoriaServicio, on_delete=models.SET_NULL, null=True, blank=True)
-    subcategoria = models.ForeignKey(Subcategoria, on_delete=models.SET_NULL, null=True, blank=True)
-    servicio = models.ForeignKey(Servicio, on_delete=models.PROTECT) 
-    
-    cantidad = models.DecimalField(max_digits=10, decimal_places=2)
-    unidad = models.CharField(max_length=20) 
-    descripcion = models.TextField() 
-    masa_aproximada = models.CharField(max_length=50, blank=True)
-    codigo_cliente = models.CharField(max_length=100, blank=True)
-    observaciones = models.TextField(blank=True)
-    
-    es_adicional = models.BooleanField(default=False) 
-    codigo_vicaf = models.CharField(max_length=50, unique=True) 
+    def save(self, *args, **kwargs):
+        if not self.codigo_laboratorio:
+            anio = timezone.now().year
+            sigla = self.tipo_muestra.sigla
+            
+            ultimo = MuestraDetalle.objects.filter(
+                codigo_laboratorio__startswith=f"V-M-{anio}-{sigla}-"
+            ).order_by('codigo_laboratorio').last()
 
+            if ultimo:
+                ultimo_nro = int(ultimo.codigo_laboratorio.split('-')[-1]) + 1
+            else:
+                ultimo_nro = 1
+                
+            self.codigo_laboratorio = f"V-M-{anio}-{sigla}-{ultimo_nro:04d}"
+        super().save(*args, **kwargs)

@@ -1,0 +1,107 @@
+{% extends "base_vicafpro.html" %}
+
+{% block content %}
+<div class="bg-vicaf-engine"></div>
+
+<div class="max-w-full mx-auto p-4 relative z-10 space-y-6">
+    <header class="bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-between p-4">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-md">
+                <i data-lucide="clipboard-check"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">Registro de Muestras</h1>
+                <p class="text-[10px] font-mono text-blue-600 uppercase">
+                    Recepción: #{{ recepcion.id }} | 
+                    Proyecto: {{ proyecto.codigo_proyecto|default:"N/A" }} |
+                    Fecha: {{ recepcion.fecha_recepcion|date:"d/m/Y H:i" }}
+                </p>
+            </div>
+        </div>
+        <div class="flex gap-3">
+            <a href="{% url 'proyectos:lista_proyectos_pendientes' %}" class="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-all">
+                Ir a Pendientes
+            </a>
+            <button onclick="window.print()" class="px-4 py-2 text-xs font-bold text-white bg-slate-900 rounded-lg hover:bg-blue-700 transition-all flex items-center gap-2">
+                <i data-lucide="printer" class="w-4 h-4"></i> Imprimir Cargo
+            </button>
+        </div>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
+            <span class="text-[9px] font-black text-slate-400 uppercase block mb-1">Cliente / Solicitante</span>
+            <p class="text-xs font-bold text-slate-700 uppercase">{{ recepcion.cotizacion.cliente.nombre|default:"Sin Cliente" }}</p>
+        </div>
+        <div class="bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
+            <span class="text-[9px] font-black text-slate-400 uppercase block mb-1">Procedencia</span>
+            <p class="text-xs font-bold text-slate-700 uppercase">{{ recepcion.procedencia|default:"No especificada" }}</p>
+        </div>
+        <div class="bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
+            <span class="text-[9px] font-black text-slate-400 uppercase block mb-1">Entregado por</span>
+            <p class="text-xs font-bold text-slate-700 uppercase">{{ recepcion.responsable_cliente|default:"-" }}</p>
+        </div>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <table class="w-full border-collapse">
+            <thead>
+                <tr class="bg-slate-50 border-b border-slate-200">
+                    <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-center w-16">Item</th>
+                    <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-left">ID Laboratorio</th>
+                    <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-left">Tipo de Muestra</th>
+                    <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-left">Descripción / Notas</th>
+                    <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-center">Cantidad</th>
+                    <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-center">Masa Aprox.</th>
+                    <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-center">Estado</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for muestra in muestras %}
+                <tr class="hover:bg-blue-50/30 transition-colors">
+                    <td class="px-6 py-4 text-center font-mono text-xs text-slate-400">{{ forloop.counter }}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 bg-slate-900 text-white font-mono text-xs font-black rounded-md border border-slate-800 shadow-sm">
+                            {{ muestra.codigo_laboratorio }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex flex-col">
+                            <span class="text-xs font-bold text-slate-700 uppercase">{{ muestra.tipo_muestra.nombre }}</span>
+                            <span class="text-[9px] text-blue-500 font-bold uppercase tracking-widest">{{ muestra.tipo_muestra.sigla }}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-xs text-slate-600 italic">
+                        {{ muestra.descripcion|default:"Sin descripción técnica" }}
+                    </td>
+                    <td class="px-6 py-4 text-center text-xs font-bold text-slate-700">
+                        {{ muestra.cantidad }} <span class="text-slate-400 font-normal">{{ muestra.unidad }}</span>
+                    </td>
+                    <td class="px-6 py-4 text-center text-xs font-mono text-slate-600">
+                        {{ muestra.masa_aprox }} <span class="text-[9px]">kg</span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase">
+                            <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                            Ingresado
+                        </span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-6 py-10 text-center text-slate-400 text-xs">
+                        <i data-lucide="package-open" class="w-8 h-8 mx-auto mb-2 opacity-20"></i>
+                        No hay muestras registradas en esta recepción.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="flex justify-between items-center text-[10px] text-slate-400 font-mono uppercase">
+        <p>Generado por: {{ recepcion.responsable_recepcion.get_full_name|default:recepcion.responsable_recepcion.username }}</p>
+        <p>VICAFPRO LAB v2.0 - 2026</p>
+    </div>
+</div>
+{% endblock %}

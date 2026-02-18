@@ -1,0 +1,372 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* Estilos adicionales para la estética de ingeniería */
+    .font-mono-tech {
+        font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+    
+    .bg-vicaf-engine {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: 
+            radial-gradient(#e2e8f0 0.5px, transparent 0.5px),
+            radial-gradient(#e2e8f0 0.5px, transparent 0.5px);
+        background-size: 20px 20px;
+        background-position: 0 0, 10px 10px;
+        opacity: 0.3;
+        z-index: -1;
+    }
+
+    input:focus, select:focus, textarea:focus {
+        transform: translateY(-1px);
+    }
+</style>
+<div class="bg-vicaf-engine"></div>
+
+<div class="max-w-full mx-auto p-4 relative z-10 space-y-6">
+    
+    <header class="bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-between p-4">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center text-white shadow-md">
+                <i data-lucide="clipboard-check" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight leading-none">
+                    Recepción de Muestras
+                </h1>
+                <p class="text-[9px] font-mono-tech text-blue-600 mt-1 uppercase tracking-[0.2em]">Formulario VCF-LAB-FOR-022 // v1.0</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="text-right mr-4 hidden md:block">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Proyecto</p>
+                <p class="text-xs font-bold text-slate-700">{{ proyecto.codigo_proyecto }}</p>
+            </div>
+            <a href="{% url 'proyectos:lista_proyectos_pendientes' %}" class="bg-white text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Volver
+            </a>
+        </div>
+    </header>
+
+    <form id="recepcion-form" method="post" class="space-y-6">
+        {% csrf_token %}
+        <details class="group bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden" open>
+            <summary class="list-none cursor-pointer p-1 bg-slate-50 border-b border-slate-100 flex items-center px-4 justify-between hover:bg-slate-100 transition-colors">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="database" class="w-3.5 h-3.5 text-blue-600"></i>
+                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Información de Control</span>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <span class="text-[9px] font-bold text-slate-400 uppercase group-open:hidden">Mostrar Detalles</span>
+                    <span class="text-[9px] font-bold text-slate-400 uppercase hidden group-open:block">Ocultar Detalles</span>
+                    <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform duration-300 group-open:rotate-180"></i>
+                </div>
+            </summary>
+
+            <div class="p-8 grid grid-cols-1 lg:grid-cols-12 gap-10">
+                <div class="col-span-7 space-y-5">
+                    <div class="flex items-center gap-2 mb-2 border-b border-slate-100 pb-2">
+                        <i data-lucide="user" class="w-4 h-4 text-blue-500"></i>
+                        <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Identificación</h3>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Razón Social</label>
+                            <input type="text" value="{{ proyecto.cliente.razon_social }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700" readonly>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Procedencia / Obra</label>
+                            <input type="text" name="procedencia" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm" placeholder="Ej: Cantera La Gloria" required>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Responsable Entrega</label>
+                                <input type="text" name="responsable_entrega" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm" required>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Teléfono</label>
+                                <input type="text" name="telefono_entrega" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-span-5 space-y-5">
+                    <div class="flex items-center gap-2 mb-2 border-b border-slate-100 pb-2">
+                        <i data-lucide="calendar" class="w-4 h-4 text-blue-500"></i>
+                        <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Fechas y Registro</h3>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Fecha Recepción</label>
+                                <input type="date" name="fecha_recepcion" value="{{ fecha_hoy }}" class="w-full px-4 py-2.5 bg-blue-50/50 border border-blue-100 rounded-lg text-xs font-bold text-blue-700 outline-none shadow-sm">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Hora Arribo</label>
+                                <input type="time" name="hora_recepcion" value="{{ hora_ahora }}" class="w-full px-4 py-2.5 bg-blue-50/50 border border-blue-100 rounded-lg text-xs font-bold text-blue-700 outline-none shadow-sm">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="col-span-1">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Fecha de Muestreo (Campo)</label>
+                                <input type="date" name="fecha_muestreo" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm">
+                            </div>
+                        </div>
+                        
+                        <div class="p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                            <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Responsable del Registro</label>
+                            <div class="flex items-center gap-3">
+                                <div class="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white text-[8px] font-bold shadow-sm">
+                                    {{ user.username|slice:":2"|upper }}
+                                </div>
+                                <div class="flex items-baseline gap-2">
+                                    <p class="text-[11px] font-black text-slate-700 leading-tight">
+                                        {{ user.get_full_name|default:user.username }}
+                                    </p>
+                                    <p class="text-[9px] text-emerald-600 font-bold uppercase">
+                                        Autenticado
+                                    </p>
+                                </div>
+                            </div>
+                            <input type="hidden" name="responsable_recepcion" value="{{ user.id }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-4 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-3 bg-slate-900 px-4 py-2 rounded-xl shadow-lg shadow-slate-200">
+                        <i data-lucide="layers" class="text-blue-400 w-4 h-4"></i>
+                        <h2 class="text-[11px] font-black text-white uppercase tracking-[0.2em]">Detalle de Muestras</h2>
+                    </div>
+                    
+                    <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-lg">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                        </span>
+                        <span class="text-[9px] font-bold text-blue-600 uppercase tracking-tight">Edición en tiempo real activa</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="crearFila()" 
+                        class="group bg-slate-900 hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black transition-all flex items-center gap-3 shadow-md hover:shadow-blue-200 active:scale-95">
+                        <div class="bg-blue-500 group-hover:bg-white/20 p-1 rounded-md transition-colors">
+                            <i data-lucide="plus" class="w-3.5 h-3.5 text-white"></i>
+                        </div>
+                        AÑADIR NUEVA MUESTRA
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto border border-slate-200 rounded-lg shadow-inner bg-white">
+                <table class="w-full border-collapse" id="tabla-muestras">
+                    <thead class="sticky top-0 z-20 shadow-sm">
+                        <tr class="bg-slate-900 border-b border-slate-700">
+                            <th class="px-4 py-3 text-[10px] font-black text-blue-400 uppercase tracking-widest text-center w-12 border-r border-slate-800">#</th>
+                            
+                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-44 border-r border-slate-800">ID Laboratorio</th>
+                            
+                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-left min-w-[180px] border-r border-slate-800">Tipo de Muestra</th>
+                            
+                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-24 border-r border-slate-800">Cant.</th>
+                            
+                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-24 border-r border-slate-800">Unidad</th>
+                            
+                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-28 border-r border-slate-800">Masa (kg)</th>
+                            
+                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-left min-w-[250px] border-r border-slate-800">Descripción</th>
+                            
+                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-left min-w-[200px] border-r border-slate-800">Observaciones</th>
+                            
+                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-20">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-muestras" class="divide-y divide-slate-100 bg-white">
+                        </tbody>
+                </table>
+            </div>
+
+            <div class="p-8 bg-slate-50 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center gap-4 text-amber-600 bg-amber-50 px-4 py-2 rounded-xl border border-amber-100">
+                    <i data-lucide="info" class="w-5 h-5"></i>
+                    <p class="text-[10px] font-bold leading-tight uppercase">
+                        Asegúrese de que el ID LAB coincida con el etiquetado físico<br>
+                        antes de procesar el ingreso definitivo al almacén.
+                    </p>
+                </div>
+
+                <button type="submit" class="bg-slate-900 text-white px-12 py-4 rounded-2xl text-xs font-black hover:bg-blue-600 hover:-translate-y-1 shadow-2xl transition-all flex items-center gap-4 group">
+                    <i data-lucide="save" class="w-5 h-5 group-hover:animate-bounce"></i>
+                    FINALIZAR REGISTRO DE RECEPCIÓN
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script id="data-tipos" type="application/json">{{ tipos_muestra_json|safe }}</script>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const tbody = document.getElementById('tbody-muestras');
+    const tiposMuestra = JSON.parse(document.getElementById('data-tipos').textContent || '[]');
+
+    function crearFila() {
+        const tr = document.createElement('tr');
+        tr.className = "group hover:bg-blue-50/30 transition-all duration-200 border-b border-slate-100";
+        const index = tbody.children.length + 1;
+
+        tr.innerHTML = `
+            <td class="px-4 py-4 text-center text-xs font-mono-tech font-bold text-slate-400 border-r border-slate-50">${index}</td>
+            
+            <td class="px-3 py-4 border-r border-slate-50">
+                <div class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 transition-all duration-300 shadow-sm">
+                    <input type="text" name="id_lab[]" readonly 
+                        class="w-full bg-transparent border-none text-center text-[11px] font-mono-tech font-black text-blue-600 focus:ring-0 placeholder-slate-300"
+                        placeholder="AUTO-GEN">
+                </div>
+            </td>
+
+            <td class="px-3 py-4 border-r border-slate-50">
+                <select name="tipo_muestra_id[]" onchange="actualizarIdLab(this)" required
+                    class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-[10px] font-black uppercase text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                    <option value="">-- SELECCIONAR --</option>
+                    ${tiposMuestra.map(t => `<option value="${t.id}" data-prefijo="${t.prefijo}">${t.nombre}</option>`).join('')}
+                </select>
+            </td>
+
+            <td class="px-3 py-4 border-r border-slate-50">
+                <input type="number" step="0.01" name="cantidad[]" placeholder="0.00"
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg text-center text-xs font-black text-slate-700 outline-none focus:border-blue-500 transition-all">
+            </td>
+
+            <td class="px-3 py-4 border-r border-slate-50">
+                <input type="text" name="unidad[]" placeholder="EJ: KG" 
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg text-center text-[10px] font-black uppercase text-slate-500 outline-none focus:border-blue-500 transition-all">
+            </td>
+
+            <td class="px-3 py-4 border-r border-slate-50">
+                <input type="text" name="masa[]" placeholder="0.00"
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-center text-xs font-mono-tech font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500 transition-all">
+            </td>
+
+            <td class="px-3 py-4 border-r border-slate-50">
+                <textarea name="descripcion[]" rows="1" placeholder="Ej: Muestra de suelo sector A..." 
+                    class="w-full px-3 py-2 bg-transparent border-b border-slate-200 focus:border-blue-600 outline-none text-[11px] font-medium text-slate-600 resize-none overflow-hidden transition-all"
+                    oninput="autoResize(this)"></textarea>
+            </td>
+
+            <td class="px-3 py-4 border-r border-slate-50">
+                <textarea name="observaciones[]" rows="1" placeholder="Ej: Envase ligeramente dañado..." 
+                    class="w-full px-3 py-2 bg-transparent border-b border-slate-200 focus:border-amber-500 outline-none text-[11px] font-medium text-slate-500 resize-none overflow-hidden transition-all italic"
+                    oninput="autoResize(this)"></textarea>
+            </td>
+
+            <td class="px-4 py-4 text-center">
+                <button type="button" onclick="eliminarFila(this)" 
+                    class="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-200 active:scale-90">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            </td>
+        `;
+        
+        tbody.appendChild(tr);
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function autoResize(el) {
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
+    }
+
+
+    function actualizarIdLab(select) {
+        const fila = select.closest('tr');
+        const prefijo = select.options[select.selectedIndex]?.getAttribute('data-prefijo');
+        const nro = fila.cells[0].innerText.trim().padStart(4, '0');
+        const inputId = fila.querySelector('input[name="id_lab[]"]');
+        const containerId = inputId.closest('div');
+        const anio = new Date().getFullYear();
+        
+        if (prefijo && prefijo !== "null") {
+            inputId.value = `V-M-${anio}-${prefijo}-${nro}`;
+            containerId.className = "bg-blue-50 border border-blue-200 rounded-lg px-2 py-1.5 transition-all duration-300 shadow-sm";
+        } else {
+            inputId.value = "";
+            containerId.className = "bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 transition-all duration-300 shadow-sm";
+        }
+    }
+
+    function reenumerarItems() {
+        Array.from(tbody.children).forEach((row, idx) => {
+            row.cells[0].innerText = idx + 1;
+            const select = row.querySelector('select[name="tipo_muestra_id[]"]');
+            if (select) actualizarIdLab(select);
+        });
+    }
+
+    function eliminarFila(btn) {
+        const fila = btn.closest('tr');
+        fila.classList.add('opacity-0', 'translate-x-4');
+        setTimeout(() => {
+            fila.remove();
+            reenumerarItems();
+        }, 200);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.lucide) lucide.createIcons();
+        if (tbody && tbody.children.length === 0) crearFila(); 
+        
+        // --- ADICIÓN: MANEJO DE ENVÍO DEL FORMULARIO ---
+        const form = document.getElementById('recepcion-form');
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validar que haya al menos una muestra
+            if (tbody.children.length === 0) {
+                alert("Debe agregar al menos una muestra.");
+                return;
+            }
+
+            const formData = new FormData(this);
+            
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    window.location.href = "{% url 'proyectos:lista_proyectos_pendientes' %}";
+                } else {
+                    alert("Error: " + (data.message || "No se pudo procesar el registro."));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("Ocurrió un error crítico al procesar la solicitud.");
+            });
+        });
+    });
+</script>
+{% endblock %}
