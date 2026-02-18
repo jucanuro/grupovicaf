@@ -145,29 +145,37 @@
         </details>
 
         <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-            <div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-4 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex flex-col lg:flex-row items-center justify-between gap-6 mb-6 bg-white p-4 rounded-2xl border border-slate-200 shadow-xl shadow-slate-100/50">
                 <div class="flex items-center gap-4">
-                    <div class="flex items-center gap-3 bg-slate-900 px-4 py-2 rounded-xl shadow-lg shadow-slate-200">
-                        <i data-lucide="layers" class="text-blue-400 w-4 h-4"></i>
-                        <h2 class="text-[11px] font-black text-white uppercase tracking-[0.2em]">Detalle de Muestras</h2>
-                    </div>
-                    
-                    <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-lg">
-                        <span class="relative flex h-2 w-2">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                        </span>
-                        <span class="text-[9px] font-bold text-blue-600 uppercase tracking-tight">Edición en tiempo real activa</span>
+                    <div class="flex items-center gap-3 bg-slate-900 px-5 py-2.5 rounded-xl shadow-lg shadow-slate-200">
+                        <i data-lucide="layers" class="text-blue-400 w-5 h-5"></i>
+                        <h2 class="text-[12px] font-black text-white uppercase tracking-[0.2em]">Detalle de Muestras</h2>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2">
-                    <button type="button" onclick="crearFila()" 
-                        class="group bg-slate-900 hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black transition-all flex items-center gap-3 shadow-md hover:shadow-blue-200 active:scale-95">
-                        <div class="bg-blue-500 group-hover:bg-white/20 p-1 rounded-md transition-colors">
-                            <i data-lucide="plus" class="w-3.5 h-3.5 text-white"></i>
+                <div class="flex flex-col sm:flex-row items-end sm:items-center gap-4 w-full lg:w-auto">
+                    <div class="flex flex-col w-full sm:w-72 group">
+                        <label id="label_selector" class="text-[9px] font-black text-slate-400 uppercase ml-2 mb-1.5 tracking-widest transition-colors group-focus-within:text-blue-600">
+                            Tipo de muestra a generar:
+                        </label>
+                        <div class="relative">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none transition-colors group-focus-within:text-blue-500"></i>
+                            <select id="tipo_global_selector" 
+                                class="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold uppercase text-slate-700 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none cursor-pointer shadow-inner">
+                                <option value="" selected disabled hidden>Selecciona muestra</option>
+                            </select>
+                            <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center border-l border-slate-200 pl-2 pointer-events-none">
+                                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+                            </div>
                         </div>
-                        AÑADIR NUEVA MUESTRA
+                    </div>
+
+                    <button type="button" id="btn_generar" onclick="crearOActualizarFila()" 
+                        class="group bg-slate-900 hover:bg-blue-600 text-white px-6 py-3 rounded-xl text-[11px] font-black transition-all duration-300 flex items-center gap-3 shadow-lg hover:shadow-blue-200 active:scale-95 self-end">
+                        <div id="btn_icon_container" class="bg-blue-500 group-hover:bg-white/20 p-1.5 rounded-lg transition-colors">
+                            <i id="btn_icon" data-lucide="plus" class="w-4 h-4 text-white"></i>
+                        </div>
+                        <span id="btn_text" class="tracking-widest">AÑADIR NUEVA MUESTRA</span>
                     </button>
                 </div>
             </div>
@@ -178,21 +186,18 @@
                         <tr class="bg-slate-900 border-b border-slate-700">
                             <th class="px-4 py-3 text-[10px] font-black text-blue-400 uppercase tracking-widest text-center w-12 border-r border-slate-800">#</th>
                             
-                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-44 border-r border-slate-800">ID Laboratorio</th>
+                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-40 border-r border-slate-800">ID Laboratorio</th>
                             
-                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-left min-w-[180px] border-r border-slate-800">Tipo de Muestra</th>
+                            <th class="px-4 py-3 text-[10px] font-black text-blue-300 uppercase tracking-widest text-center w-44 border-r border-slate-800">Tipo de Muestra</th>
                             
-                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-24 border-r border-slate-800">Cant.</th>
+                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-20 border-r border-slate-800">Cant.</th>
+                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-20 border-r border-slate-800">Unidad</th>
+                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-24 border-r border-slate-800">Masa (kg)</th>
                             
-                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-24 border-r border-slate-800">Unidad</th>
+                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-left min-w-[200px] border-r border-slate-800">Descripción</th>
+                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-left min-w-[180px] border-r border-slate-800">Observaciones</th>
                             
-                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-28 border-r border-slate-800">Masa (kg)</th>
-                            
-                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-left min-w-[250px] border-r border-slate-800">Descripción</th>
-                            
-                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-left min-w-[200px] border-r border-slate-800">Observaciones</th>
-                            
-                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-20">Acciones</th>
+                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-16">Acción</th>
                         </tr>
                     </thead>
                     <tbody id="tbody-muestras" class="divide-y divide-slate-100 bg-white">
@@ -226,147 +231,171 @@
 <script>
     const tbody = document.getElementById('tbody-muestras');
     const tiposMuestra = JSON.parse(document.getElementById('data-tipos').textContent || '[]');
+    const selectorGlobal = document.getElementById('tipo_global_selector');
+    
+    // Variables para el modo edición
+    let filaEnEdicion = null;
+
+    function initSelectorGlobal() {
+        let options = `<option value="" selected disabled hidden>Selecciona muestra</option>`;
+        options += tiposMuestra.map(t => 
+            `<option value="${t.id}" data-prefijo="${t.prefijo}">${t.nombre}</option>`
+        ).join('');
+        selectorGlobal.innerHTML = options;
+    }
+
+    // Función principal que decide si crea o edita
+    function crearOActualizarFila() {
+        if (filaEnEdicion) {
+            confirmarEdicion();
+        } else {
+            crearFila();
+        }
+    }
 
     function crearFila() {
+        if (!selectorGlobal.value) {
+            alert("Selecciona un tipo de muestra.");
+            return;
+        }
+
         const tr = document.createElement('tr');
-        tr.className = "group hover:bg-blue-50/30 transition-all duration-200 border-b border-slate-100";
+        tr.className = "group hover:bg-slate-50 transition-all duration-200 border-b border-slate-100";
         const index = tbody.children.length + 1;
 
+        const tipoId = selectorGlobal.value;
+        const option = selectorGlobal.options[selectorGlobal.selectedIndex];
+        const prefijo = option.getAttribute('data-prefijo');
+        const nombreTipo = option.text;
+        const idLabAuto = generarCodigoLab(prefijo, index);
+
         tr.innerHTML = `
-            <td class="px-4 py-4 text-center text-xs font-mono-tech font-bold text-slate-400 border-r border-slate-50">${index}</td>
-            
-            <td class="px-3 py-4 border-r border-slate-50">
-                <div class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 transition-all duration-300 shadow-sm">
-                    <input type="text" name="id_lab[]" readonly 
-                        class="w-full bg-transparent border-none text-center text-[11px] font-mono-tech font-black text-blue-600 focus:ring-0 placeholder-slate-300"
-                        placeholder="AUTO-GEN">
+            <td class="px-2 py-1 text-center text-[10px] font-mono font-bold text-slate-400 border-r border-slate-50">${index}</td>
+            <td class="px-3 py-1 border-r border-slate-50">
+                <input type="text" name="id_lab[]" value="${idLabAuto}" readonly 
+                    class="w-full bg-blue-50/50 border border-blue-100 rounded-md px-2 py-1 text-[11px] font-black text-blue-700 text-center outline-none">
+            </td>
+            <td class="px-3 py-1 border-r border-slate-50 cursor-pointer hover:bg-blue-50 transition-colors" onclick="activarEdicion(this)">
+                <div class="flex items-center justify-center gap-1.5 bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                    <span class="tipo-label text-[10px] font-black text-slate-600 uppercase truncate">${nombreTipo}</span>
+                    <input type="hidden" name="tipo_muestra_id[]" value="${tipoId}">
                 </div>
             </td>
-
-            <td class="px-3 py-4 border-r border-slate-50">
-                <select name="tipo_muestra_id[]" onchange="actualizarIdLab(this)" required
-                    class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-[10px] font-black uppercase text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
-                    <option value="">-- SELECCIONAR --</option>
-                    ${tiposMuestra.map(t => `<option value="${t.id}" data-prefijo="${t.prefijo}">${t.nombre}</option>`).join('')}
-                </select>
+            <td class="px-2 py-1 border-r border-slate-50">
+                <input type="number" step="0.01" name="cantidad[]" placeholder="0.00" required class="w-full px-2 py-1 bg-white border border-slate-200 rounded text-center text-[11px] font-bold outline-none focus:border-blue-400">
             </td>
-
-            <td class="px-3 py-4 border-r border-slate-50">
-                <input type="number" step="0.01" name="cantidad[]" placeholder="0.00"
-                    class="w-full px-3 py-2 border border-slate-200 rounded-lg text-center text-xs font-black text-slate-700 outline-none focus:border-blue-500 transition-all">
+            <td class="px-2 py-1 border-r border-slate-50">
+                <input type="text" name="unidad[]" placeholder="U.M" required class="w-full px-1 py-1 bg-white border border-slate-200 rounded text-center text-[10px] font-black uppercase outline-none focus:border-blue-400">
             </td>
-
-            <td class="px-3 py-4 border-r border-slate-50">
-                <input type="text" name="unidad[]" placeholder="EJ: KG" 
-                    class="w-full px-3 py-2 border border-slate-200 rounded-lg text-center text-[10px] font-black uppercase text-slate-500 outline-none focus:border-blue-500 transition-all">
+            <td class="px-2 py-1 border-r border-slate-50">
+                <input type="text" name="masa[]" placeholder="0.00" class="w-full px-2 py-1 bg-white border border-slate-200 rounded text-center text-[11px] font-mono font-bold outline-none focus:border-blue-400">
             </td>
-
-            <td class="px-3 py-4 border-r border-slate-50">
-                <input type="text" name="masa[]" placeholder="0.00"
-                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-center text-xs font-mono-tech font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500 transition-all">
+            <td class="px-2 py-1 border-r border-slate-50">
+                <input type="text" name="descripcion[]" placeholder="Detalle..." class="w-full px-2 py-1 bg-transparent border-b border-slate-100 focus:border-blue-500 outline-none text-[11px] text-slate-600">
             </td>
-
-            <td class="px-3 py-4 border-r border-slate-50">
-                <textarea name="descripcion[]" rows="1" placeholder="Ej: Muestra de suelo sector A..." 
-                    class="w-full px-3 py-2 bg-transparent border-b border-slate-200 focus:border-blue-600 outline-none text-[11px] font-medium text-slate-600 resize-none overflow-hidden transition-all"
-                    oninput="autoResize(this)"></textarea>
+            <td class="px-2 py-1 border-r border-slate-50">
+                <input type="text" name="observaciones[]" placeholder="..." class="w-full px-2 py-1 bg-transparent border-b border-slate-100 focus:border-amber-400 outline-none text-[10px] text-slate-400 italic">
             </td>
-
-            <td class="px-3 py-4 border-r border-slate-50">
-                <textarea name="observaciones[]" rows="1" placeholder="Ej: Envase ligeramente dañado..." 
-                    class="w-full px-3 py-2 bg-transparent border-b border-slate-200 focus:border-amber-500 outline-none text-[11px] font-medium text-slate-500 resize-none overflow-hidden transition-all italic"
-                    oninput="autoResize(this)"></textarea>
-            </td>
-
-            <td class="px-4 py-4 text-center">
-                <button type="button" onclick="eliminarFila(this)" 
-                    class="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-200 active:scale-90">
-                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                </button>
+            <td class="px-2 py-1 text-center">
+                <button type="button" onclick="eliminarFila(this)" class="p-1 text-slate-300 hover:text-rose-600 transition-all"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
             </td>
         `;
-        
+
         tbody.appendChild(tr);
+        limpiarSelector();
         if (window.lucide) lucide.createIcons();
     }
 
-    function autoResize(el) {
-        el.style.height = 'auto';
-        el.style.height = el.scrollHeight + 'px';
+    // Función para activar el modo edición
+    function activarEdicion(celda) {
+        // Limpiar cualquier fila resaltada anteriormente
+        if (filaEnEdicion) filaEnEdicion.classList.remove('bg-amber-50', 'ring-2', 'ring-amber-200');
+
+        filaEnEdicion = celda.closest('tr');
+        filaEnEdicion.classList.add('bg-amber-50', 'ring-2', 'ring-amber-200');
+
+        const tipoId = filaEnEdicion.querySelector('input[name="tipo_muestra_id[]"]').value;
+        selectorGlobal.value = tipoId;
+
+        // Cambiar estética del botón a modo UPDATE
+        document.getElementById('btn_generar').classList.replace('bg-slate-900', 'bg-amber-500');
+        document.getElementById('btn_generar').classList.replace('hover:bg-blue-600', 'hover:bg-amber-600');
+        document.getElementById('btn_text').innerText = "ACTUALIZAR TIPO";
+        document.getElementById('label_selector').innerText = "Editando tipo de muestra:";
+        document.getElementById('label_selector').classList.replace('text-slate-400', 'text-amber-600');
+        
+        // Cambiar icono
+        document.getElementById('btn_icon_container').classList.replace('bg-blue-500', 'bg-amber-600');
+        const iconElement = document.getElementById('btn_icon');
+        iconElement.setAttribute('data-lucide', 'refresh-cw');
+        if (window.lucide) lucide.createIcons();
     }
 
+    function confirmarEdicion() {
+        if (!selectorGlobal.value) return;
 
-    function actualizarIdLab(select) {
-        const fila = select.closest('tr');
-        const prefijo = select.options[select.selectedIndex]?.getAttribute('data-prefijo');
-        const nro = fila.cells[0].innerText.trim().padStart(4, '0');
-        const inputId = fila.querySelector('input[name="id_lab[]"]');
-        const containerId = inputId.closest('div');
-        const anio = new Date().getFullYear();
+        const option = selectorGlobal.options[selectorGlobal.selectedIndex];
+        const nuevoPrefijo = option.getAttribute('data-prefijo');
+        const nuevoNombre = option.text;
+        const index = filaEnEdicion.cells[0].innerText;
+
+        // Actualizar valores en la fila
+        filaEnEdicion.querySelector('.tipo-label').innerText = nuevoNombre;
+        filaEnEdicion.querySelector('input[name="tipo_muestra_id[]"]').value = selectorGlobal.value;
+        filaEnEdicion.querySelector('input[name="id_lab[]"]').value = generarCodigoLab(nuevoPrefijo, index);
+
+        // Feedback visual de éxito
+        filaEnEdicion.classList.add('bg-green-50');
+        setTimeout(() => {
+            filaEnEdicion.classList.remove('bg-green-50', 'bg-amber-50', 'ring-2', 'ring-amber-200');
+            cancelarEdicion();
+        }, 400);
+    }
+
+    function cancelarEdicion() {
+        filaEnEdicion = null;
+        limpiarSelector();
         
-        if (prefijo && prefijo !== "null") {
-            inputId.value = `V-M-${anio}-${prefijo}-${nro}`;
-            containerId.className = "bg-blue-50 border border-blue-200 rounded-lg px-2 py-1.5 transition-all duration-300 shadow-sm";
-        } else {
-            inputId.value = "";
-            containerId.className = "bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 transition-all duration-300 shadow-sm";
-        }
+        // Revertir estética del botón
+        document.getElementById('btn_generar').classList.replace('bg-amber-500', 'bg-slate-900');
+        document.getElementById('btn_generar').classList.replace('hover:bg-amber-600', 'hover:bg-blue-600');
+        document.getElementById('btn_text').innerText = "AÑADIR NUEVA MUESTRA";
+        document.getElementById('label_selector').innerText = "Tipo de muestra a generar:";
+        document.getElementById('label_selector').classList.replace('text-amber-600', 'text-slate-400');
+        document.getElementById('btn_icon_container').classList.replace('bg-amber-600', 'bg-blue-500');
+        document.getElementById('btn_icon').setAttribute('data-lucide', 'plus');
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function generarCodigoLab(prefijo, index) {
+        const anio = new Date().getFullYear();
+        return `V-M-${anio}-${prefijo}-${index.toString().padStart(4, '0')}`;
+    }
+
+    function limpiarSelector() {
+        selectorGlobal.value = "";
     }
 
     function reenumerarItems() {
         Array.from(tbody.children).forEach((row, idx) => {
-            row.cells[0].innerText = idx + 1;
-            const select = row.querySelector('select[name="tipo_muestra_id[]"]');
-            if (select) actualizarIdLab(select);
+            const index = idx + 1;
+            row.cells[0].innerText = index;
+            const hiddenTipo = row.querySelector('input[name="tipo_muestra_id[]"]').value;
+            const tipoData = tiposMuestra.find(t => t.id == hiddenTipo);
+            row.querySelector('input[name="id_lab[]"]').value = generarCodigoLab(tipoData ? tipoData.prefijo : 'XX', index);
         });
     }
 
     function eliminarFila(btn) {
-        const fila = btn.closest('tr');
-        fila.classList.add('opacity-0', 'translate-x-4');
-        setTimeout(() => {
-            fila.remove();
-            reenumerarItems();
-        }, 200);
+        btn.closest('tr').remove();
+        reenumerarItems();
+        if (filaEnEdicion) cancelarEdicion();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        initSelectorGlobal();
         if (window.lucide) lucide.createIcons();
-        if (tbody && tbody.children.length === 0) crearFila(); 
-        
-        // --- ADICIÓN: MANEJO DE ENVÍO DEL FORMULARIO ---
-        const form = document.getElementById('recepcion-form');
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Validar que haya al menos una muestra
-            if (tbody.children.length === 0) {
-                alert("Debe agregar al menos una muestra.");
-                return;
-            }
-
-            const formData = new FormData(this);
-            
-            fetch(window.location.href, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    window.location.href = "{% url 'proyectos:lista_proyectos_pendientes' %}";
-                } else {
-                    alert("Error: " + (data.message || "No se pudo procesar el registro."));
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert("Ocurrió un error crítico al procesar la solicitud.");
-            });
-        });
     });
 </script>
 {% endblock %}
