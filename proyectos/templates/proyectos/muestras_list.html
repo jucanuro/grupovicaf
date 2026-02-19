@@ -19,7 +19,7 @@
             </div>
         </div>
         <div class="flex gap-3">
-            <a href="{% url 'proyectos:lista_proyectos_pendientes' %}" class="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-all">
+            <a href="{% url 'proyectos:lista_recepciones' %}" class="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-all">
                 Ir a Pendientes
             </a>
             <button onclick="window.print()" class="px-4 py-2 text-xs font-bold text-white bg-slate-900 rounded-lg hover:bg-blue-700 transition-all flex items-center gap-2">
@@ -29,10 +29,15 @@
     </header>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
-            <span class="text-[9px] font-black text-slate-400 uppercase block mb-1">Cliente / Solicitante</span>
-            <p class="text-xs font-bold text-slate-700 uppercase">{{ recepcion.cotizacion.cliente.nombre|default:"Sin Cliente" }}</p>
-        </div>
+        <div class="bg-white p-4 border border-slate-200 rounded-xl shadow-sm">
+    <div class="space-y-1">
+        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cliente / Razón Social</label>
+        <input type="text" 
+               value="{% if recepcion.cotizacion.cliente.razon_social %}{{ recepcion.cotizacion.cliente.razon_social }}{% else %}{{ recepcion.cotizacion.cliente }}{% endif %}" 
+               class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none" 
+               readonly>
+    </div>
+</div>
         <div class="bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
             <span class="text-[9px] font-black text-slate-400 uppercase block mb-1">Procedencia</span>
             <p class="text-xs font-bold text-slate-700 uppercase">{{ recepcion.procedencia|default:"No especificada" }}</p>
@@ -59,26 +64,29 @@
             <tbody class="divide-y divide-slate-100">
                 {% for muestra in muestras %}
                 <tr class="hover:bg-blue-50/30 transition-colors">
-                    <td class="px-6 py-4 text-center font-mono text-xs text-slate-400">{{ forloop.counter }}</td>
+                    <td class="px-6 py-4 text-center font-mono text-xs text-slate-400">{{ forloop.counter|stringformat:"02d" }}</td>
                     <td class="px-6 py-4">
-                        <span class="px-3 py-1 bg-slate-900 text-white font-mono text-xs font-black rounded-md border border-slate-800 shadow-sm">
+                        <span class="px-3 py-1 bg-slate-900 text-white font-mono text-xs font-bold rounded-md border border-slate-800 shadow-sm">
                             {{ muestra.codigo_laboratorio }}
                         </span>
                     </td>
                     <td class="px-6 py-4">
-                        <div class="flex flex-col">
-                            <span class="text-xs font-bold text-slate-700 uppercase">{{ muestra.tipo_muestra.nombre }}</span>
-                            <span class="text-[9px] text-blue-500 font-bold uppercase tracking-widest">{{ muestra.tipo_muestra.sigla }}</span>
+                        <div class="flex items-center gap-3">
+                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] font-black text-slate-700 uppercase">{{ muestra.tipo_muestra.nombre }}</span>
+                                <span class="text-[9px] text-slate-400 font-mono bg-slate-100 px-1.5 py-0.5 rounded italic font-bold">{{ muestra.tipo_muestra.sigla }}</span>
+                            </div>
                         </div>
                     </td>
                     <td class="px-6 py-4 text-xs text-slate-600 italic">
                         {{ muestra.descripcion|default:"Sin descripción técnica" }}
                     </td>
                     <td class="px-6 py-4 text-center text-xs font-bold text-slate-700">
-                        {{ muestra.cantidad }} <span class="text-slate-400 font-normal">{{ muestra.unidad }}</span>
+                        {{ muestra.cantidad }} <span class="text-slate-400 font-normal uppercase text-[10px] ml-1"></span>
                     </td>
-                    <td class="px-6 py-4 text-center text-xs font-mono text-slate-600">
-                        {{ muestra.masa_aprox }} <span class="text-[9px]">kg</span>
+                    <td class="px-6 py-4 text-center text-xs font-mono font-bold text-slate-600">
+                        {{ muestra.masa_aprox }} <span class="text-[9px] text-slate-400 uppercase">{{ muestra.unidad }}</span>
                     </td>
                     <td class="px-6 py-4 text-center">
                         <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase">
@@ -104,4 +112,10 @@
         <p>VICAFPRO LAB v2.0 - 2026</p>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.lucide) lucide.createIcons();
+    });
+</script>
 {% endblock %}
