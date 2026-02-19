@@ -160,12 +160,18 @@
                         </label>
                         
                         <div class="grid grid-cols-12 gap-2">
-                            <div class="col-span-10 relative group">
-                                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none group-focus-within:text-blue-500 transition-colors"></i>
-                                <select id="tipo_global_selector" 
-                                    class="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold uppercase text-slate-700 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none cursor-pointer shadow-inner">
-                                    <option value="" selected disabled hidden>Selecciona muestra</option>
-                                </select>
+                           <div class="col-span-10 relative group" id="search-container">
+                                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none group-focus-within:text-blue-500 transition-colors z-10"></i>
+                                
+                                <input type="text" id="tipo_global_search" autocomplete="off"
+                                    placeholder="Buscar o seleccionar muestra..."
+                                    class="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold uppercase text-slate-700 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-inner">
+                                
+                                <input type="hidden" id="tipo_global_selector" value="">
+
+                                <div id="autocomplete-list" class="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto hidden">
+                                    </div>
+
                                 <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center border-l border-slate-200 pl-2 pointer-events-none">
                                     <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
                                 </div>

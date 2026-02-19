@@ -1,15 +1,60 @@
 const tbody = document.getElementById('tbody-muestras');
 const tiposMuestra = JSON.parse(document.getElementById('data-tipos').textContent || '[]');
-const selectorGlobal = document.getElementById('tipo_global_selector');
+const hiddenInput = document.getElementById('tipo_global_selector');
+const searchInput = document.getElementById('tipo_global_search');
+const autocompleteList = document.getElementById('autocomplete-list');
 let filaEnEdicion = null;
 
 function initSelectorGlobal() {
-    if (!selectorGlobal) return;
-    let options = `<option value="" selected disabled hidden>Selecciona muestra</option>`;
-    options += tiposMuestra.map(t => 
-        `<option value="${t.id}" data-prefijo="${t.prefijo}">${t.nombre}</option>`
-    ).join('');
-    selectorGlobal.innerHTML = options;
+    renderAutocompleteList(tiposMuestra);
+}
+
+function renderAutocompleteList(list) {
+    if (!autocompleteList) return;
+    if (list.length === 0) {
+        autocompleteList.innerHTML = `<div class="px-4 py-3 text-[10px] text-slate-400 uppercase italic">Sin resultados</div>`;
+        return;
+    }
+    autocompleteList.innerHTML = list.map(t => `
+        <div class="px-4 py-2.5 hover:bg-blue-50 cursor-pointer transition-colors border-b border-slate-50 last:border-none flex items-center gap-3 group"
+            onclick="selectOption('${t.id}', '${t.nombre}', '${t.prefijo}')">
+            <span class="w-2 h-2 rounded-full bg-blue-400 group-hover:scale-125 transition-transform"></span>
+            <div class="flex items-center justify-between w-full">
+                <span class="text-[11px] font-black text-slate-700 uppercase tracking-tight">${t.nombre}</span>
+                <span class="text-[9px] text-slate-400 font-mono bg-slate-100 px-1.5 py-0.5 rounded italic ml-auto">${t.prefijo}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        const filtered = tiposMuestra.filter(t => 
+            t.nombre.toLowerCase().includes(term) || 
+            t.prefijo.toLowerCase().includes(term)
+        );
+        renderAutocompleteList(filtered);
+        autocompleteList.classList.remove('hidden');
+    });
+    searchInput.addEventListener('focus', () => {
+        autocompleteList.classList.remove('hidden');
+        renderAutocompleteList(tiposMuestra);
+    });
+}
+
+document.addEventListener('click', (e) => {
+    const container = document.getElementById('search-container');
+    if (container && !container.contains(e.target)) {
+        autocompleteList.classList.add('hidden');
+    }
+});
+
+function selectOption(id, nombre, prefijo) {
+    hiddenInput.value = id;
+    searchInput.value = nombre;
+    searchInput.dataset.prefijo = prefijo;
+    autocompleteList.classList.add('hidden');
 }
 
 function generarCodigoLab(prefijo, index) {
@@ -18,7 +63,9 @@ function generarCodigoLab(prefijo, index) {
 }
 
 function limpiarSelector() {
-    if (selectorGlobal) selectorGlobal.value = "";
+    hiddenInput.value = "";
+    searchInput.value = "";
+    delete searchInput.dataset.prefijo;
 }
 
 function crearOActualizarFila() {
@@ -30,7 +77,7 @@ function crearOActualizarFila() {
 }
 
 function crearFila() {
-    if (!selectorGlobal || !selectorGlobal.value) {
+    if (!hiddenInput.value) {
         alert("Selecciona un tipo de muestra.");
         return;
     }
@@ -38,10 +85,9 @@ function crearFila() {
     const tr = document.createElement('tr');
     tr.className = "group hover:bg-slate-50 transition-all duration-200 border-b border-slate-100";
     const index = tbody.children.length + 1;
-    const tipoId = selectorGlobal.value;
-    const option = selectorGlobal.options[selectorGlobal.selectedIndex];
-    const prefijo = option.getAttribute('data-prefijo');
-    const nombreTipo = option.text;
+    const tipoId = hiddenInput.value;
+    const nombreTipo = searchInput.value;
+    const prefijo = searchInput.dataset.prefijo || 'XX';
     const idLabAuto = generarCodigoLab(prefijo, index);
 
     tr.innerHTML = `
@@ -108,7 +154,11 @@ function activarEdicion(celda) {
     filaEnEdicion = celda.closest('tr');
     filaEnEdicion.classList.add('bg-amber-50', 'ring-2', 'ring-amber-200');
     
-    selectorGlobal.value = filaEnEdicion.querySelector('input[name="tipo_muestra_id[]"]').value;
+    const idStored = filaEnEdicion.querySelector('input[name="tipo_muestra_id[]"]').value;
+    const nombreStored = filaEnEdicion.querySelector('.tipo-label').innerText;
+    const tipoObj = tiposMuestra.find(t => t.id == idStored);
+    
+    selectOption(idStored, nombreStored, tipoObj ? tipoObj.prefijo : '');
     
     const btn = document.getElementById('btn_generar');
     btn.classList.replace('bg-slate-900', 'bg-amber-500');
@@ -124,14 +174,12 @@ function activarEdicion(celda) {
 }
 
 function confirmarEdicion() {
-    if (!selectorGlobal.value) return;
-    const option = selectorGlobal.options[selectorGlobal.selectedIndex];
-    const nuevoPrefijo = option.getAttribute('data-prefijo');
+    if (!hiddenInput.value) return;
     const index = filaEnEdicion.cells[0].innerText;
     
-    filaEnEdicion.querySelector('.tipo-label').innerText = option.text;
-    filaEnEdicion.querySelector('input[name="tipo_muestra_id[]"]').value = selectorGlobal.value;
-    filaEnEdicion.querySelector('input[name="id_lab[]"]').value = generarCodigoLab(nuevoPrefijo, parseInt(index));
+    filaEnEdicion.querySelector('.tipo-label').innerText = searchInput.value;
+    filaEnEdicion.querySelector('input[name="tipo_muestra_id[]"]').value = hiddenInput.value;
+    filaEnEdicion.querySelector('input[name="id_lab[]"]').value = generarCodigoLab(searchInput.dataset.prefijo, parseInt(index));
     
     filaEnEdicion.classList.add('bg-green-50');
     setTimeout(() => {
@@ -217,12 +265,10 @@ function saveNewTipoMuestra() {
     .then(async response => {
         const isJson = response.headers.get('content-type')?.includes('application/json');
         const data = isJson ? await response.json() : null;
-
         if (!response.ok) {
             if (!isJson) {
                 const errorText = await response.text();
-                console.error("Error del servidor (HTML):", errorText);
-                throw new Error(`Error del servidor (${response.status}). Revisa la consola.`);
+                throw new Error(`Error del servidor (${response.status}).`);
             }
             throw data || { message: 'Error desconocido' };
         }
@@ -231,19 +277,11 @@ function saveNewTipoMuestra() {
     .then(data => {
         if (data.status === 'success') {
             tiposMuestra.push({ id: data.id, nombre: data.nombre, prefijo: data.sigla });
-            const newOption = new Option(data.nombre, data.id, true, true);
-            newOption.setAttribute('data-prefijo', data.sigla);
-            selectorGlobal.add(newOption);
-            
-            nombreInput.value = '';
-            siglaInput.value = '';
+            selectOption(data.id, data.nombre, data.sigla);
             closeTipoMuestraModal();
         }
     })
-    .catch(error => {
-        console.error('Error completo:', error);
-        alert(error.message || "Error al guardar el tipo de muestra.");
-    })
+    .catch(error => alert(error.message || "Error al guardar."))
     .finally(() => {
         btnSave.disabled = false;
         btnSave.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> GUARDAR`;
