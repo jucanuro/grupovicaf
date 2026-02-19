@@ -24,11 +24,6 @@ urlpatterns = [
           views.gestionar_recepcion_muestra, 
           name='editar_recepcion'
      ),
-
-     path('ajax/crear-tipo-muestra/', 
-          views.crear_tipo_muestra_ajax, 
-          name='ajax_crear_tipo_muestra'
-     ),
      
      path('recepcion/<int:recepcion_id>/muestras/', views.lista_muestras_recepcion, name='lista_muestras_recepcion'),
      
@@ -36,6 +31,8 @@ urlpatterns = [
          views.RecepcionMuestraListView.as_view(), 
          name='lista_recepciones'
     ),
+     
+     path('tipo-muestra/crear-ajax/', views.crear_tipo_muestra_ajax, name='crear_tipo_muestra_ajax'),
      
        
 ]

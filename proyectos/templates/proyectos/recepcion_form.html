@@ -154,28 +154,52 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row items-end sm:items-center gap-4 w-full lg:w-auto">
-                    <div class="flex flex-col w-full sm:w-72 group">
-                        <label id="label_selector" class="text-[9px] font-black text-slate-400 uppercase ml-2 mb-1.5 tracking-widest transition-colors group-focus-within:text-blue-600">
+                    <div class="flex flex-col w-full sm:w-80 group mr-4">
+                        <label id="label_selector" class="text-[9px] font-black text-slate-400 uppercase ml-2 mb-1.5 tracking-widest">
                             Tipo de muestra a generar:
                         </label>
-                        <div class="relative">
-                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none transition-colors group-focus-within:text-blue-500"></i>
-                            <select id="tipo_global_selector" 
-                                class="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold uppercase text-slate-700 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none cursor-pointer shadow-inner">
-                                <option value="" selected disabled hidden>Selecciona muestra</option>
-                            </select>
-                            <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center border-l border-slate-200 pl-2 pointer-events-none">
-                                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+                        
+                        <div class="grid grid-cols-12 gap-2">
+                            <div class="col-span-10 relative group">
+                                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none group-focus-within:text-blue-500 transition-colors"></i>
+                                <select id="tipo_global_selector" 
+                                    class="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold uppercase text-slate-700 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none cursor-pointer shadow-inner">
+                                    <option value="" selected disabled hidden>Selecciona muestra</option>
+                                </select>
+                                <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center border-l border-slate-200 pl-2 pointer-events-none">
+                                    <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+                                </div>
+                            </div>
+
+                            <div class="col-span-2">
+                                <div onclick="openTipoMuestraModal()" 
+                                    class="w-full h-full min-h-[42px] cursor-pointer group relative flex items-center justify-center rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white shadow-sm transition-all hover:border-blue-400 hover:shadow-md active:scale-95"
+                                    title="Añadir nuevo tipo de muestra">
+                                    <div class="absolute inset-0 bg-blue-500/0 group-hover:bg-blue-500/5 rounded-xl transition-colors"></div>
+                                    <i data-lucide="plus-square" class="w-5 h-5 text-blue-600 group-hover:text-blue-700 transition-transform group-hover:scale-110"></i>
+                                    <span class="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-600"></span>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <button type="button" id="btn_generar" onclick="crearOActualizarFila()" 
-                        class="group bg-slate-900 hover:bg-blue-600 text-white px-6 py-3 rounded-xl text-[11px] font-black transition-all duration-300 flex items-center gap-3 shadow-lg hover:shadow-blue-200 active:scale-95 self-end">
-                        <div id="btn_icon_container" class="bg-blue-500 group-hover:bg-white/20 p-1.5 rounded-lg transition-colors">
-                            <i id="btn_icon" data-lucide="plus" class="w-4 h-4 text-white"></i>
+                        class="group relative flex items-center gap-3 px-5 py-2.5 bg-white border border-slate-200 rounded-2xl transition-all duration-300 shadow-sm hover:border-blue-400 hover:shadow-[0_8px_20px_-6px_rgba(59,130,246,0.3)] active:scale-95 self-end h-[46px]">
+                        
+                        <div id="btn_icon_container" 
+                            class="flex items-center justify-center w-8 h-8 rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
+                            <i id="btn_icon" data-lucide="plus" class="w-4 h-4"></i>
                         </div>
-                        <span id="btn_text" class="tracking-widest">AÑADIR NUEVA MUESTRA</span>
+                        
+                        <div class="flex flex-col items-start leading-none">
+                            <span id="btn_text" class="text-[10px] font-black tracking-widest text-slate-700 uppercase">Añadir</span>
+                            <span id="btn_subtext" class="text-[9px] font-bold text-blue-500/80">NUEVA FILA</span>
+                        </div>
+
+                        <span id="edit_indicator" class="absolute -top-1 -right-1 h-3 w-3 bg-amber-500 rounded-full border-2 border-white hidden animate-bounce"></span>
                     </button>
                 </div>
             </div>
@@ -224,178 +248,16 @@
 </div>
 
 <script id="data-tipos" type="application/json">{{ tipos_muestra_json|safe }}</script>
-
+{% include 'proyectos/modals/tipo_muestra_modal.html' %}
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-    const tbody = document.getElementById('tbody-muestras');
-    const tiposMuestra = JSON.parse(document.getElementById('data-tipos').textContent || '[]');
-    const selectorGlobal = document.getElementById('tipo_global_selector');
-    
-    // Variables para el modo edición
-    let filaEnEdicion = null;
-
-    function initSelectorGlobal() {
-        let options = `<option value="" selected disabled hidden>Selecciona muestra</option>`;
-        options += tiposMuestra.map(t => 
-            `<option value="${t.id}" data-prefijo="${t.prefijo}">${t.nombre}</option>`
-        ).join('');
-        selectorGlobal.innerHTML = options;
-    }
-
-    // Función principal que decide si crea o edita
-    function crearOActualizarFila() {
-        if (filaEnEdicion) {
-            confirmarEdicion();
-        } else {
-            crearFila();
-        }
-    }
-
-    function crearFila() {
-        if (!selectorGlobal.value) {
-            alert("Selecciona un tipo de muestra.");
-            return;
-        }
-
-        const tr = document.createElement('tr');
-        tr.className = "group hover:bg-slate-50 transition-all duration-200 border-b border-slate-100";
-        const index = tbody.children.length + 1;
-
-        const tipoId = selectorGlobal.value;
-        const option = selectorGlobal.options[selectorGlobal.selectedIndex];
-        const prefijo = option.getAttribute('data-prefijo');
-        const nombreTipo = option.text;
-        const idLabAuto = generarCodigoLab(prefijo, index);
-
-        tr.innerHTML = `
-            <td class="px-2 py-1 text-center text-[10px] font-mono font-bold text-slate-400 border-r border-slate-50">${index}</td>
-            <td class="px-3 py-1 border-r border-slate-50">
-                <input type="text" name="id_lab[]" value="${idLabAuto}" readonly 
-                    class="w-full bg-blue-50/50 border border-blue-100 rounded-md px-2 py-1 text-[11px] font-black text-blue-700 text-center outline-none">
-            </td>
-            <td class="px-3 py-1 border-r border-slate-50 cursor-pointer hover:bg-blue-50 transition-colors" onclick="activarEdicion(this)">
-                <div class="flex items-center justify-center gap-1.5 bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
-                    <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                    <span class="tipo-label text-[10px] font-black text-slate-600 uppercase truncate">${nombreTipo}</span>
-                    <input type="hidden" name="tipo_muestra_id[]" value="${tipoId}">
-                </div>
-            </td>
-            <td class="px-2 py-1 border-r border-slate-50">
-                <input type="number" step="0.01" name="cantidad[]" placeholder="0.00" required class="w-full px-2 py-1 bg-white border border-slate-200 rounded text-center text-[11px] font-bold outline-none focus:border-blue-400">
-            </td>
-            <td class="px-2 py-1 border-r border-slate-50">
-                <input type="text" name="unidad[]" placeholder="U.M" required class="w-full px-1 py-1 bg-white border border-slate-200 rounded text-center text-[10px] font-black uppercase outline-none focus:border-blue-400">
-            </td>
-            <td class="px-2 py-1 border-r border-slate-50">
-                <input type="text" name="masa[]" placeholder="0.00" class="w-full px-2 py-1 bg-white border border-slate-200 rounded text-center text-[11px] font-mono font-bold outline-none focus:border-blue-400">
-            </td>
-            <td class="px-2 py-1 border-r border-slate-50">
-                <input type="text" name="descripcion[]" placeholder="Detalle..." class="w-full px-2 py-1 bg-transparent border-b border-slate-100 focus:border-blue-500 outline-none text-[11px] text-slate-600">
-            </td>
-            <td class="px-2 py-1 border-r border-slate-50">
-                <input type="text" name="observaciones[]" placeholder="..." class="w-full px-2 py-1 bg-transparent border-b border-slate-100 focus:border-amber-400 outline-none text-[10px] text-slate-400 italic">
-            </td>
-            <td class="px-2 py-1 text-center">
-                <button type="button" onclick="eliminarFila(this)" class="p-1 text-slate-300 hover:text-rose-600 transition-all"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
-            </td>
-        `;
-
-        tbody.appendChild(tr);
-        limpiarSelector();
-        if (window.lucide) lucide.createIcons();
-    }
-
-    // Función para activar el modo edición
-    function activarEdicion(celda) {
-        // Limpiar cualquier fila resaltada anteriormente
-        if (filaEnEdicion) filaEnEdicion.classList.remove('bg-amber-50', 'ring-2', 'ring-amber-200');
-
-        filaEnEdicion = celda.closest('tr');
-        filaEnEdicion.classList.add('bg-amber-50', 'ring-2', 'ring-amber-200');
-
-        const tipoId = filaEnEdicion.querySelector('input[name="tipo_muestra_id[]"]').value;
-        selectorGlobal.value = tipoId;
-
-        // Cambiar estética del botón a modo UPDATE
-        document.getElementById('btn_generar').classList.replace('bg-slate-900', 'bg-amber-500');
-        document.getElementById('btn_generar').classList.replace('hover:bg-blue-600', 'hover:bg-amber-600');
-        document.getElementById('btn_text').innerText = "ACTUALIZAR TIPO";
-        document.getElementById('label_selector').innerText = "Editando tipo de muestra:";
-        document.getElementById('label_selector').classList.replace('text-slate-400', 'text-amber-600');
-        
-        // Cambiar icono
-        document.getElementById('btn_icon_container').classList.replace('bg-blue-500', 'bg-amber-600');
-        const iconElement = document.getElementById('btn_icon');
-        iconElement.setAttribute('data-lucide', 'refresh-cw');
-        if (window.lucide) lucide.createIcons();
-    }
-
-    function confirmarEdicion() {
-        if (!selectorGlobal.value) return;
-
-        const option = selectorGlobal.options[selectorGlobal.selectedIndex];
-        const nuevoPrefijo = option.getAttribute('data-prefijo');
-        const nuevoNombre = option.text;
-        const index = filaEnEdicion.cells[0].innerText;
-
-        // Actualizar valores en la fila
-        filaEnEdicion.querySelector('.tipo-label').innerText = nuevoNombre;
-        filaEnEdicion.querySelector('input[name="tipo_muestra_id[]"]').value = selectorGlobal.value;
-        filaEnEdicion.querySelector('input[name="id_lab[]"]').value = generarCodigoLab(nuevoPrefijo, index);
-
-        // Feedback visual de éxito
-        filaEnEdicion.classList.add('bg-green-50');
-        setTimeout(() => {
-            filaEnEdicion.classList.remove('bg-green-50', 'bg-amber-50', 'ring-2', 'ring-amber-200');
-            cancelarEdicion();
-        }, 400);
-    }
-
-    function cancelarEdicion() {
-        filaEnEdicion = null;
-        limpiarSelector();
-        
-        // Revertir estética del botón
-        document.getElementById('btn_generar').classList.replace('bg-amber-500', 'bg-slate-900');
-        document.getElementById('btn_generar').classList.replace('hover:bg-amber-600', 'hover:bg-blue-600');
-        document.getElementById('btn_text').innerText = "AÑADIR NUEVA MUESTRA";
-        document.getElementById('label_selector').innerText = "Tipo de muestra a generar:";
-        document.getElementById('label_selector').classList.replace('text-amber-600', 'text-slate-400');
-        document.getElementById('btn_icon_container').classList.replace('bg-amber-600', 'bg-blue-500');
-        document.getElementById('btn_icon').setAttribute('data-lucide', 'plus');
-        if (window.lucide) lucide.createIcons();
-    }
-
-    function generarCodigoLab(prefijo, index) {
-        const anio = new Date().getFullYear();
-        return `V-M-${anio}-${prefijo}-${index.toString().padStart(4, '0')}`;
-    }
-
-    function limpiarSelector() {
-        selectorGlobal.value = "";
-    }
-
-    function reenumerarItems() {
-        Array.from(tbody.children).forEach((row, idx) => {
-            const index = idx + 1;
-            row.cells[0].innerText = index;
-            const hiddenTipo = row.querySelector('input[name="tipo_muestra_id[]"]').value;
-            const tipoData = tiposMuestra.find(t => t.id == hiddenTipo);
-            row.querySelector('input[name="id_lab[]"]').value = generarCodigoLab(tipoData ? tipoData.prefijo : 'XX', index);
-        });
-    }
-
-    function eliminarFila(btn) {
-        btn.closest('tr').remove();
-        reenumerarItems();
-        if (filaEnEdicion) cancelarEdicion();
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        initSelectorGlobal();
-        if (window.lucide) lucide.createIcons();
-    });
+   window.DjangoConfig = {
+        crearTipoMuestraUrl: "{% url 'proyectos:crear_tipo_muestra_ajax' %}", 
+        csrfToken: "{{ csrf_token }}"
+    };
 </script>
+
+<script src="{% static 'js/gestion_muestras.js' %}"></script>
 {% endblock %}

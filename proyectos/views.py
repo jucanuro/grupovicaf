@@ -1,6 +1,7 @@
 from django.views.generic import ListView
 import datetime
 import json
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -75,13 +76,17 @@ def crear_tipo_muestra_ajax(request):
     sigla = request.POST.get('sigla', '').upper().strip() 
     
     if not nombre or not sigla:
-        return JsonResponse({'status': 'error', 'message': 'Nombre y Sigla son obligatorios'}, status=400)
+        return JsonResponse({
+            'status': 'error', 
+            'message': 'Nombre y Sigla son obligatorios.'
+        }, status=400)
     
     try:
         tipo, created = TipoMuestra.objects.get_or_create(
             sigla=sigla, 
             defaults={'nombre': nombre}
         )
+        
         return JsonResponse({
             'status': 'success',
             'id': tipo.pk,
@@ -89,8 +94,17 @@ def crear_tipo_muestra_ajax(request):
             'sigla': tipo.sigla,
             'nuevo': created
         })
+
+    except IntegrityError:
+        return JsonResponse({
+            'status': 'error', 
+            'message': f'La sigla "{sigla}" ya está registrada con otro nombre.'
+        }, status=400)
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+        return JsonResponse({
+            'status': 'error', 
+            'message': 'Error interno del servidor.'
+        }, status=500)
     
 
 def gestionar_recepcion_muestra(request, proyecto_id):
