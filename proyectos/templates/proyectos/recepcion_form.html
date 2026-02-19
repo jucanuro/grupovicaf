@@ -3,7 +3,7 @@
 
 {% block content %}
 <style>
-    /* Estilos adicionales para la estética de ingeniería */
+    /* Estética de Ingeniería: Cuadrícula Técnica */
     .font-mono-tech {
         font-family: 'JetBrains Mono', 'Fira Code', monospace;
     }
@@ -14,19 +14,32 @@
         left: 0;
         width: 100%;
         height: 100%;
+        background-color: #f8fafc;
+        /* Diseño de cuadrícula (cuadrados) */
         background-image: 
-            radial-gradient(#e2e8f0 0.5px, transparent 0.5px),
-            radial-gradient(#e2e8f0 0.5px, transparent 0.5px);
-        background-size: 20px 20px;
-        background-position: 0 0, 10px 10px;
-        opacity: 0.3;
+            linear-gradient(#e2e8f0 1px, transparent 1px),
+            linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
+        background-size: 30px 30px;
         z-index: -1;
     }
 
+    /* Refuerzo visual sin tocar posición */
     input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
         transform: translateY(-1px);
     }
+
+    .table-container::-webkit-scrollbar {
+        height: 6px;
+    }
+    .table-container::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
 </style>
+
 <div class="bg-vicaf-engine"></div>
 
 <div class="max-w-full mx-auto p-4 relative z-10 space-y-6">
@@ -38,7 +51,7 @@
             </div>
             <div>
                 <h1 class="text-xl font-extrabold text-slate-900 tracking-tight leading-none">
-                    Recepción de Muestras
+                    Recepcion de Muestras
                 </h1>
                 <p class="text-[9px] font-mono-tech text-blue-600 mt-1 uppercase tracking-[0.2em]">Formulario VCF-LAB-FOR-022 // v1.0</p>
             </div>
@@ -210,24 +223,19 @@
                 </div>
             </div>
 
-            <div class="overflow-x-auto border border-slate-200 rounded-lg shadow-inner bg-white">
+            <div class="overflow-x-auto border border-slate-200 rounded-lg shadow-inner bg-white table-container">
                 <table class="w-full border-collapse" id="tabla-muestras">
                     <thead class="sticky top-0 z-20 shadow-sm">
                         <tr class="bg-slate-900 border-b border-slate-700">
                             <th class="px-4 py-3 text-[10px] font-black text-blue-400 uppercase tracking-widest text-center w-12 border-r border-slate-800">#</th>
-                            
                             <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-40 border-r border-slate-800">ID Laboratorio</th>
-                            
                             <th class="px-4 py-3 text-[10px] font-black text-blue-300 uppercase tracking-widest text-center w-44 border-r border-slate-800">Tipo de Muestra</th>
-                            
                             <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-20 border-r border-slate-800">Cant.</th>
                             <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-20 border-r border-slate-800">Unidad</th>
                             <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-24 border-r border-slate-800">Masa (kg)</th>
-                            
                             <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-left min-w-[200px] border-r border-slate-800">Descripción</th>
                             <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-left min-w-[180px] border-r border-slate-800">Observaciones</th>
-                            
-                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-16">Acción</th>
+                            <th class="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest text-center w-16">Accion</th>
                         </tr>
                     </thead>
                     <tbody id="tbody-muestras" class="divide-y divide-slate-100 bg-white">
@@ -246,7 +254,7 @@
 
                 <button type="submit" class="bg-slate-900 text-white px-12 py-4 rounded-2xl text-xs font-black hover:bg-blue-600 hover:-translate-y-1 shadow-2xl transition-all flex items-center gap-4 group">
                     <i data-lucide="save" class="w-5 h-5 group-hover:animate-bounce"></i>
-                    FINALIZAR REGISTRO DE RECEPCIÓN
+                    FINALIZAR REGISTRO DE RECEPCION
                 </button>
             </div>
         </div>
@@ -259,11 +267,10 @@
 
 {% block extra_scripts %}
 <script>
-   window.DjangoConfig = {
+    window.DjangoConfig = {
         crearTipoMuestraUrl: "{% url 'proyectos:crear_tipo_muestra_ajax' %}", 
         csrfToken: "{{ csrf_token }}"
     };
 </script>
-
 <script src="{% static 'js/gestion_muestras.js' %}"></script>
 {% endblock %}

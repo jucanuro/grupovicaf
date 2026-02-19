@@ -1,6 +1,30 @@
 {% extends "base_vicafpro.html" %}
 
 {% block content %}
+<style>
+    /* Estética de Ingeniería: Cuadrícula Técnica */
+    .bg-vicaf-engine {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #f8fafc;
+        /* Diseño de cuadrícula (cuadrados) */
+        background-image: 
+            linear-gradient(#e2e8f0 1px, transparent 1px),
+            linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
+        background-size: 30px 30px;
+        z-index: -1;
+    }
+
+    @media print {
+        .bg-vicaf-engine {
+            display: none;
+        }
+    }
+</style>
+
 <div class="bg-vicaf-engine"></div>
 
 <div class="max-w-full mx-auto p-4 relative z-10 space-y-6">
@@ -30,14 +54,14 @@
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="bg-white p-4 border border-slate-200 rounded-xl shadow-sm">
-    <div class="space-y-1">
-        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cliente / Razón Social</label>
-        <input type="text" 
-               value="{% if recepcion.cotizacion.cliente.razon_social %}{{ recepcion.cotizacion.cliente.razon_social }}{% else %}{{ recepcion.cotizacion.cliente }}{% endif %}" 
-               class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none" 
-               readonly>
-    </div>
-</div>
+            <div class="space-y-1">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cliente / Razón Social</label>
+                <input type="text" 
+                       value="{% if recepcion.cotizacion.cliente.razon_social %}{{ recepcion.cotizacion.cliente.razon_social }}{% else %}{{ recepcion.cotizacion.cliente }}{% endif %}" 
+                       class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none" 
+                       readonly>
+            </div>
+        </div>
         <div class="bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
             <span class="text-[9px] font-black text-slate-400 uppercase block mb-1">Procedencia</span>
             <p class="text-xs font-bold text-slate-700 uppercase">{{ recepcion.procedencia|default:"No especificada" }}</p>
