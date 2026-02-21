@@ -1,22 +1,19 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
-from .models import Proyecto, TipoMuestra, RecepcionMuestra, MuestraDetalle
+from .models import Proyecto, TipoMuestra, RecepcionMuestra, MuestraDetalle, SolicitudEnsayo, DetalleSolicitudEnsayo, IncidenciaSolicitud
 
 class MuestraDetalleInline(admin.TabularInline):
     model = MuestraDetalle
     extra = 1
-    # El código se genera en el save(), así que lo protegemos aquí
     readonly_fields = ('codigo_laboratorio',)
     fields = ('tipo_muestra', 'codigo_laboratorio', 'descripcion', 'masa_aprox', 'cantidad', 'unidad')
 
 
 @admin.register(RecepcionMuestra)
 class RecepcionMuestraAdmin(admin.ModelAdmin):
-    # 1. Agregamos el método del cliente a readonly para que aparezca en el formulario
     readonly_fields = ('get_cliente_display',)
 
-    # Organizado por secciones para mayor orden
     fieldsets = (
         ('Origen y Cotización', {
             'fields': ('cotizacion', 'get_cliente_display', 'responsable_recepcion')
@@ -40,7 +37,6 @@ class RecepcionMuestraAdmin(admin.ModelAdmin):
     autocomplete_fields = ['cotizacion'] 
     date_hierarchy = 'fecha_recepcion'
 
-    # --- MÉTODOS PARA EL FORMULARIO (Detalle) ---
 
     def get_cliente_display(self, obj):
         """Muestra el cliente en el formulario de edición"""
@@ -49,7 +45,6 @@ class RecepcionMuestraAdmin(admin.ModelAdmin):
         return "Se asignará al guardar"
     get_cliente_display.short_description = 'Cliente Asociado'
 
-    # --- MÉTODOS PARA LA LISTA (Table) ---
 
     def get_custom_id(self, obj):
         """Corrige el error de format code 'd' asegurando que el ID sea entero"""
@@ -123,3 +118,36 @@ class MuestraDetalleAdmin(admin.ModelAdmin):
         url = reverse('admin:proyectos_recepcionmuestra_change', args=[obj.recepcion.id])
         return format_html('<a href="{}">Ir a Recepción #{}</a>', url, obj.recepcion.id)
     get_link_recepcion.short_description = 'Documento Origen'
+    
+
+class DetalleSolicitudEnsayoInline(admin.TabularInline):
+    model = DetalleSolicitudEnsayo
+    extra = 0
+    # Eliminamos autocomplete_fields para evitar el error de sistema
+    fields = (
+        'muestra', 'servicio_cotizado', 'descripcion_ensayo', 
+        'norma', 'metodo', 'tecnico_asignado', 
+        'fecha_entrega_programada', 'aceptado_tecnico'
+    )
+
+class IncidenciaSolicitudInline(admin.TabularInline):
+    model = IncidenciaSolicitud
+    extra = 0
+
+@admin.register(SolicitudEnsayo)
+class SolicitudEnsayoAdmin(admin.ModelAdmin):
+    list_display = ('codigo_solicitud', 'fecha_solicitud', 'elaborado_por')
+    # Usamos raw_id_fields o simplemente quitamos autocomplete_fields
+    raw_id_fields = ['recepcion', 'cotizacion'] 
+    inlines = [DetalleSolicitudEnsayoInline, IncidenciaSolicitudInline]
+
+@admin.register(DetalleSolicitudEnsayo)
+class DetalleSolicitudEnsayoAdmin(admin.ModelAdmin):
+    list_display = ('muestra', 'descripcion_ensayo', 'tecnico_asignado', 'aceptado_tecnico')
+    search_fields = ('muestra__codigo_laboratorio', 'descripcion_ensayo')
+
+@admin.register(IncidenciaSolicitud)
+class IncidenciaSolicitudAdmin(admin.ModelAdmin):
+    list_display = ('solicitud', 'fecha_ocurrencia', 'representante_cliente')
+    
+    

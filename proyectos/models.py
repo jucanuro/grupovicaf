@@ -1,7 +1,9 @@
 from django.db import models
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.db import transaction
+from django.core.validators import MinValueValidator
 from clientes.models import Cliente
 from trabajadores.models import TrabajadorProfile 
 from servicios.models import Cotizacion, CotizacionDetalle, Servicio, CategoriaServicio, Subcategoria
@@ -162,3 +164,136 @@ class MuestraDetalle(models.Model):
                 
             self.codigo_laboratorio = f"V-M-{anio}-{sigla}-{ultimo_nro:04d}"
         super().save(*args, **kwargs)
+        
+        
+class SolicitudEnsayo(models.Model):
+    """
+    Cabecera del registro VCF-LAB-FOR-068.
+    Representa la orden de trabajo interna para el laboratorio.
+    """
+    codigo_solicitud = models.CharField(
+        max_length=50, unique=True, verbose_name="No. DE SOLICITUD"
+    )
+    recepcion = models.OneToOneField(
+        'RecepcionMuestra', 
+        on_delete=models.CASCADE, 
+        related_name='solicitud_ensayo',
+        verbose_name="Recepción Asociada"
+    )
+    cotizacion = models.ForeignKey(
+        Cotizacion, 
+        on_delete=models.PROTECT, 
+        related_name='solicitudes_ensayo',
+        verbose_name="No. COTIZACIÓN"
+    )
+    
+    fecha_solicitud = models.DateField(default=timezone.now, verbose_name="FECHA DE SOLICITUD")
+    
+    # Estos campos se pueden pre-llenar desde la recepción/cotización pero son editables
+    fecha_entrega_programada = models.DateField(verbose_name="FECHA DE ENTREGA DE REGISTROS (PROGRAMADA)")
+    fecha_entrega_real = models.DateField(null=True, blank=True, verbose_name="FECHA REAL DE ENTREGA DE REGISTROS")
+    
+    elaborado_por = models.ForeignKey(
+        TrabajadorProfile, 
+        on_delete=models.PROTECT, 
+        related_name='solicitudes_elaboradas',
+        verbose_name="PERSONA QUE ELABORA LA SOLICITUD"
+    )
+    
+    revisado_por = models.ForeignKey(
+        TrabajadorProfile, 
+        on_delete=models.SET_NULL, 
+        null=True, blank=True, 
+        related_name='solicitudes_revisadas',
+        verbose_name="FIRMA JEFE DE LABORATORIO"
+    )
+
+    class Meta:
+        verbose_name = "Solicitud de Ensayo"
+        verbose_name_plural = "Solicitudes de Ensayo"
+        ordering = ['-fecha_solicitud']
+
+    def __str__(self):
+        return f"{self.codigo_solicitud} - {self.cotizacion.cliente.razon_social}"
+
+
+class DetalleSolicitudEnsayo(models.Model):
+    """
+    Detalle línea por línea de los ensayos a realizar por cada muestra.
+    """
+    solicitud = models.ForeignKey(
+        SolicitudEnsayo, 
+        on_delete=models.CASCADE, 
+        related_name='detalles'
+    )
+    muestra = models.ForeignKey(
+        'MuestraDetalle', 
+        on_delete=models.PROTECT, 
+        verbose_name="Código de Muestra (Lab)"
+    )
+    
+    # Vinculamos al detalle de la cotización para traer Norma y Método automáticamente
+    servicio_cotizado = models.ForeignKey(
+        CotizacionDetalle, 
+        on_delete=models.PROTECT,
+        verbose_name="Servicio/Ensayo"
+    )
+    
+    # Estos campos se extraen del servicio_cotizado pero se guardan por si cambian en la oferta
+    descripcion_ensayo = models.CharField(max_length=255, verbose_name="Descripción")
+    norma = models.CharField(max_length=255, verbose_name="Norma de ensayo")
+    metodo = models.CharField(max_length=100, blank=True, null=True, verbose_name="Método")
+    
+    tecnico_asignado = models.ForeignKey(
+        TrabajadorProfile, 
+        on_delete=models.SET_NULL, 
+        null=True, blank=True, 
+        verbose_name="Técnico Asignado"
+    )
+    
+    fecha_entrega_programada = models.DateField(verbose_name="Entrega Programada")
+    fecha_entrega_real = models.DateField(null=True, blank=True, verbose_name="Entrega Real")
+    
+    aceptado_tecnico = models.BooleanField(
+        default=False, 
+        verbose_name="Aceptación (Firma)",
+        help_text="Check para reemplazar la firma manual del técnico"
+    )
+    
+    observaciones = models.TextField(blank=True, null=True, verbose_name="Observaciones")
+
+    class Meta:
+        verbose_name = "Detalle de Solicitud"
+        verbose_name_plural = "Detalles de Solicitudes"
+
+    def __str__(self):
+        return f"{self.muestra.codigo_laboratorio} - {self.descripcion_ensayo}"
+
+
+class IncidenciaSolicitud(models.Model):
+    """
+    Registro de incidencias durante el ensayo (Lunar de incidencias).
+    """
+    solicitud = models.ForeignKey(
+        SolicitudEnsayo, 
+        on_delete=models.CASCADE, 
+        related_name='incidencias'
+    )
+    detalle_incidencia = models.TextField(verbose_name="Detalle de incidencia")
+    fecha_ocurrencia = models.DateTimeField(default=timezone.now, verbose_name="Fecha de ocurrencia")
+    
+    representante_cliente = models.CharField(
+        max_length=255, 
+        blank=True, null=True, 
+        verbose_name="Representante del Cliente"
+    )
+    representante_laboratorio = models.ForeignKey(
+        TrabajadorProfile, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        verbose_name="Representante del Laboratorio"
+    )
+
+    class Meta:
+        verbose_name = "Incidencia de Solicitud"
+        verbose_name_plural = "Incidencias de Solicitudes"

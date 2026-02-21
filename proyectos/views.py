@@ -1,7 +1,12 @@
 from django.views.generic import ListView
 import datetime
 import json
+import io
 from django.http import JsonResponse
+from django.template.loader import render_to_string
+from weasyprint import HTML
+from django.http import HttpResponse
+from django.template.loader import get_template
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -9,9 +14,11 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.utils import timezone
+from .utils import enviar_whatsapp_pdf
 from django.views.decorators.http import require_POST
-from .models import Proyecto, TipoMuestra, RecepcionMuestra, MuestraDetalle
+from .models import Proyecto, TipoMuestra, RecepcionMuestra, MuestraDetalle, SolicitudEnsayo, DetalleSolicitudEnsayo, IncidenciaSolicitud
 from servicios.models import Servicio, CotizacionDetalle, CategoriaServicio, Subcategoria, CotizacionGrupo,Cotizacion
+from trabajadores.models import TrabajadorProfile
 
 
 def get_date_or_none(date_string):
@@ -106,7 +113,6 @@ def crear_tipo_muestra_ajax(request):
             'message': 'Error interno del servidor.'
         }, status=500)
     
-
 def gestionar_recepcion_muestra(request, proyecto_id):
     proyecto = get_object_or_404(
         Proyecto.objects.select_related('cotizacion__cliente'), 
@@ -204,7 +210,6 @@ def lista_muestras_recepcion(request, recepcion_id):
         'proyecto': proyecto_obj  
     })
     
-
 class RecepcionMuestraListView(ListView):
     model = RecepcionMuestra
     template_name = 'proyectos/lista_general_recepciones.html'
@@ -225,3 +230,153 @@ class RecepcionMuestraListView(ListView):
                 Q(procedencia__icontains=query)
             )
         return queryset
+    
+def generar_pdf_recepcion(request, recepcion_id):
+    recepcion = get_object_or_404(
+        RecepcionMuestra.objects.select_related(
+            'cotizacion__cliente', 
+            'responsable_recepcion'
+        ).prefetch_related('muestras__tipo_muestra'), 
+        id=recepcion_id
+    )
+    
+    proyecto = Proyecto.objects.filter(cotizacion=recepcion.cotizacion).first()
+
+    context = {
+        'recepcion': recepcion,
+        'muestras': recepcion.muestras.all(),
+        'proyecto': proyecto,
+        'cliente': recepcion.cotizacion.cliente,
+        'user': request.user,
+    }
+
+    html_string = render_to_string('proyectos/muestras_pdf.html', context)
+    
+    html = HTML(string=html_string, base_url=request.build_absolute_uri())
+    pdf_file = html.write_pdf()
+
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="Cargo_Recepcion_{recepcion.id}.pdf"'
+    
+    return response
+
+def generar_y_enviar_whatsapp(request, recepcion_id):
+    recepcion = get_object_or_404(RecepcionMuestra, id=recepcion_id)
+    muestras = recepcion.muestras.all()
+    
+    if hasattr(recepcion, 'cotizacion'):
+        cliente = recepcion.cotizacion.cliente
+    else:
+        cliente = getattr(recepcion, 'cliente', None)
+
+    template_path = 'proyectos/muestras_pdf.html' 
+    
+    try:
+        html_string = render_to_string(template_path, {
+            'recepcion': recepcion,
+            'muestras': muestras,
+            'cliente': cliente,
+        })
+        
+        pdf_file = HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf()
+        
+        nombre_archivo = f"Recepcion_{recepcion.id}.pdf"
+        ruta_archivo = os.path.join(settings.MEDIA_ROOT, 'pdfs', nombre_archivo)
+        
+        os.makedirs(os.path.dirname(ruta_archivo), exist_ok=True)
+        
+        with open(ruta_archivo, 'wb') as f:
+            f.write(pdf_file)
+
+        if cliente and cliente.telefono:
+            url_publica_pdf = request.build_absolute_uri(settings.MEDIA_URL + 'pdfs/' + nombre_archivo)
+            enviar_whatsapp_pdf(cliente.telefono, url_publica_pdf, recepcion.id)
+            messages.success(request, "WhatsApp enviado con éxito.")
+        else:
+            messages.warning(request, "PDF generado, pero el cliente no tiene teléfono.")
+
+    except Exception as e:
+        messages.error(request, f"Error: {str(e)}")
+    
+    return redirect('proyectos:lista_muestras_recepcion', recepcion_id=recepcion.id)
+
+
+
+def gestionar_solicitud_ensayo(request, pk=None):
+    if pk:
+        solicitud = get_object_or_404(SolicitudEnsayo, pk=pk)
+        detalles = solicitud.detalles.all()
+    else:
+        solicitud = None
+        detalles = []
+
+    if request.method == 'POST':
+        codigo = request.POST.get('codigo_solicitud')
+        recepcion_id = request.POST.get('recepcion')
+        cotizacion_id = request.POST.get('cotizacion')
+        f_solicitud = request.POST.get('fecha_solicitud')
+        f_entrega_prog = request.POST.get('fecha_entrega_programada')
+        elaborado_id = request.POST.get('elaborado_por')
+
+        if solicitud:
+            solicitud.codigo_solicitud = codigo
+            solicitud.fecha_solicitud = f_solicitud
+            solicitud.fecha_entrega_programada = f_entrega_prog
+        else:
+            solicitud = SolicitudEnsayo(
+                codigo_solicitud=codigo,
+                recepcion_id=recepcion_id,
+                cotizacion_id=cotizacion_id,
+                fecha_solicitud=f_solicitud,
+                fecha_entrega_programada=f_entrega_prog,
+                elaborado_por_id=elaborado_id
+            )
+        solicitud.save()
+
+        muestras_ids = request.POST.getlist('muestra_id[]')
+        servicios_ids = request.POST.getlist('servicio_id[]')
+        descripciones = request.POST.getlist('descripcion[]')
+        normas = request.POST.getlist('norma[]')
+        metodos = request.POST.getlist('metodo[]')
+        tecnicos_ids = request.POST.getlist('tecnico_id[]')
+        entregas_det = request.POST.getlist('entrega_detalle[]')
+
+        if pk:
+            solicitud.detalles.all().delete()
+
+        for i in range(len(muestras_ids)):
+            if muestras_ids[i]: 
+                DetalleSolicitudEnsayo.objects.create(
+                    solicitud=solicitud,
+                    muestra_id=muestras_ids[i],
+                    servicio_cotizado_id=servicios_ids[i],
+                    descripcion_ensayo=descripciones[i],
+                    norma=normas[i],
+                    metodo=metodos[i],
+                    tecnico_asignado_id=tecnicos_ids[i] if tecnicos_ids[i] else None,
+                    fecha_entrega_programada=entregas_det[i]
+                )
+        
+        return redirect('proyectos:lista_solicitudes')
+
+    context = {
+        'solicitud': solicitud,
+        'detalles': detalles,
+        'recepciones': RecepcionMuestra.objects.all(),
+        'cotizaciones': Cotizacion.objects.all(),
+        'trabajadores': TrabajadorProfile.objects.all(),
+        'servicios_items': CotizacionDetalle.objects.all(),
+    }
+    return render(request, 'proyectos/ensayos_form.html', context)
+
+
+def lista_solicitudes(request):
+    solicitudes = SolicitudEnsayo.objects.select_related('cotizacion__cliente', 'elaborado_por').all()
+    
+    q = request.GET.get('q')
+    if q:
+        solicitudes = solicitudes.filter(codigo_solicitud__icontains=q)
+        
+    return render(request, 'proyectos/ensayos_list.html', {
+        'solicitudes': solicitudes
+    })
