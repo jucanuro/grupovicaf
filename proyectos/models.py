@@ -187,9 +187,20 @@ class SolicitudEnsayo(models.Model):
         verbose_name="No. COTIZACIÓN"
     )
     
+    ESTADOS = [
+        ('pendiente', 'PENDIENTE'),
+        ('proceso', 'EN PROCESO'),
+        ('finalizado', 'FINALIZADO'),
+    ]
+    estado = models.CharField(
+        max_length=20, 
+        choices=ESTADOS, 
+        default='pendiente',
+        verbose_name="ESTADO OPERATIVO"
+    )
+    
     fecha_solicitud = models.DateField(default=timezone.now, verbose_name="FECHA DE SOLICITUD")
     
-    # Estos campos se pueden pre-llenar desde la recepción/cotización pero son editables
     fecha_entrega_programada = models.DateField(verbose_name="FECHA DE ENTREGA DE REGISTROS (PROGRAMADA)")
     fecha_entrega_real = models.DateField(null=True, blank=True, verbose_name="FECHA REAL DE ENTREGA DE REGISTROS")
     

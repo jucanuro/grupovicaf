@@ -66,53 +66,51 @@
         {% csrf_token %}
         
         <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                <div class="p-1 bg-slate-50 border-b border-slate-100 flex items-center px-4 py-2">
-                    <i data-lucide="database" class="w-3.5 h-3.5 text-blue-600 mr-2"></i>
-                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Información de Control de la Solicitud</span>
+            <div class="p-1 bg-slate-50 border-b border-slate-100 flex items-center px-4 py-2">
+                <i data-lucide="database" class="w-3.5 h-3.5 text-blue-600 mr-2"></i>
+                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Información de Control de la Solicitud</span>
+            </div>
+
+            <div class="p-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                
+                <div class="md:col-span-1 lg:col-span-1">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cotización / Cliente</label>
+                    <select name="cotizacion" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm" required>
+                        <option value="" disabled selected>-- Seleccionar Cotización --</option>
+                        {% for c in cotizaciones %}
+                        <option value="{{ c.id }}" {% if c == solicitud.cotizacion %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
 
-                <div class="p-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    
-                    <div class="md:col-span-1 lg:col-span-1">
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cotización / Cliente</label>
-                        <select name="cotizacion" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm" required>
-                            <option value="" disabled selected>-- Seleccionar Cotización --</option>
-                            {% for c in cotizaciones %}
-                            <option value="{{ c.id }}" {% if c == solicitud.cotizacion %}selected{% endif %}>{{ c }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Fecha Solicitud</label>
+                    <input type="date" 
+                        name="fecha_solicitud" 
+                        class="w-full px-4 py-2.5 bg-blue-50/30 border border-blue-100 rounded-lg text-xs font-bold text-blue-700 outline-none" 
+                        value="{% if solicitud.fecha_solicitud %}{{ solicitud.fecha_solicitud|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}">
+                </div>
 
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Fecha Solicitud</label>
-                        <input type="date" 
-                            name="fecha_solicitud" 
-                            class="w-full px-4 py-2.5 bg-blue-50/30 border border-blue-100 rounded-lg text-xs font-bold text-blue-700 outline-none" 
-                            value="{% if solicitud.fecha_solicitud %}{{ solicitud.fecha_solicitud|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}">
-                    </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Entrega Programada (Reportes)</label>
+                    <input type="date" 
+                        name="fecha_entrega_programada" 
+                        class="w-full px-4 py-2.5 bg-amber-50/30 border border-amber-100 rounded-lg text-xs font-bold text-amber-700 outline-none" 
+                        value="{{ solicitud.fecha_entrega_programada|date:'Y-m-d' }}">
+                </div>
 
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Entrega Programada (Reportes)</label>
-                        <input type="date" 
-                            name="fecha_entrega_programada" 
-                            class="w-full px-4 py-2.5 bg-amber-50/30 border border-amber-100 rounded-lg text-xs font-bold text-amber-700 outline-none" 
-                            value="{{ solicitud.fecha_entrega_programada|date:'Y-m-d' }}">
-                    </div>
-
-                    <div class="md:col-span-3 lg:col-span-1">
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Responsable de Registro</label>
-                        <div class="flex items-center gap-3 p-1.5 bg-slate-50 border border-slate-200 rounded-lg">
-                            <div class="w-7 h-7 rounded-full bg-slate-900 flex items-center justify-center text-white text-[10px] font-bold">
-                                {{ user.username|slice:":2"|upper }}
-                            </div>
-                            <div class="leading-none">
-                                <p class="text-[10px] font-black text-slate-700 uppercase">{{ user.get_full_name|default:user.username }}</p>
-                                <p class="text-[8px] text-emerald-600 font-bold uppercase tracking-tighter">Usuario Autenticado</p>
-                            </div>
+                <div class="md:col-span-3 lg:col-span-1">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Responsable de Registro</label>
+                    <div class="flex items-center gap-3 p-1.5 bg-slate-50 border border-slate-200 rounded-lg">
+                        <div class="w-7 h-7 rounded-full bg-slate-900 flex items-center justify-center text-white text-[10px] font-bold">
+                            {{ user.username|slice:":2"|upper }}
                         </div>
-                        <input type="hidden" name="usuario_creador" value="{{ user.id }}">
+                        <div class="leading-none">
+                            <p class="text-[10px] font-black text-slate-700 uppercase">{{ user.get_full_name|default:user.username }}</p>
+                            <p class="text-[8px] text-emerald-600 font-bold uppercase tracking-tighter">Usuario Autenticado</p>
+                        </div>
                     </div>
+                    <input type="hidden" name="usuario_creador" value="{{ user.id }}">
                 </div>
             </div>
         </div>
@@ -251,38 +249,158 @@
 
 <script src="https://unpkg.com/lucide@latest"></script>
 <script>
+    // Variable global para persistir las muestras de la cotización seleccionada
+    let muestrasGlobales = [];
+
     document.addEventListener('DOMContentLoaded', () => {
-        lucide.createIcons();
+        // Inicializar iconos de Lucide
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        
+        const selectCotizacion = document.querySelector('select[name="cotizacion"]');
+        const tablaBody = document.querySelector('#tabla-detalles tbody');
+
+        // --- 1. Carga Automática de Detalles de Cotización y Muestras ---
+        selectCotizacion.addEventListener('change', function() {
+            const cotizacionId = this.value;
+            if (!cotizacionId) return;
+
+            const tieneDatos = Array.from(tablaBody.querySelectorAll('select[name="servicio_id[]"]'))
+                                    .some(s => s.value !== "");
+            
+            if (tieneDatos) {
+                if (!confirm("¿Cargar ítems y muestras de la nueva cotización? Se borrarán las filas actuales.")) {
+                    return;
+                }
+            }
+
+            tablaBody.innerHTML = '';
+
+            fetch(`/proyectos/api/cotizacion-detalles/${cotizacionId}/`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Error en el servidor');
+                    return response.json();
+                })
+                .then(data => {
+                    muestrasGlobales = data.muestras || [];
+
+                    if (data.servicios && data.servicios.length > 0) {
+                        data.servicios.forEach((item) => {
+                            // AQUÍ ESTÁ LA MAGIA: Se agregan las filas y se llenan con la data de la API
+                            const fila = agregarNuevaFila();
+                            
+                            const selectServicio = fila.querySelector('select[name="servicio_id[]"]');
+                            const optionServicio = document.createElement('option');
+                            optionServicio.value = item.servicio_id;
+                            optionServicio.text = item.nombre_servicio;
+                            optionServicio.selected = true;
+                            
+                            // Guardamos los datos en el nuevo option para el autocompletado
+                            optionServicio.dataset.norma = item.norma || "";
+                            optionServicio.dataset.metodo = item.metodo || "";
+                            
+                            selectServicio.innerHTML = '<option value="">-- Servicio --</option>'; 
+                            selectServicio.appendChild(optionServicio);
+
+                            fila.querySelector('input[name="norma[]"]').value = item.norma || "";
+                            fila.querySelector('input[name="metodo[]"]').value = item.metodo || "";
+                        });
+                    } else {
+                        agregarNuevaFila();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert("Error al obtener los datos de la cotización y muestras.");
+                    if (tablaBody.rows.length === 0) agregarNuevaFila();
+                });
+        });
+
+        // --- 2. Auto-llenado de Norma y Método al cambiar el Servicio manualmente ---
+        tablaBody.addEventListener('change', (e) => {
+            if (e.target && e.target.name === 'servicio_id[]') {
+                const fila = e.target.closest('tr');
+                const selectedOption = e.target.options[e.target.selectedIndex];
+                
+                const norma = selectedOption.dataset.norma || "";
+                const metodo = selectedOption.dataset.metodo || "";
+
+                fila.querySelector('input[name="norma[]"]').value = norma;
+                fila.querySelector('input[name="metodo[]"]').value = metodo;
+            }
+        });
     });
 
-    document.getElementById('btn-agregar-fila').addEventListener('click', function() {
-        const tabla = document.getElementById('tabla-detalles').getElementsByTagName('tbody')[0];
-        const primeraFila = tabla.rows[0];
-        const nuevaFila = primeraFila.cloneNode(true);
+    // Función para agregar filas con diseño mejorado
+    function agregarNuevaFila() {
+        const tabla = document.querySelector('#tabla-detalles tbody');
         
-        // Limpiar inputs
-        const inputs = nuevaFila.getElementsByTagName('input');
-        for (let input of inputs) {
-            input.value = "";
-        }
-        
-        // Limpiar selects
-        const selects = nuevaFila.getElementsByTagName('select');
-        for (let select of selects) {
-            select.selectedIndex = 0;
-        }
+        let opcionesMuestrasHTML = '<option value="">-- Muestra --</option>';
+        muestrasGlobales.forEach(m => {
+            opcionesMuestrasHTML += `<option value="${m.id}">${m.codigo_laboratorio} (${m.descripcion})</option>`;
+        });
 
-        tabla.appendChild(nuevaFila);
-        // Reinicializar iconos en la nueva fila
-        lucide.createIcons();
-    });
+        const rowHTML = `
+            <tr class="group hover:bg-slate-50 transition-colors border-b border-slate-100">
+                <td class="p-1.5">
+                    <select name="muestra_id[]" class="w-full p-1 bg-white border border-slate-200 rounded text-[10px] font-medium text-slate-700 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 outline-none" required>
+                        ${opcionesMuestrasHTML}
+                    </select>
+                </td>
+                <td class="p-1.5">
+                    <select name="servicio_id[]" class="w-full p-1 bg-white border border-slate-200 rounded text-[10px] font-bold text-slate-800 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 outline-none" required>
+                        <option value="">-- Servicio --</option>
+                        {% for s in servicios_items %}
+                        <option value="{{ s.servicio.id }}" 
+                                data-norma="{{ s.servicio.norma }}" 
+                                data-metodo="{{ s.servicio.metodo }}">
+                            {{ s.servicio.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td class="p-1.5">
+                    <div class="flex gap-1">
+                        <input type="text" name="norma[]" class="w-1/2 p-1 border border-slate-200 rounded text-[10px] font-mono text-blue-700 placeholder:text-slate-300 focus:bg-blue-50/30 outline-none" placeholder="Norma">
+                        <input type="text" name="metodo[]" class="w-1/2 p-1 border border-slate-200 rounded text-[10px] text-slate-600 placeholder:text-slate-300 focus:bg-slate-50 outline-none" placeholder="Método">
+                    </div>
+                </td>
+                <td class="p-1.5">
+                    <select name="tecnico_id[]" class="w-full p-1 bg-white border border-slate-200 rounded text-[10px] text-slate-700 outline-none">
+                        <option value="">-- Técnico --</option>
+                        {% for t in trabajadores %}<option value="{{ t.id }}">{{ t.nombre_completo }}</option>{% endfor %}
+                    </select>
+                </td>
+                <td class="p-1.5">
+                    <input type="date" name="entrega_detalle[]" class="w-full p-1 border border-slate-200 rounded text-[10px] font-bold text-slate-700 bg-white outline-none">
+                </td>
+                <td class="p-1.5 text-center">
+                    <button type="button" class="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded transition-all" onclick="eliminarFila(this)">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                </td>
+            </tr>`;
+        
+        tabla.insertAdjacentHTML('beforeend', rowHTML);
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        return tabla.lastElementChild;
+    }
+
+    const btnAdd = document.getElementById('btn-agregar-fila');
+    if (btnAdd) {
+        btnAdd.addEventListener('click', (e) => {
+            e.preventDefault();
+            agregarNuevaFila();
+        });
+    }
 
     function eliminarFila(btn) {
-        const tabla = document.getElementById('tabla-detalles').getElementsByTagName('tbody')[0];
+        const tabla = document.querySelector('#tabla-detalles tbody');
         if (tabla.rows.length > 1) {
             btn.closest('tr').remove();
         } else {
-            alert("La solicitud debe tener al menos un ítem.");
+            const row = tabla.rows[0];
+            row.querySelectorAll('input').forEach(i => i.value = "");
+            row.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
         }
     }
 </script>

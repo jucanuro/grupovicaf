@@ -41,8 +41,11 @@ urlpatterns = [
           name='enviar_recepcion_whatsapp'
      ),
      
+     
+     path('api/cotizacion-detalles/<int:cotizacion_id>/', views.api_obtener_detalles_cotizacion, name='api_cotizacion_detalles'),
      path('solicitudes/', views.lista_solicitudes, name='lista_solicitudes'),
      path('ensayo/nuevo/', views.gestionar_solicitud_ensayo, name='crear_solicitud'),
      path('ensayo/editar/<int:pk>/', views.gestionar_solicitud_ensayo, name='editar_solicitud'),
+     path('solicitudes/estado/<int:pk>/<str:nuevo_estado>/', views.cambiar_estado_solicitud, name='cambiar_estado'),
 ]
 
