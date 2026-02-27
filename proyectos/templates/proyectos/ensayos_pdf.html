@@ -1,0 +1,202 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Solicitud de Ensayo N° {{ solicitud.id }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 3.8cm 1.5cm 2.5cm 1.5cm; 
+
+            @frame header_frame {
+                -pdf-frame-content: header_content;
+                top: 0.5cm;
+                left: 1.5cm;
+                width: 18cm;
+                height: 3.5cm;
+            }
+
+            @frame footer_frame {
+                -pdf-frame-content: footer_content;
+                bottom: 0.8cm;
+                left: 1.5cm;
+                width: 18cm;
+                height: 1.5cm;
+            }
+        }
+        
+        #header_content table { border: none; margin-bottom: 0; }
+        #header_content td { border: none; vertical-align: middle; }
+        
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #000; line-height: 1.3; }
+        .font-bold { font-weight: bold; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .corporate-blue { color: #004D99; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        td, th { vertical-align: top; }
+        
+        #header_content { font-size: 8px; text-align: right; color: #000; }
+        #footer_content { font-size: 8px; text-align: center; color: #000; }
+        
+        .logo-img { width: 160px; height: auto; }
+        .company-box { border: 1px solid #000; padding: 6px; font-size: 8.5px; }
+        
+        .title-box { border: 1px solid #000; padding: 5px; margin-bottom: 8px; background-color: #f8f9fa; }
+        .title-text { font-weight: bold; font-size: 13px; color: #004D99; text-align: center; text-transform: uppercase; }
+        
+        .data-table td { border: 1px solid #000; padding: 3px 5px; }
+        .bg-gray { background-color: #f0f0f0; font-weight: bold; width: 22%; }
+        
+        .items-table th { background-color: #004D99; color: #ffffff; border: 1px solid #000; text-align: center; font-weight: bold; font-size: 8px; padding: 4px; }
+        .items-table td { border: 1px solid #000; padding: 4px; font-size: 8.5px; }
+        
+        .section-header { background-color: #e6f2ff; font-weight: bold; padding: 3px 5px; border: 1px solid #000; text-transform: uppercase; margin-top: 5px; font-size: 9px; }
+        
+        .signature-container { margin-top: 25px; }
+        .signature-box { border: 1px solid #000; height: 80px; text-align: center; vertical-align: bottom; padding-bottom: 5px; }
+        
+        .page-number:after { content: counter(page); }
+        .page-count:after { content: counter(pages); }
+
+        .confidential-tag {
+            color: #d32f2f;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="header_content">
+        <div style="text-align: right; font-size: 7.5px; margin-bottom: 3px;">
+            Código: VCF-LAB-FOR-025 | Fecha: 27/02/2026 | Versión: 02 | Página <span class="page-number"></span> de <span class="page-count"></span>
+        </div>
+        
+        <table>
+            <tr>
+                <td style="width: 40%; text-align: center;">
+                    <img src="{% static 'img/LogoF.png' %}" class="logo-img" alt="Logo">
+                </td>
+                <td style="width: 60%;">
+                    <div class="company-box" style="text-align: left;">
+                        <strong>Razón Social:</strong> Grupo Vicaf SAC<br>
+                        <strong>RUC:</strong> 20609464632<br>
+                        <strong>Dirección:</strong> JR. LOS TOPACIOS 440 - CAJAMARCA<br>
+                        <strong>Email:</strong> informes@grupovicaf.com | <strong>Tel:</strong> 960 713 555
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div id="footer_content">
+        <div style="border-top: 1px solid #000; width: 100%; margin-bottom: 3px;"></div>
+        JR. LOS TOPACIOS 440 - CAJAMARCA | informes@grupovicaf.com | +51 941 573 750<br>
+        <strong>SISTEMA DE GESTIÓN DE LABORATORIO - VICAFPRO LAB</strong>
+    </div>
+
+    <div class="title-box">
+        <div class="title-text">SOLICITUD DE ÓRDENES DE ENSAYO</div>
+        <table style="width: 100%; border: none; margin: 0;">
+            <tr>
+                <td style="border: none; font-weight: bold; font-size: 9px;">SOLICITUD No. {{ solicitud.id|stringformat:"05d" }}</td>
+                <td style="border: none; text-align: right; font-weight: bold; font-size: 9px;">Fecha Emisión: {{ solicitud.fecha_solicitud|date:"d \d\e F \d\e Y" }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section-header">1. Información del Cliente (Confidencial)</div>
+    <table class="data-table">
+        <tr>
+            <td class="bg-gray">ID CLIENTE:</td>
+            <td><strong class="corporate-blue">{{ solicitud.cotizacion.cliente.codigo_confidencial }}</strong> <span class="confidential-tag">(Dato Protegido)</span></td>
+            <td class="bg-gray">COTIZACIÓN REF:</td>
+            <td><strong>{{ solicitud.cotizacion.numero_oferta|default:"S/N" }}</strong></td>
+        </tr>
+        <tr>
+            <td class="bg-gray">FECHA ENTREGA PROG:</td>
+            <td><strong style="color: #c2410c;">{{ solicitud.fecha_entrega_programada|date:"d/m/Y" }}</strong></td>
+            <td class="bg-gray">RESPONSABLE LAB:</td>
+            <td>{{ user.get_full_name|upper }}</td>
+        </tr>
+    </table>
+
+    <div class="section-header">2. Planificación de Ensayos y Métodos</div>
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th style="width: 5%;">ÍT.</th>
+                <th style="width: 18%;">CÓD. MUESTRA</th>
+                <th style="width: 25%;">ENSAYO / SERVICIO</th>
+                <th style="width: 22%;">NORMA / MÉTODO</th>
+                <th style="width: 18%;">RESPONSABLE</th>
+                <th style="width: 12%;">FEC. ENTREGA</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for detalle in detalles %}
+            <tr>
+                <td class="text-center">{{ forloop.counter }}</td>
+                <td class="text-center font-bold">{{ detalle.muestra.codigo_laboratorio }}</td>
+                
+                <td>{{ detalle.descripcion_ensayo }}</td>
+                
+                <td style="font-family: 'Courier New', Courier, monospace; font-size: 7.5px;">
+                    {{ detalle.norma }}{% if detalle.metodo %} / {{ detalle.metodo }}{% endif %}
+                </td>
+                
+                <td class="text-center">
+                    {{ detalle.tecnico_asignado.nombre_completo|default:detalle.tecnico_asignado.user.get_full_name|default:"-" }}
+                </td>
+                
+                <td class="text-center">{{ detalle.fecha_entrega_programada|date:"d/m/Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">No hay ensayos programados en esta solicitud.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="section-header">3. Observaciones y Condiciones</div>
+    <div style="border: 1px solid #000; padding: 6px; min-height: 40px; font-size: 8px;">
+        {{ solicitud.observaciones|default:"Sin observaciones adicionales." }}
+        <br><br>
+        <span style="font-size: 7px; color: #555;">
+            * Los resultados de estos ensayos se refieren exclusivamente a las muestras recibidas.<br>
+            * El plazo de entrega está sujeto a la disponibilidad operativa del laboratorio.
+        </span>
+    </div>
+
+    <div class="section-header">4. Control de Firmas</div>
+    <table class="signature-container" style="border: none;">
+        <tr>
+            <td style="width: 48%; border: none;">
+                <div class="signature-box"></div>
+                <div class="text-center font-bold" style="margin-top: 5px;">
+                    {{ user.get_full_name|upper }}<br>
+                    <span style="font-size: 7px; font-weight: normal;">RESPONSABLE DE PROGRAMACIÓN</span>
+                </div>
+            </td>
+            <td style="width: 4%; border: none;"></td>
+            <td style="width: 48%; border: none;">
+                <div class="signature-box"></div>
+                <div class="text-center font-bold" style="margin-top: 5px;">
+                    VoBo DIRECCIÓN TÉCNICA<br>
+                    <span style="font-size: 7px; font-weight: normal;">VICAFPRO LAB</span>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <div style="margin-top: 15px; font-size: 7.5px; color: #333;">
+        <strong>Documento generado por:</strong> {{ user.username }} | <strong>Fecha y Hora de Impresión:</strong> {% now "d/m/Y H:i" %}
+    </div>
+
+</body>
+</html>

@@ -480,5 +480,37 @@ def lista_solicitudes(request):
         'solicitudes': solicitudes,
         'q': q
     })
+    
+def generar_pdf_ensayo(request, solicitud_id):
+    solicitud = get_object_or_404(
+        SolicitudEnsayo.objects.select_related('cotizacion__cliente'), 
+        id=solicitud_id
+    )
+    
+    from .models import Proyecto 
+    proyecto = Proyecto.objects.filter(cotizacion=solicitud.cotizacion).first()
+
+    detalles = solicitud.detalles.select_related(
+        'muestra', 
+        'tecnico_asignado__user'  
+    ).all()
+
+    context = {
+        'solicitud': solicitud,
+        'proyecto': proyecto,
+        'detalles': detalles,
+        'user': request.user,
+    }
+
+    html_string = render_to_string('proyectos/ensayos_pdf.html', context)
+    
+    html = HTML(string=html_string, base_url=request.build_absolute_uri())
+    pdf_file = html.write_pdf()
+
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    filename = f"Solicitud_Ensayo_{solicitud.id}.pdf"
+    response['Content-Disposition'] = f'inline; filename="{filename}"'
+    
+    return response
 
 

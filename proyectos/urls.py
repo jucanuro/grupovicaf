@@ -47,5 +47,6 @@ urlpatterns = [
      path('ensayo/nuevo/', views.gestionar_solicitud_ensayo, name='crear_solicitud'),
      path('ensayo/editar/<int:pk>/', views.gestionar_solicitud_ensayo, name='editar_solicitud'),
      path('solicitudes/estado/<int:pk>/<str:nuevo_estado>/', views.cambiar_estado_solicitud, name='cambiar_estado'),
+     path('ensayo/<int:solicitud_id>/pdf/', views.generar_pdf_ensayo, name='generar_pdf_ensayo'),
 ]
 

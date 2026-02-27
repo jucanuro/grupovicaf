@@ -71,8 +71,7 @@
                 <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Información de Control de la Solicitud</span>
             </div>
 
-            <div class="p-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                
+            <div class="p-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
                 <div class="md:col-span-1 lg:col-span-1">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cotización / Cliente</label>
                     <select name="cotizacion" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm" required>
@@ -86,28 +85,40 @@
                 <div>
                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Fecha Solicitud</label>
                     <input type="date" 
+                        id="fecha_solicitud"
                         name="fecha_solicitud" 
                         class="w-full px-4 py-2.5 bg-blue-50/30 border border-blue-100 rounded-lg text-xs font-bold text-blue-700 outline-none" 
                         value="{% if solicitud.fecha_solicitud %}{{ solicitud.fecha_solicitud|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}">
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Entrega Programada (Reportes)</label>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Plazo (Días Calendario)</label>
+                    <input type="number" 
+                        id="dias_plazo"
+                        name="dias_plazo" 
+                        placeholder="Ej: 20"
+                        min="0"
+                        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-sm">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Entrega Programada</label>
                     <input type="date" 
+                        id="fecha_entrega_programada"
                         name="fecha_entrega_programada" 
                         class="w-full px-4 py-2.5 bg-amber-50/30 border border-amber-100 rounded-lg text-xs font-bold text-amber-700 outline-none" 
                         value="{{ solicitud.fecha_entrega_programada|date:'Y-m-d' }}">
                 </div>
 
                 <div class="md:col-span-3 lg:col-span-1">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Responsable de Registro</label>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Responsable</label>
                     <div class="flex items-center gap-3 p-1.5 bg-slate-50 border border-slate-200 rounded-lg">
                         <div class="w-7 h-7 rounded-full bg-slate-900 flex items-center justify-center text-white text-[10px] font-bold">
                             {{ user.username|slice:":2"|upper }}
                         </div>
                         <div class="leading-none">
                             <p class="text-[10px] font-black text-slate-700 uppercase">{{ user.get_full_name|default:user.username }}</p>
-                            <p class="text-[8px] text-emerald-600 font-bold uppercase tracking-tighter">Usuario Autenticado</p>
+                            <p class="text-[8px] text-emerald-600 font-bold uppercase tracking-tighter">Online</p>
                         </div>
                     </div>
                     <input type="hidden" name="usuario_creador" value="{{ user.id }}">
@@ -254,6 +265,31 @@
 
         const selectCotizacion = document.querySelector('select[name="cotizacion"]');
         const tablaBody = document.querySelector('#tabla-detalles tbody');
+        
+        const inputFechaSolicitud = document.getElementById('fecha_solicitud');
+        const inputDiasPlazo = document.getElementById('dias_plazo');
+        const inputFechaEntrega = document.getElementById('fecha_entrega_programada');
+
+        function calcularFechaEntrega() {
+            const fechaBase = inputFechaSolicitud.value;
+            const dias = parseInt(inputDiasPlazo.value);
+
+            if (fechaBase && !isNaN(dias)) {
+                const date = new Date(fechaBase + 'T00:00:00');
+                date.setDate(date.getDate() + dias);
+                
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                
+                inputFechaEntrega.value = `${year}-${month}-${day}`;
+            }
+        }
+
+        if (inputFechaSolicitud && inputDiasPlazo) {
+            inputFechaSolicitud.addEventListener('change', calcularFechaEntrega);
+            inputDiasPlazo.addEventListener('input', calcularFechaEntrega);
+        }
 
         selectCotizacion.addEventListener('change', function() {
             const cotizacionId = this.value;
