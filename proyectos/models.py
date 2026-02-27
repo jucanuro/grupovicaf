@@ -283,14 +283,15 @@ class DetalleSolicitudEnsayo(models.Model):
 
 class IncidenciaSolicitud(models.Model):
     """
-    Registro de incidencias durante el ensayo (Lunar de incidencias).
+    Registro de incidencias durante el ensayo (Reporte de incidencias).
+    Basado en el formato de la imagen de referencia.
     """
     solicitud = models.ForeignKey(
         SolicitudEnsayo, 
         on_delete=models.CASCADE, 
         related_name='incidencias'
     )
-    detalle_incidencia = models.TextField(verbose_name="Detalle de incidencia")
+    detalle_incidencia = models.TextField(verbose_name="Detalle de la incidencia")
     fecha_ocurrencia = models.DateTimeField(default=timezone.now, verbose_name="Fecha de ocurrencia")
     
     representante_cliente = models.CharField(
@@ -302,9 +303,43 @@ class IncidenciaSolicitud(models.Model):
         TrabajadorProfile, 
         on_delete=models.SET_NULL, 
         null=True, 
-        verbose_name="Representante del Laboratorio"
+        verbose_name="Responsable del laboratorio (JL / SL)",
+        related_name="incidencias_responsable"
+    )
+
+    esta_autorizada = models.BooleanField(
+        default=False, 
+        verbose_name="Autorizado",
+        help_text="Indica si la incidencia ha sido validada/firmada electrónicamente."
+    )
+    autorizado_por = models.ForeignKey(
+        TrabajadorProfile,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="incidencias_autorizadas",
+        verbose_name="Firma de Autorización"
+    )
+    fecha_autorizacion = models.DateTimeField(
+        null=True, 
+        blank=True, 
+        verbose_name="Fecha de Firma"
     )
 
     class Meta:
         verbose_name = "Incidencia de Solicitud"
         verbose_name_plural = "Incidencias de Solicitudes"
+        ordering = ['fecha_ocurrencia']
+
+    def __str__(self):
+        estado = "✅" if self.esta_autorizada else "⏳"
+        return f"{estado} Incidencia {self.id} - Solicitud {self.solicitud.codigo_solicitud}"
+
+    def autorizar(self, trabajador):
+        """
+        Método para ejecutar la firma/autorización de la incidencia.
+        """
+        self.esta_autorizada = True
+        self.autorizado_por = trabajador
+        self.fecha_autorizacion = timezone.now()
+        self.save()

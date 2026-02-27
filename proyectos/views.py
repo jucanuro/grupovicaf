@@ -331,120 +331,129 @@ def api_obtener_detalles_cotizacion(request, cotizacion_id):
 @transaction.atomic
 def gestionar_solicitud_ensayo(request, pk=None):
     solicitud = get_object_or_404(SolicitudEnsayo, pk=pk) if pk else None
-    detalles = solicitud.detalles.all() if solicitud else []
-
+    
     if request.method == 'POST':
         try:
-            try:
-                perfil_trabajador = TrabajadorProfile.objects.get(user=request.user)
-            except TrabajadorProfile.DoesNotExist:
-                messages.error(request, "ERROR: Tu usuario no tiene un perfil de Trabajador asignado.")
-                return redirect('proyectos:lista_solicitudes')
-
-            cotizacion_id = (request.POST.get('cotizacion') or '').strip()
+            perfil_trabajador = TrabajadorProfile.objects.get(user=request.user)
+            cotizacion_id = request.POST.get('cotizacion')
             fecha_solicitud = request.POST.get('fecha_solicitud') or timezone.now().date()
-            fecha_entrega_programada = request.POST.get('fecha_entrega_programada')
+            fecha_entrega_cabecera = request.POST.get('fecha_entrega_programada')
 
             if not cotizacion_id:
-                messages.error(request, "ERROR: Debe seleccionar una Cotización.")
-                return redirect('proyectos:crear_solicitud')
-            
-            if not fecha_entrega_programada:
-                messages.error(request, "ERROR: Debe ingresar la Fecha de Entrega Programada de la cabecera.")
-                return redirect('proyectos:crear_solicitud')
+                raise Exception("Debe seleccionar una Cotización.")
 
-            recepciones_qs = RecepcionMuestra.objects.filter(cotizacion_id=cotizacion_id).order_by('-id')
-            if not recepciones_qs.exists():
-                messages.error(request, "ERROR: No existe una Recepción para esta Cotización.")
-                return redirect('proyectos:crear_solicitud')
-
-            recepcion_id = recepciones_qs.first().id
-            existente = SolicitudEnsayo.objects.filter(recepcion_id=recepcion_id).first()
-            
-            if not solicitud and existente:
-                messages.error(request, f"ERROR: La recepción de esta cotización ya tiene la Solicitud {existente.codigo_solicitud}.")
-                return redirect('proyectos:editar_solicitud', pk=existente.pk)
-
-            muestras_ids = request.POST.getlist('muestra_id[]')
-            servicios_ids = request.POST.getlist('servicio_id[]') 
-            normas = request.POST.getlist('norma[]')
-            metodos = request.POST.getlist('metodo[]')
-            tecnicos_ids = request.POST.getlist('tecnico_id[]')
-            entregas_detalle = request.POST.getlist('entrega_detalle[]')
-
-            if not muestras_ids or len(muestras_ids) == 0:
-                messages.error(request, "ERROR: No se enviaron filas de ensayos.")
-                return redirect('proyectos:crear_solicitud')
-
-            ids_cot_det = [sid for sid in servicios_ids if sid.strip()]
-            cot_det_map = {
-                str(cd.id): cd for cd in 
-                CotizacionDetalle.objects.filter(id__in=ids_cot_det).select_related('servicio')
-            }
+            recepcion = RecepcionMuestra.objects.filter(cotizacion_id=cotizacion_id).order_by('-id').first()
+            if not recepcion:
+                raise Exception("No existe una Recepción para esta Cotización.")
 
             with transaction.atomic():
+                # Evitar el UNIQUE constraint failed: buscamos si ya existe para esta recepción
+                if not solicitud:
+                    solicitud = SolicitudEnsayo.objects.filter(recepcion=recepcion).first()
+
                 if solicitud:
-                    solicitud.recepcion_id = recepcion_id
                     solicitud.cotizacion_id = cotizacion_id
+                    solicitud.recepcion = recepcion
                     solicitud.fecha_solicitud = fecha_solicitud
-                    solicitud.fecha_entrega_programada = fecha_entrega_programada
-                    solicitud.elaborado_por = perfil_trabajador
+                    solicitud.fecha_entrega_programada = fecha_entrega_cabecera
                     solicitud.save()
                     solicitud.detalles.all().delete()
+                    solicitud.incidencias.all().delete()
                 else:
                     solicitud = SolicitudEnsayo.objects.create(
                         codigo_solicitud=f"SOL-{timezone.now().strftime('%Y%m%d%H%M%S')}",
-                        recepcion_id=recepcion_id,
+                        recepcion=recepcion,
                         cotizacion_id=cotizacion_id,
                         fecha_solicitud=fecha_solicitud,
-                        fecha_entrega_programada=fecha_entrega_programada,
+                        fecha_entrega_programada=fecha_entrega_cabecera,
                         elaborado_por=perfil_trabajador,
                         estado='pendiente'
                     )
 
-                filas_to_create = []
+                # --- GUARDAR ENSAYOS (DetalleSolicitudEnsayo) ---
+                muestras_ids = request.POST.getlist('muestra_id[]')
+                servicios_ids = request.POST.getlist('servicio_id[]')
+                normas = request.POST.getlist('norma[]')
+                metodos = request.POST.getlist('metodo[]')
+                tecnicos_ids = request.POST.getlist('tecnico_id[]')
+                entregas_det = request.POST.getlist('entrega_detalle[]')
+
+                # Optimización: traer servicios de una sola vez
+                ids_serv = [s for s in servicios_ids if s.strip()]
+                serv_map = {str(c.id): c for c in CotizacionDetalle.objects.filter(id__in=ids_serv).select_related('servicio')}
+
+                ensayos_list = []
                 for i in range(len(muestras_ids)):
                     m_id = muestras_ids[i].strip()
                     s_id = servicios_ids[i].strip()
-                    
                     if not m_id or not s_id: continue
 
-                    cot_det = cot_det_map.get(s_id)
-                    if not cot_det: continue
-
-                    desc = cot_det.servicio.nombre if cot_det.servicio else "Servicio Especial"
-                    nrm = normas[i].strip() or (cot_det.norma_manual or (cot_det.servicio.norma if cot_det.servicio else ""))
-                    mtd = metodos[i].strip() or (cot_det.metodo_manual or (cot_det.servicio.metodo if cot_det.servicio else ""))
-                    f_entrega = entregas_detalle[i].strip() or fecha_entrega_programada
-
-                    filas_to_create.append(DetalleSolicitudEnsayo(
+                    cot_det = serv_map.get(s_id)
+                    desc = cot_det.servicio.nombre if cot_det and cot_det.servicio else "Ensayo"
+                    
+                    ensayos_list.append(DetalleSolicitudEnsayo(
                         solicitud=solicitud,
                         muestra_id=m_id,
                         servicio_cotizado_id=s_id,
                         descripcion_ensayo=desc,
-                        norma=str(nrm),
-                        metodo=str(mtd),
+                        norma=normas[i].strip() if i < len(normas) else "",
+                        metodo=metodos[i].strip() if i < len(metodos) else "",
                         tecnico_asignado_id=tecnicos_ids[i].strip() or None if i < len(tecnicos_ids) else None,
-                        fecha_entrega_programada=f_entrega
+                        fecha_entrega_programada=entregas_det[i].strip() or fecha_entrega_cabecera
                     ))
+                
+                if ensayos_list:
+                    DetalleSolicitudEnsayo.objects.bulk_create(ensayos_list)
 
-                if filas_to_create:
-                    DetalleSolicitudEnsayo.objects.bulk_create(filas_to_create)
-                    messages.success(request, f"Solicitud {solicitud.codigo_solicitud} guardada con éxito.")
-                    return redirect('proyectos:lista_solicitudes')
-                else:
-                    raise Exception("No se generaron detalles válidos para la solicitud.")
+                # --- GUARDAR INCIDENCIAS (IncidenciaSolicitud) ---
+                inc_detalles = request.POST.getlist('incidencia_detalle[]')
+                inc_fechas = request.POST.getlist('incidencia_fecha[]')
+                inc_clientes = request.POST.getlist('incidencia_cliente[]')
+                inc_responsables = request.POST.getlist('incidencia_responsable_id[]')
+                inc_autorizados = request.POST.getlist('incidencia_autorizado[]') # 'true'/'false' desde JS
+
+                incidencias_list = []
+                for j in range(len(inc_detalles)):
+                    texto = inc_detalles[j].strip()
+                    if not texto: continue
+
+                    # Mapeo de campos según tu modelo
+                    is_auth = (inc_autorizados[j].lower() == 'true') if j < len(inc_autorizados) else False
+                    
+                    nueva_inc = IncidenciaSolicitud(
+                        solicitud=solicitud,
+                        detalle_incidencia=texto,
+                        fecha_ocurrencia=inc_fechas[j] if (j < len(inc_fechas) and inc_fechas[j]) else timezone.now(),
+                        representante_cliente=inc_clientes[j] if j < len(inc_clientes) else "",
+                        representante_laboratorio_id=inc_responsables[j].strip() or None if j < len(inc_responsables) else None,
+                        esta_autorizada=is_auth
+                    )
+                    
+                    # Si viene autorizada de una vez, registramos quién y cuándo (opcional)
+                    if is_auth:
+                        nueva_inc.autorizado_por = perfil_trabajador
+                        nueva_inc.fecha_autorizacion = timezone.now()
+
+                    incidencias_list.append(nueva_inc)
+
+                if incidencias_list:
+                    IncidenciaSolicitud.objects.bulk_create(incidencias_list)
+
+            messages.success(request, f"Solicitud {solicitud.codigo_solicitud} guardada con éxito.")
+            return redirect('proyectos:lista_solicitudes')
 
         except Exception as e:
-            messages.error(request, f"Error al guardar: {str(e)}")
-            return redirect('proyectos:crear_solicitud')
+            messages.error(request, f"Error: {str(e)}")
+            return redirect(request.path)
 
+    # --- LÓGICA GET ---
     context = {
         'solicitud': solicitud,
-        'detalles': detalles,
+        'detalles': solicitud.detalles.all() if solicitud else [],
+        'incidencias': solicitud.incidencias.all() if solicitud else [],
         'cotizaciones': Cotizacion.objects.filter(estado='Aceptada'),
         'trabajadores': TrabajadorProfile.objects.all(),
-        'muestras_disponibles': MuestraDetalle.objects.filter(recepcion__solicitud_ensayo=solicitud) if solicitud else [],
+        'muestras_disponibles': MuestraDetalle.objects.filter(recepcion__cotizacion_id=solicitud.cotizacion_id) if solicitud else [],
     }
     return render(request, 'proyectos/ensayos_form.html', context)
 

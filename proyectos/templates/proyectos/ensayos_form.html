@@ -84,28 +84,20 @@
 
                 <div>
                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Fecha Solicitud</label>
-                    <input type="date" 
-                        id="fecha_solicitud"
-                        name="fecha_solicitud" 
+                    <input type="date" id="fecha_solicitud" name="fecha_solicitud" 
                         class="w-full px-4 py-2.5 bg-blue-50/30 border border-blue-100 rounded-lg text-xs font-bold text-blue-700 outline-none" 
                         value="{% if solicitud.fecha_solicitud %}{{ solicitud.fecha_solicitud|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}">
                 </div>
 
                 <div>
                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Plazo (Días Calendario)</label>
-                    <input type="number" 
-                        id="dias_plazo"
-                        name="dias_plazo" 
-                        placeholder="Ej: 20"
-                        min="0"
+                    <input type="number" id="dias_plazo" name="dias_plazo" placeholder="Ej: 20" min="0"
                         class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-sm">
                 </div>
 
                 <div>
                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Entrega Programada</label>
-                    <input type="date" 
-                        id="fecha_entrega_programada"
-                        name="fecha_entrega_programada" 
+                    <input type="date" id="fecha_entrega_programada" name="fecha_entrega_programada" 
                         class="w-full px-4 py-2.5 bg-amber-50/30 border border-amber-100 rounded-lg text-xs font-bold text-amber-700 outline-none" 
                         value="{{ solicitud.fecha_entrega_programada|date:'Y-m-d' }}">
                 </div>
@@ -169,7 +161,7 @@
                                     </select>
                                 </td>
                                 <td class="p-3 space-y-1">
-                                    <input type="text" name="norma[]" value="{{ d.norma }}" class="w-full p-2 border border-slate-200 rounded text-[11px] font-mono text-blue-600" placeholder="Norma (Ej: ASTM D2216)">
+                                    <input type="text" name="norma[]" value="{{ d.norma }}" class="w-full p-2 border border-slate-200 rounded text-[11px] font-mono text-blue-600" placeholder="Norma">
                                     <input type="text" name="metodo[]" value="{{ d.metodo }}" class="w-full p-2 border border-slate-200 rounded text-[11px] text-slate-600" placeholder="Método">
                                 </td>
                                 <td class="p-3">
@@ -227,25 +219,92 @@
                     </tbody>
                 </table>
             </div>
+        </div>
 
-            <div class="p-8 bg-slate-50 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
-                <div class="flex items-center gap-4 text-blue-600 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100">
-                    <i data-lucide="info" class="w-5 h-5"></i>
-                    <p class="text-[10px] font-bold leading-tight uppercase">
-                        Verifique que los servicios coincidan con los ítems<br>
-                        aprobados en la cotización seleccionada.
-                    </p>
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-6">
+            <div class="flex items-center justify-between bg-white p-4 border-b border-slate-100">
+                <div class="flex items-center gap-3 bg-slate-100 px-5 py-2.5 rounded-xl border border-slate-200">
+                    <i data-lucide="alert-circle" class="text-amber-600 w-5 h-5"></i>
+                    <h2 class="text-[12px] font-black text-slate-800 uppercase tracking-[0.2em]">3. Reporte de Incidencias</h2>
                 </div>
+                
+                <button type="button" id="btn-agregar-incidencia" class="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase hover:bg-slate-700 transition-all shadow-md active:scale-95">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Añadir Incidencia
+                </button>
+            </div>
 
-                <div class="flex items-center gap-3">
-                    <a href="{% url 'proyectos:lista_solicitudes' %}" class="px-8 py-4 text-xs font-black text-slate-500 uppercase tracking-widest hover:text-slate-800 transition-all">
-                        Cancelar
-                    </a>
-                    <button type="submit" class="bg-slate-900 text-white px-12 py-4 rounded-2xl text-xs font-black hover:bg-blue-600 hover:-translate-y-1 shadow-2xl transition-all flex items-center gap-4 group">
-                        <i data-lucide="save" class="w-5 h-5 group-hover:animate-bounce"></i>
-                        GUARDAR SOLICITUD DE ENSAYO
-                    </button>
-                </div>
+            <div class="overflow-x-auto table-container">
+                <table class="w-full border-collapse" id="tabla-incidencias">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200">
+                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-center w-12">Ítem</th>
+                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-center w-24">Autorizar</th>
+                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left w-1/3">Detalle de la incidencia</th>
+                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-center">Fecha ocurrencia</th>
+                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left">Representante del cliente</th>
+                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left">Responsable lab (JL/SL)</th>
+                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-center w-12"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="body-incidencias" class="divide-y divide-slate-100">
+                        {% if incidencias %}
+                            {% for inc in incidencias %}
+                            <tr class="hover:bg-slate-50/50 transition-colors">
+                                <td class="p-3 text-center text-[11px] font-mono text-slate-400 item-incidencia-index">{{ forloop.counter }}</td>
+                                <td class="p-3 text-center">
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="hidden" name="incidencia_autorizado[]" value="{% if inc.autorizado %}true{% else %}false{% endif %}">
+                                        <input type="checkbox" class="sr-only peer auth-check" {% if inc.autorizado %}checked{% endif %} onchange="updateAuthValue(this)">
+                                        <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                                    </label>
+                                </td>
+                                <td class="p-3">
+                                    <textarea name="incidencia_detalle[]" rows="2" class="w-full p-2 border border-slate-200 rounded text-[11px] text-slate-700 focus:bg-white outline-none" placeholder="Detalle..." required>{{ inc.detalle_incidencia }}</textarea>
+                                </td>
+                                <td class="p-3">
+                                    <input type="datetime-local" name="incidencia_fecha[]" value="{{ inc.fecha_ocurrencia|date:'Y-m-d\TH:i' }}" class="w-full p-2 border border-slate-200 rounded text-[11px] font-bold text-slate-600">
+                                </td>
+                                <td class="p-3">
+                                    <input type="text" name="incidencia_cliente[]" value="{{ inc.representante_cliente|default:'' }}" class="w-full p-2 border border-slate-200 rounded text-[11px] text-slate-700" placeholder="Nombre completo">
+                                </td>
+                                <td class="p-3">
+                                    <select name="incidencia_responsable_id[]" class="w-full p-2 border border-slate-200 rounded text-[11px] font-bold text-slate-700">
+                                        <option value="">-- Seleccionar --</option>
+                                        {% for t in trabajadores %}
+                                        <option value="{{ t.id }}" {% if inc.representante_laboratorio_id == t.id %}selected{% endif %}>{{ t.nombre_completo }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td class="p-3 text-center">
+                                    <button type="button" class="text-slate-300 hover:text-red-500 transition-colors" onclick="eliminarFilaIncidencia(this)">
+                                        <i data-lucide="x-circle" class="w-4 h-4"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="p-8 bg-slate-50 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-4 text-blue-600 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100">
+                <i data-lucide="info" class="w-5 h-5"></i>
+                <p class="text-[10px] font-bold leading-tight uppercase">
+                    Verifique que los servicios coincidan con los ítems<br>
+                    aprobados en la cotización seleccionada.
+                </p>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <a href="{% url 'proyectos:lista_solicitudes' %}" class="px-8 py-4 text-xs font-black text-slate-500 uppercase tracking-widest hover:text-slate-800 transition-all">
+                    Cancelar
+                </a>
+                <button type="submit" class="bg-slate-900 text-white px-12 py-4 rounded-2xl text-xs font-black hover:bg-blue-600 hover:-translate-y-1 shadow-2xl transition-all flex items-center gap-4 group">
+                    <i data-lucide="save" class="w-5 h-5 group-hover:animate-bounce"></i>
+                    GUARDAR SOLICITUD DE ENSAYO
+                </button>
             </div>
         </div>
     </form>
@@ -258,30 +317,38 @@
 
 <script src="https://unpkg.com/lucide@latest"></script>
 <script>
+    // --- 1. LÓGICA DE SINCRONIZACIÓN DE CHECKBOXES (CRÍTICO PARA EL GUARDADO) ---
+    // Esta función asegura que el input hidden siempre tenga el valor del checkbox visual.
+    function updateAuthValue(checkbox) {
+        const hiddenInput = checkbox.closest('td').querySelector('input[type="hidden"]');
+        if (hiddenInput) {
+            hiddenInput.value = checkbox.checked ? "true" : "false";
+        }
+    }
+
     let muestrasGlobales = [];
 
     document.addEventListener('DOMContentLoaded', () => {
+        // Inicializar iconos
         if (typeof lucide !== 'undefined') lucide.createIcons();
 
+        // Referencias elementos Cabecera
         const selectCotizacion = document.querySelector('select[name="cotizacion"]');
         const tablaBody = document.querySelector('#tabla-detalles tbody');
-        
         const inputFechaSolicitud = document.getElementById('fecha_solicitud');
         const inputDiasPlazo = document.getElementById('dias_plazo');
         const inputFechaEntrega = document.getElementById('fecha_entrega_programada');
 
+        // --- 2. CÁLCULO DE FECHAS ---
         function calcularFechaEntrega() {
             const fechaBase = inputFechaSolicitud.value;
             const dias = parseInt(inputDiasPlazo.value);
-
             if (fechaBase && !isNaN(dias)) {
                 const date = new Date(fechaBase + 'T00:00:00');
                 date.setDate(date.getDate() + dias);
-                
                 const year = date.getFullYear();
                 const month = String(date.getMonth() + 1).padStart(2, '0');
                 const day = String(date.getDate()).padStart(2, '0');
-                
                 inputFechaEntrega.value = `${year}-${month}-${day}`;
             }
         }
@@ -291,6 +358,7 @@
             inputDiasPlazo.addEventListener('input', calcularFechaEntrega);
         }
 
+        // --- 3. LÓGICA CAMBIO DE COTIZACIÓN (API) ---
         selectCotizacion.addEventListener('change', function() {
             const cotizacionId = this.value;
             if (!cotizacionId) return;
@@ -305,7 +373,6 @@
             }
 
             tablaBody.innerHTML = '';
-
             fetch(`/proyectos/api/cotizacion-detalles/${cotizacionId}/`)
                 .then(response => {
                     if (!response.ok) throw new Error('Error en el servidor');
@@ -313,29 +380,19 @@
                 })
                 .then(data => {
                     muestrasGlobales = data.muestras || [];
-
                     if (data.servicios && data.servicios.length > 0) {
                         data.servicios.forEach((item) => {
                             const fila = agregarNuevaFila();
-
+                            
+                            // Configurar el select de servicio cargado
                             const selectServicio = fila.querySelector('select[name="servicio_id[]"]');
-                            const optionServicio = document.createElement('option');
-
-                            optionServicio.value = item.cotizacion_detalle_id;
-                            optionServicio.text = item.nombre_servicio;
-                            optionServicio.selected = true;
-
-                            optionServicio.dataset.norma = item.norma || "";
-                            optionServicio.dataset.metodo = item.metodo || "";
-
-                            selectServicio.innerHTML = '<option value="">-- Servicio --</option>';
-                            selectServicio.appendChild(optionServicio);
-
-                            const normaInput = fila.querySelector('input[name="norma[]"]');
-                            const metodoInput = fila.querySelector('input[name="metodo[]"]');
-
-                            if (normaInput) normaInput.value = item.norma || "";
-                            if (metodoInput) metodoInput.value = item.metodo || "";
+                            selectServicio.innerHTML = `<option value="${item.cotizacion_detalle_id}" selected 
+                                data-norma="${item.norma || ''}" 
+                                data-metodo="${item.metodo || ''}">${item.nombre_servicio}</option>`;
+                            
+                            // Rellenar norma y método automáticamente
+                            fila.querySelector('input[name="norma[]"]').value = item.norma || "";
+                            fila.querySelector('input[name="metodo[]"]').value = item.metodo || "";
                         });
                     } else {
                         agregarNuevaFila();
@@ -343,31 +400,46 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert("Error al obtener los datos de la cotización y muestras.");
+                    alert("Error al obtener los datos de la cotización.");
                     if (tablaBody.rows.length === 0) agregarNuevaFila();
                 });
         });
 
+        // Autofill normas cuando se cambia manualmente el servicio
         tablaBody.addEventListener('change', (e) => {
             if (e.target && e.target.name === 'servicio_id[]') {
                 const fila = e.target.closest('tr');
                 const selectedOption = e.target.options[e.target.selectedIndex];
-
-                const norma = selectedOption.dataset.norma || "";
-                const metodo = selectedOption.dataset.metodo || "";
-
                 const normaInput = fila.querySelector('input[name="norma[]"]');
                 const metodoInput = fila.querySelector('input[name="metodo[]"]');
-
-                if (normaInput) normaInput.value = norma;
-                if (metodoInput) metodoInput.value = metodo;
+                if (normaInput) normaInput.value = selectedOption.dataset.norma || "";
+                if (metodoInput) metodoInput.value = selectedOption.dataset.metodo || "";
             }
         });
+
+        // Botón Agregar Fila Ensayo
+        const btnAddEnsayo = document.getElementById('btn-agregar-fila');
+        if (btnAddEnsayo) {
+            btnAddEnsayo.addEventListener('click', (e) => {
+                e.preventDefault();
+                agregarNuevaFila();
+            });
+        }
+
+        // Botón Agregar Incidencia
+        const btnIncidencia = document.getElementById('btn-agregar-incidencia');
+        if (btnIncidencia) {
+            btnIncidencia.addEventListener('click', (e) => {
+                e.preventDefault();
+                agregarFilaIncidencia();
+            });
+        }
     });
+
+    // --- 4. FUNCIONES DE MANIPULACIÓN DE TABLAS ---
 
     function agregarNuevaFila() {
         const tabla = document.querySelector('#tabla-detalles tbody');
-
         let opcionesMuestrasHTML = '<option value="">-- Muestra --</option>';
         muestrasGlobales.forEach(m => {
             opcionesMuestrasHTML += `<option value="${m.id}">${m.codigo_laboratorio} (${m.descripcion})</option>`;
@@ -376,12 +448,12 @@
         const rowHTML = `
             <tr class="group hover:bg-slate-50 transition-colors border-b border-slate-100">
                 <td class="p-1.5">
-                    <select name="muestra_id[]" class="w-full p-1 bg-white border border-slate-200 rounded text-[10px] font-medium text-slate-700 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 outline-none" required>
+                    <select name="muestra_id[]" class="w-full p-1 bg-white border border-slate-200 rounded text-[10px] font-medium" required>
                         ${opcionesMuestrasHTML}
                     </select>
                 </td>
                 <td class="p-1.5">
-                    <select name="servicio_id[]" class="w-full p-1 bg-white border border-slate-200 rounded text-[10px] font-bold text-slate-800 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 outline-none" required>
+                    <select name="servicio_id[]" class="w-full p-1 bg-white border border-slate-200 rounded text-[10px] font-bold" required>
                         <option value="">-- Servicio --</option>
                         {% for s in servicios_items %}
                         <option value="{{ s.id }}"
@@ -394,37 +466,28 @@
                 </td>
                 <td class="p-1.5">
                     <div class="flex gap-1">
-                        <input type="text" name="norma[]" class="w-1/2 p-1 border border-slate-200 rounded text-[10px] font-mono text-blue-700 placeholder:text-slate-300 focus:bg-blue-50/30 outline-none" placeholder="Norma">
-                        <input type="text" name="metodo[]" class="w-1/2 p-1 border border-slate-200 rounded text-[10px] text-slate-600 placeholder:text-slate-300 focus:bg-slate-50 outline-none" placeholder="Método">
+                        <input type="text" name="norma[]" class="w-1/2 p-1 border border-slate-200 rounded text-[10px] font-mono text-blue-700" placeholder="Norma">
+                        <input type="text" name="metodo[]" class="w-1/2 p-1 border border-slate-200 rounded text-[10px]" placeholder="Método">
                     </div>
                 </td>
                 <td class="p-1.5">
-                    <select name="tecnico_id[]" class="w-full p-1 bg-white border border-slate-200 rounded text-[10px] text-slate-700 outline-none">
+                    <select name="tecnico_id[]" class="w-full p-1 bg-white border border-slate-200 rounded text-[10px]">
                         <option value="">-- Técnico --</option>
                         {% for t in trabajadores %}<option value="{{ t.id }}">{{ t.nombre_completo }}</option>{% endfor %}
                     </select>
                 </td>
                 <td class="p-1.5">
-                    <input type="date" name="entrega_detalle[]" class="w-full p-1 border border-slate-200 rounded text-[10px] font-bold text-slate-700 bg-white outline-none">
+                    <input type="date" name="entrega_detalle[]" class="w-full p-1 border border-slate-200 rounded text-[10px] font-bold">
                 </td>
                 <td class="p-1.5 text-center">
-                    <button type="button" class="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded transition-all" onclick="eliminarFila(this)">
+                    <button type="button" class="p-1 text-slate-300 hover:text-red-500 rounded transition-all" onclick="eliminarFila(this)">
                         <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                     </button>
                 </td>
             </tr>`;
-
         tabla.insertAdjacentHTML('beforeend', rowHTML);
         if (typeof lucide !== 'undefined') lucide.createIcons();
         return tabla.lastElementChild;
-    }
-
-    const btnAdd = document.getElementById('btn-agregar-fila');
-    if (btnAdd) {
-        btnAdd.addEventListener('click', (e) => {
-            e.preventDefault();
-            agregarNuevaFila();
-        });
     }
 
     function eliminarFila(btn) {
@@ -436,6 +499,58 @@
             row.querySelectorAll('input').forEach(i => i.value = "");
             row.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
         }
+    }
+
+    function agregarFilaIncidencia() {
+        const tbody = document.getElementById('body-incidencias');
+        const index = tbody.rows.length + 1;
+        const now = new Date().toISOString().slice(0, 16);
+
+        const rowHTML = `
+            <tr class="hover:bg-slate-50/50 transition-colors">
+                <td class="p-3 text-center text-[11px] font-mono text-slate-400 item-incidencia-index">${index}</td>
+                <td class="p-3 text-center">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="hidden" name="incidencia_autorizado[]" value="false">
+                        <input type="checkbox" class="sr-only peer" onchange="updateAuthValue(this)">
+                        <div class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-emerald-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                    </label>
+                </td>
+                <td class="p-3">
+                    <textarea name="incidencia_detalle[]" rows="2" class="w-full p-2 border border-slate-200 rounded text-[11px]" placeholder="Detalle la incidencia..." required></textarea>
+                </td>
+                <td class="p-3">
+                    <input type="datetime-local" name="incidencia_fecha[]" value="${now}" class="w-full p-2 border border-slate-200 rounded text-[11px] font-bold">
+                </td>
+                <td class="p-3">
+                    <input type="text" name="incidencia_cliente[]" class="w-full p-2 border border-slate-200 rounded text-[11px]" placeholder="Representante">
+                </td>
+                <td class="p-3">
+                    <select name="incidencia_responsable_id[]" class="w-full p-2 border border-slate-200 rounded text-[11px]">
+                        <option value="">-- Seleccionar --</option>
+                        {% for t in trabajadores %}
+                        <option value="{{ t.id }}">{{ t.nombre_completo }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td class="p-3 text-center">
+                    <button type="button" class="text-slate-300 hover:text-red-500 transition-colors" onclick="eliminarFilaIncidencia(this)">
+                        <i data-lucide="x-circle" class="w-4 h-4"></i>
+                    </button>
+                </td>
+            </tr>`;
+        tbody.insertAdjacentHTML('beforeend', rowHTML);
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function eliminarFilaIncidencia(btn) {
+        btn.closest('tr').remove();
+        actualizarNumeracionIncidencias();
+    }
+
+    function actualizarNumeracionIncidencias() {
+        const filas = document.querySelectorAll('.item-incidencia-index');
+        filas.forEach((td, i) => { td.innerText = i + 1; });
     }
 </script>
 {% endblock %}
