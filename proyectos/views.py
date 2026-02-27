@@ -302,17 +302,18 @@ def generar_y_enviar_whatsapp(request, recepcion_id):
 
 def api_obtener_detalles_cotizacion(request, cotizacion_id):
     cotizacion = get_object_or_404(Cotizacion, pk=cotizacion_id)
-    
+
     detalles = CotizacionDetalle.objects.filter(
         grupo__cotizacion=cotizacion
     ).select_related('servicio')
-    
+
     servicios_data = []
     for item in detalles:
         norma = item.norma_manual or (item.servicio.norma if item.servicio else "")
         metodo = item.metodo_manual or (item.servicio.metodo if item.servicio else "")
         servicios_data.append({
-            'servicio_id': item.servicio.id if item.servicio else None,
+            'cotizacion_detalle_id': item.id,  
+            'servicio_id': item.servicio.id if item.servicio else None,  
             'nombre_servicio': item.servicio.nombre if item.servicio else "Servicio Especial",
             'norma': str(norma),
             'metodo': str(metodo),
@@ -324,92 +325,126 @@ def api_obtener_detalles_cotizacion(request, cotizacion_id):
 
     return JsonResponse({
         'servicios': servicios_data,
-        'muestras': list(muestras) 
+        'muestras': list(muestras)
     })
 
+@transaction.atomic
 def gestionar_solicitud_ensayo(request, pk=None):
-    if pk:
-        solicitud = get_object_or_404(SolicitudEnsayo, pk=pk)
-        detalles = solicitud.detalles.all()
-    else:
-        solicitud = None
-        detalles = []
+    solicitud = get_object_or_404(SolicitudEnsayo, pk=pk) if pk else None
+    detalles = solicitud.detalles.all() if solicitud else []
 
     if request.method == 'POST':
-        # 1. Validar Perfil de Trabajador
-        perfil_trabajador = getattr(request.user, 'trabajadorprofile', None)
-        if not perfil_trabajador:
-            messages.error(request, "ERROR: Tu usuario no tiene un perfil de Trabajador asignado.")
-            return redirect('proyectos:lista_solicitudes')
-
-        # 2. Captura de datos básica
-        recepcion_id = request.POST.get('recepcion')
-        cotizacion_id = request.POST.get('cotizacion')
-        
-        # Validar que existan IDs mínimos antes de intentar guardar
-        if not recepcion_id or not cotizacion_id:
-            messages.error(request, "ERROR: Debe seleccionar Recepción y Cotización.")
-        else:
+        try:
             try:
-                with transaction.atomic():
-                    # Crear o Actualizar Cabecera
-                    if solicitud:
-                        solicitud.fecha_solicitud = request.POST.get('fecha_solicitud') or timezone.now().date()
-                        solicitud.fecha_entrega_programada = request.POST.get('fecha_entrega_programada')
-                        solicitud.elaborado_por = perfil_trabajador
-                    else:
-                        solicitud = SolicitudEnsayo(
-                            codigo_solicitud=f"SOL-{timezone.now().strftime('%Y%m%d%H%M%S')}",
-                            recepcion_id=recepcion_id,
-                            cotizacion_id=cotizacion_id,
-                            fecha_solicitud=request.POST.get('fecha_solicitud') or timezone.now().date(),
-                            fecha_entrega_programada=request.POST.get('fecha_entrega_programada'),
-                            elaborado_por=perfil_trabajador,
-                            estado='pendiente'
-                        )
-                    
-                    solicitud.save() # Guardar cabecera
-
-                    # 3. Procesamiento de Detalles
-                    muestras_ids = request.POST.getlist('muestra_id[]')
-                    servicios_ids = request.POST.getlist('servicio_id[]')
-                    # ... (los otros getlist)
-
-                    if pk:
-                        solicitud.detalles.all().delete()
-
-                    # Solo intentar guardar si hay filas
-                    if not muestras_ids:
-                        raise ValueError("No se enviaron filas de ensayos en la tabla.")
-
-                    for i in range(len(muestras_ids)):
-                        if muestras_ids[i]: # Si la fila tiene una muestra seleccionada
-                            DetalleSolicitudEnsayo.objects.create(
-                                solicitud=solicitud,
-                                muestra_id=muestras_ids[i],
-                                servicio_cotizado_id=servicios_ids[i] if servicios_ids[i] else None,
-                                norma=request.POST.getlist('norma[]')[i],
-                                metodo=request.POST.getlist('metodo[]')[i],
-                                tecnico_asignado_id=request.POST.getlist('tecnico_id[]')[i] or None
-                            )
-                
-                messages.success(request, f"Solicitud {solicitud.codigo_solicitud} guardada con éxito.")
+                perfil_trabajador = TrabajadorProfile.objects.get(user=request.user)
+            except TrabajadorProfile.DoesNotExist:
+                messages.error(request, "ERROR: Tu usuario no tiene un perfil de Trabajador asignado.")
                 return redirect('proyectos:lista_solicitudes')
 
-            except Exception as e:
-                # AQUÍ VERÁS EL ERROR REAL EN TU TERMINAL
-                print(f"--- ERROR CRÍTICO EN GUARDADO ---")
-                print(str(e)) 
-                messages.error(request, f"Error al guardar en base de datos: {str(e)}")
+            cotizacion_id = (request.POST.get('cotizacion') or '').strip()
+            fecha_solicitud = request.POST.get('fecha_solicitud') or timezone.now().date()
+            fecha_entrega_programada = request.POST.get('fecha_entrega_programada')
 
-    # Contexto...
+            if not cotizacion_id:
+                messages.error(request, "ERROR: Debe seleccionar una Cotización.")
+                return redirect('proyectos:crear_solicitud')
+            
+            if not fecha_entrega_programada:
+                messages.error(request, "ERROR: Debe ingresar la Fecha de Entrega Programada de la cabecera.")
+                return redirect('proyectos:crear_solicitud')
+
+            recepciones_qs = RecepcionMuestra.objects.filter(cotizacion_id=cotizacion_id).order_by('-id')
+            if not recepciones_qs.exists():
+                messages.error(request, "ERROR: No existe una Recepción para esta Cotización.")
+                return redirect('proyectos:crear_solicitud')
+
+            recepcion_id = recepciones_qs.first().id
+            existente = SolicitudEnsayo.objects.filter(recepcion_id=recepcion_id).first()
+            
+            if not solicitud and existente:
+                messages.error(request, f"ERROR: La recepción de esta cotización ya tiene la Solicitud {existente.codigo_solicitud}.")
+                return redirect('proyectos:editar_solicitud', pk=existente.pk)
+
+            muestras_ids = request.POST.getlist('muestra_id[]')
+            servicios_ids = request.POST.getlist('servicio_id[]') 
+            normas = request.POST.getlist('norma[]')
+            metodos = request.POST.getlist('metodo[]')
+            tecnicos_ids = request.POST.getlist('tecnico_id[]')
+            entregas_detalle = request.POST.getlist('entrega_detalle[]')
+
+            if not muestras_ids or len(muestras_ids) == 0:
+                messages.error(request, "ERROR: No se enviaron filas de ensayos.")
+                return redirect('proyectos:crear_solicitud')
+
+            ids_cot_det = [sid for sid in servicios_ids if sid.strip()]
+            cot_det_map = {
+                str(cd.id): cd for cd in 
+                CotizacionDetalle.objects.filter(id__in=ids_cot_det).select_related('servicio')
+            }
+
+            with transaction.atomic():
+                if solicitud:
+                    solicitud.recepcion_id = recepcion_id
+                    solicitud.cotizacion_id = cotizacion_id
+                    solicitud.fecha_solicitud = fecha_solicitud
+                    solicitud.fecha_entrega_programada = fecha_entrega_programada
+                    solicitud.elaborado_por = perfil_trabajador
+                    solicitud.save()
+                    solicitud.detalles.all().delete()
+                else:
+                    solicitud = SolicitudEnsayo.objects.create(
+                        codigo_solicitud=f"SOL-{timezone.now().strftime('%Y%m%d%H%M%S')}",
+                        recepcion_id=recepcion_id,
+                        cotizacion_id=cotizacion_id,
+                        fecha_solicitud=fecha_solicitud,
+                        fecha_entrega_programada=fecha_entrega_programada,
+                        elaborado_por=perfil_trabajador,
+                        estado='pendiente'
+                    )
+
+                filas_to_create = []
+                for i in range(len(muestras_ids)):
+                    m_id = muestras_ids[i].strip()
+                    s_id = servicios_ids[i].strip()
+                    
+                    if not m_id or not s_id: continue
+
+                    cot_det = cot_det_map.get(s_id)
+                    if not cot_det: continue
+
+                    desc = cot_det.servicio.nombre if cot_det.servicio else "Servicio Especial"
+                    nrm = normas[i].strip() or (cot_det.norma_manual or (cot_det.servicio.norma if cot_det.servicio else ""))
+                    mtd = metodos[i].strip() or (cot_det.metodo_manual or (cot_det.servicio.metodo if cot_det.servicio else ""))
+                    f_entrega = entregas_detalle[i].strip() or fecha_entrega_programada
+
+                    filas_to_create.append(DetalleSolicitudEnsayo(
+                        solicitud=solicitud,
+                        muestra_id=m_id,
+                        servicio_cotizado_id=s_id,
+                        descripcion_ensayo=desc,
+                        norma=str(nrm),
+                        metodo=str(mtd),
+                        tecnico_asignado_id=tecnicos_ids[i].strip() or None if i < len(tecnicos_ids) else None,
+                        fecha_entrega_programada=f_entrega
+                    ))
+
+                if filas_to_create:
+                    DetalleSolicitudEnsayo.objects.bulk_create(filas_to_create)
+                    messages.success(request, f"Solicitud {solicitud.codigo_solicitud} guardada con éxito.")
+                    return redirect('proyectos:lista_solicitudes')
+                else:
+                    raise Exception("No se generaron detalles válidos para la solicitud.")
+
+        except Exception as e:
+            messages.error(request, f"Error al guardar: {str(e)}")
+            return redirect('proyectos:crear_solicitud')
+
     context = {
         'solicitud': solicitud,
         'detalles': detalles,
-        'recepciones': RecepcionMuestra.objects.all().order_by('-id'),
         'cotizaciones': Cotizacion.objects.filter(estado='Aceptada'),
         'trabajadores': TrabajadorProfile.objects.all(),
-        'muestras_disponibles': MuestraDetalle.objects.all(),
+        'muestras_disponibles': MuestraDetalle.objects.filter(recepcion__solicitud_ensayo=solicitud) if solicitud else [],
     }
     return render(request, 'proyectos/ensayos_form.html', context)
 

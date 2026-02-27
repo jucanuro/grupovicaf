@@ -133,7 +133,7 @@
                         <tr class="bg-slate-50 border-b border-slate-200">
                             <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left w-1/6">Muestra (ID LAB)</th>
                             <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left w-1/4">Servicio</th>
-                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left">Descripción / Norma</th>
+                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left">Norma / Método</th>
                             <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left">Técnico Asignado</th>
                             <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-center w-36">F. Entrega</th>
                             <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-center w-12"></th>
@@ -158,9 +158,8 @@
                                     </select>
                                 </td>
                                 <td class="p-3 space-y-1">
-                                    <input type="text" name="descripcion[]" value="{{ d.descripcion_ensayo }}" class="w-full p-2 border border-slate-200 rounded text-[11px] placeholder-slate-300" placeholder="Descripción técnica">
                                     <input type="text" name="norma[]" value="{{ d.norma }}" class="w-full p-2 border border-slate-200 rounded text-[11px] font-mono text-blue-600" placeholder="Norma (Ej: ASTM D2216)">
-                                    <input type="hidden" name="metodo[]" value="{{ d.metodo }}">
+                                    <input type="text" name="metodo[]" value="{{ d.metodo }}" class="w-full p-2 border border-slate-200 rounded text-[11px] text-slate-600" placeholder="Método">
                                 </td>
                                 <td class="p-3">
                                     <select name="tecnico_id[]" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700">
@@ -195,9 +194,8 @@
                                     </select>
                                 </td>
                                 <td class="p-3 space-y-1">
-                                    <input type="text" name="descripcion[]" class="w-full p-2 border border-slate-200 rounded text-[11px] placeholder-slate-300" placeholder="Descripción técnica">
                                     <input type="text" name="norma[]" class="w-full p-2 border border-slate-200 rounded text-[11px] font-mono text-blue-600" placeholder="Norma">
-                                    <input type="hidden" name="metodo[]" value="">
+                                    <input type="text" name="metodo[]" class="w-full p-2 border border-slate-200 rounded text-[11px] text-slate-600" placeholder="Método">
                                 </td>
                                 <td class="p-3">
                                     <select name="tecnico_id[]" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700">
@@ -249,24 +247,21 @@
 
 <script src="https://unpkg.com/lucide@latest"></script>
 <script>
-    // Variable global para persistir las muestras de la cotización seleccionada
     let muestrasGlobales = [];
 
     document.addEventListener('DOMContentLoaded', () => {
-        // Inicializar iconos de Lucide
         if (typeof lucide !== 'undefined') lucide.createIcons();
-        
+
         const selectCotizacion = document.querySelector('select[name="cotizacion"]');
         const tablaBody = document.querySelector('#tabla-detalles tbody');
 
-        // --- 1. Carga Automática de Detalles de Cotización y Muestras ---
         selectCotizacion.addEventListener('change', function() {
             const cotizacionId = this.value;
             if (!cotizacionId) return;
 
             const tieneDatos = Array.from(tablaBody.querySelectorAll('select[name="servicio_id[]"]'))
                                     .some(s => s.value !== "");
-            
+
             if (tieneDatos) {
                 if (!confirm("¿Cargar ítems y muestras de la nueva cotización? Se borrarán las filas actuales.")) {
                     return;
@@ -285,24 +280,26 @@
 
                     if (data.servicios && data.servicios.length > 0) {
                         data.servicios.forEach((item) => {
-                            // AQUÍ ESTÁ LA MAGIA: Se agregan las filas y se llenan con la data de la API
                             const fila = agregarNuevaFila();
-                            
+
                             const selectServicio = fila.querySelector('select[name="servicio_id[]"]');
                             const optionServicio = document.createElement('option');
-                            optionServicio.value = item.servicio_id;
+
+                            optionServicio.value = item.cotizacion_detalle_id;
                             optionServicio.text = item.nombre_servicio;
                             optionServicio.selected = true;
-                            
-                            // Guardamos los datos en el nuevo option para el autocompletado
+
                             optionServicio.dataset.norma = item.norma || "";
                             optionServicio.dataset.metodo = item.metodo || "";
-                            
-                            selectServicio.innerHTML = '<option value="">-- Servicio --</option>'; 
+
+                            selectServicio.innerHTML = '<option value="">-- Servicio --</option>';
                             selectServicio.appendChild(optionServicio);
 
-                            fila.querySelector('input[name="norma[]"]').value = item.norma || "";
-                            fila.querySelector('input[name="metodo[]"]').value = item.metodo || "";
+                            const normaInput = fila.querySelector('input[name="norma[]"]');
+                            const metodoInput = fila.querySelector('input[name="metodo[]"]');
+
+                            if (normaInput) normaInput.value = item.norma || "";
+                            if (metodoInput) metodoInput.value = item.metodo || "";
                         });
                     } else {
                         agregarNuevaFila();
@@ -315,25 +312,26 @@
                 });
         });
 
-        // --- 2. Auto-llenado de Norma y Método al cambiar el Servicio manualmente ---
         tablaBody.addEventListener('change', (e) => {
             if (e.target && e.target.name === 'servicio_id[]') {
                 const fila = e.target.closest('tr');
                 const selectedOption = e.target.options[e.target.selectedIndex];
-                
+
                 const norma = selectedOption.dataset.norma || "";
                 const metodo = selectedOption.dataset.metodo || "";
 
-                fila.querySelector('input[name="norma[]"]').value = norma;
-                fila.querySelector('input[name="metodo[]"]').value = metodo;
+                const normaInput = fila.querySelector('input[name="norma[]"]');
+                const metodoInput = fila.querySelector('input[name="metodo[]"]');
+
+                if (normaInput) normaInput.value = norma;
+                if (metodoInput) metodoInput.value = metodo;
             }
         });
     });
 
-    // Función para agregar filas con diseño mejorado
     function agregarNuevaFila() {
         const tabla = document.querySelector('#tabla-detalles tbody');
-        
+
         let opcionesMuestrasHTML = '<option value="">-- Muestra --</option>';
         muestrasGlobales.forEach(m => {
             opcionesMuestrasHTML += `<option value="${m.id}">${m.codigo_laboratorio} (${m.descripcion})</option>`;
@@ -350,9 +348,9 @@
                     <select name="servicio_id[]" class="w-full p-1 bg-white border border-slate-200 rounded text-[10px] font-bold text-slate-800 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 outline-none" required>
                         <option value="">-- Servicio --</option>
                         {% for s in servicios_items %}
-                        <option value="{{ s.servicio.id }}" 
-                                data-norma="{{ s.servicio.norma }}" 
-                                data-metodo="{{ s.servicio.metodo }}">
+                        <option value="{{ s.id }}"
+                                data-norma="{{ s.norma_manual|default_if_none:s.servicio.norma }}"
+                                data-metodo="{{ s.metodo_manual|default_if_none:s.servicio.metodo }}">
                             {{ s.servicio.nombre }}
                         </option>
                         {% endfor %}
@@ -379,7 +377,7 @@
                     </button>
                 </td>
             </tr>`;
-        
+
         tabla.insertAdjacentHTML('beforeend', rowHTML);
         if (typeof lucide !== 'undefined') lucide.createIcons();
         return tabla.lastElementChild;
