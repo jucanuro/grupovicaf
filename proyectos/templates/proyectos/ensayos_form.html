@@ -73,15 +73,16 @@
 
             <div class="p-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
                 <div class="md:col-span-1 lg:col-span-1">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cotización / Cliente</label>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cotización / Oferta / Cliente</label>
                     <select name="cotizacion" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm" required>
                         <option value="" disabled selected>-- Seleccionar Cotización --</option>
                         {% for c in cotizaciones %}
-                        <option value="{{ c.id }}" {% if c == solicitud.cotizacion %}selected{% endif %}>{{ c }}</option>
+                        <option value="{{ c.id }}" {% if c.id == solicitud.cotizacion.id %}selected{% endif %}>
+                            {{ c.codigo_cotizacion }} | {{ c.numero_oferta|default:"S/N" }} | {{ c.cliente.codigo_confidencial }}
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
-
                 <div>
                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Fecha Solicitud</label>
                     <input type="date" id="fecha_solicitud" name="fecha_solicitud" 
@@ -317,8 +318,6 @@
 
 <script src="https://unpkg.com/lucide@latest"></script>
 <script>
-    // --- 1. LÓGICA DE SINCRONIZACIÓN DE CHECKBOXES (CRÍTICO PARA EL GUARDADO) ---
-    // Esta función asegura que el input hidden siempre tenga el valor del checkbox visual.
     function updateAuthValue(checkbox) {
         const hiddenInput = checkbox.closest('td').querySelector('input[type="hidden"]');
         if (hiddenInput) {
@@ -329,17 +328,14 @@
     let muestrasGlobales = [];
 
     document.addEventListener('DOMContentLoaded', () => {
-        // Inicializar iconos
         if (typeof lucide !== 'undefined') lucide.createIcons();
 
-        // Referencias elementos Cabecera
         const selectCotizacion = document.querySelector('select[name="cotizacion"]');
         const tablaBody = document.querySelector('#tabla-detalles tbody');
         const inputFechaSolicitud = document.getElementById('fecha_solicitud');
         const inputDiasPlazo = document.getElementById('dias_plazo');
         const inputFechaEntrega = document.getElementById('fecha_entrega_programada');
 
-        // --- 2. CÁLCULO DE FECHAS ---
         function calcularFechaEntrega() {
             const fechaBase = inputFechaSolicitud.value;
             const dias = parseInt(inputDiasPlazo.value);
@@ -358,7 +354,6 @@
             inputDiasPlazo.addEventListener('input', calcularFechaEntrega);
         }
 
-        // --- 3. LÓGICA CAMBIO DE COTIZACIÓN (API) ---
         selectCotizacion.addEventListener('change', function() {
             const cotizacionId = this.value;
             if (!cotizacionId) return;
@@ -384,13 +379,11 @@
                         data.servicios.forEach((item) => {
                             const fila = agregarNuevaFila();
                             
-                            // Configurar el select de servicio cargado
                             const selectServicio = fila.querySelector('select[name="servicio_id[]"]');
                             selectServicio.innerHTML = `<option value="${item.cotizacion_detalle_id}" selected 
                                 data-norma="${item.norma || ''}" 
                                 data-metodo="${item.metodo || ''}">${item.nombre_servicio}</option>`;
                             
-                            // Rellenar norma y método automáticamente
                             fila.querySelector('input[name="norma[]"]').value = item.norma || "";
                             fila.querySelector('input[name="metodo[]"]').value = item.metodo || "";
                         });
@@ -405,7 +398,6 @@
                 });
         });
 
-        // Autofill normas cuando se cambia manualmente el servicio
         tablaBody.addEventListener('change', (e) => {
             if (e.target && e.target.name === 'servicio_id[]') {
                 const fila = e.target.closest('tr');
