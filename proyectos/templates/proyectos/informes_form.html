@@ -1,0 +1,236 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .bg-vicaf-engine {
+        position: fixed; inset: 0; z-index: -1; background-color: #f8fafc;
+        background-image: linear-gradient(rgba(226, 232, 240, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(226, 232, 240, 0.5) 1px, transparent 1px);
+        background-size: 40px 40px;
+    }
+    .font-mono-tech { font-family: 'JetBrains Mono', monospace; }
+    .select-vicaf {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 1rem;
+    }
+</style>
+
+<div class="bg-vicaf-engine"></div>
+
+<div class="max-w-6xl mx-auto p-4 relative z-10 space-y-6">
+    
+    <header class="bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-between p-4">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center text-white shadow-md">
+                <i data-lucide="file-check" class="w-5 h-5 {% if informe %}text-amber-400{% else %}text-emerald-400{% endif %}"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight leading-none">
+                    {% if informe %}Edición de Informe{% else %}Emisión Informe Final{% endif %}
+                </h1>
+                <p class="text-[9px] font-mono-tech text-blue-600 mt-1 uppercase tracking-[0.2em]">Módulo de Certificación // v3.0</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            {% if informe %}
+            <div class="flex flex-col items-end">
+                <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Código Registro</span>
+                <span class="text-xs font-mono-tech font-bold text-slate-700">{{ informe.codigo_informe }}</span>
+            </div>
+            {% endif %}
+            <a href="{% url 'proyectos:lista_informes' %}" class="bg-white text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
+                <i data-lucide="list" class="w-3.5 h-3.5"></i> Ver Listado
+            </a>
+        </div>
+    </header>
+
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <form method="post" enctype="multipart/form-data" class="p-8" id="informeForm">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                
+                <div class="space-y-5">
+                    <div class="flex items-center gap-2 mb-2 border-b border-slate-100 pb-2">
+                        <i data-lucide="database" class="w-4 h-4 text-blue-500"></i>
+                        <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Trazabilidad OTE</h3>
+                    </div>
+                    
+                    <div class="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2">Seleccionar Ensayo</label>
+                            {% if solicitud %}
+                                <div class="p-3 bg-white border border-blue-200 rounded-lg shadow-sm">
+                                    <p class="text-[10px] font-mono-tech font-bold text-blue-600">{{ solicitud.cotizacion.codigo_cotizacion }}</p>
+                                    <p class="text-[11px] font-bold text-slate-800 mt-1">{{ solicitud.cotizacion.cliente.razon_social|upper }}</p>
+                                    <input type="hidden" name="solicitud_id" value="{{ solicitud.id }}">
+                                </div>
+                            {% else %}
+                                <select name="solicitud_id" id="solicitud_selector" required 
+                                    class="select-vicaf w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
+                                    <option value="">-- Buscar Cliente / COT --</option>
+                                    {% for p in pendientes %}
+                                        <option value="{{ p.id }}" 
+                                                data-cot="{{ p.cotizacion.codigo_cotizacion }}" 
+                                                data-cliente="{{ p.cotizacion.cliente.codigo_confidencial }}"
+                                                data-oferta="{{ p.cotizacion.numero_oferta|default:'S/N' }}">
+                                            {{ p.cotizacion.cliente.razon_social|upper }} [{{ p.cotizacion.codigo_cotizacion }}]
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            {% endif %}
+                        </div>
+
+                        <div class="space-y-3 pt-2 border-t border-slate-200">
+                            <div>
+                                <label class="block text-[8px] font-black text-slate-400 uppercase">Cotización Ref.</label>
+                                <p id="ref-cot" class="text-xs font-mono-tech font-bold text-slate-700">{% if solicitud %}{{ solicitud.cotizacion.codigo_cotizacion }}{% else %}---{% endif %}</p>
+                            </div>
+                            <div>
+                                <label class="block text-[8px] font-black text-slate-400 uppercase">Cliente / Código</label>
+                                <p id="ref-cliente" class="text-xs font-bold text-blue-700">{% if solicitud %}{{ solicitud.cotizacion.cliente.codigo_confidencial }}{% else %}---{% endif %}</p>
+                            </div>
+                            <div>
+                                <label class="block text-[8px] font-black text-slate-400 uppercase">Oferta Comercial</label>
+                                <p id="ref-oferta" class="text-xs font-bold text-slate-600">{% if solicitud %}{{ solicitud.cotizacion.numero_oferta|default:"S/N" }}{% else %}---{% endif %}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-5">
+                    <div class="flex items-center gap-2 mb-2 border-b border-slate-100 pb-2">
+                        <i data-lucide="upload-cloud" class="w-4 h-4 text-blue-500"></i>
+                        <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Documento PDF</h3>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="relative group">
+                            <div id="pdf-container" class="w-full h-32 border-2 border-dashed {% if informe %}border-amber-200{% else %}border-slate-200{% endif %} rounded-xl bg-slate-50 flex flex-col items-center justify-center transition-all group-hover:bg-white group-hover:border-blue-400">
+                                <i data-lucide="file-text" class="w-6 h-6 text-slate-400 mb-2 group-hover:text-blue-500 transition-all"></i>
+                                <p id="pdf-text" class="text-[9px] font-black text-slate-500 uppercase tracking-tighter text-center px-4">
+                                    {% if informe %}Reemplazar PDF Actual{% else %}Seleccionar Informe PDF{% endif %}
+                                </p>
+                                <input type="file" name="archivo_pdf" id="archivo_pdf" accept="application/pdf" onchange="updateFileName(this, 'pdf-text')" 
+                                    class="absolute inset-0 opacity-0 cursor-pointer" {% if not informe %}required{% endif %}>
+                            </div>
+                        </div>
+
+                        {% if informe %}
+                        <a href="{{ informe.archivo_pdf.url }}" target="_blank" class="flex items-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-bold hover:bg-blue-100 transition-all">
+                            <i data-lucide="external-link" class="w-3 h-3"></i> VER ARCHIVO ACTUAL EN SERVIDOR
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="space-y-5">
+                    <div class="flex items-center gap-2 mb-2 border-b border-slate-100 pb-2">
+                        <i data-lucide="shield-check" class="w-4 h-4 text-blue-500"></i>
+                        <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Autorización</h3>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Responsable de Firma</label>
+                            <select name="responsable_firma" id="responsable_firma" required class="select-vicaf w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 outline-none">
+                                <option value="">-- Seleccionar --</option>
+                                {% for t in trabajadores %}
+                                <option value="{{ t.id }}" {% if informe.responsable_firma_id == t.id %}selected{% endif %}>
+                                    {{ t.nombre_completo }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        {% if informe.qr_code %}
+                        <div class="p-4 bg-white border border-slate-100 rounded-xl shadow-sm flex items-center gap-4">
+                            <img src="{{ informe.qr_code.url }}" class="w-16 h-16 rounded border bg-white shadow-sm">
+                            <div>
+                                <p class="text-[8px] font-black text-slate-400 uppercase">QR Sello Activo</p>
+                                <p class="text-[9px] text-emerald-600 font-bold">Vínculo Seguro Activo</p>
+                                <p class="text-[8px] text-slate-400 mt-1 font-mono">UUID: {{ informe.slug_validacion|slice:":8" }}...</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-10 pt-6 border-t border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 {% if informe %}bg-amber-500{% else %}bg-emerald-500{% endif %} rounded-full animate-pulse"></div>
+                    <span class="text-[9px] font-mono-tech text-slate-400 uppercase tracking-widest italic">
+                        Terminal: {% if informe %}UPDATE_SESSION{% else %}CREATE_SESSION{% endif %} // DB: Verified
+                    </span>
+                </div>
+                
+                <button type="submit" class="{% if informe %}bg-amber-600 hover:bg-amber-700{% else %}bg-slate-900 hover:bg-black{% endif %} text-white px-10 py-3 rounded-xl text-xs font-bold hover:-translate-y-1 shadow-lg transition-all flex items-center gap-3">
+                    <i data-lucide="{% if informe %}refresh-cw{% else %}save{% endif %}" class="w-4 h-4"></i>
+                    {% if informe %}ACTUALIZAR Y RE-ESTAMPAR{% else %}CONFIRMAR Y GENERAR QR{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // 1. Actualizar nombre del PDF y diseño del contenedor
+    function updateFileName(input, targetId) {
+        const textElement = document.getElementById(targetId);
+        const container = document.getElementById('pdf-container');
+        if (input.files && input.files[0]) {
+            textElement.innerHTML = `<span class="text-blue-600 font-extrabold uppercase">Cargado:</span><br><span class="text-slate-700">${input.files[0].name.substring(0, 30)}...</span>`;
+            container.classList.add('border-blue-400', 'bg-blue-50/50');
+        }
+    }
+
+    // 2. Lógica del Selector Dinámico (solo si existe en modo creación)
+    document.getElementById('solicitud_selector')?.addEventListener('change', function() {
+        const opt = this.options[this.selectedIndex];
+        const refCot = document.getElementById('ref-cot');
+        const refCliente = document.getElementById('ref-cliente');
+        const refOferta = document.getElementById('ref-oferta');
+
+        if (this.value) {
+            refCot.textContent = opt.getAttribute('data-cot');
+            refCliente.textContent = opt.getAttribute('data-cliente');
+            refOferta.textContent = opt.getAttribute('data-oferta');
+            
+            // Efecto visual de carga
+            [refCot, refCliente, refOferta].forEach(el => {
+                el.classList.add('text-blue-600');
+                setTimeout(() => el.classList.remove('text-blue-600'), 600);
+            });
+        } else {
+            refCot.textContent = "---";
+            refCliente.textContent = "---";
+            refOferta.textContent = "---";
+        }
+    });
+
+    // 3. Inicializar Lucide y Validación final preventiva
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        
+        // Validación antes de enviar para evitar errores 500
+        document.getElementById('informeForm').addEventListener('submit', function(e) {
+            const solicitud = document.getElementsByName('solicitud_id')[0]?.value;
+            const responsable = document.getElementById('responsable_firma').value;
+            
+            if (!solicitud || !responsable) {
+                e.preventDefault();
+                alert("Error: Asegúrese de haber seleccionado un Ensayo y un Responsable de Firma.");
+            }
+        });
+    });
+</script>
+{% endblock %}

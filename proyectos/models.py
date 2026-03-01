@@ -1,7 +1,17 @@
 from django.db import models
+import uuid
+import qrcode
+from io import BytesIO
+from django.core.files import File
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.utils.timezone import now
 from django.utils import timezone
+import io
+from django.core.files.base import ContentFile
+from pypdf import PdfReader, PdfWriter
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
 from django.db import transaction
 from django.core.validators import MinValueValidator
 from clientes.models import Cliente
@@ -164,8 +174,7 @@ class MuestraDetalle(models.Model):
                 
             self.codigo_laboratorio = f"V-M-{anio}-{sigla}-{ultimo_nro:04d}"
         super().save(*args, **kwargs)
-        
-        
+              
 class SolicitudEnsayo(models.Model):
     """
     Cabecera del registro VCF-LAB-FOR-068.
@@ -227,7 +236,6 @@ class SolicitudEnsayo(models.Model):
     def __str__(self):
         return f"{self.codigo_solicitud} - {self.cotizacion.cliente.razon_social}"
 
-
 class DetalleSolicitudEnsayo(models.Model):
     """
     Detalle línea por línea de los ensayos a realizar por cada muestra.
@@ -279,7 +287,6 @@ class DetalleSolicitudEnsayo(models.Model):
 
     def __str__(self):
         return f"{self.muestra.codigo_laboratorio} - {self.descripcion_ensayo}"
-
 
 class IncidenciaSolicitud(models.Model):
     """
@@ -343,3 +350,83 @@ class IncidenciaSolicitud(models.Model):
         self.autorizado_por = trabajador
         self.fecha_autorizacion = timezone.now()
         self.save()
+        
+        
+class InformeFinal(models.Model):
+    ESTADOS_ENVIO = [
+        ('pendiente', 'Pendiente de Envío'),
+        ('enviado', 'Enviado al Cliente'),
+    ]
+
+    solicitud = models.OneToOneField(
+        SolicitudEnsayo, 
+        on_delete=models.CASCADE, 
+        related_name='informe_final'
+    )
+    codigo_informe = models.CharField(max_length=50, unique=True, editable=False)
+    archivo_pdf = models.FileField(upload_to='informes_finales/pdfs/%Y/%m/')
+    fecha_emision = models.DateTimeField(default=now)
+    
+    estado_envio = models.CharField(max_length=20, choices=ESTADOS_ENVIO, default='pendiente')
+    fecha_envio = models.DateTimeField(null=True, blank=True)
+    
+    slug_validacion = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    qr_code = models.ImageField(upload_to='informes_finales/qrs/', blank=True, null=True)
+    
+    responsable_firma = models.ForeignKey(
+        TrabajadorProfile, on_delete=models.PROTECT, related_name='informes_firmados'
+    )
+    descargas_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Informe Final"
+        verbose_name_plural = "Informes Finales"
+
+    def save(self, *args, **kwargs):
+        if not self.codigo_informe:
+            anio = now().year
+            ultimo = InformeFinal.objects.filter(fecha_emision__year=anio).count()
+            self.codigo_informe = f"INF-{anio}-{(ultimo + 1):04d}"
+        
+        if not self.qr_code:
+            self.generar_qr_validacion()
+            
+        super().save(*args, **kwargs)
+
+    def generar_qr_validacion(self):
+        from django.conf import settings
+        base_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000')
+        url_final = f"{base_url}/proyectos/v/{self.slug_validacion}/"
+        
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr.add_data(url_final)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG')
+        self.qr_code.save(f"QR_{self.codigo_informe}.png", ContentFile(buffer.getvalue()), save=False)
+
+    def estampar_qr_en_pdf(self):
+        """Pega el QR en la parte inferior derecha de la última página del PDF"""
+        if not self.archivo_pdf or not self.qr_code:
+            return False
+
+        packet = io.BytesIO()
+        can = canvas.Canvas(packet, pagesize=letter)
+        can.drawImage(self.qr_code.path, 480, 50, width=70, height=70)
+        can.save()
+        packet.seek(0)
+
+        new_pdf = PdfReader(packet)
+        existing_pdf = PdfReader(self.archivo_pdf.path)
+        output = PdfWriter()
+
+        for i, page in enumerate(existing_pdf.pages):
+            if i == len(existing_pdf.pages) - 1:
+                page.merge_page(new_pdf.pages[0])
+            output.add_page(page)
+
+        with open(self.archivo_pdf.path, "wb") as f:
+            output.write(f)
+        return True

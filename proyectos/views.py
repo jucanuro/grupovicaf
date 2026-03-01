@@ -16,7 +16,7 @@ from django.contrib import messages
 from django.utils import timezone
 from .utils import enviar_whatsapp_pdf
 from django.views.decorators.http import require_POST
-from .models import Proyecto, TipoMuestra, RecepcionMuestra, MuestraDetalle, SolicitudEnsayo, DetalleSolicitudEnsayo, IncidenciaSolicitud
+from .models import Proyecto, TipoMuestra, RecepcionMuestra, MuestraDetalle, SolicitudEnsayo, DetalleSolicitudEnsayo, IncidenciaSolicitud, InformeFinal
 from servicios.models import Servicio, CotizacionDetalle, CategoriaServicio, Subcategoria, CotizacionGrupo,Cotizacion
 from trabajadores.models import TrabajadorProfile
 
@@ -521,5 +521,107 @@ def generar_pdf_ensayo(request, solicitud_id):
     response['Content-Disposition'] = f'inline; filename="{filename}"'
     
     return response
+
+
+def lista_informes_finales(request):
+    informes = InformeFinal.objects.all().order_by('-fecha_emision')
+    return render(request, 'proyectos/informes_list.html', {
+        'informes': informes
+    })
+
+def gestionar_informe_final(request, solicitud_id=None):
+    solicitud = None
+    informe = None
+    
+    status_filter = request.GET.get('status')
+    query = request.GET.get('q')
+
+    pendientes = SolicitudEnsayo.objects.filter(
+        estado='finalizado', 
+        informe_final__isnull=True
+    ).select_related('cotizacion__cliente')
+
+    if solicitud_id:
+        solicitud = get_object_or_404(SolicitudEnsayo, id=solicitud_id)
+        informe = InformeFinal.objects.filter(solicitud=solicitud).first()
+    
+    trabajadores = TrabajadorProfile.objects.all()
+
+    if request.method == 'POST':
+        archivo = request.FILES.get('archivo_pdf')
+        responsable_id = request.POST.get('responsable_firma')
+        sid = solicitud_id or request.POST.get('solicitud_id')
+
+        if not sid:
+            messages.error(request, "Debe seleccionar un ensayo válido.")
+            return redirect('proyectos:lista_informes')
+
+        solicitud_actual = get_object_or_404(SolicitudEnsayo, id=sid)
+        informe_actual = InformeFinal.objects.filter(solicitud=solicitud_actual).first()
+
+        try:
+            if informe_actual:
+                informe_actual.responsable_firma_id = responsable_id
+                if archivo:
+                    informe_actual.archivo_pdf = archivo
+                    informe_actual.save() 
+                    informe_actual.estampar_qr_en_pdf() 
+                else:
+                    informe_actual.save()
+                messages.success(request, f"Informe {informe_actual.codigo_informe} actualizado.")
+            else:
+                # Creación
+                if not archivo:
+                    messages.error(request, "El archivo PDF es obligatorio para nuevos informes.")
+                    return render(request, 'proyectos/informes_form.html', locals())
+                
+                nuevo = InformeFinal.objects.create(
+                    solicitud=solicitud_actual,
+                    archivo_pdf=archivo,
+                    responsable_firma_id=responsable_id
+                )
+                nuevo.estampar_qr_en_pdf()
+                messages.success(request, f"Informe {nuevo.codigo_informe} generado con éxito.")
+
+            return redirect('proyectos:lista_informes')
+
+        except Exception as e:
+            print(f"DEBUG ERROR: {e}") 
+            messages.error(request, f"Error al procesar el informe: {e}")
+
+    return render(request, 'proyectos/informes_form.html', {
+        'solicitud': solicitud,
+        'informe': informe,
+        'pendientes': pendientes,
+        'trabajadores': trabajadores,
+        'status_filter': status_filter, 
+        'query': query                  
+    })
+  
+    
+def descargar_pdf_informe(request, informe_id):
+    informe = get_object_or_404(InformeFinal, id=informe_id)
+    
+    if not informe.archivo_pdf:
+        raise Http404("El archivo no está disponible.")
+
+    informe.descargas_count += 1
+    informe.save(update_fields=['descargas_count'])
+
+    return FileResponse(
+        informe.archivo_pdf.open(), 
+        as_attachment=True, 
+        filename=f"Informe_{informe.codigo_informe}.pdf"
+    )
+
+def validar_informe_publico(request, slug_validacion):
+    informe = get_object_or_404(InformeFinal, slug_validacion=slug_validacion)
+    
+    return render(request, 'proyectos/validar_publico.html', {
+        'informe': informe
+    })
+
+
+
 
 
