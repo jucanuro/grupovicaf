@@ -24,23 +24,23 @@
             <div class="nav-icon-box w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-500 flex-shrink-0 
                         text-slate-400 group-hover:scale-110
                         {% if request.path == '/' or 'dashboard' in request.path %} bg-gradient-to-br from-indigo-600 to-blue-600 text-white shadow-[0_5px_15px_rgba(79,70,229,0.4)] {% endif %}">
-                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-            </div>
-            <span class="ml-4 text-[13px] font-bold text-slate-600 whitespace-nowrap nav-text opacity-0 transition-all duration-500 translate-x-[-15px] group-hover/sidebar:opacity-100 group-hover/sidebar:translate-x-0">
-                Panel de Control
-            </span>
-        </a>
-
-        <a href="{% url 'analitycs' %}" 
-            class="nav-item relative flex items-center h-14 rounded-2xl transition-all duration-300 group hover:bg-white/80
-                    {% if 'analytics' in request.path %} bg-white shadow-md border border-slate-100 {% endif %}">
-            <div class="nav-icon-box w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-500 flex-shrink-0 
-                        text-slate-400 group-hover:text-indigo-600
-                        {% if 'analytics' in request.path %} bg-gradient-to-br from-indigo-600 to-blue-600 text-white {% endif %}">
                 <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
             </div>
             <span class="ml-4 text-[13px] font-bold text-slate-600 whitespace-nowrap nav-text opacity-0 transition-all duration-500 translate-x-[-15px] group-hover/sidebar:opacity-100 group-hover/sidebar:translate-x-0">
-                Data & Business Insights
+                Dashboard
+            </span>
+        </a>
+
+        <a href="{% url 'administracion' %}" 
+            class="nav-item relative flex items-center h-14 rounded-2xl transition-all duration-300 group hover:bg-white/80
+                    {% if 'analitycs' in request.path or 'analytics' in request.path %} bg-white shadow-[0_10px_25px_rgba(0,0,0,0.05)] border border-slate-100 {% endif %}">
+            <div class="nav-icon-box w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-500 flex-shrink-0 
+                        text-slate-400 group-hover:text-indigo-600 group-hover:scale-110
+                        {% if 'analitycs' in request.path or 'analytics' in request.path %} bg-gradient-to-br from-indigo-600 to-blue-600 text-white shadow-[0_5px_15px_rgba(79,70,229,0.4)] {% endif %}">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+            </div>
+            <span class="ml-4 text-[13px] font-bold text-slate-600 whitespace-nowrap nav-text opacity-0 transition-all duration-500 translate-x-[-15px] group-hover/sidebar:opacity-100 group-hover/sidebar:translate-x-0 {% if 'analitycs' in request.path or 'analytics' in request.path %} text-indigo-600 {% endif %}">
+                Administración
             </span>
         </a>
 
@@ -55,7 +55,7 @@
                     {% if 'clientes' in request.path %} bg-white shadow-md border border-slate-100 {% endif %}">
             <div class="nav-icon-box w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-500 flex-shrink-0 
                         text-slate-400 group-hover:text-indigo-600
-                        {% if 'clientes' in request.path %} bg-gradient-to-br from-indigo-600 to-blue-600 text-white {% endif %}">
+                        {% if 'clientes' in request.path %} bg-gradient-to-br from-indigo-600 to-blue-600 text-white shadow-[0_5px_15px_rgba(79,70,229,0.4)] {% endif %}">
                 <i data-lucide="fingerprint" class="w-5 h-5"></i>
             </div>
             <span class="ml-4 text-[13px] font-bold text-slate-600 whitespace-nowrap nav-text opacity-0 transition-all duration-500 translate-x-[-15px] group-hover/sidebar:opacity-100 group-hover/sidebar:translate-x-0">
@@ -68,7 +68,7 @@
                     {% if 'trabajadores' in request.path %} bg-white shadow-md border border-slate-100 {% endif %}">
             <div class="nav-icon-box w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-500 flex-shrink-0 
                         text-slate-400 group-hover:text-indigo-600
-                        {% if 'trabajadores' in request.path %} bg-gradient-to-br from-indigo-600 to-blue-600 text-white {% endif %}">
+                        {% if 'trabajadores' in request.path %} bg-gradient-to-br from-indigo-600 to-blue-600 text-white shadow-[0_5px_15px_rgba(79,70,229,0.4)] {% endif %}">
                 <i data-lucide="cpu" class="w-5 h-5"></i>
             </div>
             <span class="ml-4 text-[13px] font-bold text-slate-600 whitespace-nowrap nav-text opacity-0 transition-all duration-500 translate-x-[-15px] group-hover/sidebar:opacity-100 group-hover/sidebar:translate-x-0">
@@ -81,7 +81,7 @@
                     {% if 'servicios' in request.path and not 'cotizaciones' in request.path %} bg-white shadow-md border border-slate-100 {% endif %}">
             <div class="nav-icon-box w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-500 flex-shrink-0 
                         text-slate-400 group-hover:text-indigo-600
-                        {% if 'servicios' in request.path and not 'cotizaciones' in request.path %} bg-gradient-to-br from-indigo-600 to-blue-600 text-white {% endif %}">
+                        {% if 'servicios' in request.path and not 'cotizaciones' in request.path %} bg-gradient-to-br from-indigo-600 to-blue-600 text-white shadow-[0_5px_15px_rgba(79,70,229,0.4)] {% endif %}">
                 <i data-lucide="package-search" class="w-5 h-5"></i>
             </div>
             <span class="ml-4 text-[13px] font-bold text-slate-600 whitespace-nowrap nav-text opacity-0 transition-all duration-500 translate-x-[-15px] group-hover/sidebar:opacity-100 group-hover/sidebar:translate-x-0">
@@ -94,7 +94,7 @@
                     {% if 'cotizaciones' in request.path %} bg-white shadow-md border border-slate-100 {% endif %}">
             <div class="nav-icon-box w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-500 flex-shrink-0 
                         text-slate-400 group-hover:text-indigo-600
-                        {% if 'cotizaciones' in request.path %} bg-gradient-to-br from-indigo-600 to-blue-600 text-white {% endif %}">
+                        {% if 'cotizaciones' in request.path %} bg-gradient-to-br from-indigo-600 to-blue-600 text-white shadow-[0_5px_15px_rgba(79,70,229,0.4)] {% endif %}">
                 <i data-lucide="file-text" class="w-5 h-5"></i>
             </div>
             <span class="ml-4 text-[13px] font-bold text-slate-600 whitespace-nowrap nav-text opacity-0 transition-all duration-500 translate-x-[-15px] group-hover/sidebar:opacity-100 group-hover/sidebar:translate-x-0">
@@ -109,7 +109,7 @@
                 <div class="flex items-center">
                     <div class="nav-icon-box w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-500 flex-shrink-0 
                                 text-slate-400 group-hover/item:text-indigo-600
-                                {% if 'proyectos' in request.path %} bg-gradient-to-br from-indigo-600 to-blue-600 text-white {% endif %}">
+                                {% if 'proyectos' in request.path %} bg-gradient-to-br from-indigo-600 to-blue-600 text-white shadow-[0_5px_15px_rgba(79,70,229,0.4)] {% endif %}">
                         <i data-lucide="layers" class="w-5 h-5"></i>
                     </div>
                     <span class="ml-4 text-[13px] font-bold text-slate-600 whitespace-nowrap nav-text opacity-0 transition-all duration-500 translate-x-[-15px] group-hover/sidebar:opacity-100 group-hover/sidebar:translate-x-0">
@@ -137,7 +137,7 @@
                     {% if 'informes' in request.path %} bg-white shadow-md border border-slate-100 {% endif %}">
             <div class="nav-icon-box w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-500 flex-shrink-0 
                         text-slate-400 group-hover:text-indigo-600
-                        {% if 'informes' in request.path %} bg-gradient-to-br from-indigo-600 to-blue-600 text-white {% endif %}">
+                        {% if 'informes' in request.path %} bg-gradient-to-br from-indigo-600 to-blue-600 text-white shadow-[0_5px_15_rgba(79,70,229,0.4)] {% endif %}">
                 <i data-lucide="shield-check" class="w-5 h-5"></i>
             </div>
             <span class="ml-4 text-[13px] font-bold text-slate-600 whitespace-nowrap nav-text opacity-0 transition-all duration-500 translate-x-[-15px] group-hover/sidebar:opacity-100 group-hover/sidebar:translate-x-0">
@@ -180,14 +180,14 @@
         <div>
             <p class="px-4 mb-4 text-[10px] uppercase font-black text-indigo-400 tracking-[0.3em]">Global Vision</p>
             <div class="space-y-2">
-                <a href="{% url 'dashboard' %}" class="flex items-center gap-4 p-4 rounded-2xl transition-all {% if request.path == '/' or 'dashboard' in request.path %} bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-xl shadow-indigo-600/20 {% else %} bg-white text-slate-600 border border-slate-100 shadow-sm {% endif %}">
+                <a href="{% url 'administracion' %}" class="flex items-center gap-4 p-4 rounded-2xl transition-all {% if request.path == '/' or 'dashboard' in request.path %} bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-xl shadow-indigo-600/20 {% else %} bg-white text-slate-600 border border-slate-100 shadow-sm {% endif %}">
                     <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-                    <span class="font-bold text-[15px]">Panel de Control</span>
+                    <span class="font-bold text-[15px]">Administración</span>
                 </a>
                 
-                <a href="{% url 'analitycs' %}" class="flex items-center gap-4 p-4 rounded-2xl transition-all {% if 'analytics' in request.path %} bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-xl shadow-indigo-600/20 {% else %} bg-white text-slate-600 border border-slate-100 shadow-sm {% endif %}">
+                <a href="{% url 'dashboard' %}"  class="flex items-center gap-4 p-4 rounded-2xl transition-all {% if 'analytics' in request.path %} bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-xl shadow-indigo-600/20 {% else %} bg-white text-slate-600 border border-slate-100 shadow-sm {% endif %}">
                     <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
-                    <span class="font-bold text-[15px]">Data & Insights</span>
+                    <span class="font-bold text-[15px]">Dashboard</span>
                 </a>
             </div>
         </div>

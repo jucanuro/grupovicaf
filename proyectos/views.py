@@ -598,7 +598,6 @@ def gestionar_informe_final(request, solicitud_id=None):
         'query': query                  
     })
   
-    
 def descargar_pdf_informe(request, informe_id):
     informe = get_object_or_404(InformeFinal, id=informe_id)
     
