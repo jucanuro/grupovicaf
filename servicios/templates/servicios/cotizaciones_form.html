@@ -367,7 +367,6 @@
         urlCrearSubcategoria: "{% url 'servicios:crear_subcategoria_ajax' %}"
     };
 
-    // Función añadida para controlar visualmente el modo
     function seleccionarModo(modo) {
         const btnVacio = document.getElementById('btn-modo-vacio');
         const btnPlantilla = document.getElementById('btn-modo-plantilla');
@@ -381,11 +380,9 @@
         }
     }
 
-    // Escuchar cambios en el selector de plantilla
     document.getElementById('select-plantilla').addEventListener('change', function(e) {
         if (e.target.value) {
             seleccionarModo('plantilla');
-            // Aquí iría tu lógica para disparar la carga de datos
         }
     });
 </script>
