@@ -293,6 +293,9 @@ def crear_subcategoria_ajax(request):
 @login_required
 def lista_cotizaciones(request):
     query = request.GET.get('q')
+    estado_filtro = request.GET.get('estado') 
+    fecha_inicio = request.GET.get('fecha_inicio') 
+    fecha_fin = request.GET.get('fecha_fin')
     
     cotizaciones_list = Cotizacion.objects.select_related('cliente')\
                                           .filter(es_plantilla=False)\
@@ -309,8 +312,14 @@ def lista_cotizaciones(request):
         cotizaciones_list = cotizaciones_list.filter(
             Q(numero_oferta__icontains=query) | 
             Q(cliente__razon_social__icontains=query) |
-            Q(estado__icontains=query)
+            Q(asunto_servicio__icontains=query)
         )
+
+    if estado_filtro:
+        cotizaciones_list = cotizaciones_list.filter(estado=estado_filtro)
+
+    if fecha_inicio and fecha_fin:
+        cotizaciones_list = cotizaciones_list.filter(fecha_generacion__range=[fecha_inicio, fecha_fin])
 
     paginator = Paginator(cotizaciones_list, 9)
     page_number = request.GET.get('page')
@@ -319,6 +328,7 @@ def lista_cotizaciones(request):
     context = {
         'cotizaciones': page_obj,
         'query': query,
+        'estados_disponibles': Cotizacion.ESTADO_CHOICES, # ESTA LÍNEA ES VITAL
     }
     return render(request, 'servicios/cotizacion_list.html', context)
 
@@ -729,7 +739,7 @@ def generar_pdf_cotizacion(request, pk):
 
     context = {
         'cotizacion': cotizacion,
-        'grupos': cotizacion.grupos.all().order_by('orden'), # Clave para el ordenamiento
+        'grupos': cotizacion.grupos.all().order_by('orden'),
         'subtotal_final': subtotal,
         'igv_monto_final': igv_amount,
         'monto_total_final': monto_total,
@@ -857,12 +867,11 @@ def buscar_cotizaciones_api(request):
     data = []
 
     if query:
-        # Búsqueda optimizada por número de oferta, cliente o asunto
         cotizaciones = Cotizacion.objects.filter(
             Q(numero_oferta__icontains=query) |
             Q(cliente__razon_social__icontains=query) |
             Q(asunto_servicio__icontains=query)
-        ).select_related('cliente') # Clave para traer la relación del cliente
+        ).select_related('cliente') 
 
         for cotizacion in cotizaciones:
             monto_total = cotizacion.monto_total if cotizacion.monto_total is not None else Decimal('0.00')
@@ -871,15 +880,43 @@ def buscar_cotizaciones_api(request):
                 'pk': cotizacion.pk,
                 'numero_oferta': cotizacion.numero_oferta,
                 
-                # ✅ CLAVE: Incluir el monto como string para JSON
                 'monto_total': str(cotizacion.monto_total),
                 
-                # ✅ CLAVE: Incluir la razón social del cliente
                 'cliente_razon_social': cotizacion.cliente.razon_social,
                 
                 'estado': cotizacion.estado,
-                'estado_display': cotizacion.get_estado_display(), # Necesario si quieres la descripción
+                'estado_display': cotizacion.get_estado_display(), 
             })
 
-    # Devuelve la lista de diccionarios como respuesta JSON
     return JsonResponse(data, safe=False)
+
+
+@login_required
+def administracion_view(request):
+    estados_disponibles = Cotizacion.ESTADO_CHOICES
+
+    cotizaciones = Cotizacion.objects.select_related('cliente').all()
+
+
+    q = request.GET.get('q')
+    if q:
+        cotizaciones = cotizaciones.filter(
+            models.Q(numero_oferta__icontains=q) | 
+            models.Q(asunto_servicio__icontains=q) |
+            models.Q(cliente__razon_social__icontains=q)
+        )
+
+    estado_filtro = request.GET.get('estado')
+    if estado_filtro:
+        cotizaciones = cotizaciones.filter(estado=estado_filtro)
+
+    f_inicio = request.GET.get('fecha_inicio')
+    f_fin = request.GET.get('fecha_fin')
+    if f_inicio and f_fin:
+        cotizaciones = cotizaciones.filter(fecha_generacion__range=[f_inicio, f_fin])
+
+    context = {
+        'cotizaciones': cotizaciones,
+        'estados_disponibles': estados_disponibles,
+    }
+    return render(request, 'administracion.html', context)
