@@ -1,0 +1,186 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/cotizacion-config.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="bg-vicaf-engine"></div>
+<div class="max-w-full mx-auto p-4 relative z-10 space-y-6">
+    
+    <header class="bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-between p-4">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center text-white shadow-md">
+                <i data-lucide="layout-template" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight leading-none uppercase">
+                    {% if form.instance.pk %}Editar Plantilla{% else %}Nueva Plantilla Maestro{% endif %}
+                </h1>
+                <p class="text-[9px] font-mono-tech text-emerald-600 mt-1 uppercase tracking-[0.2em]">VICAF PRO V2.0 // Biblioteca de Modelos</p>
+            </div>
+        </div>
+        <a href="{% url 'servicios:lista_plantillas' %}" class="bg-white text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> VOLVER A LIBRERÍA
+        </a>
+    </header>
+
+    <form method="post" id="plantilla-form">
+        {% csrf_token %}
+        
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm mb-6 p-8">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <div class="md:col-span-5">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombre de Plantilla</label>
+                    <input type="text" name="nombre" id="id_nombre" required 
+                        class="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" 
+                        value="{{ plantilla.nombre_plantilla|default:'' }}">
+                </div>
+
+                <div class="md:col-span-4">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Categoría General</label>
+                    <select name="servicio_general" id="id_servicio_general" required class="vicaf-search-select">
+                        <option value="">SELECCIONAR...</option>
+                        {% for grupo in servicio_grupos %}
+                            <option value="{{ grupo.pk }}" 
+                                {% if plantilla.servicio_general_id == grupo.pk %}selected{% endif %}>
+                                {{ grupo.nombre|upper }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="md:col-span-3">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Estado</label>
+                    <select name="activo" id="id_activo" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
+                        <option value="True" {% if plantilla.activo %}selected{% endif %}>ACTIVO</option>
+                        <option value="False" {% if not plantilla.activo and plantilla.pk %}selected{% endif %}>BORRADOR</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm mb-6">
+            <div onclick="toggleRegistroPanel()" class="flex items-center justify-between px-6 py-4 bg-slate-50 cursor-pointer border-b border-slate-100 rounded-t-2xl">
+                <h3 class="text-[11px] font-black text-slate-500 uppercase tracking-widest">Buscador de Ensayos Maestro</h3>
+                <i id="icon-registro" data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform duration-300"></i>
+            </div>
+
+            <div id="content-registro" class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 bg-slate-50/50 p-6 rounded-2xl border border-dashed border-slate-200">
+                    <div class="md:col-span-6">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Categoría</label>
+                        <select id="reg_categoria" class="w-full text-[10px] font-bold">
+                            <option value="">-- SELECCIONAR --</option>
+                            {% for cat in servicio_grupos %}<option value="{{ cat.nombre }}">{{ cat.nombre }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="md:col-span-6">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sub-Categoría</label>
+                        <select id="reg_subcategoria" class="w-full text-[10px] font-bold">
+                            <option value="">-- SELECCIONAR --</option>
+                            {% for sub in subcategorias %}<option value="{{ sub.nombre }}">{{ sub.nombre }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="md:col-span-4 relative">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Buscar Servicio (Ensayo)</label>
+                        <select id="reg_servicio" class="vicaf-search-select"></select>
+                    </div>
+                    <div class="md:col-span-4">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Referencia Norma/Método</label>
+                        <div class="flex gap-2">
+                            <div id="reg_norma_txt" class="flex-1 text-[10px] p-2.5 bg-white border border-slate-200 rounded-lg text-slate-400 italic">Norma</div>
+                            <div id="reg_metodo_txt" class="flex-1 text-[10px] p-2.5 bg-white border border-slate-200 rounded-lg text-slate-400 italic">Método</div>
+                        </div>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cant. Sugerida</label>
+                        <input type="number" id="reg_cantidad" value="1" class="w-full px-4 py-2.5 text-xs font-bold">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">P. Sugerido (S/)</label>
+                        <input type="number" step="0.01" id="reg_precio" class="w-full px-4 py-2.5 text-xs font-bold text-blue-600">
+                    </div>
+                </div>
+
+                <div class="flex justify-end mt-4">
+                    <button type="button" onclick="addItem()" class="bg-slate-900 hover:bg-emerald-600 text-white font-black py-3 px-8 rounded-xl text-[11px] uppercase tracking-widest shadow-lg transition-all flex items-center gap-3">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i> Agregar a la Estructura
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+            <div class="overflow-x-auto min-h-[200px]">
+                <table class="w-full border-collapse">
+                    <thead>
+                        <tr class="text-[10px] text-slate-400 uppercase tracking-widest font-black border-b border-slate-100">
+                            <th class="pb-4 text-left w-12">#</th>
+                            <th class="pb-4 text-left">Descripción</th>
+                            <th class="pb-4 text-center">Norma/Método</th>
+                            <th class="pb-4 text-center w-20">Cant.</th>
+                            <th class="pb-4 text-center w-20">Und.</th>
+                            <th class="pb-4 text-right w-28">P. Sugerido</th>
+                            <th class="pb-4 text-right w-28 pr-4">P. Parcial</th>
+                            <th class="pb-4 text-center w-12"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="cotizacion-detalles" class="divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+
+            <div class="mt-8 grid md:grid-cols-12 gap-6 pt-6 border-t border-slate-100 items-center">
+                <div class="md:col-span-7">
+                    <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                        <p class="text-[10px] text-emerald-700 font-bold uppercase mb-1">Nota de Plantilla Maestro:</p>
+                        <p class="text-[10px] text-slate-500 leading-relaxed italic">Este modelo sirve de base. Los precios y cantidades finales se definen al generar la Cotización real.</p>
+                    </div>
+                </div>
+                <div class="md:col-span-5 space-y-2 bg-slate-50 p-6 rounded-2xl">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-500 font-bold uppercase">Subtotal Referencial</span>
+                        <span class="text-slate-700 font-mono-tech font-bold" id="subtotal_cotizacion">0.00</span>
+                    </div>
+                    <div id="igv_container" class="hidden"> <span id="igv_cotizacion">0.00</span> </div>
+                    
+                    <div class="pt-3 border-t border-slate-200 flex justify-between items-center">
+                        <span class="text-emerald-600 font-black text-[11px] uppercase">Total Referencial S/</span>
+                        <span class="text-emerald-600 font-mono-tech font-black text-xl" id="total_final_cotizacion">0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-end">
+                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl transition-all flex items-center gap-3">
+                    <i data-lucide="save" class="w-5 h-5"></i> Guardar Plantilla Maestra
+                </button>
+            </div>
+        </div>
+
+        <input type="hidden" name="detalles_json" id="detalles_json">
+    </form>
+</div>
+
+{% include 'servicios/modals/all_modals.html' %}
+
+<script id="all-services-data" type="application/json">{{ servicios_con_detalles_json|safe }}</script>
+<script id="servicio-grupos-data" type="application/json">
+    [{% for g in servicio_grupos %}{"pk":"{{g.pk}}","nombre":"{{g.nombre}}"}{% if not forloop.last %},{% endif %}{% endfor %}]
+</script>
+<script id="initial-detalles-json" type="application/json">
+    {% if detalles_cotizacion_json %}{{ detalles_cotizacion_json|safe }}{% else %}[]{% endif %}
+</script>
+
+<script>
+    window.CotizacionConfig = {
+        urlCrearCategoria: "{% url 'servicios:crear_categoria_ajax' %}",
+        urlCrearSubcategoria: "{% url 'servicios:crear_subcategoria_ajax' %}"
+    };
+</script>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="{% static 'js/acordeon_plantilla.js' %}"></script>
+<script src="{% static 'js/cotizacion-config.js' %}"></script>
+{% endblock %}

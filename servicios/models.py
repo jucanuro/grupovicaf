@@ -247,3 +247,66 @@ class Voucher(models.Model):
     class Meta:
         verbose_name = "Voucher de Pago"
         verbose_name_plural = "Vouchers de Pago"
+             
+class PlantillaCotizacion(models.Model):
+    nombre_plantilla = models.CharField(max_length=200, verbose_name="Nombre de la Plantilla")
+    servicio_general = models.ForeignKey(
+        'CategoriaServicio', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        verbose_name="Categoría General"
+    )
+    asunto_referencial = models.CharField(max_length=255, verbose_name="Asunto Sugerido")
+    activo = models.BooleanField(default=True)
+    plazo_entrega_defecto = models.IntegerField(default=30)
+    forma_pago_defecto = models.CharField(max_length=20, default='Contado')
+    
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    def calcular_totales(self):
+        total = PlantillaDetalle.objects.filter(grupo__plantilla=self).aggregate(
+            sum_total=models.Sum('total_detalle'))['sum_total'] or Decimal('0.00')
+        self.subtotal = total
+        self.save(update_fields=['subtotal'])
+
+    def __str__(self):
+        return f"PLANTILLA: {self.nombre_plantilla.upper()}"
+
+    class Meta:
+        verbose_name = "Plantilla de Cotización"
+        verbose_name_plural = "Plantillas de Cotizaciones"
+
+class PlantillaGrupo(models.Model):
+    plantilla = models.ForeignKey(PlantillaCotizacion, on_delete=models.CASCADE, related_name='grupos')
+    nombre_grupo = models.CharField(max_length=255, verbose_name="Nombre de la Categoría/Subgrupo")
+    orden = models.PositiveIntegerField(default=1)
+
+    def __str__(self):
+        return f"{self.nombre_grupo} (en {self.plantilla.nombre_plantilla})"
+
+class PlantillaDetalle(models.Model):
+    grupo = models.ForeignKey(PlantillaGrupo, on_delete=models.CASCADE, related_name='detalles_items')
+    servicio = models.ForeignKey('Servicio', on_delete=models.RESTRICT)
+    
+    norma_manual = models.CharField(max_length=255, blank=True, null=True)
+    metodo_manual = models.CharField(max_length=255, blank=True, null=True)
+    
+    descripcion_especifica = models.TextField()
+    unidad_medida = models.CharField(max_length=50, default='Ensayo')
+    cantidad = models.PositiveIntegerField(default=1)
+    precio_unitario = models.DecimalField(max_digits=12, decimal_places=2)
+    
+    total_detalle = models.DecimalField(max_digits=12, decimal_places=2, editable=False)
+
+    def save(self, *args, **kwargs):
+        self.total_detalle = Decimal(self.cantidad) * self.precio_unitario
+        super().save(*args, **kwargs)
+        self.grupo.plantilla.calcular_totales()
+
+    def delete(self, *args, **kwargs):
+        plantilla = self.grupo.plantilla
+        super().delete(*args, **kwargs)
+        plantilla.calcular_totales()

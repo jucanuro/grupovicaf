@@ -1,34 +1,22 @@
-/**
- * VICAF PRO V2.0 - Gestión de Cotizaciones
- * Archivo: cotizacion-config.js
- */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Inicialización de Iconos
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
-    // --- VARIABLES DE ESTADO ---
     let EDIT_INDEX = null; 
-    const config = window.CotizacionConfig || {};
+    const config = window.CotizacionConfig || window.PlantillaConfig || {};
     
-    // Recuperación de Data inyectada desde el HTML
     const ALL_SERVICES = JSON.parse(document.getElementById('all-services-data')?.textContent || '[]');
     const INITIAL_DATA = JSON.parse(document.getElementById('initial-detalles-json')?.textContent || '[]');
     
-    // Array principal de la cotización
     let DATA_ARRAY = INITIAL_DATA;
 
-    // --- MANEJO DE FORMA DE PAGO ---
     document.getElementById('id_forma_pago')?.addEventListener('change', function() {
         const customContainer = document.getElementById('pago_personalizado_container');
-        if (this.value === 'Personalizado') {
-            customContainer.classList.remove('hidden');
-        } else {
-            customContainer.classList.add('hidden');
+        if (customContainer) {
+            this.value === 'Personalizado' ? customContainer.classList.remove('hidden') : customContainer.classList.add('hidden');
         }
     });
 
-    // --- FUNCIONES DE APOYO ---
     const loadClientData = (opt) => {
         const fields = {
             'id_razon_social': opt?.dataset.razonSocial || '',
@@ -44,7 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const getLetter = (num, upper = true) => String.fromCharCode((upper ? 65 : 97) + (num - 1));
 
-    // --- 1. BUSCADOR: CLIENTE ---
     const clientesSelect = document.getElementById('id_cliente_ruc');
     let tsCliente = null;
     if (clientesSelect) {
@@ -63,16 +50,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 2. BUSCADOR: CATEGORÍA GENERAL (CABECERA) ---
     const tsServicioGeneral = new TomSelect('#id_servicio_general', {
-        onInitialize: function() { 
-            this.wrapper.classList.add('vicaf-search'); 
+        onInitialize: function() {
+            this.wrapper.classList.add('vicaf-search');
+            const initialValue = document.getElementById('id_servicio_general').value;
+            if(initialValue) {
+                this.setValue(initialValue);
+            }
         },
-        placeholder: 'BUSCAR CATEGORÍA PRINCIPAL...',
-        create: false
+        placeholder: 'SELECCIONAR CATEGORÍA...',
+        create: false,
+        allowEmptyOption: false,
     });
 
-    // --- 3. BUSCADOR: CATEGORÍA (EN EL PANEL DE REGISTRO) ---
     const tsRegCategoria = new TomSelect('#reg_categoria', {
         onInitialize: function() { this.wrapper.classList.add('vicaf-search'); },
         onChange: function(val) {
@@ -88,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- 4. BUSCADOR: SUB-CATEGORÍA ---
     const tsRegSubcategoria = new TomSelect('#reg_subcategoria', {
         onInitialize: function() { this.wrapper.classList.add('vicaf-search'); },
         onChange: function(val) {
@@ -104,7 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- 5. BUSCADOR: SERVICIOS (ENSAYOS) ---
     const tsServicio = new TomSelect('#reg_servicio', {
         options: ALL_SERVICES.map(s => ({ value: s.pk, text: s.nombre })),
         placeholder: 'BUSCAR SERVICIO...',
@@ -130,7 +118,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- MODALES (GLOBALES) ---
+    const selGeneral = document.getElementById('id_servicio_general');
+    const valInicial = selGeneral.value;
+
+    const tsGeneral = new TomSelect('#id_servicio_general', {
+        create: false,
+        placeholder: 'SELECCIONAR...',
+        onInitialize: function() {
+            if (valInicial) {
+                this.setValue(valInicial); 
+            }
+        }
+    });
+
     window.openClienteModal = () => { document.getElementById('modalCliente')?.classList.remove('hidden'); document.body.style.overflow = 'hidden'; };
     window.closeClienteModal = () => { document.getElementById('modalCliente')?.classList.add('hidden'); document.body.style.overflow = 'auto'; };
     window.openCategoriaModal = () => { document.getElementById('modalCategoria')?.classList.remove('hidden'); document.body.style.overflow = 'hidden'; };
@@ -146,24 +146,15 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.overflow = 'auto'; 
     };
 
-    // --- LÓGICA DE EDICIÓN ---
     window.editItem = (index) => {
         const item = DATA_ARRAY[index];
         EDIT_INDEX = index;
-        
-        // Abrir panel si está cerrado
         const content = document.getElementById('content-registro');
         if (content && content.classList.contains('hidden')) {
              if (typeof toggleRegistroPanel === 'function') toggleRegistroPanel();
         }
-
-        tsRegCategoria.isUpdating = true;
-        tsRegSubcategoria.isUpdating = true;
-        tsServicio.isUpdating = true;
-
-        tsRegCategoria.clear(true);
-        tsRegSubcategoria.clear(true);
-        tsServicio.clear(true);
+        tsRegCategoria.isUpdating = true; tsRegSubcategoria.isUpdating = true; tsServicio.isUpdating = true;
+        tsRegCategoria.clear(true); tsRegSubcategoria.clear(true); tsServicio.clear(true);
 
         if (item.tipo_fila === 'categoria') {
             if (!tsRegCategoria.options[item.descripcion_especifica]) {
@@ -180,10 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('reg_cantidad').value = item.cantidad;
             document.getElementById('reg_precio').value = item.precio_unitario;
         }
-
-        tsRegCategoria.isUpdating = false;
-        tsRegSubcategoria.isUpdating = false;
-        tsServicio.isUpdating = false;
+        tsRegCategoria.isUpdating = false; tsRegSubcategoria.isUpdating = false; tsServicio.isUpdating = false;
 
         const btn = document.querySelector('button[onclick="addItem()"]');
         if (btn) {
@@ -196,21 +184,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.resetEditor = () => {
         EDIT_INDEX = null;
-        tsRegCategoria.isUpdating = true;
-        tsRegSubcategoria.isUpdating = true;
-        tsServicio.isUpdating = true;
-        
-        tsRegCategoria.clear(true);
-        tsRegSubcategoria.clear(true);
-        tsServicio.clear(true);
-        
-        tsRegCategoria.isUpdating = false;
-        tsRegSubcategoria.isUpdating = false;
-        tsServicio.isUpdating = false;
-
+        tsRegCategoria.isUpdating = true; tsRegSubcategoria.isUpdating = true; tsServicio.isUpdating = true;
+        tsRegCategoria.clear(true); tsRegSubcategoria.clear(true); tsServicio.clear(true);
+        tsRegCategoria.isUpdating = false; tsRegSubcategoria.isUpdating = false; tsServicio.isUpdating = false;
         document.getElementById('reg_cantidad').value = "1";
         document.getElementById('reg_precio').value = "";
-        
         const btn = document.querySelector('button[onclick="addItem()"]');
         if (btn) {
             btn.innerHTML = `<i data-lucide="plus-circle" class="w-4 h-4"></i> Agregar Ítem al Detalle`;
@@ -219,14 +197,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- AGREGAR CABECERAS Y ÍTEMS ---
     window.addHeader = (tipo, valOverride = null) => {
         let val = valOverride || document.getElementById(tipo === 'categoria' ? 'reg_categoria' : 'reg_subcategoria')?.value;
         if(!val) return;
-        DATA_ARRAY.push({ 
-            tipo_fila: tipo, 
-            descripcion_especifica: val.toUpperCase() 
-        });
+        DATA_ARRAY.push({ tipo_fila: tipo, descripcion_especifica: val.toUpperCase() });
         renderTable();
     };
 
@@ -234,7 +208,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const sId = document.getElementById('reg_servicio')?.value;
         if(!sId) return;
         const sBase = ALL_SERVICES.find(x => String(x.pk) === String(sId));
-        
+        if (!sBase) return;
+
         const data = {
             tipo_fila: 'servicio', 
             servicio_id: sId,
@@ -243,17 +218,12 @@ document.addEventListener('DOMContentLoaded', () => {
             precio_unitario: parseFloat(document.getElementById('reg_precio').value) || 0,
             norma_id: sBase.norma_pk, 
             metodo_id: sBase.metodo_pk,
-            norma_nombre: sBase.norma_codigo + (sBase.metodo_codigo ? ' / ' + sBase.metodo_codigo : ''),
+            norma_nombre: (sBase.norma_codigo || '') + (sBase.metodo_codigo ? ' / ' + sBase.metodo_codigo : ''),
             unidad_medida: sBase.unidad_base || 'UND'
         };
 
-        if (EDIT_INDEX !== null) {
-            DATA_ARRAY[EDIT_INDEX] = data;
-            resetEditor(); 
-        } else {
-            DATA_ARRAY.push(data);
-            tsServicio.clear(); 
-        }
+        if (EDIT_INDEX !== null) { DATA_ARRAY[EDIT_INDEX] = data; resetEditor(); } 
+        else { DATA_ARRAY.push(data); tsServicio.clear(); }
         renderTable();
     };
 
@@ -263,7 +233,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTable(); 
     };
 
-    // --- RENDERIZADO DE TABLA ---
     window.renderTable = () => {
         const body = document.getElementById('cotizacion-detalles');
         if (!body) return;
@@ -278,58 +247,45 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if(item.tipo_fila === 'categoria'){
                 catCount++; subCatCount = 0; serviceCount = 0;
-                tr.innerHTML = `
-                    <td class="text-center font-black text-blue-900 bg-blue-50/50 p-2 text-[11px]">${getLetter(catCount, true)}</td>
+                tr.innerHTML = `<td class="text-center font-black text-blue-900 bg-blue-50/50 p-2 text-[11px]">${getLetter(catCount, true)}</td>
                     <td colspan="6" class="italic font-black text-blue-900 bg-blue-50/50 p-2 text-[10px] uppercase tracking-widest">${item.descripcion_especifica}</td>
-                    <td class="text-center bg-blue-50/50" onclick="event.stopPropagation()">
-                        <button type="button" class="text-red-400 font-black hover:text-red-600" onclick="remove(${index})">×</button>
-                    </td>`;
-            } 
-            else if(item.tipo_fila === 'subcategoria'){
+                    <td class="text-center bg-blue-50/50" onclick="event.stopPropagation()"><button type="button" class="text-red-400 font-black hover:text-red-600" onclick="remove(${index})">×</button></td>`;
+            } else if(item.tipo_fila === 'subcategoria'){
                 subCatCount++; serviceCount = 0;
-                tr.innerHTML = `
-                    <td class="text-center font-bold text-slate-600 bg-slate-50 p-2 text-[9px]">${getLetter(subCatCount, false)}</td>
+                tr.innerHTML = `<td class="text-center font-bold text-slate-600 bg-slate-50 p-2 text-[9px]">${getLetter(subCatCount, false)}</td>
                     <td colspan="6" class="font-bold text-slate-600 bg-slate-50 p-2 underline decoration-slate-300 text-[9px] uppercase">${item.descripcion_especifica}</td>
-                    <td class="text-center bg-slate-50" onclick="event.stopPropagation()">
-                        <button type="button" class="text-red-400 font-black hover:text-red-600" onclick="remove(${index})">×</button>
-                    </td>`;
-            } 
-            else {
+                    <td class="text-center bg-slate-50" onclick="event.stopPropagation()"><button type="button" class="text-red-400 font-black hover:text-red-600" onclick="remove(${index})">×</button></td>`;
+            } else {
                 serviceCount++; 
-                const parcial = item.cantidad * item.precio_unitario;
+                const parcial = (item.cantidad || 0) * (item.precio_unitario || 0);
                 subtotal += parcial;
-                tr.innerHTML = `
-                    <td class="text-center font-bold text-[10px] text-slate-400 pl-4">${serviceCount}</td>
+                tr.innerHTML = `<td class="text-center font-bold text-[10px] text-slate-400 pl-4">${serviceCount}</td>
                     <td class="font-bold text-slate-700 p-3 text-[10px]">${item.descripcion_especifica}</td>
                     <td class="text-center text-[10px] font-semibold text-slate-500">${item.norma_nombre || '--'}</td>
                     <td class="text-center font-bold text-slate-600 text-[10px]">${item.cantidad}</td>
                     <td class="text-center text-[9px] font-bold text-slate-400 uppercase">${item.unidad_medida || 'UND'}</td>
-                    <td class="text-right font-mono text-slate-500 text-xs">S/ ${parseFloat(item.precio_unitario).toFixed(2)}</td>
+                    <td class="text-right font-mono text-slate-500 text-xs">S/ ${parseFloat(item.precio_unitario || 0).toFixed(2)}</td>
                     <td class="text-right font-bold text-blue-600 font-mono pr-4 text-[11px]">S/ ${parcial.toFixed(2)}</td>
-                    <td class="text-center" onclick="event.stopPropagation()">
-                        <button type="button" class="text-red-400 font-black hover:text-red-600" onclick="remove(${index})">×</button>
-                    </td>`;
+                    <td class="text-center" onclick="event.stopPropagation()"><button type="button" class="text-red-400 font-black hover:text-red-600" onclick="remove(${index})">×</button></td>`;
             }
             body.appendChild(tr);
         });
 
         document.getElementById('detalles_json').value = JSON.stringify(DATA_ARRAY);
-        
         const igv = subtotal * 0.18;
         const total = subtotal + igv;
-
-        document.getElementById('subtotal_cotizacion').textContent = subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 });
-        document.getElementById('igv_cotizacion').textContent = igv.toLocaleString('en-US', { minimumFractionDigits: 2 });
-        document.getElementById('total_final_cotizacion').textContent = total.toLocaleString('en-US', { minimumFractionDigits: 2 });
-        
+        const els = { sub: 'subtotal_cotizacion', igv: 'igv_cotizacion', tot: 'total_final_cotizacion' };
+        if(document.getElementById(els.sub)) document.getElementById(els.sub).textContent = subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 });
+        if(document.getElementById(els.igv)) document.getElementById(els.igv).textContent = igv.toLocaleString('en-US', { minimumFractionDigits: 2 });
+        if(document.getElementById(els.tot)) document.getElementById(els.tot).textContent = total.toLocaleString('en-US', { minimumFractionDigits: 2 });
         const mi = document.getElementById('id_monto_total');
         if (mi) mi.value = total.toFixed(2);
     };
 
-    // --- FORMULARIOS AJAX ---
     const handleAjaxForm = (formId, url, successCallback) => {
         document.getElementById(formId)?.addEventListener('submit', function(e) {
             e.preventDefault();
+            if(!url) { console.warn("URL de envío no definida"); return; }
             fetch(url, {
                 method: 'POST',
                 body: new FormData(this),
@@ -341,29 +297,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     successCallback(data);
                     this.reset();
                     if (typeof lucide !== 'undefined') lucide.createIcons();
-                } else { 
-                    alert('Error: ' + (data.message || 'Error desconocido')); 
-                }
+                } else { alert('Error: ' + (data.message || 'Error desconocido')); }
             }).catch(() => alert('Error de conexión con el servidor'));
         });
     };
 
     handleAjaxForm('formNuevoClienteAjax', config.urlCrearCliente, (data) => {
-        tsCliente?.addOption({ 
-            value: data.id, 
-            text: `${data.ruc} - ${data.razon_social}`, 
-            razonSocial: data.razon_social, 
-            contacto: data.persona_contacto, 
-            correo: data.correo_contacto, 
-            telefono: data.celular_contacto 
-        });
+        tsCliente?.addOption({ value: data.id, text: `${data.ruc} - ${data.razon_social}`, razonSocial: data.razon_social, contacto: data.persona_contacto, correo: data.correo_contacto, telefono: data.celular_contacto });
         tsCliente?.setValue(data.id);
-        loadClientData({ dataset: { 
-            razonSocial: data.razon_social, 
-            contacto: data.persona_contacto, 
-            correo: data.correo_contacto, 
-            telefono: data.celular_contacto 
-        }});
+        loadClientData({ dataset: { razonSocial: data.razon_social, contacto: data.persona_contacto, correo: data.correo_contacto, telefono: data.celular_contacto }});
         closeClienteModal();
     });
 
@@ -380,48 +322,6 @@ document.addEventListener('DOMContentLoaded', () => {
         tsRegSubcategoria?.setValue(name);
         closeSubcategoriaModal();
     });
-
-    // --- FUNCIÓN DE PLANTILLA ---
-    window.cargarPlantillaAjax = async (plantillaId) => {
-        if (!plantillaId) return;
-        const loader = document.getElementById('loader-plantilla');
-        if (loader) loader.classList.remove('hidden');
-        try {
-            const response = await fetch(`/servicios/plantilla/${plantillaId}/json/`); 
-            const data = await response.json();
-            if (data.status === 'success') {
-                if (data.asunto) document.getElementById('id_asunto_servicio').value = data.asunto;
-                if (data.plazo) document.getElementsByName('tiempo_entrega')[0].value = data.plazo;
-                if (data.forma_pago) document.getElementById('id_forma_pago').value = data.forma_pago;
-                DATA_ARRAY = [];
-                data.detalles.forEach(item => {
-                    if (item.tipo_fila === 'categoria') {
-                        DATA_ARRAY.push({ tipo_fila: 'categoria', descripcion_especifica: item.descripcion_especifica.toUpperCase() });
-                    } else if (item.tipo_fila === 'servicio') {
-                        const sBase = ALL_SERVICES.find(x => String(x.pk) === String(item.servicio_id));
-                        if (sBase) {
-                            DATA_ARRAY.push({
-                                tipo_fila: 'servicio', 
-                                servicio_id: item.servicio_id,
-                                descripcion_especifica: item.descripcion_especifica,
-                                cantidad: parseFloat(item.cantidad) || 1,
-                                precio_unitario: parseFloat(item.precio_unitario) || 0,
-                                norma_id: sBase.norma_pk, 
-                                metodo_id: sBase.metodo_pk,
-                                norma_nombre: sBase.norma_codigo + (sBase.metodo_codigo ? ' / ' + sBase.metodo_codigo : ''),
-                                unidad_medida: item.unidad_medida || 'UND'
-                            });
-                        }
-                    }
-                });
-                renderTable();
-            }
-        } catch (error) {
-            console.error("Error al cargar plantilla:", error);
-        } finally {
-            if (loader) loader.classList.add('hidden');
-        }
-    };
 
     renderTable();
 });

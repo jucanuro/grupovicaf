@@ -39,7 +39,7 @@ from .models import (
     CotizacionDetalle, 
     Voucher, 
     CategoriaServicio,
-    Subcategoria, CotizacionGrupo
+    Subcategoria, CotizacionGrupo, PlantillaCotizacion, PlantillaGrupo, PlantillaDetalle
 )
 
 
@@ -333,29 +333,6 @@ def lista_cotizaciones(request):
     return render(request, 'servicios/cotizacion_list.html', context)
 
 @login_required
-def lista_plantillas(request):
-    query = request.GET.get('q')
-    
-    plantillas_list = Cotizacion.objects.select_related('cliente')\
-                                        .filter(es_plantilla=True)\
-                                        .order_by('-fecha_creacion')
-
-    if query:
-        plantillas_list = plantillas_list.filter(
-            Q(nombre_plantilla__icontains=query) |
-            Q(asunto_servicio__icontains=query)
-        )
-
-    paginator = Paginator(plantillas_list, 10)
-    page_obj = paginator.get_page(request.GET.get('page'))
-
-    context = {
-        'plantillas': page_obj,
-        'query': query,
-    }
-    return render(request, 'servicios/plantillas_list.html', context)
-
-@login_required
 def crear_editar_cotizacion(request, pk=None):
     cotizacion = None
     error = None
@@ -586,66 +563,6 @@ def crear_editar_cotizacion(request, pk=None):
 crear_cotizacion = crear_editar_cotizacion
 editar_cotizacion = crear_editar_cotizacion
 
-@login_required
-def usar_plantilla(request, pk):
-    """
-    Toma una cotización o plantilla existente, extrae sus datos y los envía
-    al formulario de creación como si fuera un documento nuevo.
-    """
-    plantilla = get_object_or_404(Cotizacion, pk=pk)
-    
-    detalles_list = []
-
-    for grupo in plantilla.grupos.all().order_by('orden'):
-        if grupo.nombre_grupo != "ENSAYOS DE LABORATORIO":
-            detalles_list.append({
-                'tipo_fila': 'categoria',
-                'descripcion_especifica': grupo.nombre_grupo
-            })
-            
-        for detalle in grupo.detalles_items.all():
-            detalles_list.append({
-                'tipo_fila': 'servicio',
-                'servicio_id': detalle.servicio.pk,
-                'descripcion_especifica': detalle.descripcion_especifica,
-                'norma_manual': detalle.norma_manual,
-                'metodo_manual': detalle.metodo_manual,
-                'unidad_medida': detalle.unidad_medida,
-                'cantidad': str(detalle.cantidad),
-                'precio_unitario': str(detalle.precio_unitario),
-                'total_detalle': str(detalle.total_detalle)
-            })
-
-    clientes = Cliente.objects.all().order_by('razon_social')
-    servicios_queryset = Servicio.objects.all().select_related('norma', 'metodo')
-    categorias_principales = CategoriaServicio.objects.all()
-    subcategorias_list = Subcategoria.objects.all()
-    trabajadores = TrabajadorProfile.objects.all().select_related('user')
-
-    servicios_list = [{
-        'pk': s.pk, 
-        'nombre': s.nombre, 
-        'unidad_base': s.unidad_base,
-        'precio_base': str(s.precio_base),
-        'norma_codigo': s.norma.codigo if s.norma else 'N/A',
-        'metodo_codigo': s.metodo.codigo if s.metodo else 'N/A',
-    } for s in servicios_queryset]
-
-    context = {
-        'cotizacion': plantilla,  
-        'clientes': clientes,
-        'servicios': servicios_queryset,
-        'servicio_grupos': categorias_principales,
-        'subcategorias': subcategorias_list,
-        'servicios_con_detalles_json': json.dumps(servicios_list),
-        'detalles_cotizacion_json': json.dumps(detalles_list), 
-        'trabajadores': trabajadores,
-        'es_clonacion': True, 
-        'estados_choices': Cotizacion.ESTADO_CHOICES,
-        'forma_pago_choices': Cotizacion.FORMA_PAGO_CHOICES,
-    }
-    
-    return render(request, 'servicios/cotizaciones_form.html', context)
 
 @login_required
 def eliminar_cotizacion(request, pk):
@@ -671,7 +588,6 @@ def eliminar_cotizacion(request, pk):
             })
 
     return render(request, 'servicios/cotizacion_confirm_delete.html', {'cotizacion': cotizacion})
-
 
 def link_callback(uri, rel):
     """
@@ -890,7 +806,6 @@ def buscar_cotizaciones_api(request):
 
     return JsonResponse(data, safe=False)
 
-
 @login_required
 def administracion_view(request):
     estados_disponibles = Cotizacion.ESTADO_CHOICES
@@ -920,3 +835,176 @@ def administracion_view(request):
         'estados_disponibles': estados_disponibles,
     }
     return render(request, 'administracion.html', context)
+
+@login_required
+def lista_plantillas(request):
+    query = request.GET.get('q')
+    plantillas_list = PlantillaCotizacion.objects.select_related('servicio_general')\
+                                         .order_by('-fecha_creacion')
+
+    if query:
+        plantillas_list = plantillas_list.filter(
+            Q(nombre_plantilla__icontains=query) |
+            Q(asunto_referencial__icontains=query)
+        )
+
+    paginator = Paginator(plantillas_list, 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    context = {
+        'plantillas': page_obj,
+        'query': query,
+    }
+    return render(request, 'servicios/plantillas_list.html', context)
+
+@login_required
+def crear_editar_plantilla(request, pk=None):
+    plantilla = None
+    error = None
+    is_editing = pk is not None
+
+    if is_editing:
+        plantilla = get_object_or_404(PlantillaCotizacion, pk=pk)
+    else:
+        plantilla = PlantillaCotizacion(activo=True)
+
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                detalles_data_json = request.POST.get('detalles_json')
+                if not detalles_data_json:
+                    raise ValueError("El JSON de detalles está vacío.")
+
+                detalles_data = json.loads(detalles_data_json)
+
+                if is_editing:
+                    plantilla = get_object_or_404(PlantillaCotizacion, pk=pk)
+                else:
+                    plantilla = PlantillaCotizacion() 
+
+                plantilla.nombre_plantilla = request.POST.get('nombre') 
+                
+                servicio_general_pk = request.POST.get('servicio_general')
+                if servicio_general_pk:
+                    plantilla.servicio_general = CategoriaServicio.objects.get(pk=servicio_general_pk)
+
+                plantilla.asunto_referencial = request.POST.get('asunto_servicio') or "COTIZACIÓN DE SERVICIOS"
+                plantilla.plazo_entrega_defecto = int(request.POST.get('tiempo_entrega') or 30)
+                plantilla.forma_pago_defecto = request.POST.get('forma_pago') or 'Contado'
+                
+                plantilla.activo = request.POST.get('activo') == 'True'
+                
+                plantilla.save()
+
+                if is_editing:
+                    plantilla.grupos.all().delete()
+
+                grupo_actual = PlantillaGrupo.objects.create(
+                    plantilla=plantilla,
+                    nombre_grupo="ENSAYOS DE LABORATORIO",
+                    orden=0
+                )
+
+                for index, item in enumerate(detalles_data):
+                    tipo_fila = item.get('tipo_fila')
+                    if tipo_fila in ['categoria', 'subcategoria']:
+                        grupo_actual = PlantillaGrupo.objects.create(
+                            plantilla=plantilla,
+                            nombre_grupo=item.get('descripcion_especifica', '').upper(),
+                            orden=index + 1
+                        )
+                        continue
+
+                    servicio_id = item.get('servicio_id')
+                    if not servicio_id: 
+                        continue
+                    
+                    servicio = Servicio.objects.get(pk=int(servicio_id))
+                    
+                    PlantillaDetalle.objects.create(
+                        grupo=grupo_actual,
+                        servicio=servicio,
+                        norma_manual=item.get('norma_nombre', ''), 
+                        descripcion_especifica=item.get('descripcion_especifica') or servicio.nombre,
+                        unidad_medida=item.get('unidad_medida') or servicio.unidad_base,
+                        cantidad=Decimal(str(item.get('cantidad', '1')).replace(',', '.')),
+                        precio_unitario=Decimal(str(item.get('precio_unitario', '0')).replace(',', '.')),
+                    )
+
+                plantilla.calcular_totales()
+                messages.success(request, f"Plantilla '{plantilla.nombre_plantilla}' guardada.")
+                return redirect('servicios:lista_plantillas')
+
+        except Exception as e:
+            error = f'Error: {str(e)}'
+            print(f"DEBUG ERROR: {error}") 
+
+    servicios_data = []
+    for s in Servicio.objects.all().select_related('norma', 'metodo'):
+        servicios_data.append({
+            'pk': s.pk,
+            'nombre': s.nombre,
+            'precio_base': str(s.precio_base),
+            'norma_codigo': s.norma.codigo if s.norma else '',
+            'metodo_codigo': s.metodo.codigo if s.metodo else '',
+            'unidad_base': s.unidad_base
+        })
+
+    detalles_list = []
+    if is_editing or request.method == 'POST':
+        for grupo in plantilla.grupos.all().order_by('orden'):
+            if grupo.nombre_grupo != "ENSAYOS DE LABORATORIO":
+                detalles_list.append({'tipo_fila': 'categoria', 'descripcion_especifica': grupo.nombre_grupo})
+            for detalle in grupo.detalles_items.all():
+                detalles_list.append({
+                    'tipo_fila': 'servicio', 
+                    'servicio_id': detalle.servicio.pk,
+                    'descripcion_especifica': detalle.descripcion_especifica,
+                    'norma_nombre': detalle.norma_manual,
+                    'unidad_medida': detalle.unidad_medida, 
+                    'cantidad': str(detalle.cantidad),
+                    'precio_unitario': str(detalle.precio_unitario)
+                })
+
+    context = {
+        'plantilla': plantilla,
+        'servicios_con_detalles_json': json.dumps(servicios_data), 
+        'servicio_grupos': CategoriaServicio.objects.all(),
+        'subcategorias': Subcategoria.objects.all(),
+        'detalles_cotizacion_json': json.dumps(detalles_list),
+        'error': error,
+    }
+    return render(request, 'servicios/plantilla_form.html', context)
+
+@login_required
+def obtener_detalle_plantilla_json(request, pk):
+    plantilla = get_object_or_404(PlantillaCotizacion, pk=pk)
+    detalles = []
+    
+    for grupo in plantilla.grupos.all().order_by('orden'):
+        if grupo.nombre_grupo != "ENSAYOS DE LABORATORIO":
+            detalles.append({
+                'tipo_fila': 'categoria',
+                'descripcion_especifica': grupo.nombre_grupo
+            })
+            
+        for item in grupo.detalles_items.all():
+            detalles.append({
+                'tipo_fila': 'servicio',
+                'servicio_id': item.servicio.pk,
+                'descripcion_especifica': item.descripcion_especifica,
+                'norma_manual': item.norma_manual,
+                'metodo_manual': item.metodo_manual,
+                'unidad_medida': item.unidad_medida,
+                'cantidad': str(item.cantidad),
+                'precio_unitario': str(item.precio_unitario),
+                'total_detalle': str(item.total_detalle)
+            })
+            
+    return JsonResponse({
+        'status': 'success',
+        'asunto': plantilla.asunto_referencial,
+        'plazo': plantilla.plazo_entrega_defecto,
+        'forma_pago': plantilla.forma_pago_defecto,
+        'detalles': detalles
+    })
