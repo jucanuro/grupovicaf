@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'trabajadores',
     'servicios',
     'proyectos',
+    'actividades',
 ]
 
 MIDDLEWARE = [

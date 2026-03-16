@@ -9,7 +9,8 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from datetime import datetime, timedelta
 import datetime
-
+from django.db.models import Q
+from clientes.models import Cliente
 from proyectos.models import Proyecto, RecepcionMuestra, SolicitudEnsayo
 from servicios.models import Cotizacion
 
@@ -24,58 +25,36 @@ class CoreLoginView(LoginView):
 
 @login_required
 def dashboard_view(request):
+    total_clientes = Cliente.objects.count()
+    total_cotizaciones = Cotizacion.objects.count()
+    total_cotizaciones_pendientes = Cotizacion.objects.filter(estado='Pendiente').count()
+    total_cotizaciones_aceptadas = Cotizacion.objects.filter(estado='Aceptada').count()
+    
     total_proyectos = Proyecto.objects.count()
-    proyectos_activos = Proyecto.objects.filter(estado='EN_CURSO').count()
-    
     total_muestras = RecepcionMuestra.objects.count()
+    total_ensayos = SolicitudEnsayo.objects.count()
+    total_ensayos_pendiente = SolicitudEnsayo.objects.filter(estado = 'pendiente').count()
+    total_ensayos_proceso = SolicitudEnsayo.objects.filter(estado = 'proceso').count()
+    total_ensayos_finalizado = SolicitudEnsayo.objects.filter(estado = 'finalizado').count()
     
-    n_proceso = SolicitudEnsayo.objects.filter(estado='proceso').count()
-    n_completados = SolicitudEnsayo.objects.filter(estado='finalizado').count()
-    n_pendientes = SolicitudEnsayo.objects.filter(estado='pendiente').count()
-
-    hoy = timezone.now().date()
-    n_vencidos = Proyecto.objects.filter(
-        fecha_entrega_estimada__lt=hoy
-    ).exclude(estado='FINALIZADO').count()
-
-    eficiencia = (n_completados / total_muestras * 100) if total_muestras > 0 else 0
-    porc_proceso = (n_proceso / total_muestras * 100) if total_muestras > 0 else 0
-
-    hace_6_meses = hoy - datetime.timedelta(days=180)
-    data_mensual = (
-        RecepcionMuestra.objects.filter(fecha_recepcion__date__gte=hace_6_meses)
-        .annotate(mes=TruncMonth('fecha_recepcion'))
-        .values('mes')
-        .annotate(total=Count('id'))
-        .order_by('mes')
-    )
-
-    labels_grafico = [d['mes'].strftime('%b') for d in data_mensual]
-    datos_grafico = [d['total'] for d in data_mensual]
-
-    muestras_recientes = RecepcionMuestra.objects.select_related(
-        'cotizacion__cliente', 
-        'solicitud_ensayo'
-    ).order_by('-fecha_recepcion')[:5]
-
     context = {
-        'n_proyectos': total_proyectos,
-        'n_activos': proyectos_activos,
-        'total_muestras': total_muestras,
-        'n_proceso': n_proceso,
-        'n_completados': n_completados,
-        'n_pendientes': n_pendientes,
-        'n_vencidos': n_vencidos,
-        'eficiencia_entrega': int(eficiencia),
-        'porc_proceso': int(porc_proceso),
-        'labels_grafico': labels_grafico,
-        'datos_grafico': datos_grafico,
-        'muestras_recientes': muestras_recientes,
+        "total_clientes" : total_clientes,
+        "total_cotizaciones" : total_cotizaciones,
+        "total_cotizaciones_pendientes" : total_cotizaciones_pendientes,
+        "total_cotizaciones_aceptadas" : total_cotizaciones_aceptadas,
+        
+        "total_proyectos" : total_proyectos,
+        "total_muestras" : total_muestras,
+        "total_ensayos" : total_ensayos,
+        
+        "total_ensayos_pendiente" : total_ensayos_pendiente,
+        "total_ensayos_proceso" : total_ensayos_proceso,
+        "total_ensayos_finalizado" : total_ensayos_finalizado,
     }
+    return render(request, "dashboard.html",context)
     
-    return render(request, 'dashboard.html', context)
+    
 
 @login_required
 def dashboard_view_analitycs(request):
-    """ Vista para la sección de administración """
     return render(request, 'administracion.html')
