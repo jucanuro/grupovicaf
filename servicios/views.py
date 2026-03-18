@@ -520,6 +520,7 @@ def crear_editar_cotizacion(request, pk=None):
     categorias_principales = CategoriaServicio.objects.all()
     subcategorias_list = Subcategoria.objects.all()
     trabajadores = TrabajadorProfile.objects.all().select_related('user')
+    plantillas = PlantillaCotizacion.objects.filter(activo=True).order_by('nombre_plantilla')
 
     servicios_list = []
     for s in servicios_queryset:
@@ -557,6 +558,7 @@ def crear_editar_cotizacion(request, pk=None):
         'forma_pago_choices': Cotizacion.FORMA_PAGO_CHOICES,
         'trabajadores': trabajadores,
         'es_clonacion': es_clonacion, 
+        'plantillas': plantillas,
     }
     return render(request, 'servicios/cotizaciones_form.html', context)
 
