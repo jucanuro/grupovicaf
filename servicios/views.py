@@ -978,35 +978,41 @@ def crear_editar_plantilla(request, pk=None):
     }
     return render(request, 'servicios/plantilla_form.html', context)
 
+from django.http import JsonResponse
+
 @login_required
 def obtener_detalle_plantilla_json(request, pk):
-    plantilla = get_object_or_404(PlantillaCotizacion, pk=pk)
-    detalles = []
-    
-    for grupo in plantilla.grupos.all().order_by('orden'):
-        if grupo.nombre_grupo != "ENSAYOS DE LABORATORIO":
-            detalles.append({
-                'tipo_fila': 'categoria',
-                'descripcion_especifica': grupo.nombre_grupo
-            })
-            
-        for item in grupo.detalles_items.all():
-            detalles.append({
-                'tipo_fila': 'servicio',
-                'servicio_id': item.servicio.pk,
-                'descripcion_especifica': item.descripcion_especifica,
-                'norma_manual': item.norma_manual,
-                'metodo_manual': item.metodo_manual,
-                'unidad_medida': item.unidad_medida,
-                'cantidad': str(item.cantidad),
-                'precio_unitario': str(item.precio_unitario),
-                'total_detalle': str(item.total_detalle)
-            })
-            
-    return JsonResponse({
-        'status': 'success',
-        'asunto': plantilla.asunto_referencial,
-        'plazo': plantilla.plazo_entrega_defecto,
-        'forma_pago': plantilla.forma_pago_defecto,
-        'detalles': detalles
-    })
+    try:
+        plantilla = get_object_or_404(PlantillaCotizacion, pk=pk)
+
+        detalles_list = []
+
+        for grupo in plantilla.grupos.all().order_by('orden'):
+            if grupo.nombre_grupo != "ENSAYOS DE LABORATORIO":
+                detalles_list.append({
+                    'tipo_fila': 'categoria',
+                    'descripcion_especifica': grupo.nombre_grupo
+                })
+
+            for detalle in grupo.detalles_items.all():
+                detalles_list.append({
+                    'tipo_fila': 'servicio',
+                    'servicio_id': detalle.servicio.pk,
+                    'descripcion_especifica': detalle.descripcion_especifica,
+                    'norma_manual': detalle.norma_manual,
+                    'metodo_manual': '',
+                    'unidad_medida': detalle.unidad_medida,
+                    'cantidad': str(detalle.cantidad),
+                    'precio_unitario': str(detalle.precio_unitario),
+                })
+
+        return JsonResponse({
+            'success': True,
+            'detalles': detalles_list
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })

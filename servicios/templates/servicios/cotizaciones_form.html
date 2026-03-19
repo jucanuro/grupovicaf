@@ -376,17 +376,34 @@
 
 <script src="https://unpkg.com/lucide@latest"></script>
 <script>
-    // Función intermedia para manejar el estado visual
-    function handlePlantillaChange(selectElement) {
-        if (!selectElement.value) return;
+function handlePlantillaChange(select) {
+    const plantillaId = select.value;
+    if (!plantillaId) return;
 
-        const originalText = selectElement.options[selectElement.selectedIndex].text;
-        selectElement.options[selectElement.selectedIndex].text = "CARGANDO DATOS...";
-        
-        cargarPlantillaAjax(selectElement.value).finally(() => {
-            selectElement.options[selectElement.selectedIndex].text = originalText;
+    fetch(`/servicios/api/plantilla/${plantillaId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const detalles = data.detalles;
+                window.detallesCotizacion = detalles;
+
+                const inputJson = document.getElementById('detalles_json');
+                if (inputJson) {
+                    inputJson.value = JSON.stringify(detalles);
+                }
+
+                if (typeof renderTablaDetalles === 'function') {
+                    renderTablaDetalles(detalles);
+                }
+            } else {
+                alert("Error cargando plantilla");
+            }
+        })
+        .catch(error => {
+            console.error(error);
+            alert("Error en la petición");
         });
-    }
+}
 </script>
 <script>
     window.CotizacionConfig = {
