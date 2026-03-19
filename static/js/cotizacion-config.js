@@ -400,58 +400,49 @@
         // --- FUNCIÓN DE PLANTILLA ---
         window.cargarPlantillaAjax = async (plantillaId) => {
             if (!plantillaId) return;
-            
+
             const select = document.getElementById('select-plantilla');
             select.disabled = true;
 
             try {
-                const response = await fetch(`/servicios/plantilla/${plantillaId}/json/`); 
+                const response = await fetch(`/servicios/api/plantilla/${plantillaId}/`);
                 const data = await response.json();
 
-                if (data.status === 'success') {
-                    if (data.asunto) document.getElementById('id_asunto_servicio').value = data.asunto;
-                    if (data.plazo) {
-                        const inputPlazo = document.getElementsByName('tiempo_entrega')[0];
-                        if(inputPlazo) inputPlazo.value = data.plazo;
-                    }
-                    if (data.forma_pago) {
-                        const selPago = document.getElementById('id_forma_pago');
-                        if(selPago) {
-                            selPago.value = data.forma_pago;
-                            selPago.dispatchEvent(new Event('change'));
-                        }
-                    }
+                if (data.success) {
 
-                    DATA_ARRAY = []; 
-                    
+                    DATA_ARRAY.length = 0;
+
                     data.detalles.forEach(item => {
                         const sBase = ALL_SERVICES.find(x => String(x.pk) === String(item.servicio_id));
-                        
+
                         if (item.tipo_fila === 'categoria' || item.tipo_fila === 'subcategoria') {
-                            DATA_ARRAY.push({ 
-                                tipo_fila: item.tipo_fila, 
-                                descripcion_especifica: item.descripcion_especifica.toUpperCase() 
+                            DATA_ARRAY.push({
+                                tipo_fila: item.tipo_fila,
+                                descripcion_especifica: item.descripcion_especifica.toUpperCase()
                             });
-                        } else if (item.tipo_fila === 'servicio') {
+                        } 
+                        else if (item.tipo_fila === 'servicio') {
                             DATA_ARRAY.push({
                                 tipo_fila: 'servicio',
                                 servicio_id: item.servicio_id,
-                                descripcion_especifica: sBase ? sBase.nombre : "SERVICIO NO ENCONTRADO",
+                                descripcion_especifica: item.descripcion_especifica || (sBase ? sBase.nombre : ''),
                                 cantidad: parseFloat(item.cantidad) || 1,
-                                precio_unitario: parseFloat(item.precio_unitario) || (sBase ? sBase.precio_base : 0),
-                                norma_nombre: sBase ? (sBase.norma_codigo + (sBase.metodo_codigo ? ' / ' + sBase.metodo_codigo : '')) : 'N/A',
-                                unidad_medida: sBase ? (sBase.unidad_base || 'UND') : 'UND'
+                                precio_unitario: parseFloat(item.precio_unitario) || 0,
+                                norma_nombre: sBase ? (sBase.norma_codigo + (sBase.metodo_codigo ? ' / ' + sBase.metodo_codigo : '')) : '',
+                                unidad_medida: item.unidad_medida || (sBase ? sBase.unidad_base : 'UND')
                             });
                         }
                     });
 
                     renderTable();
-                    
-                    console.log("Plantilla cargada con éxito");
+
+                } else {
+                    alert("Error cargando plantilla");
                 }
+
             } catch (error) {
-                console.error("Error al cargar plantilla:", error);
-                alert("No se pudo cargar la plantilla seleccionada.");
+                console.error(error);
+                alert("Error al cargar plantilla");
             } finally {
                 select.disabled = false;
             }
