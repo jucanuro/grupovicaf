@@ -1,7 +1,8 @@
 from django.views.generic import ListView
-import datetime
+from datetime import datetime
 import json
 import io
+from django.db import IntegrityError
 from django.http import JsonResponse
 from django.template.loader import render_to_string
 from weasyprint import HTML
@@ -14,6 +15,7 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.utils import timezone
+from decimal import Decimal, InvalidOperation
 from .utils import enviar_whatsapp_pdf
 from django.views.decorators.http import require_POST
 from .models import Proyecto, TipoMuestra, RecepcionMuestra, MuestraDetalle, SolicitudEnsayo, DetalleSolicitudEnsayo, IncidenciaSolicitud, InformeFinal
@@ -124,11 +126,10 @@ def gestionar_recepcion_muestra(request, proyecto_id):
             with transaction.atomic():
                 fecha_str = request.POST.get('fecha_recepcion')
                 hora_str = request.POST.get('hora_recepcion') or "00:00"
-                
+
                 if fecha_str:
-                    fecha_final_str = f"{fecha_str} {hora_str}"
-                   
-                    fecha_final = fecha_final_str
+                    fecha_final = datetime.strptime(f"{fecha_str} {hora_str}", "%Y-%m-%d %H:%M")
+                    fecha_final = timezone.make_aware(fecha_final, timezone.get_current_timezone())
                 else:
                     fecha_final = timezone.now()
 
@@ -154,15 +155,18 @@ def gestionar_recepcion_muestra(request, proyecto_id):
                     if tipos_ids[i]:
                         try:
                             cant_val = int(float(cantidades[i])) if i < len(cantidades) and cantidades[i] else 1
-                            masa_val = float(masas[i]) if i < len(masas) and masas[i] else 0.0
                         except ValueError:
                             cant_val = 1
-                            masa_val = 0.0
+
+                        try:
+                            masa_val = Decimal(str(masas[i])) if i < len(masas) and masas[i] else Decimal('0.00')
+                        except (InvalidOperation, ValueError):
+                            masa_val = Decimal('0.00')
 
                         muestra = MuestraDetalle(
                             recepcion=recepcion,
                             tipo_muestra_id=tipos_ids[i],
-                            nro_item=i + 1, 
+                            nro_item=i + 1,
                             descripcion=descripciones[i][:255] if i < len(descripciones) else '',
                             masa_aprox=masa_val,
                             cantidad=cant_val,

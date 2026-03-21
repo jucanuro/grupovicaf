@@ -147,33 +147,45 @@ class RecepcionMuestra(models.Model):
 class MuestraDetalle(models.Model):
     recepcion = models.ForeignKey(RecepcionMuestra, related_name='muestras', on_delete=models.CASCADE)
     tipo_muestra = models.ForeignKey(TipoMuestra, on_delete=models.PROTECT)
-    
-    nro_item = models.IntegerField(default=1) 
-    
-    descripcion = models.CharField(max_length=255) 
+
+    nro_item = models.IntegerField(default=1)
+    descripcion = models.CharField(max_length=255)
     masa_aprox = models.DecimalField(max_digits=10, decimal_places=2)
     cantidad = models.IntegerField(default=1)
     unidad = models.CharField(max_length=50, default='UND')
-    observaciones = models.TextField(null=True, blank=True) 
-    
+    observaciones = models.TextField(null=True, blank=True)
+
     codigo_laboratorio = models.CharField(max_length=50, unique=True, blank=True)
 
-    def save(self, *args, **kwargs):
-        if not self.codigo_laboratorio:
-            anio = timezone.now().year
-            sigla = self.tipo_muestra.sigla
-            
-            ultimo = MuestraDetalle.objects.filter(
-                codigo_laboratorio__startswith=f"V-M-{anio}-{sigla}-"
-            ).order_by('codigo_laboratorio').last()
+    def generar_codigo_laboratorio(self):
+        anio = timezone.now().year
+        sigla = self.tipo_muestra.sigla.upper()
+        prefijo = f"V-M-{anio}-{sigla}-"
 
-            if ultimo:
-                ultimo_nro = int(ultimo.codigo_laboratorio.split('-')[-1]) + 1
-            else:
-                ultimo_nro = 1
-                
-            self.codigo_laboratorio = f"V-M-{anio}-{sigla}-{ultimo_nro:04d}"
-        super().save(*args, **kwargs)
+        ultimo = MuestraDetalle.objects.filter(
+            codigo_laboratorio__startswith=prefijo
+        ).order_by('codigo_laboratorio').last()
+
+        if ultimo and ultimo.codigo_laboratorio:
+            ultimo_nro = int(ultimo.codigo_laboratorio.split('-')[-1]) + 1
+        else:
+            ultimo_nro = 1
+
+        return f"{prefijo}{ultimo_nro:04d}"
+
+    def save(self, *args, **kwargs):
+        if self.codigo_laboratorio:
+            return super().save(*args, **kwargs)
+
+        for _ in range(10):
+            self.codigo_laboratorio = self.generar_codigo_laboratorio()
+            try:
+                with transaction.atomic():
+                    return super().save(*args, **kwargs)
+            except IntegrityError:
+                self.codigo_laboratorio = None
+
+        raise IntegrityError("No se pudo generar un código_laboratorio único después de varios intentos.")
               
 class SolicitudEnsayo(models.Model):
     """
