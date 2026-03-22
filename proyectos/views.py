@@ -18,6 +18,7 @@ from django.utils import timezone
 from decimal import Decimal, InvalidOperation
 from .utils import enviar_whatsapp_pdf
 from django.views.decorators.http import require_POST
+from django.db.models import Exists, OuterRef
 from .models import Proyecto, TipoMuestra, RecepcionMuestra, MuestraDetalle, SolicitudEnsayo, DetalleSolicitudEnsayo, IncidenciaSolicitud, InformeFinal
 from servicios.models import Servicio, CotizacionDetalle, CategoriaServicio, Subcategoria, CotizacionGrupo,Cotizacion
 from trabajadores.models import TrabajadorProfile
@@ -52,10 +53,8 @@ def generar_codigo_vicaf(servicio_obj):
         except (ValueError, IndexError): pass
     return f"{prefijo}-{anio}-{numero:03d}"
 
-
 @login_required
 def lista_proyectos_pendientes(request):
-    """Panel principal de proyectos en curso"""
     proyectos_qs = Proyecto.objects.select_related('cliente', 'cotizacion').filter(
         ~Q(estado__in=['FINALIZADO', 'CANCELADO'])
     )
@@ -67,8 +66,39 @@ def lista_proyectos_pendientes(request):
             Q(codigo_proyecto__icontains=search_query) |
             Q(cliente__razon_social__icontains=search_query)
         )
-    
+
     proyectos_list = proyectos_qs.order_by('-creado_en')
+
+    for proyecto in proyectos_list:
+        proyecto.etapa_operativa = 'PENDIENTE_MUESTRAS'
+        proyecto.etapa_operativa_label = 'Pendiente de muestras'
+
+        if proyecto.cotizacion:
+            tiene_muestras = MuestraDetalle.objects.filter(
+                recepcion__cotizacion=proyecto.cotizacion
+            ).exists()
+
+            if tiene_muestras:
+                proyecto.etapa_operativa = 'MUESTRAS_REGISTRADAS'
+                proyecto.etapa_operativa_label = 'Muestras registradas'
+
+                solicitud = SolicitudEnsayo.objects.filter(
+                    cotizacion=proyecto.cotizacion
+                ).order_by('-id').first()
+
+                if solicitud:
+                    if solicitud.estado in ['pendiente', 'proceso']:
+                        proyecto.etapa_operativa = 'ENSAYOS_EN_PROCESO'
+                        proyecto.etapa_operativa_label = 'Ensayos en proceso'
+                    elif solicitud.estado == 'finalizado':
+                        informe = InformeFinal.objects.filter(solicitud=solicitud).first()
+                        if informe:
+                            proyecto.etapa_operativa = 'INFORME_EMITIDO'
+                            proyecto.etapa_operativa_label = 'Informe emitido'
+                        else:
+                            proyecto.etapa_operativa = 'PENDIENTE_INFORME'
+                            proyecto.etapa_operativa_label = 'Pendiente de informe'
+
     paginator = Paginator(proyectos_list, 10)
     proyectos_paginados = paginator.get_page(request.GET.get('page'))
 
@@ -335,7 +365,7 @@ def api_obtener_detalles_cotizacion(request, cotizacion_id):
 @transaction.atomic
 def gestionar_solicitud_ensayo(request, pk=None):
     solicitud = get_object_or_404(SolicitudEnsayo, pk=pk) if pk else None
-    
+
     if request.method == 'POST':
         try:
             perfil_trabajador = TrabajadorProfile.objects.get(user=request.user)
@@ -346,12 +376,14 @@ def gestionar_solicitud_ensayo(request, pk=None):
             if not cotizacion_id:
                 raise Exception("Debe seleccionar una Cotización.")
 
-            recepcion = RecepcionMuestra.objects.filter(cotizacion_id=cotizacion_id).order_by('-id').first()
+            recepcion = RecepcionMuestra.objects.filter(
+                cotizacion_id=cotizacion_id
+            ).order_by('-id').first()
+
             if not recepcion:
                 raise Exception("No existe una Recepción para esta Cotización.")
 
             with transaction.atomic():
-                # Evitar el UNIQUE constraint failed: buscamos si ya existe para esta recepción
                 if not solicitud:
                     solicitud = SolicitudEnsayo.objects.filter(recepcion=recepcion).first()
 
@@ -374,7 +406,6 @@ def gestionar_solicitud_ensayo(request, pk=None):
                         estado='pendiente'
                     )
 
-                # --- GUARDAR ENSAYOS (DetalleSolicitudEnsayo) ---
                 muestras_ids = request.POST.getlist('muestra_id[]')
                 servicios_ids = request.POST.getlist('servicio_id[]')
                 normas = request.POST.getlist('norma[]')
@@ -382,58 +413,76 @@ def gestionar_solicitud_ensayo(request, pk=None):
                 tecnicos_ids = request.POST.getlist('tecnico_id[]')
                 entregas_det = request.POST.getlist('entrega_detalle[]')
 
-                # Optimización: traer servicios de una sola vez
                 ids_serv = [s for s in servicios_ids if s.strip()]
-                serv_map = {str(c.id): c for c in CotizacionDetalle.objects.filter(id__in=ids_serv).select_related('servicio')}
+                serv_map = {
+                    str(c.id): c
+                    for c in CotizacionDetalle.objects.filter(id__in=ids_serv).select_related('servicio')
+                }
 
                 ensayos_list = []
                 for i in range(len(muestras_ids)):
-                    m_id = muestras_ids[i].strip()
-                    s_id = servicios_ids[i].strip()
-                    if not m_id or not s_id: continue
+                    m_id = muestras_ids[i].strip() if i < len(muestras_ids) else ""
+                    s_id = servicios_ids[i].strip() if i < len(servicios_ids) else ""
+
+                    if not m_id or not s_id:
+                        continue
 
                     cot_det = serv_map.get(s_id)
                     desc = cot_det.servicio.nombre if cot_det and cot_det.servicio else "Ensayo"
-                    
-                    ensayos_list.append(DetalleSolicitudEnsayo(
-                        solicitud=solicitud,
-                        muestra_id=m_id,
-                        servicio_cotizado_id=s_id,
-                        descripcion_ensayo=desc,
-                        norma=normas[i].strip() if i < len(normas) else "",
-                        metodo=metodos[i].strip() if i < len(metodos) else "",
-                        tecnico_asignado_id=tecnicos_ids[i].strip() or None if i < len(tecnicos_ids) else None,
-                        fecha_entrega_programada=entregas_det[i].strip() or fecha_entrega_cabecera
-                    ))
-                
+
+                    tecnico_id = None
+                    if i < len(tecnicos_ids):
+                        tecnico_id = tecnicos_ids[i].strip() or None
+
+                    fecha_entrega_det = fecha_entrega_cabecera
+                    if i < len(entregas_det):
+                        fecha_entrega_det = entregas_det[i].strip() or fecha_entrega_cabecera
+
+                    ensayos_list.append(
+                        DetalleSolicitudEnsayo(
+                            solicitud=solicitud,
+                            muestra_id=m_id,
+                            servicio_cotizado_id=s_id,
+                            descripcion_ensayo=desc,
+                            norma=normas[i].strip() if i < len(normas) else "",
+                            metodo=metodos[i].strip() if i < len(metodos) else "",
+                            tecnico_asignado_id=tecnico_id,
+                            fecha_entrega_programada=fecha_entrega_det
+                        )
+                    )
+
                 if ensayos_list:
                     DetalleSolicitudEnsayo.objects.bulk_create(ensayos_list)
 
-                # --- GUARDAR INCIDENCIAS (IncidenciaSolicitud) ---
                 inc_detalles = request.POST.getlist('incidencia_detalle[]')
                 inc_fechas = request.POST.getlist('incidencia_fecha[]')
                 inc_clientes = request.POST.getlist('incidencia_cliente[]')
                 inc_responsables = request.POST.getlist('incidencia_responsable_id[]')
-                inc_autorizados = request.POST.getlist('incidencia_autorizado[]') # 'true'/'false' desde JS
+                inc_autorizados = request.POST.getlist('incidencia_autorizado[]')
 
                 incidencias_list = []
                 for j in range(len(inc_detalles)):
                     texto = inc_detalles[j].strip()
-                    if not texto: continue
+                    if not texto:
+                        continue
 
-                    # Mapeo de campos según tu modelo
-                    is_auth = (inc_autorizados[j].lower() == 'true') if j < len(inc_autorizados) else False
-                    
+                    is_auth = False
+                    if j < len(inc_autorizados):
+                        is_auth = inc_autorizados[j].lower() == 'true'
+
+                    responsable_id = None
+                    if j < len(inc_responsables):
+                        responsable_id = inc_responsables[j].strip() or None
+
                     nueva_inc = IncidenciaSolicitud(
                         solicitud=solicitud,
                         detalle_incidencia=texto,
                         fecha_ocurrencia=inc_fechas[j] if (j < len(inc_fechas) and inc_fechas[j]) else timezone.now(),
                         representante_cliente=inc_clientes[j] if j < len(inc_clientes) else "",
-                        representante_laboratorio_id=inc_responsables[j].strip() or None if j < len(inc_responsables) else None,
+                        representante_laboratorio_id=responsable_id,
                         esta_autorizada=is_auth
                     )
-                    
-                    # Si viene autorizada de una vez, registramos quién y cuándo (opcional)
+
                     if is_auth:
                         nueva_inc.autorizado_por = perfil_trabajador
                         nueva_inc.fecha_autorizacion = timezone.now()
@@ -450,14 +499,64 @@ def gestionar_solicitud_ensayo(request, pk=None):
             messages.error(request, f"Error: {str(e)}")
             return redirect(request.path)
 
-    # --- LÓGICA GET ---
+    proyecto_id = request.GET.get('proyecto')
+    cotizacion_preseleccionada = None
+
+    if proyecto_id and not solicitud:
+        proyecto = Proyecto.objects.filter(pk=proyecto_id).select_related('cotizacion').first()
+        if proyecto and proyecto.cotizacion:
+            cotizacion_preseleccionada = proyecto.cotizacion
+
+    subq_solicitud_finalizada = SolicitudEnsayo.objects.filter(
+        cotizacion=OuterRef('pk'),
+        estado='finalizado'
+    )
+
+    subq_informe = InformeFinal.objects.filter(
+        solicitud__cotizacion=OuterRef('pk')
+    )
+
+    cotizaciones_base = (
+        Cotizacion.objects
+        .filter(
+            estado='Aceptada',
+            recepciones__isnull=False
+        )
+        .annotate(
+            tiene_solicitud_finalizada=Exists(subq_solicitud_finalizada),
+            tiene_informe=Exists(subq_informe)
+        )
+        .filter(
+            tiene_solicitud_finalizada=False,
+            tiene_informe=False
+        )
+        .distinct()
+    )
+
+    cotizacion_ids = list(cotizaciones_base.values_list('pk', flat=True))
+
+    if solicitud and solicitud.cotizacion_id and solicitud.cotizacion_id not in cotizacion_ids:
+        cotizacion_ids.append(solicitud.cotizacion_id)
+
+    if cotizacion_preseleccionada and cotizacion_preseleccionada.pk not in cotizacion_ids:
+        cotizacion_ids.append(cotizacion_preseleccionada.pk)
+
+    cotizaciones = Cotizacion.objects.filter(
+        pk__in=cotizacion_ids
+    ).select_related('cliente').order_by('-fecha_creacion')
+
+    cotizacion_activa = solicitud.cotizacion if solicitud else cotizacion_preseleccionada
+
     context = {
         'solicitud': solicitud,
         'detalles': solicitud.detalles.all() if solicitud else [],
         'incidencias': solicitud.incidencias.all() if solicitud else [],
-        'cotizaciones': Cotizacion.objects.filter(estado='Aceptada'),
+        'cotizaciones': cotizaciones,
+        'cotizacion_preseleccionada': cotizacion_activa,
         'trabajadores': TrabajadorProfile.objects.all(),
-        'muestras_disponibles': MuestraDetalle.objects.filter(recepcion__cotizacion_id=solicitud.cotizacion_id) if solicitud else [],
+        'muestras_disponibles': MuestraDetalle.objects.filter(
+            recepcion__cotizacion_id=cotizacion_activa.id
+        ) if cotizacion_activa else [],
     }
     return render(request, 'proyectos/ensayos_form.html', context)
 
@@ -525,7 +624,6 @@ def generar_pdf_ensayo(request, solicitud_id):
     response['Content-Disposition'] = f'inline; filename="{filename}"'
     
     return response
-
 
 def lista_informes_finales(request):
     informes = InformeFinal.objects.all().order_by('-fecha_emision')

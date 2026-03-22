@@ -362,8 +362,7 @@ class IncidenciaSolicitud(models.Model):
         self.autorizado_por = trabajador
         self.fecha_autorizacion = timezone.now()
         self.save()
-        
-        
+                
 class InformeFinal(models.Model):
     ESTADOS_ENVIO = [
         ('pendiente', 'Pendiente de Envío'),

@@ -1,86 +1,121 @@
 {% load static %}
 
 {% if proyectos_pendientes %}
-<div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-    <div class="overflow-x-auto">
+<div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+
+    <div class="hidden lg:block">
         <table class="w-full border-separate border-spacing-0" id="projects-table">
             <thead class="bg-slate-50">
                 <tr>
-                    <th class="py-3 px-6 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200">
+                    <th class="py-2.5 px-4 text-left text-[9px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200">
                         Proyecto / Código
                     </th>
-                    <th class="py-3 px-6 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200">
+                    <th class="py-2.5 px-4 text-left text-[9px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200">
                         Cliente
                     </th>
-                    <th class="py-3 px-6 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200 hidden sm:table-cell">
+                    <th class="py-2.5 px-4 text-left text-[9px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200">
                         Monto
                     </th>
-                    <th class="py-3 px-6 text-center text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200 hidden sm:table-cell">
+                    <th class="py-2.5 px-4 text-center text-[9px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200">
                         N° Muestras
                     </th>
-                    <th class="py-3 px-6 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200">
-                        Estado
+                    <th class="py-2.5 px-4 text-left text-[9px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200">
+                        Etapa
                     </th>
-                    <th class="py-3 px-6 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200">
+                    <th class="py-2.5 px-4 text-left text-[9px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200">
                         Acciones
                     </th>
                 </tr>
             </thead>
+
             <tbody class="divide-y divide-slate-100">
                 {% for proyecto in proyectos_pendientes %}
-                <tr class="group hover:bg-blue-50/50 transition-colors duration-200" 
+                <tr class="group hover:bg-slate-50 transition-colors duration-200"
                     data-id="{{ proyecto.pk }}"
-                    data-nombre="{{ proyecto.nombre_proyecto }}" 
+                    data-nombre="{{ proyecto.nombre_proyecto }}"
                     data-cliente="{{ proyecto.cliente.razon_social }}"
-                    data-monto="{{ proyecto.monto_cotizacion }}" 
+                    data-monto="{{ proyecto.monto_cotizacion }}"
                     data-muestras="{{ proyecto.numero_muestras }}"
-                    data-estado="{{ proyecto.estado }}">
-                    
-                    <td class="py-4 px-6 whitespace-nowrap text-sm font-medium text-gray-900">
-                        <div class="flex flex-col">
-                            <span class="text-[13px] font-bold text-slate-800 tracking-tight">{{ proyecto.nombre_proyecto }}</span>
-                            <span class="text-[10px] font-mono text-blue-500 uppercase tracking-tighter">{{ proyecto.codigo_proyecto }}</span>
+                    data-etapa="{{ proyecto.etapa_operativa }}">
+
+                    <td class="py-3 px-4 text-[11px] font-medium text-slate-900 align-top">
+                        <div class="flex flex-col gap-0.5">
+                            <span class="text-[12px] font-bold text-slate-800 tracking-tight break-words leading-tight">
+                                {{ proyecto.nombre_proyecto }}
+                            </span>
+                            <span class="text-[9px] font-mono text-blue-500 uppercase tracking-tight break-all">
+                                {{ proyecto.codigo_proyecto }}
+                            </span>
                         </div>
                     </td>
-                    
-                    <td class="py-4 px-6 whitespace-nowrap text-sm text-gray-600">
+
+                    <td class="py-3 px-4 text-[11px] text-slate-600 align-top break-words">
                         {{ proyecto.cliente.razon_social }}
                     </td>
 
-                    <td class="py-4 px-6 whitespace-nowrap text-sm text-gray-600 hidden sm:table-cell font-mono">
-                        S/. {{ proyecto.monto_cotizacion|floatformat:2 }} 
+                    <td class="py-3 px-4 text-[11px] text-slate-600 font-mono align-top whitespace-nowrap">
+                        S/. {{ proyecto.monto_cotizacion|floatformat:2 }}
                     </td>
 
-                    <td class="py-4 px-6 whitespace-nowrap text-sm text-gray-600 hidden sm:table-cell text-center font-bold font-mono">
-                        {{ proyecto.numero_muestras }} 
+                    <td class="py-3 px-4 text-[11px] text-slate-700 text-center font-bold font-mono align-top whitespace-nowrap">
+                        {{ proyecto.numero_muestras }}
                     </td>
-                    
-                    <td class="py-4 px-6 whitespace-nowrap text-sm">
-                        <span class="px-3 py-1 inline-flex text-[10px] leading-5 font-black rounded-full border uppercase tracking-widest
-                            {% if proyecto.estado == 'PENDIENTE' %}bg-gray-100 text-gray-700 border-gray-300{% endif %}
-                            {% if proyecto.estado == 'EN_CURSO' %}bg-blue-100 text-blue-700 border-blue-300{% endif %}
-                            {% if proyecto.estado == 'MUESTRAS_ASIGNADAS' %}bg-green-100 text-green-700 border-green-300{% endif %}
-                            {% if proyecto.estado == 'MUESTRAS_VALIDADAS' %}bg-indigo-100 text-indigo-700 border-indigo-300{% endif %}
-                            {% if proyecto.estado == 'FINALIZADO' %}bg-purple-100 text-purple-700 border-purple-300{% endif %}
-                            {% if proyecto.estado == 'CANCELADO' %}bg-red-100 text-red-700 border-red-300{% endif %}
+
+                    <td class="py-3 px-4 align-top">
+                        <span class="px-2.5 py-1 inline-flex text-[9px] leading-none font-black rounded-full border uppercase tracking-wide
+                            {% if proyecto.etapa_operativa == 'PENDIENTE_MUESTRAS' %}bg-slate-100 text-slate-700 border-slate-300{% endif %}
+                            {% if proyecto.etapa_operativa == 'MUESTRAS_REGISTRADAS' %}bg-yellow-100 text-yellow-700 border-yellow-300{% endif %}
+                            {% if proyecto.etapa_operativa == 'ENSAYOS_EN_PROCESO' %}bg-blue-100 text-blue-700 border-blue-300{% endif %}
+                            {% if proyecto.etapa_operativa == 'PENDIENTE_INFORME' %}bg-orange-100 text-orange-700 border-orange-300{% endif %}
+                            {% if proyecto.etapa_operativa == 'INFORME_EMITIDO' %}bg-emerald-100 text-emerald-700 border-emerald-300{% endif %}
+                            {% if proyecto.etapa_operativa == 'SIN_COTIZACION' %}bg-red-100 text-red-700 border-red-300{% endif %}
                         ">
-                            {{ proyecto.get_estado_display }}
+                            {{ proyecto.etapa_operativa_label }}
                         </span>
                     </td>
-                    
-                    <td class="py-4 px-6 whitespace-nowrap text-left text-sm font-medium">
-                        <a href="{% url 'proyectos:crear_recepcion_desde_proyecto' proyecto.id %}"
-                            class="inline-flex items-center gap-2 px-4 py-2 rounded-full
-                                    text-xs font-bold text-white
-                                    bg-gradient-to-r from-emerald-500 to-green-600
-                                    hover:from-emerald-600 hover:to-green-700
-                                    transition duration-300 ease-in-out
-                                    shadow-md hover:shadow-lg
-                                    transform hover:scale-[1.03]"
-                            aria-label="Ir a la Gestión de Muestras">
-                            <i data-lucide="flask-round" class="w-4 h-4 fill-white"></i> 
-                            Gestión
-                        </a>
+
+                    <td class="py-3 px-4 text-left align-top">
+                        {% if proyecto.etapa_operativa == 'PENDIENTE_MUESTRAS' %}
+                            <a href="{% url 'proyectos:crear_recepcion_desde_proyecto' proyecto.id %}"
+                               class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold text-emerald-700 bg-slate-100 border border-emerald-300 hover:bg-emerald-200 transition duration-200 whitespace-nowrap">
+                                <i data-lucide="flask-round" class="w-3.5 h-3.5"></i>
+                                Registrar muestras
+                            </a>
+
+                        {% elif proyecto.etapa_operativa == 'MUESTRAS_REGISTRADAS' %}
+                            <a href="{% url 'proyectos:crear_solicitud' %}?proyecto={{ proyecto.id }}"
+                               class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold text-yellow-700 bg-yellow-100 border border-yellow-300 hover:bg-yellow-200 transition duration-200 whitespace-nowrap">
+                                <i data-lucide="clipboard-list" class="w-3.5 h-3.5"></i>
+                                Ir a ensayos
+                            </a>
+
+                        {% elif proyecto.etapa_operativa == 'ENSAYOS_EN_PROCESO' %}
+                            <a href="{% url 'proyectos:lista_solicitudes' %}?proyecto={{ proyecto.id }}"
+                               class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold text-blue-700 bg-blue-100 border border-blue-300 hover:bg-blue-200 transition duration-200 whitespace-nowrap">
+                                <i data-lucide="beaker" class="w-3.5 h-3.5"></i>
+                                Ir a ensayos
+                            </a>
+
+                        {% elif proyecto.etapa_operativa == 'PENDIENTE_INFORME' %}
+                            <a href="{% url 'proyectos:gestionar_informe' %}?proyecto={{ proyecto.id }}"
+                               class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold text-orange-700 bg-orange-100 border border-orange-300 hover:bg-orange-200 transition duration-200 whitespace-nowrap">
+                                <i data-lucide="file-up" class="w-3.5 h-3.5"></i>
+                                Informes
+                            </a>
+
+                        {% elif proyecto.etapa_operativa == 'INFORME_EMITIDO' %}
+                            <a href="{% url 'proyectos:lista_informes' %}?proyecto={{ proyecto.id }}"
+                               class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 hover:bg-emerald-200 transition duration-200 whitespace-nowrap">
+                                <i data-lucide="file-search" class="w-3.5 h-3.5"></i>
+                                Informes
+                            </a>
+
+                        {% else %}
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 whitespace-nowrap">
+                                <i data-lucide="ban" class="w-3.5 h-3.5"></i>
+                                Sin acción
+                            </span>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -88,23 +123,125 @@
         </table>
     </div>
 
-    <footer class="py-3 px-6 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
-        <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest">Total: {{ proyectos_pendientes.paginator.count|default:0 }} items</span>
-        
+    <div class="lg:hidden p-3 space-y-3 bg-slate-50/50">
+        {% for proyecto in proyectos_pendientes %}
+        <article class="bg-white border border-slate-200 rounded-2xl shadow-sm p-3 space-y-3">
+            <div class="flex flex-col gap-0.5">
+                <h3 class="text-[12px] font-black text-slate-800 leading-tight break-words">
+                    {{ proyecto.nombre_proyecto }}
+                </h3>
+                <p class="text-[9px] font-mono text-blue-500 uppercase break-all">
+                    {{ proyecto.codigo_proyecto }}
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div class="rounded-xl bg-slate-50 border border-slate-200 p-2.5">
+                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Cliente</p>
+                    <p class="text-[10px] font-semibold text-slate-700 break-words">
+                        {{ proyecto.cliente.razon_social }}
+                    </p>
+                </div>
+
+                <div class="rounded-xl bg-slate-50 border border-slate-200 p-2.5">
+                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Monto</p>
+                    <p class="text-[10px] font-bold text-slate-700 font-mono">
+                        S/. {{ proyecto.monto_cotizacion|floatformat:2 }}
+                    </p>
+                </div>
+
+                <div class="rounded-xl bg-slate-50 border border-slate-200 p-2.5">
+                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">N° Muestras</p>
+                    <p class="text-[10px] font-bold text-slate-700 font-mono">
+                        {{ proyecto.numero_muestras }}
+                    </p>
+                </div>
+
+                <div class="rounded-xl bg-slate-50 border border-slate-200 p-2.5">
+                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Etapa</p>
+                    <span class="px-2.5 py-1 inline-flex text-[9px] leading-none font-black rounded-full border uppercase tracking-wide
+                        {% if proyecto.etapa_operativa == 'PENDIENTE_MUESTRAS' %}bg-slate-100 text-slate-700 border-slate-300{% endif %}
+                        {% if proyecto.etapa_operativa == 'MUESTRAS_REGISTRADAS' %}bg-yellow-100 text-yellow-700 border-yellow-300{% endif %}
+                        {% if proyecto.etapa_operativa == 'ENSAYOS_EN_PROCESO' %}bg-blue-100 text-blue-700 border-blue-300{% endif %}
+                        {% if proyecto.etapa_operativa == 'PENDIENTE_INFORME' %}bg-orange-100 text-orange-700 border-orange-300{% endif %}
+                        {% if proyecto.etapa_operativa == 'INFORME_EMITIDO' %}bg-emerald-100 text-emerald-700 border-emerald-300{% endif %}
+                        {% if proyecto.etapa_operativa == 'SIN_COTIZACION' %}bg-red-100 text-red-700 border-red-300{% endif %}
+                    ">
+                        {{ proyecto.etapa_operativa_label }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="pt-0.5">
+                {% if proyecto.etapa_operativa == 'PENDIENTE_MUESTRAS' %}
+                    <a href="{% url 'proyectos:crear_recepcion_desde_proyecto' proyecto.id %}"
+                       class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black text-emerald-700 bg-emerald-100 border border-emerald-300 hover:bg-emerald-200 transition duration-200">
+                        <i data-lucide="flask-round" class="w-3.5 h-3.5"></i>
+                        Registrar muestras
+                    </a>
+
+                {% elif proyecto.etapa_operativa == 'MUESTRAS_REGISTRADAS' %}
+                    <a href="{% url 'proyectos:crear_solicitud' %}?proyecto={{ proyecto.id }}"
+                       class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black text-yellow-700 bg-yellow-100 border border-yellow-300 hover:bg-yellow-200 transition duration-200">
+                        <i data-lucide="clipboard-list" class="w-3.5 h-3.5"></i>
+                        Ir a ensayo
+                    </a>
+
+                {% elif proyecto.etapa_operativa == 'ENSAYOS_EN_PROCESO' %}
+                    <a href="{% url 'proyectos:lista_solicitudes' %}?proyecto={{ proyecto.id }}"
+                       class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black text-blue-700 bg-blue-100 border border-blue-300 hover:bg-blue-200 transition duration-200">
+                        <i data-lucide="beaker" class="w-3.5 h-3.5"></i>
+                        Ver ensayos
+                    </a>
+
+                {% elif proyecto.etapa_operativa == 'PENDIENTE_INFORME' %}
+                    <a href="{% url 'proyectos:gestionar_informe' %}?proyecto={{ proyecto.id }}"
+                       class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black text-orange-700 bg-orange-100 border border-orange-300 hover:bg-orange-200 transition duration-200">
+                        <i data-lucide="file-up" class="w-3.5 h-3.5"></i>
+                        Subir informe
+                    </a>
+
+                {% elif proyecto.etapa_operativa == 'INFORME_EMITIDO' %}
+                    <a href="{% url 'proyectos:lista_informes' %}?proyecto={{ proyecto.id }}"
+                       class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black text-emerald-700 bg-emerald-100 border border-emerald-300 hover:bg-emerald-200 transition duration-200">
+                        <i data-lucide="file-search" class="w-3.5 h-3.5"></i>
+                        Ver informe
+                    </a>
+
+                {% else %}
+                    <span class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black text-slate-500 bg-slate-100 border border-slate-200">
+                        <i data-lucide="ban" class="w-3.5 h-3.5"></i>
+                        Sin acción
+                    </span>
+                {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+
+    <footer class="py-3 px-4 sm:px-6 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row gap-3 sm:gap-0 justify-between items-center">
+        <span class="text-[8px] font-mono text-slate-400 uppercase tracking-widest text-center sm:text-left">
+            Total: {{ proyectos_pendientes.paginator.count|default:0 }} items
+        </span>
+
         {% if proyectos_pendientes.has_other_pages %}
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center justify-center gap-2">
             {% if proyectos_pendientes.has_previous %}
             <a href="?page={{ proyectos_pendientes.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}"
-                class="px-3 py-1 text-gray-700 bg-white border border-slate-300 rounded hover:bg-gray-50 text-[10px] font-bold uppercase transition-all">Anterior</a>
+               class="px-3 py-1 text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 text-[9px] font-bold uppercase transition-all">
+                Anterior
+            </a>
             {% endif %}
 
-            <span class="px-3 py-1 text-[10px] text-gray-800 bg-gray-100 rounded border border-slate-300 font-bold uppercase">
+            <span class="px-3 py-1 text-[9px] text-slate-700 bg-slate-100 rounded-lg border border-slate-300 font-bold uppercase text-center">
                 Pág {{ proyectos_pendientes.number }} de {{ proyectos_pendientes.paginator.num_pages }}
             </span>
 
             {% if proyectos_pendientes.has_next %}
             <a href="?page={{ proyectos_pendientes.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}"
-                class="px-3 py-1 text-gray-700 bg-white border border-slate-300 rounded hover:bg-gray-50 text-[10px] font-bold uppercase transition-all">Siguiente</a>
+               class="px-3 py-1 text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 text-[9px] font-bold uppercase transition-all">
+                Siguiente
+            </a>
             {% endif %}
         </div>
         {% endif %}
@@ -112,11 +249,13 @@
 </div>
 
 {% else %}
-<div class="bg-white border border-slate-200 border-dashed rounded-xl p-16 text-center">
+<div class="bg-white border border-slate-200 border-dashed rounded-2xl p-10 sm:p-16 text-center">
     <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
         <i data-lucide="search-x" class="w-8 h-8 text-slate-300"></i>
     </div>
-    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-[0.3em]">No hay proyectos pendientes</p>
+    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">
+        No hay proyectos pendientes
+    </p>
 </div>
 {% endif %}
 
