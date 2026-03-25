@@ -66,42 +66,41 @@
 <div class="p-2 md:p-2 lg:p-2 relative z-10">
     <header class="relative flex items-center justify-between rounded-lg px-10 py-8 mb-10 bg-white border-b border-slate-200 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.08)]">
   
-  <div class="flex items-center gap-6">
-    <div class="flex items-center justify-center w-14 h-14 bg-slate-900 rounded-2xl shadow-lg transition-transform duration-500 hover:rotate-3">
-      <i class="ph-bold ph-strategy text-white text-2xl"></i>
-    </div>
-    
-    <div class="flex flex-col">
-      <h1 class="text-2xl font-extrabold text-slate-950 tracking-tight uppercase italic">
-        Grupo <span class="text-blue-600 not-italic font-black">Vicaf</span>
-      </h1>
-      <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.3em]">
-        Integrated Lab Systems
-      </p>
-    </div>
-  </div>
+        <div class="flex items-center gap-6">
+            <div class="flex items-center justify-center w-14 h-14 bg-slate-900 rounded-2xl shadow-lg transition-transform duration-500 hover:rotate-3">
+                <i class="ph-bold ph-strategy text-white text-2xl"></i>
+            </div>
+            
+            <div class="flex flex-col">
+                <h1 class="text-2xl font-extrabold text-slate-950 tracking-tight uppercase italic">
+                    Grupo <span class="text-blue-600 not-italic font-black">Vicaf</span>
+                </h1>
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.3em]">
+                    Integrated Lab Systems
+                </p>
+            </div>
+        </div>
 
-  <div class="flex items-center gap-8">
-    <div class="hidden md:flex items-center gap-3">
-      <div class="relative flex h-2 w-2">
-        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-        <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-      </div>
-      <span class="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Sync Active</span>
-    </div>
+        <div class="flex items-center gap-8">
+            <div class="hidden md:flex items-center gap-3">
+                <div class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                </div>
+                <span class="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Sync Active</span>
+            </div>
 
-    <a href="{% url 'administracion' %}" 
-       class="group relative inline-flex items-center gap-3 px-8 py-3 rounded-xl border border-slate-900 bg-white text-slate-900 hover:bg-slate-900 hover:text-white font-bold text-[10px] uppercase tracking-widest transition-all duration-300">
-      
-      <i class="ph-bold ph-key text-blue-500 group-hover:text-blue-400 transition-colors"></i>
-      <span>Acceso Maestro</span>
-      
-      <div class="absolute inset-0 border-2 border-slate-900 rounded-xl scale-[1.02] opacity-0 group-hover:opacity-20 transition-opacity"></div>
-    </a>
-  </div>
+            <a href="{% url 'administracion' %}" 
+               class="group relative inline-flex items-center gap-3 px-8 py-3 rounded-xl border border-slate-900 bg-white text-slate-900 hover:bg-slate-900 hover:text-white font-bold text-[10px] uppercase tracking-widest transition-all duration-300">
+                <i class="ph-bold ph-key text-blue-500 group-hover:text-blue-400 transition-colors"></i>
+                <span>Acceso Maestro</span>
+                <div class="absolute inset-0 border-2 border-slate-900 rounded-xl scale-[1.02] opacity-0 group-hover:opacity-20 transition-opacity"></div>
+            </a>
+        </div>
 
-  <div class="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
-</header>
+        <div class="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+    </header>
+
     <div class="bg-gradient-to-br from-slate-50 via-white to-blue-50 p-8 rounded-[3rem] border border-slate-200/60 shadow-inner font-sans">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
@@ -135,7 +134,6 @@
             </div>
 
             <div class="lg:col-span-8 bg-white/40 backdrop-blur-md rounded-[3rem] p-8 border border-white shadow-sm relative group">
-                
                 <div class="flex items-center justify-between mb-8">
                     <div class="flex flex-col">
                         <span class="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] mb-1">Sales Analytics</span>
@@ -162,7 +160,7 @@
                         <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
                             <span class="text-4xl font-black text-slate-900 tracking-tighter">{{ total_cotizaciones }}</span>
                             <div class="px-2 py-0.5 bg-emerald-100 rounded-lg mt-1">
-                                <span class="text-[10px] font-black text-emerald-700 uppercase tracking-tighter">{{ efectividad|floatformat:0 }}% ÉXITO</span>
+                                <span class="text-[10px] font-black text-emerald-700 uppercase tracking-tighter">{{ efectividad|floatformat:0 }}% Éxito</span>
                             </div>
                         </div>
                     </div>
@@ -214,31 +212,50 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-6 gap-6 mb-12 mt-4 font-sans">
 
-        <div class="lg:col-span-2 grid grid-cols-1 gap-4 bg-slate-500/5 rounded-[2.5rem] border border-slate-200/50 relative">
+        <div class="lg:col-span-2 bg-slate-500/5 rounded-[2.5rem] p-4 border border-slate-200/50 relative">
             <div class="absolute -top-3 left-6 bg-indigo-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-lg z-10">
-                Activos
+                Activos Operativos
             </div>
 
-            <div class="bg-white/80 backdrop-blur-md rounded-[2rem] p-8 border border-slate-100 shadow-sm mt-2 flex items-center justify-around transition-all hover:shadow-md">
-                
-                <div class="flex items-center justify-center w-20 h-20 rounded-2xl bg-indigo-50 text-indigo-600 shadow-inner">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                    </svg>
-                </div>
-
-                <div class="flex flex-col items-center">
-                    <div class="text-[12px] uppercase font-black text-slate-400 tracking-[0.2em] mb-1">Total Muestras</div>
-                    <div class="flex items-baseline gap-1">
-                        <div class="text-6xl font-black text-slate-900 tracking-tighter">{{ total_muestras }}</div>
-                        <div class="text-sm font-bold text-indigo-500">Unidades</div>
+            <div class="grid grid-cols-1 gap-4 mt-3">
+                <div class="bg-white/80 backdrop-blur-md rounded-[2rem] p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+                    <div>
+                        <div class="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-1">Proyectos</div>
+                        <div class="text-4xl font-black text-slate-900 tracking-tight">{{ total_proyectos }}</div>
+                    </div>
+                    <div class="w-14 h-14 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                        <i data-lucide="folder-kanban" class="w-7 h-7"></i>
                     </div>
                 </div>
 
-                <div class="hidden sm:block opacity-20">
-                    <svg width="60" height="40" viewBox="0 0 60 40" fill="none">
-                        <path d="M0 30L10 30L15 10L25 35L35 20L40 30L60 30" stroke="#4F46E5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
+                <div class="bg-white/80 backdrop-blur-md rounded-[2rem] p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+                    <div>
+                        <div class="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-1">Recepciones</div>
+                        <div class="text-4xl font-black text-slate-900 tracking-tight">{{ total_recepciones }}</div>
+                    </div>
+                    <div class="w-14 h-14 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center">
+                        <i data-lucide="package-check" class="w-7 h-7"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white/80 backdrop-blur-md rounded-[2rem] p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+                    <div>
+                        <div class="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-1">Muestras Reales</div>
+                        <div class="text-4xl font-black text-slate-900 tracking-tight">{{ total_muestras }}</div>
+                    </div>
+                    <div class="w-14 h-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                        <i data-lucide="flask-conical" class="w-7 h-7"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white/80 backdrop-blur-md rounded-[2rem] p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+                    <div>
+                        <div class="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-1">Ensayos Reales</div>
+                        <div class="text-4xl font-black text-slate-900 tracking-tight">{{ total_ensayos }}</div>
+                    </div>
+                    <div class="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                        <i data-lucide="clipboard-check" class="w-7 h-7"></i>
+                    </div>
                 </div>
             </div>
         </div>
@@ -268,8 +285,8 @@
                     </svg>
                     
                     <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase leading-none">Total</span>
-                        <span class="text-4xl font-black text-slate-900 tracking-tighter leading-tight">{{ total_ensayos }}</span>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase leading-none">Solicitudes</span>
+                        <span class="text-4xl font-black text-slate-900 tracking-tighter leading-tight">{{ total_solicitudes }}</span>
                     </div>
                 </div>
 
@@ -306,6 +323,23 @@
                             <span class="text-[10px] font-bold text-emerald-600 leading-none">{{ p_e_finalizado|floatformat:1 }}%</span>
                         </div>
                     </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                        <div class="rounded-2xl bg-slate-50 border border-slate-200 px-4 py-3">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Incidencias</p>
+                            <p class="text-2xl font-black text-slate-800">{{ total_incidencias }}</p>
+                        </div>
+
+                        <div class="rounded-2xl bg-orange-50 border border-orange-100 px-4 py-3">
+                            <p class="text-[9px] font-black text-orange-400 uppercase tracking-widest mb-1">Vencidas</p>
+                            <p class="text-2xl font-black text-orange-600">{{ solicitudes_vencidas }}</p>
+                        </div>
+
+                        <div class="rounded-2xl bg-indigo-50 border border-indigo-100 px-4 py-3">
+                            <p class="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">Informes</p>
+                            <p class="text-2xl font-black text-indigo-600">{{ total_informes }}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -324,8 +358,18 @@
             </div>
 
             <div class="bg-white/80 backdrop-blur-md rounded-3xl p-4 border border-slate-100 shadow-sm mt-2 flex flex-col items-center justify-center">
-                <div class="text-[10px] uppercase font-bold text-slate-400 mb-1">Finalizados</div>
-                <div class="text-3xl font-black text-emerald-600">{{ total_proyectos_finalizado }}</div>
+                <div class="text-[10px] uppercase font-bold text-slate-400 mb-1">Con Informe</div>
+                <div class="text-3xl font-black text-emerald-600">{{ proyectos_con_informe }}</div>
+            </div>
+
+            <div class="bg-white/80 backdrop-blur-md rounded-3xl p-4 border border-slate-100 shadow-sm flex flex-col items-center justify-center">
+                <div class="text-[10px] uppercase font-bold text-slate-400 mb-1">Sin Muestras</div>
+                <div class="text-3xl font-black text-orange-600">{{ proyectos_sin_muestras }}</div>
+            </div>
+
+            <div class="bg-white/80 backdrop-blur-md rounded-3xl p-4 border border-slate-100 shadow-sm flex flex-col items-center justify-center">
+                <div class="text-[10px] uppercase font-bold text-slate-400 mb-1">Sin Informe</div>
+                <div class="text-3xl font-black text-rose-600">{{ proyectos_sin_informe }}</div>
             </div>
         </div>
 
