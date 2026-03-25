@@ -33,25 +33,59 @@ def dashboard_view(request):
     total_proyectos = Proyecto.objects.count()
     total_muestras = RecepcionMuestra.objects.count()
     total_ensayos = SolicitudEnsayo.objects.count()
-    total_ensayos_pendiente = SolicitudEnsayo.objects.filter(estado = 'pendiente').count()
-    total_ensayos_proceso = SolicitudEnsayo.objects.filter(estado = 'proceso').count()
-    total_ensayos_finalizado = SolicitudEnsayo.objects.filter(estado = 'finalizado').count()
-    
+    total_ensayos_pendiente = SolicitudEnsayo.objects.filter(estado='pendiente').count()
+    total_ensayos_proceso = SolicitudEnsayo.objects.filter(estado='proceso').count()
+    total_ensayos_finalizado = SolicitudEnsayo.objects.filter(estado='finalizado').count()
+
+    efectividad = 0
+    p_aceptadas = 0
+    p_pendientes = 0
+    o_pendientes = 0
+
+    if total_cotizaciones > 0:
+        efectividad = round((total_cotizaciones_aceptadas / total_cotizaciones) * 100)
+        p_aceptadas = (total_cotizaciones_aceptadas / total_cotizaciones) * 100
+        p_pendientes = (total_cotizaciones_pendientes / total_cotizaciones) * 100
+        o_pendientes = -p_aceptadas
+
+    p_e_finalizado = 0
+    p_e_proceso = 0
+    p_e_pendiente = 0
+    o_e_proceso = 0
+    o_e_pendiente = 0
+
+    if total_ensayos > 0:
+        p_e_finalizado = (total_ensayos_finalizado / total_ensayos) * 100
+        p_e_proceso = (total_ensayos_proceso / total_ensayos) * 100
+        p_e_pendiente = (total_ensayos_pendiente / total_ensayos) * 100
+        
+        o_e_proceso = -p_e_finalizado
+        o_e_pendiente = -(p_e_finalizado + p_e_proceso)
+
     context = {
-        "total_clientes" : total_clientes,
-        "total_cotizaciones" : total_cotizaciones,
-        "total_cotizaciones_pendientes" : total_cotizaciones_pendientes,
-        "total_cotizaciones_aceptadas" : total_cotizaciones_aceptadas,
+        "total_clientes": total_clientes,
+        "total_cotizaciones": total_cotizaciones,
+        "total_cotizaciones_pendientes": total_cotizaciones_pendientes,
+        "total_cotizaciones_aceptadas": total_cotizaciones_aceptadas,
+        "efectividad": efectividad,
+        "p_aceptadas": p_aceptadas,
+        "p_pendientes": p_pendientes,
+        "o_pendientes": o_pendientes,
         
-        "total_proyectos" : total_proyectos,
-        "total_muestras" : total_muestras,
-        "total_ensayos" : total_ensayos,
-        
-        "total_ensayos_pendiente" : total_ensayos_pendiente,
-        "total_ensayos_proceso" : total_ensayos_proceso,
-        "total_ensayos_finalizado" : total_ensayos_finalizado,
+        "total_proyectos": total_proyectos,
+        "total_muestras": total_muestras,
+        "total_ensayos": total_ensayos,
+        "total_ensayos_pendiente": total_ensayos_pendiente,
+        "total_ensayos_proceso": total_ensayos_proceso,
+        "total_ensayos_finalizado": total_ensayos_finalizado,
+
+        "p_e_finalizado": p_e_finalizado,
+        "p_e_proceso": p_e_proceso,
+        "p_e_pendiente": p_e_pendiente,
+        "o_e_proceso": o_e_proceso,
+        "o_e_pendiente": o_e_pendiente,
     }
-    return render(request, "dashboard.html",context)
+    return render(request, "dashboard.html", context)
     
     
 

@@ -19,7 +19,7 @@ from decimal import Decimal, InvalidOperation
 from .utils import enviar_whatsapp_pdf
 from django.views.decorators.http import require_POST
 from django.db.models import Exists, OuterRef
-from .models import Proyecto, TipoMuestra, RecepcionMuestra, MuestraDetalle, SolicitudEnsayo, DetalleSolicitudEnsayo, IncidenciaSolicitud, InformeFinal
+from .models import Proyecto, TipoMuestra, RecepcionMuestra, MuestraDetalle,UnidadMedida, SolicitudEnsayo, DetalleSolicitudEnsayo, IncidenciaSolicitud, InformeFinal
 from servicios.models import Servicio, CotizacionDetalle, CategoriaServicio, Subcategoria, CotizacionGrupo,Cotizacion
 from trabajadores.models import TrabajadorProfile
 
@@ -147,10 +147,10 @@ def crear_tipo_muestra_ajax(request):
     
 def gestionar_recepcion_muestra(request, proyecto_id):
     proyecto = get_object_or_404(
-        Proyecto.objects.select_related('cotizacion__cliente'), 
+        Proyecto.objects.select_related('cotizacion__cliente'),
         pk=proyecto_id
     )
-    
+
     if request.method == 'POST':
         try:
             with transaction.atomic():
@@ -175,7 +175,7 @@ def gestionar_recepcion_muestra(request, proyecto_id):
 
                 tipos_ids = request.POST.getlist('tipo_muestra_id[]')
                 cantidades = request.POST.getlist('cantidad[]')
-                unidades = request.POST.getlist('unidad[]')
+                unidades_ids = request.POST.getlist('unidad_medida_id[]')
                 masas = request.POST.getlist('masa[]')
                 descripciones = request.POST.getlist('descripcion[]')
                 observaciones_list = request.POST.getlist('observaciones[]')
@@ -193,6 +193,10 @@ def gestionar_recepcion_muestra(request, proyecto_id):
                         except (InvalidOperation, ValueError):
                             masa_val = Decimal('0.00')
 
+                        unidad_medida_id = None
+                        if i < len(unidades_ids) and unidades_ids[i]:
+                            unidad_medida_id = unidades_ids[i]
+
                         muestra = MuestraDetalle(
                             recepcion=recepcion,
                             tipo_muestra_id=tipos_ids[i],
@@ -200,7 +204,7 @@ def gestionar_recepcion_muestra(request, proyecto_id):
                             descripcion=descripciones[i][:255] if i < len(descripciones) else '',
                             masa_aprox=masa_val,
                             cantidad=cant_val,
-                            unidad=unidades[i].upper() if i < len(unidades) and unidades[i] else 'UND',
+                            unidad_medida_id=unidad_medida_id,
                             observaciones=observaciones_list[i] if i < len(observaciones_list) else ''
                         )
                         muestras_a_crear.append(muestra)
@@ -208,7 +212,10 @@ def gestionar_recepcion_muestra(request, proyecto_id):
                 for m in muestras_a_crear:
                     m.save()
 
-                messages.success(request, f"¡Éxito! Recepción #{recepcion.id} y {len(muestras_a_crear)} muestras registradas.")
+                messages.success(
+                    request,
+                    f"¡Éxito! Recepción #{recepcion.id} y {len(muestras_a_crear)} muestras registradas."
+                )
                 return redirect('proyectos:lista_muestras_recepcion', recepcion_id=recepcion.id)
 
         except Exception as e:
@@ -220,11 +227,17 @@ def gestionar_recepcion_muestra(request, proyecto_id):
         {'id': t.id, 'nombre': t.nombre, 'prefijo': t.sigla} for t in tipos_qs
     ])
 
+    unidades_qs = UnidadMedida.objects.filter(activo=True).order_by('codigo')
+    unidades_medida_json = json.dumps([
+        {'id': u.id, 'codigo': u.codigo, 'nombre': u.nombre} for u in unidades_qs
+    ])
+
     context = {
         'proyecto': proyecto,
         'fecha_hoy': timezone.now().strftime('%Y-%m-%d'),
         'hora_ahora': timezone.now().strftime('%H:%M'),
         'tipos_muestra_json': tipos_muestra_json,
+        'unidades_medida_json': unidades_medida_json,
     }
     return render(request, 'proyectos/recepcion_form.html', context)
 
@@ -368,7 +381,7 @@ def gestionar_solicitud_ensayo(request, pk=None):
 
     if request.method == 'POST':
         try:
-            perfil_trabajador = TrabajadorProfile.objects.get(user=request.user)
+            perfil_trabajador = TrabajadorProfile.objects.filter(user=request.user).first()
             cotizacion_id = request.POST.get('cotizacion')
             fecha_solicitud = request.POST.get('fecha_solicitud') or timezone.now().date()
             fecha_entrega_cabecera = request.POST.get('fecha_entrega_programada')
@@ -384,9 +397,6 @@ def gestionar_solicitud_ensayo(request, pk=None):
                 raise Exception("No existe una Recepción para esta Cotización.")
 
             with transaction.atomic():
-                if not solicitud:
-                    solicitud = SolicitudEnsayo.objects.filter(recepcion=recepcion).first()
-
                 if solicitud:
                     solicitud.cotizacion_id = cotizacion_id
                     solicitud.recepcion = recepcion
@@ -396,13 +406,21 @@ def gestionar_solicitud_ensayo(request, pk=None):
                     solicitud.detalles.all().delete()
                     solicitud.incidencias.all().delete()
                 else:
+                    solicitud_existente = SolicitudEnsayo.objects.filter(recepcion=recepcion).first()
+                    if solicitud_existente:
+                        messages.warning(
+                            request,
+                            f"Ya existe una solicitud para esta recepción: {solicitud_existente.codigo_solicitud}. Se abrió la existente para edición."
+                        )
+                        return redirect('proyectos:editar_solicitud', pk=solicitud_existente.pk)
+
                     solicitud = SolicitudEnsayo.objects.create(
                         codigo_solicitud=f"SOL-{timezone.now().strftime('%Y%m%d%H%M%S')}",
                         recepcion=recepcion,
                         cotizacion_id=cotizacion_id,
                         fecha_solicitud=fecha_solicitud,
                         fecha_entrega_programada=fecha_entrega_cabecera,
-                        elaborado_por=perfil_trabajador,
+                        elaborado_por=perfil_trabajador if perfil_trabajador else None,
                         estado='pendiente'
                     )
 
@@ -416,43 +434,48 @@ def gestionar_solicitud_ensayo(request, pk=None):
                 ids_serv = [s for s in servicios_ids if s.strip()]
                 serv_map = {
                     str(c.id): c
-                    for c in CotizacionDetalle.objects.filter(id__in=ids_serv).select_related('servicio')
+                    for c in CotizacionDetalle.objects.filter(
+                        id__in=ids_serv,
+                        grupo__cotizacion_id=cotizacion_id
+                    ).select_related('servicio')
                 }
 
                 ensayos_list = []
-                for i in range(len(muestras_ids)):
-                    m_id = muestras_ids[i].strip() if i < len(muestras_ids) else ""
-                    s_id = servicios_ids[i].strip() if i < len(servicios_ids) else ""
+                total_filas = max(len(muestras_ids), len(servicios_ids))
+
+                for i in range(total_filas):
+                    m_id = muestras_ids[i].strip() if i < len(muestras_ids) and muestras_ids[i] else ""
+                    s_id = servicios_ids[i].strip() if i < len(servicios_ids) and servicios_ids[i] else ""
 
                     if not m_id or not s_id:
                         continue
 
                     cot_det = serv_map.get(s_id)
-                    desc = cot_det.servicio.nombre if cot_det and cot_det.servicio else "Ensayo"
+                    if not cot_det:
+                        continue
 
-                    tecnico_id = None
-                    if i < len(tecnicos_ids):
-                        tecnico_id = tecnicos_ids[i].strip() or None
-
-                    fecha_entrega_det = fecha_entrega_cabecera
-                    if i < len(entregas_det):
-                        fecha_entrega_det = entregas_det[i].strip() or fecha_entrega_cabecera
+                    norma_val = normas[i].strip() if i < len(normas) and normas[i] else ""
+                    metodo_val = metodos[i].strip() if i < len(metodos) and metodos[i] else ""
+                    tecnico_id = tecnicos_ids[i].strip() if i < len(tecnicos_ids) and tecnicos_ids[i] else None
+                    fecha_entrega_det = entregas_det[i].strip() if i < len(entregas_det) and entregas_det[i] else fecha_entrega_cabecera
 
                     ensayos_list.append(
                         DetalleSolicitudEnsayo(
                             solicitud=solicitud,
                             muestra_id=m_id,
                             servicio_cotizado_id=s_id,
-                            descripcion_ensayo=desc,
-                            norma=normas[i].strip() if i < len(normas) else "",
-                            metodo=metodos[i].strip() if i < len(metodos) else "",
+                            descripcion_ensayo=cot_det.servicio.nombre if cot_det.servicio else "Ensayo",
+                            norma=norma_val,
+                            metodo=metodo_val,
                             tecnico_asignado_id=tecnico_id,
                             fecha_entrega_programada=fecha_entrega_det
                         )
                     )
 
-                if ensayos_list:
-                    DetalleSolicitudEnsayo.objects.bulk_create(ensayos_list)
+                if not ensayos_list:
+                    raise Exception("Debe registrar al menos un ensayo válido con muestra y servicio.")
+
+                DetalleSolicitudEnsayo.objects.bulk_create(ensayos_list)
 
                 inc_detalles = request.POST.getlist('incidencia_detalle[]')
                 inc_fechas = request.POST.getlist('incidencia_fecha[]')
@@ -462,23 +485,20 @@ def gestionar_solicitud_ensayo(request, pk=None):
 
                 incidencias_list = []
                 for j in range(len(inc_detalles)):
-                    texto = inc_detalles[j].strip()
+                    texto = inc_detalles[j].strip() if j < len(inc_detalles) and inc_detalles[j] else ""
                     if not texto:
                         continue
 
-                    is_auth = False
-                    if j < len(inc_autorizados):
-                        is_auth = inc_autorizados[j].lower() == 'true'
-
-                    responsable_id = None
-                    if j < len(inc_responsables):
-                        responsable_id = inc_responsables[j].strip() or None
+                    is_auth = j < len(inc_autorizados) and inc_autorizados[j].lower() == 'true'
+                    responsable_id = inc_responsables[j].strip() if j < len(inc_responsables) and inc_responsables[j] else None
+                    fecha_ocurrencia = inc_fechas[j] if j < len(inc_fechas) and inc_fechas[j] else timezone.now()
+                    representante_cliente = inc_clientes[j] if j < len(inc_clientes) else ""
 
                     nueva_inc = IncidenciaSolicitud(
                         solicitud=solicitud,
                         detalle_incidencia=texto,
-                        fecha_ocurrencia=inc_fechas[j] if (j < len(inc_fechas) and inc_fechas[j]) else timezone.now(),
-                        representante_cliente=inc_clientes[j] if j < len(inc_clientes) else "",
+                        fecha_ocurrencia=fecha_ocurrencia,
+                        representante_cliente=representante_cliente,
                         representante_laboratorio_id=responsable_id,
                         esta_autorizada=is_auth
                     )
@@ -496,6 +516,7 @@ def gestionar_solicitud_ensayo(request, pk=None):
             return redirect('proyectos:lista_solicitudes')
 
         except Exception as e:
+            print("ERROR EN gestionar_solicitud_ensayo:", repr(e))
             messages.error(request, f"Error: {str(e)}")
             return redirect(request.path)
 
@@ -547,6 +568,14 @@ def gestionar_solicitud_ensayo(request, pk=None):
 
     cotizacion_activa = solicitud.cotizacion if solicitud else cotizacion_preseleccionada
 
+    servicios_items = CotizacionDetalle.objects.filter(
+        grupo__cotizacion=cotizacion_activa
+    ).select_related('servicio') if cotizacion_activa else CotizacionDetalle.objects.none()
+
+    muestras_disponibles = MuestraDetalle.objects.filter(
+        recepcion__cotizacion=cotizacion_activa
+    ).select_related('tipo_muestra', 'unidad_medida') if cotizacion_activa else MuestraDetalle.objects.none()
+
     context = {
         'solicitud': solicitud,
         'detalles': solicitud.detalles.all() if solicitud else [],
@@ -554,24 +583,33 @@ def gestionar_solicitud_ensayo(request, pk=None):
         'cotizaciones': cotizaciones,
         'cotizacion_preseleccionada': cotizacion_activa,
         'trabajadores': TrabajadorProfile.objects.all(),
-        'muestras_disponibles': MuestraDetalle.objects.filter(
-            recepcion__cotizacion_id=cotizacion_activa.id
-        ) if cotizacion_activa else [],
+        'muestras_disponibles': muestras_disponibles,
+        'servicios_items': servicios_items,
     }
     return render(request, 'proyectos/ensayos_form.html', context)
 
+@require_POST
 def cambiar_estado_solicitud(request, pk, nuevo_estado):
-    if request.method == 'POST':
-        solicitud = get_object_or_404(SolicitudEnsayo, pk=pk)
-        
-        if nuevo_estado in ['pendiente', 'proceso', 'finalizado']:
-            solicitud.estado = nuevo_estado
-            
-            if nuevo_estado == 'finalizado':
-                solicitud.fecha_entrega_real = timezone.now().date()
-                
-            solicitud.save()
-            
+    solicitud = get_object_or_404(SolicitudEnsayo, pk=pk)
+
+    estados_validos = ['pendiente', 'proceso', 'finalizado']
+    if nuevo_estado not in estados_validos:
+        messages.error(request, "Estado no válido.")
+        return redirect('proyectos:lista_solicitudes')
+
+    solicitud.estado = nuevo_estado
+
+    if nuevo_estado == 'finalizado':
+        if not solicitud.fecha_entrega_real:
+            solicitud.fecha_entrega_real = timezone.now().date()
+
+    solicitud.save()
+
+    if nuevo_estado == 'finalizado':
+        messages.success(request, f"La solicitud {solicitud.codigo_solicitud} fue finalizada. Ahora registra el informe final.")
+        return redirect('proyectos:gestionar_informe', solicitud_id=solicitud.pk)
+
+    messages.success(request, f"La solicitud {solicitud.codigo_solicitud} cambió a estado {nuevo_estado.upper()}.")
     return redirect('proyectos:lista_solicitudes')
 
 def lista_solicitudes(request):

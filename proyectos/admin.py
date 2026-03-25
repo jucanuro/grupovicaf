@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
-from .models import Proyecto, TipoMuestra, RecepcionMuestra, MuestraDetalle, SolicitudEnsayo, DetalleSolicitudEnsayo, IncidenciaSolicitud
+from .models import Proyecto, TipoMuestra,UnidadMedida, RecepcionMuestra, MuestraDetalle, SolicitudEnsayo, DetalleSolicitudEnsayo, IncidenciaSolicitud
 
 class MuestraDetalleInline(admin.TabularInline):
     model = MuestraDetalle
@@ -9,6 +9,9 @@ class MuestraDetalleInline(admin.TabularInline):
     readonly_fields = ('codigo_laboratorio',)
     fields = ('tipo_muestra', 'codigo_laboratorio', 'descripcion', 'masa_aprox', 'cantidad', 'unidad')
 
+@admin.register(UnidadMedida)
+class UnidadMedidaAdmin(admin.ModelAdmin):
+    list_display = ('nombre','codigo','activo',)
 
 @admin.register(RecepcionMuestra)
 class RecepcionMuestraAdmin(admin.ModelAdmin):

@@ -130,7 +130,20 @@ class Proyecto(models.Model):
 class TipoMuestra(models.Model):
     nombre = models.CharField(max_length=100)
     sigla = models.CharField(max_length=5, unique=True) 
-    
+   
+class UnidadMedida(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+    codigo = models.CharField(max_length=20, unique=True)
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Unidad de Medida"
+        verbose_name_plural = "Unidades de Medida"
+        ordering = ['codigo']
+
+    def __str__(self):
+        return self.codigo
+ 
 class RecepcionMuestra(models.Model):
     cotizacion = models.ForeignKey(Cotizacion, on_delete=models.CASCADE, related_name='recepciones')
     procedencia = models.CharField(max_length=255)
@@ -152,7 +165,7 @@ class MuestraDetalle(models.Model):
     descripcion = models.CharField(max_length=255)
     masa_aprox = models.DecimalField(max_digits=10, decimal_places=2)
     cantidad = models.IntegerField(default=1)
-    unidad = models.CharField(max_length=50, default='UND')
+    unidad_medida = models.ForeignKey(UnidadMedida, on_delete=models.CASCADE, null=True, blank=True)
     observaciones = models.TextField(null=True, blank=True)
 
     codigo_laboratorio = models.CharField(max_length=50, unique=True, blank=True)

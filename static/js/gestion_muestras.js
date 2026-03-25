@@ -1,5 +1,6 @@
 const tbody = document.getElementById('tbody-muestras');
 const tiposMuestra = JSON.parse(document.getElementById('data-tipos').textContent || '[]');
+const unidadesMedida = JSON.parse(document.getElementById('data-unidades').textContent || '[]');
 const hiddenInput = document.getElementById('tipo_global_selector');
 const searchInput = document.getElementById('tipo_global_search');
 const autocompleteList = document.getElementById('autocomplete-list');
@@ -27,16 +28,28 @@ function renderAutocompleteList(list) {
     `).join('');
 }
 
+function renderUnidadesOptions() {
+    return unidadesMedida.map(u => `
+        <option value="${u.id}">${u.codigo}</option>
+    `).join('');
+}
+
+function getUnidadDefaultId() {
+    const unidadUnd = unidadesMedida.find(u => (u.codigo || '').toUpperCase() === 'UND');
+    return unidadUnd ? unidadUnd.id : (unidadesMedida[0] ? unidadesMedida[0].id : '');
+}
+
 if (searchInput) {
     searchInput.addEventListener('input', (e) => {
         const term = e.target.value.toLowerCase();
-        const filtered = tiposMuestra.filter(t => 
-            t.nombre.toLowerCase().includes(term) || 
+        const filtered = tiposMuestra.filter(t =>
+            t.nombre.toLowerCase().includes(term) ||
             t.prefijo.toLowerCase().includes(term)
         );
         renderAutocompleteList(filtered);
         autocompleteList.classList.remove('hidden');
     });
+
     searchInput.addEventListener('focus', () => {
         autocompleteList.classList.remove('hidden');
         renderAutocompleteList(tiposMuestra);
@@ -89,6 +102,7 @@ function crearFila() {
     const nombreTipo = searchInput.value;
     const prefijo = searchInput.dataset.prefijo || 'XX';
     const idLabAuto = generarCodigoLab(prefijo, index);
+    const unidadDefaultId = getUnidadDefaultId();
 
     tr.innerHTML = `
         <td class="px-3 py-2 text-center border-r border-slate-100/50">
@@ -112,12 +126,14 @@ function crearFila() {
             </div>
         </td>
         <td class="px-2 py-2 border-r border-slate-100/50">
-            <input type="number" step="0.01" name="cantidad[]" placeholder="0.00" required 
+            <input type="number" step="1" name="cantidad[]" placeholder="0" required 
                 class="w-full px-2 py-1.5 bg-transparent border-none text-center text-[12px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/10 focus:bg-slate-50 rounded-lg transition-all">
         </td>
         <td class="px-2 py-2 border-r border-slate-100/50">
-            <input type="text" name="unidad[]" placeholder="U.M" required 
+            <select name="unidad_medida_id[]" required
                 class="w-full px-2 py-1.5 bg-slate-100/50 border-none rounded-lg text-center text-[10px] font-black text-slate-500 uppercase outline-none focus:ring-2 focus:ring-slate-200">
+                ${renderUnidadesOptions()}
+            </select>
         </td>
         <td class="px-2 py-2 border-r border-slate-100/50">
             <div class="relative">
@@ -145,6 +161,12 @@ function crearFila() {
     `;
 
     tbody.appendChild(tr);
+
+    const unidadSelect = tr.querySelector('select[name="unidad_medida_id[]"]');
+    if (unidadSelect && unidadDefaultId) {
+        unidadSelect.value = String(unidadDefaultId);
+    }
+
     limpiarSelector();
     if (window.lucide) lucide.createIcons();
 }
@@ -153,34 +175,35 @@ function activarEdicion(celda) {
     if (filaEnEdicion) filaEnEdicion.classList.remove('bg-amber-50', 'ring-2', 'ring-amber-200');
     filaEnEdicion = celda.closest('tr');
     filaEnEdicion.classList.add('bg-amber-50', 'ring-2', 'ring-amber-200');
-    
+
     const idStored = filaEnEdicion.querySelector('input[name="tipo_muestra_id[]"]').value;
     const nombreStored = filaEnEdicion.querySelector('.tipo-label').innerText;
     const tipoObj = tiposMuestra.find(t => t.id == idStored);
-    
+
     selectOption(idStored, nombreStored, tipoObj ? tipoObj.prefijo : '');
-    
+
     const btn = document.getElementById('btn_generar');
     btn.classList.replace('bg-slate-900', 'bg-amber-500');
     btn.classList.replace('hover:bg-blue-600', 'hover:bg-amber-600');
-    
+
     document.getElementById('btn_text').innerText = "ACTUALIZAR TIPO";
     document.getElementById('label_selector').innerText = "Editando tipo de muestra:";
     document.getElementById('label_selector').classList.replace('text-slate-400', 'text-amber-600');
     document.getElementById('btn_icon_container').classList.replace('bg-blue-500', 'bg-amber-600');
     document.getElementById('btn_icon').setAttribute('data-lucide', 'refresh-cw');
-    
+
     if (window.lucide) lucide.createIcons();
 }
 
 function confirmarEdicion() {
     if (!hiddenInput.value) return;
+
     const index = filaEnEdicion.cells[0].innerText;
-    
+
     filaEnEdicion.querySelector('.tipo-label').innerText = searchInput.value;
     filaEnEdicion.querySelector('input[name="tipo_muestra_id[]"]').value = hiddenInput.value;
     filaEnEdicion.querySelector('input[name="id_lab[]"]').value = generarCodigoLab(searchInput.dataset.prefijo, parseInt(index));
-    
+
     filaEnEdicion.classList.add('bg-green-50');
     setTimeout(() => {
         filaEnEdicion.classList.remove('bg-green-50', 'bg-amber-50', 'ring-2', 'ring-amber-200');
@@ -191,17 +214,17 @@ function confirmarEdicion() {
 function cancelarEdicion() {
     filaEnEdicion = null;
     limpiarSelector();
-    
+
     const btn = document.getElementById('btn_generar');
     btn.classList.replace('bg-amber-500', 'bg-slate-900');
     btn.classList.replace('hover:bg-amber-600', 'hover:bg-blue-600');
-    
+
     document.getElementById('btn_text').innerText = "AÑADIR NUEVA MUESTRA";
     document.getElementById('label_selector').innerText = "Tipo de muestra a generar:";
     document.getElementById('label_selector').classList.replace('text-amber-600', 'text-slate-400');
     document.getElementById('btn_icon_container').classList.replace('bg-amber-600', 'bg-blue-500');
     document.getElementById('btn_icon').setAttribute('data-lucide', 'plus');
-    
+
     if (window.lucide) lucide.createIcons();
 }
 
@@ -246,8 +269,11 @@ function saveNewTipoMuestra() {
     const nombre = nombreInput.value.trim();
     const sigla = siglaInput.value.trim();
     const btnSave = document.getElementById('btn-save-tipo');
-    
-    if (!nombre || !sigla) { alert("Complete los campos."); return; }
+
+    if (!nombre || !sigla) {
+        alert("Complete los campos.");
+        return;
+    }
 
     btnSave.disabled = true;
     btnSave.innerHTML = `<span class="animate-spin mr-2">◌</span> GUARDANDO...`;
@@ -262,31 +288,31 @@ function saveNewTipoMuestra() {
         body: formData,
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
     })
-    .then(async response => {
-        const isJson = response.headers.get('content-type')?.includes('application/json');
-        const data = isJson ? await response.json() : null;
-        if (!response.ok) {
-            if (!isJson) {
-                const errorText = await response.text();
-                throw new Error(`Error del servidor (${response.status}).`);
+        .then(async response => {
+            const isJson = response.headers.get('content-type')?.includes('application/json');
+            const data = isJson ? await response.json() : null;
+            if (!response.ok) {
+                if (!isJson) {
+                    await response.text();
+                    throw new Error(`Error del servidor (${response.status}).`);
+                }
+                throw data || { message: 'Error desconocido' };
             }
-            throw data || { message: 'Error desconocido' };
-        }
-        return data;
-    })
-    .then(data => {
-        if (data.status === 'success') {
-            tiposMuestra.push({ id: data.id, nombre: data.nombre, prefijo: data.sigla });
-            selectOption(data.id, data.nombre, data.sigla);
-            closeTipoMuestraModal();
-        }
-    })
-    .catch(error => alert(error.message || "Error al guardar."))
-    .finally(() => {
-        btnSave.disabled = false;
-        btnSave.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> GUARDAR`;
-        if (window.lucide) lucide.createIcons();
-    });
+            return data;
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                tiposMuestra.push({ id: data.id, nombre: data.nombre, prefijo: data.sigla });
+                selectOption(data.id, data.nombre, data.sigla);
+                closeTipoMuestraModal();
+            }
+        })
+        .catch(error => alert(error.message || "Error al guardar."))
+        .finally(() => {
+            btnSave.disabled = false;
+            btnSave.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> GUARDAR`;
+            if (window.lucide) lucide.createIcons();
+        });
 }
 
 document.addEventListener('DOMContentLoaded', () => {

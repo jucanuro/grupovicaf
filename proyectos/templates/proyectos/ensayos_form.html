@@ -331,112 +331,10 @@
 
     let muestrasGlobales = [];
 
-    document.addEventListener('DOMContentLoaded', () => {
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-
-        const selectCotizacion = document.querySelector('select[name="cotizacion"]');
-        const tablaBody = document.querySelector('#tabla-detalles tbody');
-        const inputFechaSolicitud = document.getElementById('fecha_solicitud');
-        const inputDiasPlazo = document.getElementById('dias_plazo');
-        const inputFechaEntrega = document.getElementById('fecha_entrega_programada');
-
-        function calcularFechaEntrega() {
-            const fechaBase = inputFechaSolicitud.value;
-            const dias = parseInt(inputDiasPlazo.value);
-            if (fechaBase && !isNaN(dias)) {
-                const date = new Date(fechaBase + 'T00:00:00');
-                date.setDate(date.getDate() + dias);
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                inputFechaEntrega.value = `${year}-${month}-${day}`;
-            }
-        }
-
-        if (inputFechaSolicitud && inputDiasPlazo) {
-            inputFechaSolicitud.addEventListener('change', calcularFechaEntrega);
-            inputDiasPlazo.addEventListener('input', calcularFechaEntrega);
-        }
-
-        selectCotizacion.addEventListener('change', function() {
-            const cotizacionId = this.value;
-            if (!cotizacionId) return;
-
-            const tieneDatos = Array.from(tablaBody.querySelectorAll('select[name="servicio_id[]"]'))
-                                    .some(s => s.value !== "");
-
-            if (tieneDatos) {
-                if (!confirm("¿Cargar ítems y muestras de la nueva cotización? Se borrarán las filas actuales.")) {
-                    return;
-                }
-            }
-
-            tablaBody.innerHTML = '';
-            fetch(`/proyectos/api/cotizacion-detalles/${cotizacionId}/`)
-                .then(response => {
-                    if (!response.ok) throw new Error('Error en el servidor');
-                    return response.json();
-                })
-                .then(data => {
-                    muestrasGlobales = data.muestras || [];
-                    if (data.servicios && data.servicios.length > 0) {
-                        data.servicios.forEach((item) => {
-                            const fila = agregarNuevaFila();
-                            
-                            const selectServicio = fila.querySelector('select[name="servicio_id[]"]');
-                            selectServicio.innerHTML = `<option value="${item.cotizacion_detalle_id}" selected 
-                                data-norma="${item.norma || ''}" 
-                                data-metodo="${item.metodo || ''}">${item.nombre_servicio}</option>`;
-                            
-                            fila.querySelector('input[name="norma[]"]').value = item.norma || "";
-                            fila.querySelector('input[name="metodo[]"]').value = item.metodo || "";
-                        });
-                    } else {
-                        agregarNuevaFila();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert("Error al obtener los datos de la cotización.");
-                    if (tablaBody.rows.length === 0) agregarNuevaFila();
-                });
-        });
-
-        tablaBody.addEventListener('change', (e) => {
-            if (e.target && e.target.name === 'servicio_id[]') {
-                const fila = e.target.closest('tr');
-                const selectedOption = e.target.options[e.target.selectedIndex];
-                const normaInput = fila.querySelector('input[name="norma[]"]');
-                const metodoInput = fila.querySelector('input[name="metodo[]"]');
-                if (normaInput) normaInput.value = selectedOption.dataset.norma || "";
-                if (metodoInput) metodoInput.value = selectedOption.dataset.metodo || "";
-            }
-        });
-
-        // Botón Agregar Fila Ensayo
-        const btnAddEnsayo = document.getElementById('btn-agregar-fila');
-        if (btnAddEnsayo) {
-            btnAddEnsayo.addEventListener('click', (e) => {
-                e.preventDefault();
-                agregarNuevaFila();
-            });
-        }
-
-        // Botón Agregar Incidencia
-        const btnIncidencia = document.getElementById('btn-agregar-incidencia');
-        if (btnIncidencia) {
-            btnIncidencia.addEventListener('click', (e) => {
-                e.preventDefault();
-                agregarFilaIncidencia();
-            });
-        }
-    });
-
-    // --- 4. FUNCIONES DE MANIPULACIÓN DE TABLAS ---
-
-    function agregarNuevaFila() {
+    window.agregarNuevaFila = function () {
         const tabla = document.querySelector('#tabla-detalles tbody');
         let opcionesMuestrasHTML = '<option value="">-- Muestra --</option>';
+
         muestrasGlobales.forEach(m => {
             opcionesMuestrasHTML += `<option value="${m.id}">${m.codigo_laboratorio} (${m.descripcion})</option>`;
         });
@@ -453,8 +351,8 @@
                         <option value="">-- Servicio --</option>
                         {% for s in servicios_items %}
                         <option value="{{ s.id }}"
-                                data-norma="{{ s.norma_manual|default_if_none:s.servicio.norma }}"
-                                data-metodo="{{ s.metodo_manual|default_if_none:s.servicio.metodo }}">
+                                data-norma="{{ s.norma_manual|default_if_none:'' }}"
+                                data-metodo="{{ s.metodo_manual|default_if_none:'' }}">
                             {{ s.servicio.nombre }}
                         </option>
                         {% endfor %}
@@ -469,7 +367,9 @@
                 <td class="p-1.5">
                     <select name="tecnico_id[]" class="w-full p-1 bg-white border border-slate-200 rounded text-[10px]">
                         <option value="">-- Técnico --</option>
-                        {% for t in trabajadores %}<option value="{{ t.id }}">{{ t.nombre_completo }}</option>{% endfor %}
+                        {% for t in trabajadores %}
+                        <option value="{{ t.id }}">{{ t.nombre_completo }}</option>
+                        {% endfor %}
                     </select>
                 </td>
                 <td class="p-1.5">
@@ -480,13 +380,15 @@
                         <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                     </button>
                 </td>
-            </tr>`;
+            </tr>
+        `;
+
         tabla.insertAdjacentHTML('beforeend', rowHTML);
         if (typeof lucide !== 'undefined') lucide.createIcons();
         return tabla.lastElementChild;
-    }
+    };
 
-    function eliminarFila(btn) {
+    window.eliminarFila = function (btn) {
         const tabla = document.querySelector('#tabla-detalles tbody');
         if (tabla.rows.length > 1) {
             btn.closest('tr').remove();
@@ -495,6 +397,60 @@
             row.querySelectorAll('input').forEach(i => i.value = "");
             row.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
         }
+    };
+
+    function cargarDetalleCotizacion(cotizacionId, forzar = false) {
+        const tablaBody = document.querySelector('#tabla-detalles tbody');
+        if (!cotizacionId) return;
+
+        const tieneDatos = Array.from(tablaBody.querySelectorAll('select[name="servicio_id[]"]'))
+            .some(s => s.value !== "");
+
+        if (tieneDatos && !forzar) {
+            if (!confirm("¿Cargar ítems y muestras de la nueva cotización? Se borrarán las filas actuales.")) {
+                return;
+            }
+        }
+
+        tablaBody.innerHTML = '';
+
+        fetch(`/proyectos/api/cotizacion-detalles/${cotizacionId}/`)
+            .then(response => {
+                if (!response.ok) throw new Error('Error en el servidor');
+                return response.json();
+            })
+            .then(data => {
+                muestrasGlobales = data.muestras || [];
+
+                if (data.servicios && data.servicios.length > 0) {
+                    data.servicios.forEach((item) => {
+                        const fila = window.agregarNuevaFila();
+
+                        const selectServicio = fila.querySelector('select[name="servicio_id[]"]');
+                        selectServicio.innerHTML = `
+                            <option value="${item.cotizacion_detalle_id}" selected
+                                data-norma="${item.norma || ''}"
+                                data-metodo="${item.metodo || ''}">
+                                ${item.nombre_servicio}
+                            </option>
+                        `;
+
+                        const normaInput = fila.querySelector('input[name="norma[]"]');
+                        const metodoInput = fila.querySelector('input[name="metodo[]"]');
+
+                        if (normaInput) normaInput.value = item.norma || "";
+                        if (metodoInput) metodoInput.value = item.metodo || "";
+                    });
+                } else {
+                    window.agregarNuevaFila();
+                }
+
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("Error al obtener los datos de la cotización.");
+            });
     }
 
     function agregarFilaIncidencia() {
@@ -534,7 +490,8 @@
                         <i data-lucide="x-circle" class="w-4 h-4"></i>
                     </button>
                 </td>
-            </tr>`;
+            </tr>
+        `;
         tbody.insertAdjacentHTML('beforeend', rowHTML);
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
@@ -548,5 +505,79 @@
         const filas = document.querySelectorAll('.item-incidencia-index');
         filas.forEach((td, i) => { td.innerText = i + 1; });
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        const selectCotizacion = document.querySelector('select[name="cotizacion"]');
+        const tablaBody = document.querySelector('#tabla-detalles tbody');
+        const inputFechaSolicitud = document.getElementById('fecha_solicitud');
+        const inputDiasPlazo = document.getElementById('dias_plazo');
+        const inputFechaEntrega = document.getElementById('fecha_entrega_programada');
+
+        function calcularFechaEntrega() {
+            const fechaBase = inputFechaSolicitud?.value;
+            const dias = parseInt(inputDiasPlazo?.value);
+            if (fechaBase && !isNaN(dias) && inputFechaEntrega) {
+                const date = new Date(fechaBase + 'T00:00:00');
+                date.setDate(date.getDate() + dias);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                inputFechaEntrega.value = `${year}-${month}-${day}`;
+            }
+        }
+
+        if (inputFechaSolicitud && inputDiasPlazo) {
+            inputFechaSolicitud.addEventListener('change', calcularFechaEntrega);
+            inputDiasPlazo.addEventListener('input', calcularFechaEntrega);
+        }
+
+        if (selectCotizacion) {
+            selectCotizacion.addEventListener('change', function () {
+                cargarDetalleCotizacion(this.value, false);
+            });
+
+            if (selectCotizacion.value) {
+                const hayDetallesEditando =
+                    tablaBody &&
+                    tablaBody.querySelectorAll('select[name="servicio_id[]"]').length > 0 &&
+                    Array.from(tablaBody.querySelectorAll('select[name="servicio_id[]"]')).some(s => s.value);
+
+                if (!hayDetallesEditando) {
+                    cargarDetalleCotizacion(selectCotizacion.value, true);
+                }
+            }
+        }
+
+        if (tablaBody) {
+            tablaBody.addEventListener('change', (e) => {
+                if (e.target && e.target.name === 'servicio_id[]') {
+                    const fila = e.target.closest('tr');
+                    const selectedOption = e.target.options[e.target.selectedIndex];
+                    const normaInput = fila.querySelector('input[name="norma[]"]');
+                    const metodoInput = fila.querySelector('input[name="metodo[]"]');
+                    if (normaInput) normaInput.value = selectedOption.dataset.norma || "";
+                    if (metodoInput) metodoInput.value = selectedOption.dataset.metodo || "";
+                }
+            });
+        }
+
+        const btnAddEnsayo = document.getElementById('btn-agregar-fila');
+        if (btnAddEnsayo) {
+            btnAddEnsayo.addEventListener('click', (e) => {
+                e.preventDefault();
+                window.agregarNuevaFila();
+            });
+        }
+
+        const btnIncidencia = document.getElementById('btn-agregar-incidencia');
+        if (btnIncidencia) {
+            btnIncidencia.addEventListener('click', (e) => {
+                e.preventDefault();
+                agregarFilaIncidencia();
+            });
+        }
+    });
 </script>
 {% endblock %}
