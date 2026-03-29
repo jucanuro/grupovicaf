@@ -1,0 +1,1390 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/calendario-config.css' %}">
+<div class="bg-vicaf-calendar"></div>
+
+<div class="max-w-[1700px] mx-auto p-2 md:p-2 relative z-10 space-y-6">
+
+    <header class="relative overflow-hidden bg-white border border-slate-200 shadow-sm rounded-[2rem]">
+        <div class="absolute inset-y-0 left-0 w-2 bg-gradient-to-b from-blue-600 via-indigo-500 to-cyan-400"></div>
+
+        <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-5 px-6 py-6 md:px-8">
+            <div class="flex items-center gap-4">
+                <div class="relative">
+                    <div class="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg">
+                        <i data-lucide="calendar-days" class="w-5 h-5"></i>
+                    </div>
+                    <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-white"></div>
+                </div>
+
+                <div>
+                    <p class="text-[8px] font-mono-tech text-blue-600 uppercase tracking-[0.25em]">Agenda Inteligente // VICAF PRO</p>
+                    <h1 class="text-lg md:text-xl font-black tracking-tight text-slate-900">Calendario Operativo</h1>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3">
+                <button id="btnNuevaActividad"
+                    class="px-5 py-3 rounded-2xl bg-slate-900 text-white text-xs font-black uppercase tracking-[0.18em] hover:bg-blue-600 transition-all shadow-lg flex items-center gap-2">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    Nueva actividad
+                </button>
+
+                <button id="btnHoy"
+                    class="px-4 py-3 rounded-2xl bg-blue-600 text-white text-xs font-black uppercase tracking-[0.18em] hover:bg-blue-700 transition-all flex items-center gap-2">
+                    <i data-lucide="calendar-check-2" class="w-4 h-4"></i>
+                    Hoy
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="grid grid-cols-1 xl:grid-cols-[auto_minmax(0,1fr)] gap-6 items-start">
+
+        <div id="asideWrapper"
+             class="relative hidden xl:block shrink-0 w-0 overflow-visible transition-all duration-300 ease-in-out">
+
+            <button
+                id="toggleAsideBtn"
+                type="button"
+                class="absolute top-6 left-full -ml-3 z-30 w-11 h-11 rounded-full border border-slate-200 bg-white shadow-lg flex items-center justify-center text-slate-700 hover:bg-slate-50 transition"
+                aria-expanded="false"
+                aria-controls="calendarAside"
+                title="Mostrar / ocultar panel lateral"
+            >
+                <i data-lucide="panel-left-open" class="w-5 h-5"></i>
+            </button>
+
+            <aside
+                id="calendarAside"
+                class="xl:sticky xl:top-6 self-start space-y-6 h-fit opacity-0 -translate-x-4 pointer-events-none transition-all duration-300 ease-in-out"
+            >
+                <div class="bg-white border border-slate-200 rounded-[2rem] shadow-sm overflow-hidden">
+                    <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-black uppercase tracking-[0.2em] text-slate-800">Resumen</h3>
+                            <p class="text-[10px] text-slate-400 font-mono-tech uppercase tracking-[0.2em] mt-1">Indicadores generales</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+
+                    <div class="p-5 grid grid-cols-2 gap-3">
+                        <button type="button"
+                            data-resumen-filtro="total"
+                            data-resumen-titulo="Total de actividades"
+                            class="resumenCard text-left rounded-2xl bg-slate-50 border border-slate-200 p-4 hover:shadow-md hover:-translate-y-0.5 transition">
+                            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Total</p>
+                            <p class="text-3xl font-black text-slate-900 mt-1">{{ resumen.total_actividades }}</p>
+                        </button>
+
+                        <button type="button"
+                            data-resumen-filtro="completadas"
+                            data-resumen-titulo="Actividades completadas"
+                            class="resumenCard text-left rounded-2xl bg-emerald-50 border border-emerald-100 p-4 hover:shadow-md hover:-translate-y-0.5 transition">
+                            <p class="text-[10px] font-black uppercase tracking-widest text-emerald-500">Completadas</p>
+                            <p class="text-3xl font-black text-emerald-600 mt-1">{{ resumen.completadas }}</p>
+                        </button>
+
+                        <button type="button"
+                            data-resumen-filtro="en_curso"
+                            data-resumen-titulo="Actividades en curso"
+                            class="resumenCard text-left rounded-2xl bg-amber-50 border border-amber-100 p-4 hover:shadow-md hover:-translate-y-0.5 transition">
+                            <p class="text-[10px] font-black uppercase tracking-widest text-amber-500">En curso</p>
+                            <p class="text-3xl font-black text-amber-600 mt-1">{{ resumen.en_curso }}</p>
+                        </button>
+
+                        <button type="button"
+                            data-resumen-filtro="vencidas"
+                            data-resumen-titulo="Actividades vencidas"
+                            class="resumenCard text-left rounded-2xl bg-rose-50 border border-rose-100 p-4 hover:shadow-md hover:-translate-y-0.5 transition">
+                            <p class="text-[10px] font-black uppercase tracking-widest text-rose-500">Vencidas</p>
+                            <p class="text-3xl font-black text-rose-600 mt-1">{{ resumen.vencidas }}</p>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-slate-200 rounded-[2rem] shadow-sm overflow-hidden">
+                    <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-black uppercase tracking-[0.2em] text-slate-800">Categorías</h3>
+                            <p class="text-[10px] text-slate-400 font-mono-tech uppercase tracking-[0.2em] mt-1">Filtros del calendario</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
+                            <i data-lucide="filter" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+
+                    <div class="p-4 space-y-2 max-h-[340px] overflow-y-auto custom-scroll">
+                        <button data-categoria=""
+                            class="filterCategoria w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900 text-white text-sm font-bold transition">
+                            <span class="w-3 h-3 rounded-full bg-white"></span>
+                            Todas
+                        </button>
+
+                        {% for categoria in categorias %}
+                        <button data-categoria="{{ categoria.id }}"
+                            class="filterCategoria w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-sm font-bold text-slate-700 transition">
+                            <span class="w-3 h-3 rounded-full" style="background: {{ categoria.color }};"></span>
+                            {{ categoria.nombre }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="rounded-[2rem] bg-gradient-to-br from-slate-900 via-slate-800 to-blue-700 p-6 text-white shadow-xl">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-widest text-white/60">Automatización</p>
+                            <h3 class="text-xl font-black mt-2 leading-tight">Agenda centralizada para actividades manuales y automáticas</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
+                            <i data-lucide="sparkles" class="w-6 h-6"></i>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mt-6">
+                        <div class="rounded-2xl bg-white/10 p-4 border border-white/10">
+                            <p class="text-[10px] uppercase font-black tracking-widest text-white/60">Automáticas</p>
+                            <p class="text-3xl font-black mt-1">{{ resumen.automaticas }}</p>
+                        </div>
+                        <div class="rounded-2xl bg-white/10 p-4 border border-white/10">
+                            <p class="text-[10px] uppercase font-black tracking-widest text-white/60">Manuales</p>
+                            <p class="text-3xl font-black mt-1">{{ resumen.manuales }}</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <section class="min-w-0">
+            <div class="bg-white border border-slate-200 rounded-[2rem] shadow-sm overflow-hidden">
+                <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 px-6 py-5 border-b border-slate-100 bg-slate-50/80">
+                    <div>
+                        <p class="text-[10px] font-mono-tech text-blue-600 uppercase tracking-[0.2em]">Visualización del calendario</p>
+                        <h2 class="text-2xl font-black text-slate-900 tracking-tight">Panel de agenda</h2>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3">
+                        <button class="viewBtn px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-[0.16em]" data-view="dayGridMonth">Mes</button>
+                        <button class="viewBtn px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-[0.16em]" data-view="timeGridWeek">Semana</button>
+                        <button class="viewBtn px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-[0.16em]" data-view="timeGridDay">Día</button>
+                    </div>
+                </div>
+
+                <div class="p-4 md:p-6">
+                    <div class="calendar-glass rounded-[2rem] border border-slate-200 overflow-hidden p-4 md:p-5 min-w-0">
+                        <div id="fullcalendar" class="min-w-0"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<div id="modalDetalle" class="hidden fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50 items-center justify-center p-4">
+    <div class="w-full max-w-2xl bg-white rounded-[2rem] shadow-2xl border border-slate-200 overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200">
+            <div>
+                <h3 class="text-xl font-black text-slate-900">Detalle de Actividad</h3>
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">Información operativa</p>
+            </div>
+            <button id="cerrarModal" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black">×</button>
+        </div>
+        <div id="modalContent" class="p-6"></div>
+    </div>
+</div>
+
+<div id="modalFormulario"
+     class="hidden fixed inset-0 z-[99999] bg-slate-950/70 backdrop-blur-md">
+
+    <div class="w-screen h-screen flex items-center justify-center p-4 md:p-6">
+        <div
+            id="modalFormularioDialog"
+            class="relative w-full max-w-7xl max-h-[92vh] bg-white rounded-[2rem] border border-slate-200 shadow-[0_30px_100px_rgba(15,23,42,0.35)] overflow-hidden flex flex-col"
+        >
+            <div class="shrink-0 px-6 py-5 border-b border-slate-200 bg-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 id="formTitle" class="text-xl font-black text-slate-900">Nueva Actividad</h3>
+                        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+                            Agenda operativa
+                        </p>
+                    </div>
+
+                    <button
+                        id="cerrarFormulario"
+                        type="button"
+                        class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black transition"
+                    >
+                        ×
+                    </button>
+                </div>
+            </div>
+
+            <div id="modalFormularioBody" class="flex-1 overflow-y-auto custom-scroll p-6">
+                <form id="actividadForm" class="space-y-6">
+                    <input type="hidden" id="actividad_id">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Título</label>
+                            <input id="titulo" type="text" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" required>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Descripción</label>
+                            <textarea id="descripcion" rows="3" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Clase</label>
+                            <select id="clase" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                                {% for value, label in clases_actividad %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Estado</label>
+                            <select id="estado" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                                {% for value, label in estados_actividad %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Prioridad</label>
+                            <select id="prioridad" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                                {% for value, label in prioridades_actividad %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Categoría</label>
+                            <div class="flex gap-2">
+                                <select id="categoria_id" class="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                                    <option value="">-- Seleccionar --</option>
+                                    {% for categoria in categorias %}
+                                    <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+
+                                <button
+                                    type="button"
+                                    id="btnAbrirModalCategoria"
+                                    class="w-12 h-12 rounded-2xl bg-slate-900 text-white hover:bg-blue-600 transition flex items-center justify-center"
+                                    title="Agregar categoría"
+                                >
+                                    <i data-lucide="plus" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Inicio</label>
+                            <input id="fecha_inicio" type="datetime-local" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Fin</label>
+                            <input id="fecha_fin" type="datetime-local" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Cliente</label>
+                            <select id="cliente_id" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                                <option value="">-- Seleccionar --</option>
+                                {% for cliente in clientes %}
+                                <option value="{{ cliente.id }}">{{ cliente.razon_social }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Proyecto</label>
+                            <select id="proyecto_id" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                                <option value="">-- Seleccionar --</option>
+                                {% for proyecto in proyectos %}
+                                <option value="{{ proyecto.id }}">{{ proyecto.codigo_proyecto }} - {{ proyecto.nombre_proyecto }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Ubicación</label>
+                            <input id="ubicacion" type="text" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Enlace</label>
+                            <input id="enlace_externo" type="url" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Observaciones</label>
+                            <textarea id="observaciones" rows="3" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <label class="flex items-center gap-3 rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                            <input id="todo_el_dia" type="checkbox" class="w-4 h-4">
+                            <span class="text-sm font-bold text-slate-700">Todo el día</span>
+                        </label>
+
+                        <label class="flex items-center gap-3 rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                            <input id="bloquea_agenda" type="checkbox" class="w-4 h-4">
+                            <span class="text-sm font-bold text-slate-700">Bloquea agenda</span>
+                        </label>
+
+                        <label class="flex items-center gap-3 rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                            <input id="es_visible" type="checkbox" class="w-4 h-4" checked>
+                            <span class="text-sm font-bold text-slate-700">Visible</span>
+                        </label>
+                    </div>
+
+                    <div class="rounded-[2rem] border border-slate-200 p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-sm font-black uppercase tracking-[0.2em] text-slate-700">Participantes</h4>
+                            <button type="button" id="addParticipante" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-black uppercase">+ Agregar</button>
+                        </div>
+                        <div id="participantesContainer" class="space-y-3"></div>
+                    </div>
+
+                    <div class="rounded-[2rem] border border-slate-200 p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-sm font-black uppercase tracking-[0.2em] text-slate-700">Recordatorios</h4>
+                            <button type="button" id="addRecordatorio" class="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-black uppercase">+ Agregar</button>
+                        </div>
+                        <div id="recordatoriosContainer" class="space-y-3"></div>
+                    </div>
+
+                    <div class="sticky bottom-0 bg-white pt-4">
+                        <div class="flex items-center justify-between border-t border-slate-200 pt-4">
+                            <button type="button" id="btnEliminarActividad" class="hidden px-5 py-3 rounded-2xl bg-rose-600 text-white text-sm font-black uppercase tracking-wider hover:bg-rose-700">
+                                Eliminar
+                            </button>
+
+                            <div class="ml-auto flex gap-3">
+                                <button type="button" id="cancelarFormulario" class="px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 text-sm font-black uppercase tracking-wider hover:bg-slate-200">
+                                    Cancelar
+                                </button>
+                                <button type="submit" class="px-5 py-3 rounded-2xl bg-slate-900 text-white text-sm font-black uppercase tracking-wider hover:bg-blue-600">
+                                    Guardar actividad
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modalCategoria" class="hidden fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-[9999999] items-center justify-center p-4">
+    <div class="w-full max-w-xl bg-white rounded-[2rem] shadow-2xl border border-slate-200 overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200">
+            <div>
+                <h3 class="text-xl font-black text-slate-900">Nueva Categoría</h3>
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">Calendario</p>
+            </div>
+            <button id="cerrarModalCategoria" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black">×</button>
+        </div>
+
+        <div class="p-6">
+            <form id="categoriaForm" class="space-y-5">
+                <div>
+                    <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Nombre</label>
+                    <input id="categoria_nombre" type="text" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="Ej. Reuniones Gerencia">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Color</label>
+                        <input id="categoria_color" type="color" value="#2563eb" class="w-full h-12 rounded-2xl border border-slate-200 px-2 py-2 bg-white">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Ícono</label>
+                        <input id="categoria_icono" type="text" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="Ej. calendar, users, flask">
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" id="cancelarModalCategoria" class="px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 text-sm font-black uppercase tracking-wider hover:bg-slate-200">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-5 py-3 rounded-2xl bg-slate-900 text-white text-sm font-black uppercase tracking-wider hover:bg-blue-600">
+                        Guardar categoría
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="modalResumenListado" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[999999] items-center justify-center p-4">
+    <div class="w-full max-w-6xl bg-white rounded-[2rem] shadow-2xl border border-slate-200 overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200">
+            <div>
+                <h3 id="modalResumenTitulo" class="text-xl font-black text-slate-900">Listado de actividades</h3>
+                <p id="modalResumenSubtitulo" class="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+                    Resumen operativo
+                </p>
+            </div>
+            <button id="cerrarModalResumenListado" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black">
+                ×
+            </button>
+        </div>
+
+        <div class="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-slate-900 text-white flex items-center justify-center">
+                    <i data-lucide="list-collapse" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Listado filtrado</p>
+                    <p id="modalResumenContador" class="text-sm font-black text-slate-800">0 actividades</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="modalResumenBody" class="max-h-[70vh] overflow-y-auto custom-scroll p-6">
+            <div id="modalResumenLoader" class="hidden py-16 text-center">
+                <div class="inline-block w-10 h-10 rounded-full border-4 border-slate-200 border-t-slate-900 animate-spin"></div>
+                <p class="mt-4 text-sm font-bold text-slate-500">Cargando actividades...</p>
+            </div>
+
+            <div id="modalResumenEmpty" class="hidden py-16 text-center">
+                <div class="w-16 h-16 mx-auto rounded-3xl bg-slate-100 text-slate-500 flex items-center justify-center">
+                    <i data-lucide="inbox" class="w-8 h-8"></i>
+                </div>
+                <h4 class="mt-4 text-lg font-black text-slate-800">No hay actividades</h4>
+                <p class="mt-2 text-sm text-slate-500">No se encontraron resultados para este filtro.</p>
+            </div>
+
+            <div id="modalResumenListadoItems" class="space-y-4"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.19/index.global.min.js"></script>
+<script>
+    const modalDetalle = document.getElementById('modalDetalle');
+    const modalContent = document.getElementById('modalContent');
+    const cerrarModal = document.getElementById('cerrarModal');
+
+    const modalFormulario = document.getElementById('modalFormulario');
+    const cerrarFormulario = document.getElementById('cerrarFormulario');
+    const cancelarFormulario = document.getElementById('cancelarFormulario');
+    const btnNuevaActividad = document.getElementById('btnNuevaActividad');
+    const btnEliminarActividad = document.getElementById('btnEliminarActividad');
+    const actividadForm = document.getElementById('actividadForm');
+    const participantesContainer = document.getElementById('participantesContainer');
+    const recordatoriosContainer = document.getElementById('recordatoriosContainer');
+    const addParticipanteBtn = document.getElementById('addParticipante');
+    const addRecordatorioBtn = document.getElementById('addRecordatorio');
+
+    const modalCategoria = document.getElementById('modalCategoria');
+    const cerrarModalCategoria = document.getElementById('cerrarModalCategoria');
+    const cancelarModalCategoria = document.getElementById('cancelarModalCategoria');
+    const btnAbrirModalCategoria = document.getElementById('btnAbrirModalCategoria');
+    const categoriaForm = document.getElementById('categoriaForm');
+    const categoriaSelect = document.getElementById('categoria_id');
+
+    // NUEVO: modal resumen (null-safe para no romper si aún no existe en HTML)
+    const modalResumenListado = document.getElementById('modalResumenListado');
+    const cerrarModalResumenListado = document.getElementById('cerrarModalResumenListado');
+    const modalResumenTitulo = document.getElementById('modalResumenTitulo');
+    const modalResumenSubtitulo = document.getElementById('modalResumenSubtitulo');
+    const modalResumenContador = document.getElementById('modalResumenContador');
+    const modalResumenLoader = document.getElementById('modalResumenLoader');
+    const modalResumenEmpty = document.getElementById('modalResumenEmpty');
+    const modalResumenListadoItems = document.getElementById('modalResumenListadoItems');
+
+    const calendarEl = document.getElementById('fullcalendar');
+    let calendar = null;
+    let currentCategory = '';
+
+    const trabajadoresData = [
+        {% for t in trabajadores %}
+        { id: {{ t.id }}, nombre: "{{ t|escapejs }}" },
+        {% endfor %}
+    ];
+
+    function toDatetimeLocalValue(isoString) {
+        if (!isoString) return '';
+        const date = new Date(isoString);
+        const pad = n => String(n).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
+    function lockBodyScroll() {
+        document.documentElement.classList.add('modal-open');
+        document.body.classList.add('modal-open');
+    }
+
+    function unlockBodyScrollIfNoModalVisible() {
+        const algunModalVisible = [modalFormulario, modalDetalle, modalCategoria, modalResumenListado].some(modal => {
+            return modal && !modal.classList.contains('hidden');
+        });
+
+        if (!algunModalVisible) {
+            document.documentElement.classList.remove('modal-open');
+            document.body.classList.remove('modal-open');
+        }
+    }
+
+    function centrarDialogoEnViewport(dialogId, scrollBodyId = null) {
+        requestAnimationFrame(() => {
+            const dialog = document.getElementById(dialogId);
+            const scrollBody = scrollBodyId ? document.getElementById(scrollBodyId) : null;
+
+            if (scrollBody) {
+                scrollBody.scrollTop = 0;
+            }
+
+            if (dialog) {
+                dialog.scrollIntoView({
+                    block: 'center',
+                    inline: 'center',
+                    behavior: 'instant'
+                });
+            }
+        });
+    }
+
+    function abrirModalDetalleUI() {
+        if (!modalDetalle) return;
+        modalDetalle.classList.remove('hidden');
+        modalDetalle.classList.add('flex');
+        lockBodyScroll();
+    }
+
+    function cerrarModalDetalle() {
+        if (!modalDetalle) return;
+        modalDetalle.classList.add('hidden');
+        modalDetalle.classList.remove('flex');
+        unlockBodyScrollIfNoModalVisible();
+    }
+
+    function abrirFormulario() {
+        if (!modalFormulario) return;
+
+        modalFormulario.classList.remove('hidden');
+        modalFormulario.classList.add('block');
+        lockBodyScroll();
+
+        const modalBody = document.getElementById('modalFormularioBody');
+        if (modalBody) {
+            modalBody.scrollTop = 0;
+        }
+
+        centrarDialogoEnViewport('modalFormularioDialog', 'modalFormularioBody');
+    }
+
+    function cerrarModalFormulario() {
+        if (!modalFormulario || !actividadForm) return;
+
+        modalFormulario.classList.add('hidden');
+        modalFormulario.classList.remove('block');
+
+        actividadForm.reset();
+
+        const actividadId = document.getElementById('actividad_id');
+        const formTitle = document.getElementById('formTitle');
+        const modalBody = document.getElementById('modalFormularioBody');
+
+        if (actividadId) actividadId.value = '';
+        if (formTitle) formTitle.textContent = 'Nueva Actividad';
+        if (participantesContainer) participantesContainer.innerHTML = '';
+        if (recordatoriosContainer) recordatoriosContainer.innerHTML = '';
+        if (btnEliminarActividad) btnEliminarActividad.classList.add('hidden');
+        if (modalBody) modalBody.scrollTop = 0;
+
+        unlockBodyScrollIfNoModalVisible();
+    }
+
+    function abrirModalCategoria() {
+        if (!modalCategoria) return;
+        modalCategoria.classList.remove('hidden');
+        modalCategoria.classList.add('flex');
+        lockBodyScroll();
+        centrarDialogoEnViewport('modalCategoria');
+    }
+
+    function cerrarCategoriaModal() {
+        if (!modalCategoria || !categoriaForm) return;
+
+        modalCategoria.classList.add('hidden');
+        modalCategoria.classList.remove('flex');
+        categoriaForm.reset();
+
+        const colorInput = document.getElementById('categoria_color');
+        if (colorInput) colorInput.value = '#2563eb';
+
+        unlockBodyScrollIfNoModalVisible();
+    }
+
+    function participanteRow(data = {}) {
+        if (!participantesContainer) return;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'grid grid-cols-1 md:grid-cols-4 gap-3';
+        wrapper.innerHTML = `
+            <select class="participante_trabajador rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none">
+                <option value="">-- Trabajador --</option>
+                ${trabajadoresData.map(t => `<option value="${t.id}" ${String(data.trabajador_id || '') === String(t.id) ? 'selected' : ''}>${t.nombre}</option>`).join('')}
+            </select>
+            <select class="participante_rol rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none">
+                <option value="RESPONSABLE" ${data.rol === 'RESPONSABLE' ? 'selected' : ''}>Responsable</option>
+                <option value="APOYO" ${data.rol === 'APOYO' ? 'selected' : ''}>Apoyo</option>
+                <option value="INVITADO" ${data.rol === 'INVITADO' ? 'selected' : ''}>Invitado</option>
+                <option value="SUPERVISOR" ${data.rol === 'SUPERVISOR' ? 'selected' : ''}>Supervisor</option>
+            </select>
+            <input type="text" class="participante_comentario rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none" placeholder="Comentario" value="${data.comentario || ''}">
+            <button type="button" class="rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 font-black uppercase text-xs" onclick="this.parentElement.remove()">Quitar</button>
+        `;
+        participantesContainer.appendChild(wrapper);
+    }
+
+    function recordatorioRow(data = {}) {
+        if (!recordatoriosContainer) return;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'grid grid-cols-1 md:grid-cols-3 gap-3';
+        wrapper.innerHTML = `
+            <input type="number" class="recordatorio_minutos rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none" placeholder="Minutos antes" value="${data.minutos_antes || ''}">
+            <select class="recordatorio_tipo rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none">
+                <option value="APP" ${data.tipo === 'APP' ? 'selected' : ''}>Notificación interna</option>
+                <option value="EMAIL" ${data.tipo === 'EMAIL' ? 'selected' : ''}>Correo</option>
+            </select>
+            <button type="button" class="rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 font-black uppercase text-xs" onclick="this.parentElement.remove()">Quitar</button>
+        `;
+        recordatoriosContainer.appendChild(wrapper);
+    }
+
+    function abrirNuevaActividadDesdeRango(startStr, endStr) {
+        cerrarModalDetalle();
+        cerrarModalFormulario();
+        abrirFormulario();
+
+        const formTitle = document.getElementById('formTitle');
+        const fechaInicio = document.getElementById('fecha_inicio');
+        const fechaFin = document.getElementById('fecha_fin');
+
+        if (formTitle) formTitle.textContent = 'Nueva Actividad';
+        if (fechaInicio) fechaInicio.value = toDatetimeLocalValue(startStr);
+        if (fechaFin) fechaFin.value = toDatetimeLocalValue(endStr || startStr);
+    }
+
+    async function verDetalle(id) {
+        const response = await fetch(`/actividades/calendario/evento/${id}/`);
+        const data = await response.json();
+
+        if (!modalContent || !modalDetalle) return;
+
+        modalContent.innerHTML = `
+            <div class="space-y-5">
+                <div>
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="inline-block w-4 h-4 rounded-full" style="background:${data.color_visual}"></span>
+                        <h4 class="text-2xl font-black text-slate-900">${data.titulo}</h4>
+                    </div>
+                    <p class="text-sm text-slate-500">${data.descripcion || 'Sin descripción'}</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Clase</p>
+                        <p class="text-sm font-bold text-slate-800">${data.clase}</p>
+                    </div>
+                    <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Estado</p>
+                        <p class="text-sm font-bold text-slate-800">${data.estado}</p>
+                    </div>
+                    <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Inicio</p>
+                        <p class="text-sm font-bold text-slate-800">${data.fecha_inicio}</p>
+                    </div>
+                    <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Fin</p>
+                        <p class="text-sm font-bold text-slate-800">${data.fecha_fin}</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button onclick="window.editarActividad(${data.id})" class="px-4 py-3 rounded-xl bg-slate-900 text-white text-sm font-black uppercase">Editar</button>
+                </div>
+            </div>
+        `;
+
+        abrirModalDetalleUI();
+    }
+
+    async function editarActividad(id) {
+        cerrarModalDetalle();
+
+        const response = await fetch(`/actividades/calendario/evento/${id}/`);
+        const data = await response.json();
+
+        cerrarModalFormulario();
+        abrirFormulario();
+
+        const setValue = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.value = value || '';
+        };
+
+        setValue('actividad_id', data.id);
+        setValue('titulo', data.titulo);
+        setValue('descripcion', data.descripcion);
+        setValue('clase', data.clase || 'OTRO');
+        setValue('estado', data.estado || 'PROGRAMADA');
+        setValue('prioridad', data.prioridad || 'MEDIA');
+        setValue('fecha_inicio', toDatetimeLocalValue(data.fecha_inicio));
+        setValue('fecha_fin', toDatetimeLocalValue(data.fecha_fin));
+        setValue('categoria_id', data.categoria_id);
+        setValue('cliente_id', data.cliente_id);
+        setValue('proyecto_id', data.proyecto_id);
+        setValue('ubicacion', data.ubicacion);
+        setValue('enlace_externo', data.enlace_externo);
+        setValue('observaciones', data.observaciones);
+
+        const formTitle = document.getElementById('formTitle');
+        if (formTitle) formTitle.textContent = 'Editar Actividad';
+
+        const todoElDia = document.getElementById('todo_el_dia');
+        const bloqueaAgenda = document.getElementById('bloquea_agenda');
+        const esVisible = document.getElementById('es_visible');
+
+        if (todoElDia) todoElDia.checked = !!data.todo_el_dia;
+        if (bloqueaAgenda) bloqueaAgenda.checked = !!data.bloquea_agenda;
+        if (esVisible) esVisible.checked = !!data.es_visible;
+
+        if (participantesContainer) participantesContainer.innerHTML = '';
+        if (recordatoriosContainer) recordatoriosContainer.innerHTML = '';
+
+        (data.participantes || []).forEach(p => participanteRow(p));
+        (data.recordatorios || []).forEach(r => recordatorioRow(r));
+
+        if (btnEliminarActividad) btnEliminarActividad.classList.remove('hidden');
+
+        const modalBody = document.getElementById('modalFormularioBody');
+        if (modalBody) modalBody.scrollTop = 0;
+    }
+
+    async function guardarActividad(event) {
+        event.preventDefault();
+
+        const fechaInicioValue = document.getElementById('fecha_inicio')?.value;
+        const fechaFinValue = document.getElementById('fecha_fin')?.value;
+
+        if (!fechaInicioValue || !fechaFinValue) {
+            alert('Debes ingresar fecha de inicio y fin.');
+            return;
+        }
+
+        const payload = {
+            id: document.getElementById('actividad_id')?.value || null,
+            titulo: document.getElementById('titulo')?.value || '',
+            descripcion: document.getElementById('descripcion')?.value || '',
+            clase: document.getElementById('clase')?.value || 'OTRO',
+            estado: document.getElementById('estado')?.value || 'PROGRAMADA',
+            prioridad: document.getElementById('prioridad')?.value || 'MEDIA',
+            fecha_inicio: new Date(fechaInicioValue).toISOString(),
+            fecha_fin: new Date(fechaFinValue).toISOString(),
+            categoria_id: document.getElementById('categoria_id')?.value || null,
+            cliente_id: document.getElementById('cliente_id')?.value || null,
+            proyecto_id: document.getElementById('proyecto_id')?.value || null,
+            ubicacion: document.getElementById('ubicacion')?.value || '',
+            enlace_externo: document.getElementById('enlace_externo')?.value || '',
+            observaciones: document.getElementById('observaciones')?.value || '',
+            todo_el_dia: document.getElementById('todo_el_dia')?.checked || false,
+            bloquea_agenda: document.getElementById('bloquea_agenda')?.checked || false,
+            es_visible: document.getElementById('es_visible')?.checked ?? true,
+            participantes: Array.from(document.querySelectorAll('#participantesContainer > div')).map(row => ({
+                trabajador_id: row.querySelector('.participante_trabajador')?.value || null,
+                rol: row.querySelector('.participante_rol')?.value || 'RESPONSABLE',
+                comentario: row.querySelector('.participante_comentario')?.value || '',
+                confirmado: false,
+            })).filter(p => p.trabajador_id),
+            recordatorios: Array.from(document.querySelectorAll('#recordatoriosContainer > div')).map(row => ({
+                minutos_antes: row.querySelector('.recordatorio_minutos')?.value || '',
+                tipo: row.querySelector('.recordatorio_tipo')?.value || 'APP',
+            })).filter(r => r.minutos_antes),
+        };
+
+        const response = await fetch('/actividades/calendario/evento/guardar/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            alert(data.error || 'Error al guardar la actividad.');
+            return;
+        }
+
+        cerrarModalFormulario();
+        if (calendar) {
+            calendar.refetchEvents();
+        }
+    }
+
+    async function eliminarActividad() {
+        const id = document.getElementById('actividad_id')?.value;
+        if (!id) return;
+
+        if (!confirm('¿Eliminar esta actividad?')) return;
+
+        const response = await fetch(`/actividades/calendario/evento/${id}/eliminar/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            alert(data.error || 'Error al eliminar la actividad.');
+            return;
+        }
+
+        cerrarModalFormulario();
+        if (calendar) {
+            calendar.refetchEvents();
+        }
+    }
+
+    async function guardarCategoria(event) {
+        event.preventDefault();
+
+        const nombre = document.getElementById('categoria_nombre')?.value?.trim();
+        const color = document.getElementById('categoria_color')?.value || '#2563eb';
+        const icono = document.getElementById('categoria_icono')?.value?.trim() || '';
+
+        if (!nombre) {
+            alert('Debes ingresar el nombre de la categoría.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('nombre', nombre);
+        formData.append('color', color);
+        formData.append('icono', icono);
+
+        const response = await fetch('/actividades/calendario/categoria/crear/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            alert(data.error || 'Error al crear la categoría.');
+            return;
+        }
+
+        if (categoriaSelect) {
+            const option = document.createElement('option');
+            option.value = data.id;
+            option.textContent = data.nombre;
+            option.selected = true;
+            categoriaSelect.appendChild(option);
+        }
+
+        const filtrosContainer = document.querySelector('.filterCategoria')?.parentElement;
+        if (filtrosContainer) {
+            const btn = document.createElement('button');
+            btn.setAttribute('data-categoria', data.id);
+            btn.className = 'filterCategoria w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-sm font-bold text-slate-700 transition';
+            btn.innerHTML = `
+                <span class="w-3 h-3 rounded-full" style="background: ${data.color};"></span>
+                ${data.nombre}
+            `;
+            btn.addEventListener('click', function () {
+                activarFiltroCategoria(this);
+            });
+            filtrosContainer.appendChild(btn);
+        }
+
+        cerrarCategoriaModal();
+    }
+
+    async function reprogramarActividad(info) {
+        const response = await fetch(`/actividades/calendario/evento/${info.event.id}/reprogramar/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({
+                fecha_inicio: info.event.start ? info.event.start.toISOString() : null,
+                fecha_fin: info.event.end ? info.event.end.toISOString() : info.event.start.toISOString(),
+            }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            info.revert();
+            alert(data.error || 'No se pudo reprogramar la actividad.');
+        }
+    }
+
+    // NUEVO: helpers modal resumen, seguros
+    function abrirModalResumenListadoUI() {
+        if (!modalResumenListado) return;
+        modalResumenListado.classList.remove('hidden');
+        modalResumenListado.classList.add('flex');
+        lockBodyScroll();
+    }
+
+    function cerrarModalResumen() {
+        if (!modalResumenListado) return;
+        modalResumenListado.classList.add('hidden');
+        modalResumenListado.classList.remove('flex');
+        unlockBodyScrollIfNoModalVisible();
+    }
+
+    function badgeClase(clase, color = '#334155') {
+        return `
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-white" style="background:${color}">
+                <span class="w-2 h-2 rounded-full bg-white/90"></span>
+                ${clase}
+            </span>
+        `;
+    }
+
+    function badgeEstado(estado) {
+        const styles = {
+            'PROGRAMADA': 'bg-slate-100 text-slate-700',
+            'EN CURSO': 'bg-amber-100 text-amber-700',
+            'COMPLETADA': 'bg-emerald-100 text-emerald-700',
+            'CANCELADA': 'bg-rose-100 text-rose-700',
+            'REPROGRAMADA': 'bg-violet-100 text-violet-700',
+            'VENCIDA': 'bg-rose-100 text-rose-700',
+        };
+
+        return `
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${styles[estado] || 'bg-slate-100 text-slate-700'}">
+                ${estado}
+            </span>
+        `;
+    }
+
+    function badgeTipo(tipo) {
+        return tipo === 'SISTEMA'
+            ? `<span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-100 text-blue-700">Sistema</span>`
+            : `<span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-700">Manual</span>`;
+    }
+
+    function renderResumenItems(items) {
+        if (!modalResumenListadoItems) return;
+
+        modalResumenListadoItems.innerHTML = items.map(item => `
+            <div class="rounded-[1.75rem] border border-slate-200 bg-white shadow-sm p-5 hover:shadow-md transition">
+                <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-center gap-2 mb-3">
+                            ${badgeClase(item.clase_label || item.clase || 'Sin clase', item.color_visual || '#334155')}
+                            ${badgeEstado(item.esta_vencida ? 'VENCIDA' : ((item.estado_label || item.estado || '').toUpperCase()))}
+                            ${badgeTipo(item.tipo)}
+                        </div>
+
+                        <h4 class="text-lg font-black text-slate-900 leading-tight">${item.titulo || ''}</h4>
+                        <p class="text-sm text-slate-500 mt-1">${item.descripcion || 'Sin descripción registrada.'}</p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mt-4">
+                            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-3">
+                                <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Inicio</p>
+                                <p class="text-sm font-bold text-slate-800 mt-1">${item.fecha_inicio || ''}</p>
+                            </div>
+
+                            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-3">
+                                <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Fin</p>
+                                <p class="text-sm font-bold text-slate-800 mt-1">${item.fecha_fin || ''}</p>
+                            </div>
+
+                            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-3">
+                                <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Categoría</p>
+                                <p class="text-sm font-bold text-slate-800 mt-1">${item.categoria || 'Sin categoría'}</p>
+                            </div>
+
+                            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-3">
+                                <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Prioridad</p>
+                                <p class="text-sm font-bold text-slate-800 mt-1">${item.prioridad_label || item.prioridad || ''}</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                            <div class="rounded-2xl bg-blue-50 border border-blue-100 p-3">
+                                <p class="text-[10px] font-black uppercase tracking-widest text-blue-500">Cliente</p>
+                                <p class="text-sm font-bold text-slate-800 mt-1">${item.cliente || 'No asignado'}</p>
+                            </div>
+
+                            <div class="rounded-2xl bg-indigo-50 border border-indigo-100 p-3">
+                                <p class="text-[10px] font-black uppercase tracking-widest text-indigo-500">Proyecto</p>
+                                <p class="text-sm font-bold text-slate-800 mt-1">
+                                    ${(item.proyecto_codigo ? item.proyecto_codigo + ' - ' : '')}${item.proyecto || 'No asignado'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex lg:flex-col gap-2 shrink-0">
+                        <button type="button"
+                                onclick="cerrarModalResumen(); verDetalle(${item.id})"
+                                class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-wider hover:bg-slate-200 transition">
+                            Ver detalle
+                        </button>
+
+                        <button type="button"
+                                onclick="cerrarModalResumen(); editarActividad(${item.id})"
+                                class="px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-wider hover:bg-blue-600 transition">
+                            Editar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function abrirResumenListado(filtro, titulo) {
+        if (!modalResumenListado || !modalResumenListadoItems) return;
+
+        abrirModalResumenListadoUI();
+
+        if (modalResumenTitulo) modalResumenTitulo.textContent = titulo || 'Listado de actividades';
+        if (modalResumenSubtitulo) modalResumenSubtitulo.textContent = 'Resumen operativo';
+        if (modalResumenContador) modalResumenContador.textContent = 'Cargando...';
+
+        if (modalResumenLoader) modalResumenLoader.classList.remove('hidden');
+        if (modalResumenEmpty) modalResumenEmpty.classList.add('hidden');
+        modalResumenListadoItems.innerHTML = '';
+
+        try {
+            const response = await fetch(`/actividades/calendario/resumen/listado/?filtro=${encodeURIComponent(filtro)}`);
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'No se pudo cargar el listado.');
+            }
+
+            if (modalResumenLoader) modalResumenLoader.classList.add('hidden');
+
+            const total = (data.results || []).length;
+
+            if (modalResumenContador) {
+                modalResumenContador.textContent = `${total} actividad${total === 1 ? '' : 'es'}`;
+            }
+
+            if (!total) {
+                if (modalResumenEmpty) modalResumenEmpty.classList.remove('hidden');
+                return;
+            }
+
+            renderResumenItems(data.results || []);
+
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+
+        } catch (error) {
+            if (modalResumenLoader) modalResumenLoader.classList.add('hidden');
+
+            modalResumenListadoItems.innerHTML = `
+                <div class="rounded-[1.5rem] border border-rose-200 bg-rose-50 p-5 text-rose-700">
+                    <p class="font-black uppercase text-xs tracking-widest">Error</p>
+                    <p class="mt-2 text-sm font-semibold">${error.message}</p>
+                </div>
+            `;
+        }
+    }
+
+    function initAsideToggle() {
+        const asideWrapper = document.getElementById('asideWrapper');
+        const calendarAside = document.getElementById('calendarAside');
+        const toggleAsideBtn = document.getElementById('toggleAsideBtn');
+
+        if (!asideWrapper || !calendarAside || !toggleAsideBtn) return;
+
+        let isExpanded = false;
+
+        function updateToggleIcon(iconName) {
+            const icon = toggleAsideBtn.querySelector('i');
+            if (!icon) return;
+            icon.setAttribute('data-lucide', iconName);
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        }
+
+        function renderAsideState() {
+            if (isExpanded) {
+                asideWrapper.classList.remove('w-0');
+                asideWrapper.classList.add('w-[320px]', '2xl:w-[340px]');
+
+                calendarAside.classList.remove('opacity-0', '-translate-x-4', 'pointer-events-none');
+                calendarAside.classList.add('opacity-100', 'translate-x-0', 'pointer-events-auto');
+
+                toggleAsideBtn.setAttribute('aria-expanded', 'true');
+                updateToggleIcon('panel-left-close');
+            } else {
+                asideWrapper.classList.remove('w-[320px]', '2xl:w-[340px]');
+                asideWrapper.classList.add('w-0');
+
+                calendarAside.classList.remove('opacity-100', 'translate-x-0', 'pointer-events-auto');
+                calendarAside.classList.add('opacity-0', '-translate-x-4', 'pointer-events-none');
+
+                toggleAsideBtn.setAttribute('aria-expanded', 'false');
+                updateToggleIcon('panel-left-open');
+            }
+
+            if (calendar) {
+                setTimeout(() => {
+                    calendar.updateSize();
+                }, 320);
+            }
+        }
+
+        toggleAsideBtn.addEventListener('click', function () {
+            isExpanded = !isExpanded;
+            renderAsideState();
+        });
+
+        renderAsideState();
+    }
+
+    function initCalendar() {
+        if (!calendarEl) return;
+
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            locale: 'es',
+            selectable: true,
+            editable: true,
+            nowIndicator: true,
+            height: 'auto',
+            dayMaxEvents: true,
+            firstDay: 1,
+            headerToolbar: false,
+            events: function(fetchInfo, successCallback, failureCallback) {
+                const params = new URLSearchParams({
+                    start: fetchInfo.startStr,
+                    end: fetchInfo.endStr,
+                });
+
+                if (currentCategory) {
+                    params.append('categoria', currentCategory);
+                }
+
+                fetch(`/actividades/calendario/eventos/?${params.toString()}`)
+                    .then(response => response.json())
+                    .then(data => successCallback(data))
+                    .catch(error => failureCallback(error));
+            },
+            select: function(info) {
+                let start = info.start;
+                let end = info.end;
+
+                if (info.allDay && end) {
+                    end = new Date(end.getTime() - 60000);
+                }
+
+                abrirNuevaActividadDesdeRango(
+                    start ? start.toISOString() : null,
+                    end ? end.toISOString() : null
+                );
+            },
+            eventClick: function(info) {
+                verDetalle(info.event.id);
+            },
+            eventDrop: function(info) {
+                reprogramarActividad(info);
+            },
+            eventResize: function(info) {
+                reprogramarActividad(info);
+            },
+            eventTimeFormat: {
+                hour: '2-digit',
+                minute: '2-digit',
+                meridiem: false
+            }
+        });
+
+        calendar.render();
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                cookie = cookie.trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function activarFiltroCategoria(button) {
+        document.querySelectorAll('.filterCategoria').forEach(b => {
+            b.classList.remove('bg-slate-900', 'text-white');
+            b.classList.add('bg-slate-50', 'text-slate-700');
+        });
+
+        button.classList.remove('bg-slate-50', 'text-slate-700');
+        button.classList.add('bg-slate-900', 'text-white');
+
+        currentCategory = button.dataset.categoria;
+        if (calendar) {
+            calendar.refetchEvents();
+        }
+    }
+
+    window.verDetalle = verDetalle;
+    window.editarActividad = editarActividad;
+    window.cerrarModalResumen = cerrarModalResumen;
+
+    if (cerrarModal) cerrarModal.addEventListener('click', cerrarModalDetalle);
+    if (cerrarFormulario) cerrarFormulario.addEventListener('click', cerrarModalFormulario);
+    if (cancelarFormulario) cancelarFormulario.addEventListener('click', cerrarModalFormulario);
+
+    if (btnNuevaActividad) {
+        btnNuevaActividad.addEventListener('click', () => {
+            cerrarModalFormulario();
+            abrirFormulario();
+        });
+    }
+
+    if (actividadForm) actividadForm.addEventListener('submit', guardarActividad);
+    if (btnEliminarActividad) btnEliminarActividad.addEventListener('click', eliminarActividad);
+    if (addParticipanteBtn) addParticipanteBtn.addEventListener('click', () => participanteRow());
+    if (addRecordatorioBtn) addRecordatorioBtn.addEventListener('click', () => recordatorioRow());
+
+    if (btnAbrirModalCategoria) btnAbrirModalCategoria.addEventListener('click', abrirModalCategoria);
+    if (cerrarModalCategoria) cerrarModalCategoria.addEventListener('click', cerrarCategoriaModal);
+    if (cancelarModalCategoria) cancelarModalCategoria.addEventListener('click', cerrarCategoriaModal);
+    if (categoriaForm) categoriaForm.addEventListener('submit', guardarCategoria);
+
+    document.querySelectorAll('.filterCategoria').forEach(btn => {
+        btn.addEventListener('click', function () {
+            activarFiltroCategoria(this);
+        });
+    });
+
+    // NUEVO: listeners resumen, seguros
+    document.querySelectorAll('.resumenCard').forEach(btn => {
+        btn.addEventListener('click', function () {
+            abrirResumenListado(
+                this.dataset.resumenFiltro || 'total',
+                this.dataset.resumenTitulo || 'Listado de actividades'
+            );
+        });
+    });
+
+    if (cerrarModalResumenListado) {
+        cerrarModalResumenListado.addEventListener('click', cerrarModalResumen);
+    }
+
+    if (modalResumenListado) {
+        modalResumenListado.addEventListener('click', function (e) {
+            if (e.target === modalResumenListado) {
+                cerrarModalResumen();
+            }
+        });
+    }
+
+    const btnHoy = document.getElementById('btnHoy');
+    if (btnHoy) {
+        btnHoy.addEventListener('click', () => {
+            if (calendar) calendar.today();
+        });
+    }
+
+    document.querySelectorAll('.viewBtn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.viewBtn').forEach(b => {
+                b.classList.remove('bg-slate-900', 'text-white');
+                b.classList.add('bg-slate-100', 'text-slate-700');
+            });
+
+            this.classList.remove('bg-slate-100', 'text-slate-700');
+            this.classList.add('bg-slate-900', 'text-white');
+
+            if (calendar) {
+                calendar.changeView(this.dataset.view);
+                setTimeout(() => {
+                    calendar.updateSize();
+                }, 50);
+            }
+        });
+    });
+
+    [modalFormulario, modalDetalle, modalCategoria].forEach(modal => {
+        if (!modal) return;
+
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) {
+                if (modal === modalFormulario) cerrarModalFormulario();
+                if (modal === modalDetalle) cerrarModalDetalle();
+                if (modal === modalCategoria) cerrarCategoriaModal();
+            }
+        });
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            if (modalResumenListado && !modalResumenListado.classList.contains('hidden')) {
+                cerrarModalResumen();
+                return;
+            }
+
+            if (modalCategoria && !modalCategoria.classList.contains('hidden')) {
+                cerrarCategoriaModal();
+                return;
+            }
+
+            if (modalFormulario && !modalFormulario.classList.contains('hidden')) {
+                cerrarModalFormulario();
+                return;
+            }
+
+            if (modalDetalle && !modalDetalle.classList.contains('hidden')) {
+                cerrarModalDetalle();
+            }
+        }
+    });
+
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+
+    initCalendar();
+    initAsideToggle();
+</script>
+{% endblock %}
