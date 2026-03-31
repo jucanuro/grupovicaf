@@ -145,6 +145,19 @@
             </span>
         </a>
 
+        <a href="{% url 'actividades:calendario_dashboard' %}" 
+            class="nav-item relative flex items-center h-14 rounded-2xl transition-all duration-300 group hover:bg-white/80
+                    {% if 'informes' in request.path %} bg-white shadow-md border border-slate-100 {% endif %}">
+            <div class="nav-icon-box w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-500 flex-shrink-0 
+                        text-slate-400 group-hover:text-indigo-600
+                        {% if 'informes' in request.path %} bg-gradient-to-br from-indigo-600 to-blue-600 text-white shadow-[0_5px_15_rgba(79,70,229,0.4)] {% endif %}">
+                <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+            </div>
+            <span class="ml-4 text-[13px] font-bold text-slate-600 whitespace-nowrap nav-text opacity-0 transition-all duration-500 translate-x-[-15px] group-hover/sidebar:opacity-100 group-hover/sidebar:translate-x-0">
+                Actividades
+            </span>
+        </a>
+
     </nav>
 
     <div class="p-4 bg-gradient-to-t from-white via-white/80 to-transparent relative z-10">

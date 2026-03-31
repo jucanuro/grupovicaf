@@ -1,10 +1,5 @@
-/**
- * VICAF Pro Enterprise - Core Interface Logic
- * Maneja Sidebar, Mobile Menu y Command Palette
- */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Inicialización de Componentes Base
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
@@ -12,12 +7,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const yearEl = document.getElementById('year');
     if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-    // --- MÓDULO: SIDEBAR (HOVER & TOGGLE) ---
     const sidebar = document.querySelector('.sidebar-glass') || document.getElementById('sidebar');
     const toggleBtn = document.getElementById('toggle-sidebar');
     const menuIcon = document.getElementById('menu-icon');
 
-    // Manejo de visibilidad de textos en hover (si se usa sidebar colapsable)
     if (sidebar) {
         sidebar.addEventListener('mouseenter', () => {
             document.querySelectorAll('.sidebar-glass-hover\\:opacity-100').forEach(el => {
@@ -34,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Toggle Sidebar Plegable (Botón Hamburguesa)
     if (toggleBtn && sidebar) {
         toggleBtn.addEventListener('click', () => {
             sidebar.classList.toggle('-translate-x-full');
@@ -46,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- MÓDULO: DROPDOWNS ---
     const proyectosBtn = document.getElementById('proyectos-btn');
     const proyectosMenu = document.getElementById('proyectos-menu');
     const arrowProyectos = document.getElementById('arrow-proyectos');
@@ -59,7 +50,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- MÓDULO: MOBILE MENU ---
     const mobileBtn = document.getElementById('mobile-menu-btn');
     const mobileMenu = document.getElementById('mobile-menu');
     const closeMobile = document.getElementById('close-mobile');
@@ -71,7 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
         closeMobile.addEventListener('click', () => mobileMenu.classList.add('translate-x-full'));
     }
 
-    // --- MÓDULO: COMMAND PALETTE (CMD + K) ---
     const palette = document.getElementById('cmd-palette');
     const panel = document.getElementById('cmd-panel');
     const input = document.getElementById('cmd-input');
@@ -102,7 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (trigger) trigger.addEventListener('click', openCmd);
     if (closeCmd) closeCmd.addEventListener('click', closeCmdFunc);
 
-    // Atajos de teclado
     document.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
             e.preventDefault();
@@ -113,7 +101,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Cerrar al click fuera del panel
     if (palette) {
         palette.addEventListener('click', (e) => {
             if (e.target === palette) closeCmdFunc();

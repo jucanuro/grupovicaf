@@ -243,20 +243,36 @@ def gestionar_recepcion_muestra(request, proyecto_id):
 
 def lista_muestras_recepcion(request, recepcion_id):
     recepcion = get_object_or_404(
-        RecepcionMuestra.objects.select_related('cotizacion__cliente', 'responsable_recepcion'), 
+        RecepcionMuestra.objects.select_related('cotizacion__cliente', 'responsable_recepcion'),
         pk=recepcion_id
     )
-    
+
     proyecto_obj = Proyecto.objects.filter(cotizacion=recepcion.cotizacion).first()
-    
     muestras = MuestraDetalle.objects.filter(recepcion=recepcion).select_related('tipo_muestra')
-    
+
+    cliente = None
+    telefono_whatsapp = ""
+
+    if hasattr(recepcion, 'cotizacion') and recepcion.cotizacion:
+        cliente = recepcion.cotizacion.cliente
+    else:
+        cliente = getattr(recepcion, 'cliente', None)
+
+    if cliente:
+        telefono_whatsapp = (
+            getattr(cliente, 'telefono', '') or
+            getattr(cliente, 'telefono_contacto', '') or
+            getattr(cliente, 'celular_contacto', '') or
+            ''
+        )
+
     return render(request, 'proyectos/muestras_list.html', {
         'recepcion': recepcion,
         'muestras': muestras,
-        'proyecto': proyecto_obj  
+        'proyecto': proyecto_obj,
+        'telefono_whatsapp': telefono_whatsapp,
     })
-    
+
 class RecepcionMuestraListView(ListView):
     model = RecepcionMuestra
     template_name = 'proyectos/lista_general_recepciones.html'
@@ -281,12 +297,12 @@ class RecepcionMuestraListView(ListView):
 def generar_pdf_recepcion(request, recepcion_id):
     recepcion = get_object_or_404(
         RecepcionMuestra.objects.select_related(
-            'cotizacion__cliente', 
+            'cotizacion__cliente',
             'responsable_recepcion'
-        ).prefetch_related('muestras__tipo_muestra'), 
+        ).prefetch_related('muestras__tipo_muestra'),
         id=recepcion_id
     )
-    
+
     proyecto = Proyecto.objects.filter(cotizacion=recepcion.cotizacion).first()
 
     context = {
@@ -298,55 +314,90 @@ def generar_pdf_recepcion(request, recepcion_id):
     }
 
     html_string = render_to_string('proyectos/muestras_pdf.html', context)
-    
-    html = HTML(string=html_string, base_url=request.build_absolute_uri())
+    html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
     pdf_file = html.write_pdf()
 
     response = HttpResponse(pdf_file, content_type='application/pdf')
     response['Content-Disposition'] = f'inline; filename="Cargo_Recepcion_{recepcion.id}.pdf"'
-    
+
     return response
 
+
+def limpiar_numero_whatsapp(numero: str) -> str:
+    if not numero:
+        return ""
+    return re.sub(r"\D", "", numero)
+
+import re
+from urllib.parse import quote
+
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect
+from .models import RecepcionMuestra, Proyecto
+
+
+def limpiar_numero_whatsapp(numero: str) -> str:
+    if not numero:
+        return ""
+    return re.sub(r"\D", "", numero)
+
+
+
 def generar_y_enviar_whatsapp(request, recepcion_id):
-    recepcion = get_object_or_404(RecepcionMuestra, id=recepcion_id)
-    muestras = recepcion.muestras.all()
-    
-    if hasattr(recepcion, 'cotizacion'):
+    recepcion = get_object_or_404(
+        RecepcionMuestra.objects.select_related(
+            'cotizacion__cliente',
+            'responsable_recepcion'
+        ),
+        id=recepcion_id
+    )
+
+    if request.method != 'POST':
+        return JsonResponse({
+            'ok': False,
+            'message': 'Método no permitido.'
+        }, status=405)
+
+    if hasattr(recepcion, 'cotizacion') and recepcion.cotizacion:
         cliente = recepcion.cotizacion.cliente
     else:
         cliente = getattr(recepcion, 'cliente', None)
 
-    template_path = 'proyectos/muestras_pdf.html' 
+    telefono_manual = request.POST.get('telefono', '').strip()
+
+    telefono_cliente = ""
+    if cliente:
+        telefono_cliente = (
+            getattr(cliente, 'telefono', '') or
+            getattr(cliente, 'telefono_contacto', '') or
+            getattr(cliente, 'celular_contacto', '') or
+            ''
+        )
+
+    telefono_destino = limpiar_numero_whatsapp(telefono_manual or telefono_cliente)
+
+    if not telefono_destino:
+        return JsonResponse({
+            'ok': False,
+            'message': 'No se encontró un número válido de WhatsApp.'
+        }, status=400)
+
+    pdf_url = request.build_absolute_uri(
+        f"/proyectos/recepcion/{recepcion.id}/pdf/"
+    )
+
+    mensaje = (
+        f"Estimado cliente, le compartimos el Cargo de Recepción de Muestras N° {recepcion.id:05d}.\n\n"
+        f"Puede verlo o descargarlo aquí:\n{pdf_url}"
+    )
+
+    whatsapp_url = f"https://wa.me/{telefono_destino}?text={quote(mensaje)}"
+
+    return JsonResponse({
+        'ok': True,
+        'whatsapp_url': whatsapp_url
+    })
     
-    try:
-        html_string = render_to_string(template_path, {
-            'recepcion': recepcion,
-            'muestras': muestras,
-            'cliente': cliente,
-        })
-        
-        pdf_file = HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf()
-        
-        nombre_archivo = f"Recepcion_{recepcion.id}.pdf"
-        ruta_archivo = os.path.join(settings.MEDIA_ROOT, 'pdfs', nombre_archivo)
-        
-        os.makedirs(os.path.dirname(ruta_archivo), exist_ok=True)
-        
-        with open(ruta_archivo, 'wb') as f:
-            f.write(pdf_file)
-
-        if cliente and cliente.telefono:
-            url_publica_pdf = request.build_absolute_uri(settings.MEDIA_URL + 'pdfs/' + nombre_archivo)
-            enviar_whatsapp_pdf(cliente.telefono, url_publica_pdf, recepcion.id)
-            messages.success(request, "WhatsApp enviado con éxito.")
-        else:
-            messages.warning(request, "PDF generado, pero el cliente no tiene teléfono.")
-
-    except Exception as e:
-        messages.error(request, f"Error: {str(e)}")
-    
-    return redirect('proyectos:lista_muestras_recepcion', recepcion_id=recepcion.id)
-
 def api_obtener_detalles_cotizacion(request, cotizacion_id):
     cotizacion = get_object_or_404(Cotizacion, pk=cotizacion_id)
 

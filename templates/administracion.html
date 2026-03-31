@@ -69,7 +69,6 @@
 <style>
     :root {
         --vicaf-primary: #3b82f6;
-        /* Fondo más sólido para mejorar contraste de texto */
         --vicaf-soft-bg: rgba(255, 255, 255, 0.98); 
     }
 
@@ -87,10 +86,9 @@
         overflow: hidden;
     }
 
-    /* Títulos de Categoría: Más nítidos y con mejor espaciado */
     .category-label {
         text-[10px] font-black uppercase tracking-[0.25em];
-        color: #64748b; /* Slate 500 para contraste sobre blanco */
+        color: #64748b;
         margin-bottom: 1rem;
         display: flex;
         align-items: center;
@@ -99,23 +97,45 @@
 
     #submenu-list {
         display: flex;
-        flex-direction: row;
-        gap: 3rem; /* Más espacio entre grupos para que no se vea amontonado */
-        padding: 20px 32px; /* Más aire lateral */
+        flex-wrap: wrap;
+        gap: 2rem;
+        padding: 20px 32px;
         align-items: flex-start;
-        overflow-x: auto; 
-        scrollbar-width: thin;
-        scrollbar-color: #3b82f6 transparent;
+        justify-content: flex-start;
+        overflow-x: hidden;
+        overflow-y: visible;
+        width: 100%;
     }
 
-    /* Columnas fijas para que el texto NO se rompa */
+    /* Máximo 3 columnas por fila */
     #submenu-list > div {
-        flex: 0 0 320px;
+        flex: 1 1 calc(33.333% - 1.34rem);
+        max-width: calc(33.333% - 1.34rem);
+        min-width: 280px;
         display: flex;
         flex-direction: column;
     }
 
-    /* TARJETAS: Estilo "Apple" ultra limpio */
+    @media (max-width: 1280px) {
+        #submenu-list > div {
+            flex: 1 1 calc(50% - 1rem);
+            max-width: calc(50% - 1rem);
+        }
+    }
+
+    @media (max-width: 768px) {
+        #submenu-list {
+            padding: 16px;
+            gap: 1rem;
+        }
+
+        #submenu-list > div {
+            flex: 1 1 100%;
+            max-width: 100%;
+            min-width: 100%;
+        }
+    }
+
     .submenu-item {
         background: #ffffff;
         border: 1px solid #f1f5f9;
@@ -135,22 +155,20 @@
         box-shadow: 0 12px 20px -5px rgba(59, 130, 246, 0.15);
     }
 
-    /* Textos dentro de la tarjeta: FUERTE CONTRASTE */
     .item-title {
-        color: #0f172a; /* Casi negro para legibilidad total */
+        color: #0f172a;
         font-weight: 800;
         font-size: 0.85rem;
         letter-spacing: -0.01em;
     }
 
     .item-desc {
-        color: #64748b; /* Gris oscuro para la descripción */
+        color: #64748b;
         font-size: 11px;
         line-height: 1.4;
         margin-top: 2px;
     }
 
-    /* Iconos con fondo vibrante */
     .item-icon-wrapper {
         width: 44px;
         height: 44px;
@@ -169,16 +187,8 @@
         background: var(--vicaf-primary);
         color: white;
     }
-
-    /* Personalización del Scrollbar para que sea profesional */
-    #submenu-list::-webkit-scrollbar { height: 6px; }
-    #submenu-list::-webkit-scrollbar-track { background: transparent; }
-    #submenu-list::-webkit-scrollbar-thumb { 
-        background: #e2e8f0; 
-        border-radius: 10px; 
-    }
-    #submenu-list::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
 </style>
+
 <div id="card-overlay"
     class="fixed inset-0 z-[999999] flex justify-center items-center bg-slate-900/40 backdrop-blur-md hidden transition-all duration-300">
     
@@ -226,7 +236,6 @@
 {% block extra_scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // --- 1. DATA (Mantenemos toda tu información intacta) ---
         const navigationData = [
             {
                 id: 'clientes',
@@ -251,7 +260,6 @@
                     { id: 'servicios', url: "{% url 'servicios:lista_servicios' %}", icon: '📃', title: 'Listado de Servicios', desc: 'Ver el catálogo de servicios.', category: 'Servicios' },
                     { id: 'crear_servicio', url: "{% url 'servicios:crear_servicio' %}", icon: '➕', title: 'Crear Servicio', desc: 'Registrar un nuevo servicio.', category: 'Servicios' },
                     
-                    // --- NUEVA SECCIÓN: CONFIGURACIÓN TÉCNICA ---
                     { 
                         id: 'configuracion_tecnica', 
                         icon: '⚙️', 
@@ -366,7 +374,7 @@
             },
             {
                 id: 'analisis',
-                url: '#',
+                url: "{% url 'dashboard' %}",
                 icon: '📊',
                 category: 'Análisis',
                 title: 'Dashboard de Análisis',
@@ -377,7 +385,6 @@
             },
         ];
 
-        // --- 2. CONFIGURACIÓN DE ELEMENTOS ---
         const cardContainer = document.getElementById('card-container');
         const inicioContent = document.getElementById('inicio-content');
         const analisisContent = document.getElementById('analisis-content');
@@ -392,7 +399,6 @@
         const commandButtons = document.querySelectorAll('#command-palette-button-main');
         let selectedIndex = 0;
 
-        // Fondo Geométrico (Mantenido)
         document.body.style.backgroundColor = '#ffffff';
         document.body.style.backgroundImage = `
             radial-gradient(#e5e7eb 1px, transparent 1px),
@@ -429,7 +435,7 @@
             }
         };
 
-        // --- 4. RENDERIZADO DE CARDS PRINCIPALES (Mantenido) ---
+        // --- 4. RENDERIZADO DE CARDS PRINCIPALES ---
         const renderCards = (items) => {
             cardContainer.innerHTML = '';
             const pyramidShape = "polygon(15% 0%, 85% 0%, 100% 80%, 50% 100%, 0% 80%)";
@@ -462,30 +468,22 @@
             });
         };
 
-        // --- 5. RENDERIZADO DE SUBMENÚ (Ajustado para flujo lateral) ---
-        // --- RENDERIZADO PROFESIONAL: DINÁMICO, LATERAL Y AUTO-AJUSTABLE ---
+        // --- 5. RENDERIZADO DE SUBMENÚ ---
         const renderSubmenu = (parentCard) => {
             submenuTitle.textContent = parentCard.title;
             submenuTitle.style.color = parentCard.glow;
             
-            // 1. Limpieza total y configuración de flex horizontal
-            submenuList.innerHTML = ''; 
-            // 'w-fit' es la clave: el contenedor medirá solo lo que midan sus hijos
-            // Asegúrate de que esta línea quede así:
-            submenuList.className = "flex flex-row gap-10 p-2 items-start justify-start w-max";
-            // 2. Reset del Modal (Libertad total de crecimiento)
-            submenuModal.style.width = 'auto'; 
+            submenuList.innerHTML = '';
+            submenuList.className = "flex flex-wrap gap-8 p-2 items-start justify-start w-full";
+
+            submenuModal.style.width = 'auto';
             submenuModal.style.height = 'auto';
             submenuModal.style.minWidth = '380px';
-            submenuModal.style.maxWidth = '92vw'; // Margen de seguridad lateral
-            
-            // Limitamos el alto a la zona segura entre cabecera y pie
-            submenuModal.style.maxHeight = '85vh'; 
-            // SOLO un scroll, y solo si es estrictamente necesario por altura
-            submenuModal.style.overflowY = 'auto'; 
-            submenuModal.style.overflowX = 'hidden'; 
+            submenuModal.style.maxWidth = '92vw';
+            submenuModal.style.maxHeight = '85vh';
+            submenuModal.style.overflowY = 'auto';
+            submenuModal.style.overflowX = 'hidden';
 
-            // 3. Agrupamiento inteligente
             const grouped = parentCard.children.reduce((acc, child) => {
                 const cat = child.category || 'Opciones';
                 if (!acc[cat]) acc[cat] = [];
@@ -493,11 +491,9 @@
                 return acc;
             }, {});
 
-            // 4. Creación de Columnas Dinámicas
             Object.keys(grouped).forEach(catName => {
                 const column = document.createElement('div');
-                // 'flex-shrink-0' evita que las columnas se aplasten cuando el modal crece
-                column.className = "flex flex-col gap-4 min-w-[320px] flex-shrink-0 mb-4";
+                column.className = "flex flex-col gap-4 mb-4";
 
                 const label = document.createElement('h4');
                 label.className = "text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2 flex items-center gap-3";
@@ -508,7 +504,6 @@
                 itemsWrapper.className = "flex flex-col gap-3";
 
                 grouped[catName].forEach(item => {
-                    // Soporte para niveles profundos de datos
                     const subItems = (item.children && item.children.length > 0) ? item.children : [item];
                     
                     subItems.forEach(subItem => {
@@ -542,9 +537,7 @@
                 submenuList.appendChild(column);
             });
 
-            // 5. Animación de entrada limpia
             cardOverlay.classList.remove('hidden');
-            // Ajuste fino de Lucide
             if (window.lucide) lucide.createIcons();
             
             setTimeout(() => {
@@ -552,7 +545,8 @@
                 submenuModal.classList.add('scale-100', 'opacity-100');
             }, 10);
         };
-        // --- 6. DASHBOARD DE ANÁLISIS (Mantenido) ---
+
+        // --- 6. DASHBOARD DE ANÁLISIS ---
         const renderAnalysisDashboard = () => {
             analisisContent.innerHTML = `
                 <header class="flex justify-between items-center mb-6">
@@ -569,7 +563,7 @@
             document.getElementById('back-from-analysis').addEventListener('click', () => setActiveView('inicio'));
         };
 
-        // --- 7. LÓGICA DE COMANDOS (Mantenido) ---
+        // --- 7. LÓGICA DE COMANDOS ---
         const commandItems = [];
         const processItems = (items) => {
             items.forEach(item => {
