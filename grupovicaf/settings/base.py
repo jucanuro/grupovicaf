@@ -7,12 +7,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # Cargar variables del archivo .env
-load_dotenv()
-
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+load_dotenv(BASE_DIR / '.env')
 
 # --- CONFIGURACIÓN DE SEGURIDAD Y ENTORNO ---
-# La clave secreta DEBE ser obtenida de .env
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # Apps por defecto y de terceros
@@ -23,10 +21,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # Terceros (añadir después de instalar)
-    # 'tailwind', 
-    # 'crispy_forms',
-    
+
     # Tus apps
     'core',
     'clientes',
@@ -51,7 +46,7 @@ ROOT_URLCONF = 'grupovicaf.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -66,7 +61,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'grupovicaf.wsgi.application'
 
-# Base de Datos
+# Base de Datos por defecto (local)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -74,22 +69,42 @@ DATABASES = {
     }
 }
 
-# Internacionalización y Zona Horaria (Perú)
-LANGUAGE_CODE = 'es-pe' 
-TIME_ZONE = 'America/Lima' 
-USE_I18N = True
-USE_TZ = True 
-
-STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles' 
-STATICFILES_DIRS = [
-    BASE_DIR / 'static', 
+# Validadores de contraseña
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
 ]
 
+# Internacionalización y Zona Horaria (Perú)
+LANGUAGE_CODE = 'es-pe'
+TIME_ZONE = 'America/Lima'
+USE_I18N = True
+USE_TZ = True
+
+# Archivos estáticos
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+
+# Archivos media
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'mediafiles'
+MEDIA_ROOT = BASE_DIR / 'media'
 
-
-LOGIN_REDIRECT_URL = 'dashboard' 
-LOGIN_URL = 'login' 
+# Login / Logout
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGIN_URL = 'login'
 LOGOUT_REDIRECT_URL = 'login'
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

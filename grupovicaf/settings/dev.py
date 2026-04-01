@@ -2,16 +2,12 @@
 Configuración de Django para el entorno de DESARROLLO.
 """
 from .base import *
+import os
 
 # --- AJUSTES DE DESARROLLO ---
-DEBUG = os.environ.get('DEBUG', 'True') == 'True' # Leer de .env
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = ['*']
-
-# Opcional: Para usar Django Debug Toolbar (requiere instalación)
-# INTERNAL_IPS = [
-#     '127.0.0.1',
-# ]
 
 # Log de errores detallado en consola
 LOGGING = {
