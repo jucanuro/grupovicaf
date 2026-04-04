@@ -1,12 +1,12 @@
 import json
-
+from datetime import timedelta
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.shortcuts import render, get_object_or_404
-from django.utils.dateparse import parse_datetime
-from django.views.decorators.http import require_GET, require_POST
+from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
+from django.views.decorators.http import require_GET, require_POST
 
 from clientes.models import Cliente
 from trabajadores.models import TrabajadorProfile
@@ -48,6 +48,7 @@ def calendario_dashboard(request):
         'prioridades_actividad': CalendarioActividad.PRIORIDAD,
     }
     return render(request, 'actividades/calendario.html', context)
+
 
 @login_required
 @require_GET
@@ -121,6 +122,7 @@ def calendario_eventos_json(request):
 
     return JsonResponse(eventos, safe=False)
 
+
 @login_required
 @require_GET
 def calendario_actividad_detalle_json(request, pk):
@@ -177,6 +179,7 @@ def calendario_actividad_detalle_json(request, pk):
         ]
     }
     return JsonResponse(data)
+
 
 @login_required
 @require_POST
@@ -281,6 +284,7 @@ def calendario_actividad_guardar_json(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Error interno: {str(e)}'}, status=500)
 
+
 @login_required
 @require_POST
 def calendario_actividad_eliminar_json(request, pk):
@@ -297,7 +301,8 @@ def calendario_actividad_eliminar_json(request, pk):
         return JsonResponse({'success': True, 'message': 'Actividad eliminada correctamente.'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
-    
+
+
 @login_required
 @require_POST
 def calendario_categoria_crear_json(request):
@@ -339,7 +344,8 @@ def calendario_categoria_crear_json(request):
             'success': False,
             'error': f'Error interno: {str(e)}'
         }, status=500)
-        
+
+
 @login_required
 @require_POST
 def calendario_actividad_reprogramar_json(request, pk):
@@ -378,69 +384,91 @@ def calendario_actividad_reprogramar_json(request, pk):
             'success': False,
             'error': str(e)
         }, status=500)
-        
-        
+
+
+
+@login_required
+def gantt_dashboard(request):
+    proyectos = Proyecto.objects.all().order_by('-fecha_inicio')
+    categorias = CalendarioCategoria.objects.filter(activo=True).order_by('nombre')
+
+    context = {
+        'proyectos': proyectos,
+        'categorias': categorias,
+    }
+    return render(request, 'actividades/gantt.html', context)
+
+
 @login_required
 @require_GET
-def calendario_resumen_listado_json(request):
-    filtro = (request.GET.get('filtro') or 'total').strip().lower()
+def gantt_actividades_json(request):
+    proyecto_id = request.GET.get('proyecto')
+    categoria_id = request.GET.get('categoria')
+    estado = request.GET.get('estado')
 
-    actividades = CalendarioActividad.objects.filter(es_visible=True).select_related(
-        'categoria', 'cliente', 'proyecto'
-    ).prefetch_related('participantes__trabajador').order_by('fecha_inicio')
+    hoy = timezone.now()
+    hace_1_ano = hoy - timedelta(days=365)
+    hasta_1_ano = hoy + timedelta(days=365)
 
-    ahora = timezone.now()
+    actividades = CalendarioActividad.objects.filter(
+        es_visible=True,
+        fecha_fin__gte=hace_1_ano,
+        fecha_inicio__lte=hasta_1_ano,
+    ).select_related(
+        'categoria',
+        'cliente',
+        'proyecto',
+        'recepcion',
+        'solicitud_ensayo',
+        'informe_final',
+    ).order_by('fecha_inicio', 'id')
 
-    if filtro == 'completadas':
-        actividades = actividades.filter(estado='COMPLETADA')
-    elif filtro == 'en_curso':
-        actividades = actividades.filter(estado='EN_CURSO')
-    elif filtro == 'vencidas':
-        actividades = [
-            a for a in actividades
-            if a.estado not in ['COMPLETADA', 'CANCELADA'] and a.fecha_fin < ahora
-        ]
-    else:
-        actividades = list(actividades)
+    if proyecto_id:
+        actividades = actividades.filter(proyecto_id=proyecto_id)
+
+    if categoria_id:
+        actividades = actividades.filter(categoria_id=categoria_id)
+
+    if estado:
+        actividades = actividades.filter(estado=estado)
+
+    progress_map = {
+        'PROGRAMADA': 20,
+        'EN_CURSO': 65,
+        'COMPLETADA': 100,
+        'CANCELADA': 100,
+        'REPROGRAMADA': 35,
+        'VENCIDA': 100,
+    }
 
     data = []
+
     for actividad in actividades:
+        inicio_date = actividad.fecha_inicio.date()
+        fin_date = actividad.fecha_fin.date()
+
+        if fin_date <= inicio_date:
+            fin_date = inicio_date + timedelta(days=1)
+
+        estado_val = (actividad.estado or 'PROGRAMADA').upper()
+        estado_css = estado_val.lower().replace('_', '-')
+
+        color = actividad.color_visual or '#2563eb'
+        progress = progress_map.get(estado_val, 0)
+
         data.append({
-            'id': actividad.id,
-            'titulo': actividad.titulo,
-            'descripcion': actividad.descripcion or '',
-            'tipo': actividad.tipo,
-            'tipo_label': dict(CalendarioActividad.TIPO_ACTIVIDAD).get(actividad.tipo, actividad.tipo),
-            'clase': actividad.clase,
-            'clase_label': dict(CalendarioActividad.CLASE_ACTIVIDAD).get(actividad.clase, actividad.clase),
+            'id': f'actividad-{actividad.id}',
+            'name': actividad.titulo,
+            'start': inicio_date.strftime('%Y-%m-%d'),
+            'end': fin_date.strftime('%Y-%m-%d'),
+            'progress': progress,
+            'custom_class': f'estado-{estado_css}',
+            'color': color,
             'estado': actividad.estado,
-            'estado_label': dict(CalendarioActividad.ESTADO_ACTIVIDAD).get(actividad.estado, actividad.estado),
-            'prioridad': actividad.prioridad,
-            'prioridad_label': dict(CalendarioActividad.PRIORIDAD).get(actividad.prioridad, actividad.prioridad),
-            'fecha_inicio': actividad.fecha_inicio.strftime('%d/%m/%Y %H:%M'),
-            'fecha_fin': actividad.fecha_fin.strftime('%d/%m/%Y %H:%M'),
-            'categoria': actividad.categoria.nombre if actividad.categoria else '',
-            'cliente': actividad.cliente.razon_social if actividad.cliente else '',
+            'clase': actividad.clase,
             'proyecto': actividad.proyecto.nombre_proyecto if actividad.proyecto else '',
-            'proyecto_codigo': actividad.proyecto.codigo_proyecto if actividad.proyecto else '',
-            'color_visual': actividad.color_visual,
-            'es_automatica': actividad.es_automatica,
-            'bloquea_agenda': actividad.bloquea_agenda,
-            'todo_el_dia': actividad.todo_el_dia,
-            'esta_vencida': actividad.esta_vencida,
-            'participantes': [
-                {
-                    'nombre': str(p.trabajador),
-                    'rol': p.rol,
-                    'confirmado': p.confirmado,
-                }
-                for p in actividad.participantes.all()
-            ]
+            'cliente': actividad.cliente.razon_social if actividad.cliente else '',
+            'descripcion': actividad.descripcion or '',
         })
 
-    return JsonResponse({
-        'success': True,
-        'filtro': filtro,
-        'total': len(data),
-        'results': data,
-    })
+    return JsonResponse(data, safe=False)

@@ -10,9 +10,7 @@ urlpatterns = [
     path('calendario/evento/guardar/', views.calendario_actividad_guardar_json, name='calendario_actividad_guardar_json'),
     path('calendario/evento/<int:pk>/eliminar/', views.calendario_actividad_eliminar_json, name='calendario_actividad_eliminar_json'),
     path('calendario/categoria/crear/', views.calendario_categoria_crear_json, name='calendario_categoria_crear_json'),
-    path(
-        'calendario/evento/<int:pk>/reprogramar/',
-        views.calendario_actividad_reprogramar_json,
-        name='calendario_actividad_reprogramar_json'
-    ),
+    path('calendario/evento/<int:pk>/reprogramar/', views.calendario_actividad_reprogramar_json, name='calendario_actividad_reprogramar_json'),
+    path('gantt/', views.gantt_dashboard, name='gantt_dashboard'),
+    path('gantt/json/', views.gantt_actividades_json, name='gantt_actividades_json'),
 ]
