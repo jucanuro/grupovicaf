@@ -74,6 +74,10 @@
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 
+    .label-icon {
+        font-size: 14px; margin-right: 6px; display: inline-block;
+    }
+
     .gantt-bars-area {
         flex: 1; position: relative;
         background-image: linear-gradient(to right, var(--gantt-line) 1px, transparent 1px);
@@ -86,6 +90,15 @@
         font-weight: 700; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         border: 1px solid rgba(255,255,255,0.2);
         cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .gantt-bar:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.15);
+    }
+
+    .gantt-bar.tipo-ensayo {
+        border: 2px solid rgba(255,255,255,0.4);
     }
 
     .vpro-tooltip {
@@ -135,6 +148,22 @@
     .tooltip-body div { margin-bottom: 6px; font-size: 12px; color: #475569; display: flex; justify-content: space-between; }
     .tooltip-label { font-weight: 700; color: #94a3b8; font-size: 10px; text-transform: uppercase; }
     .tt-value { color: #1e293b; font-weight: 600; }
+
+    .tt-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .tt-badge.ensayo {
+        background: #fef3c7;
+        color: #92400e;
+    }
 </style>
 {% endblock %}
 
@@ -170,13 +199,18 @@
 
         <div id="customTooltip" class="vpro-tooltip">
             <div class="tooltip-header">
-                <div class="tooltip-title" id="ttName">Actividad</div>
+                <div>
+                    <div class="tooltip-title" id="ttName">Actividad</div>
+                    <span class="tt-badge" id="ttTipo">actividad</span>
+                </div>
                 <button class="tooltip-close" onclick="closeTooltip()">×</button>
             </div>
             <div class="tooltip-body">
                 <div><span class="tooltip-label">Inicio</span> <span class="tt-value" id="ttStart"></span></div>
                 <div><span class="tooltip-label">Fin</span> <span class="tt-value" id="ttEnd"></span></div>
                 <div><span class="tooltip-label">Estado</span> <span class="tt-value" id="ttEstado"></span></div>
+                <div><span class="tooltip-label">Clase</span> <span class="tt-value" id="ttClase"></span></div>
+                <div><span class="tooltip-label">Cliente</span> <span class="tt-value" id="ttCliente"></span></div>
             </div>
         </div>
 
@@ -193,19 +227,24 @@ function closeTooltip() {
 
 function showTooltip(event, act) {
     const tt = document.getElementById('customTooltip');
+    
+    const tipoLabel = act.tipo === 'ensayo' ? 'ENSAYO' : 'ACTIVIDAD';
+    const esBadge = document.getElementById('ttTipo');
+    
     document.getElementById('ttName').innerText = act.name;
     document.getElementById('ttStart').innerText = act.start;
     document.getElementById('ttEnd').innerText = act.end;
-    document.getElementById('ttEstado').innerText = act.estado || 'PROGRAMADA';
+    document.getElementById('ttEstado').innerText = (act.estado || 'PROGRAMADA').toUpperCase();
+    document.getElementById('ttClase').innerText = (act.clase || 'OTRO').toUpperCase();
+    document.getElementById('ttCliente').innerText = act.cliente || 'Sin cliente';
+    
+    esBadge.innerText = tipoLabel;
+    esBadge.className = `tt-badge ${act.tipo === 'ensayo' ? 'ensayo' : ''}`;
 
     tt.style.display = 'block';
     
-    // POSICIONAMIENTO PEGADO A LA BARRA
     const barRect = event.currentTarget.getBoundingClientRect();
-    
-    // Calculamos el centro horizontal de la barra
     const centerX = barRect.left + (barRect.width / 2);
-    // La parte superior de la barra
     const topY = barRect.top;
 
     tt.style.left = `${centerX}px`;
@@ -254,12 +293,18 @@ async function loadGantt() {
             const left = ((actStart - minTs) / duration) * 100;
             const width = ((actEnd - actStart) / duration) * 100;
             const actData = JSON.stringify(act).replace(/"/g, '&quot;');
+            
+            const tipoIcon = act.tipo === 'ensayo' ? '🧪' : '📋';
+            const tipoClass = act.tipo === 'ensayo' ? 'tipo-ensayo' : '';
 
             bodyHtml += `
                 <div class="gantt-row">
-                    <div class="gantt-label"><span class="label-text">${act.name}</span></div>
+                    <div class="gantt-label">
+                        <span class="label-icon">${tipoIcon}</span>
+                        <span class="label-text">${act.name}</span>
+                    </div>
                     <div class="gantt-bars-area" style="background-size: ${(saltos/totalDias)*100}% 100%">
-                        <div class="gantt-bar" 
+                        <div class="gantt-bar ${tipoClass}" 
                              style="left: ${left}%; width: ${Math.max(width, 2)}%; background: ${act.color || '#3b82f6'}"
                              onclick='showTooltip(event, ${actData})'>
                              <span class="truncate" style="padding: 0 4px">${act.name}</span>

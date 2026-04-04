@@ -10,7 +10,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from clientes.models import Cliente
 from trabajadores.models import TrabajadorProfile
-from proyectos.models import Proyecto, RecepcionMuestra, SolicitudEnsayo, InformeFinal
+from proyectos.models import Proyecto, RecepcionMuestra, SolicitudEnsayo, InformeFinal, DetalleSolicitudEnsayo
 
 from .models import (
     CalendarioActividad,
@@ -403,8 +403,8 @@ def gantt_dashboard(request):
 @require_GET
 def gantt_actividades_json(request):
     proyecto_id = request.GET.get('proyecto')
-    categoria_id = request.GET.get('categoria')
     estado = request.GET.get('estado')
+    incluir_ensayos = request.GET.get('ensayos', 'true').lower() == 'true'
 
     hoy = timezone.now()
     hace_1_ano = hoy - timedelta(days=365)
@@ -426,19 +426,22 @@ def gantt_actividades_json(request):
     if proyecto_id:
         actividades = actividades.filter(proyecto_id=proyecto_id)
 
-    if categoria_id:
-        actividades = actividades.filter(categoria_id=categoria_id)
-
     if estado:
         actividades = actividades.filter(estado=estado)
 
-    progress_map = {
+    progress_map_actividades = {
         'PROGRAMADA': 20,
         'EN_CURSO': 65,
         'COMPLETADA': 100,
         'CANCELADA': 100,
         'REPROGRAMADA': 35,
         'VENCIDA': 100,
+    }
+
+    progress_map_ensayos = {
+        'pendiente': 10,
+        'proceso': 60,
+        'finalizado': 100,
     }
 
     data = []
@@ -454,7 +457,7 @@ def gantt_actividades_json(request):
         estado_css = estado_val.lower().replace('_', '-')
 
         color = actividad.color_visual or '#2563eb'
-        progress = progress_map.get(estado_val, 0)
+        progress = progress_map_actividades.get(estado_val, 0)
 
         data.append({
             'id': f'actividad-{actividad.id}',
@@ -469,6 +472,59 @@ def gantt_actividades_json(request):
             'proyecto': actividad.proyecto.nombre_proyecto if actividad.proyecto else '',
             'cliente': actividad.cliente.razon_social if actividad.cliente else '',
             'descripcion': actividad.descripcion or '',
+            'tipo': 'actividad',
         })
 
+    if incluir_ensayos:
+        ensayos = SolicitudEnsayo.objects.filter(
+            fecha_entrega_programada__gte=hace_1_ano.date(),
+            fecha_solicitud__lte=hasta_1_ano.date(),
+        ).select_related(
+            'cotizacion__cliente',
+        ).order_by('fecha_solicitud')
+
+        if estado:
+            if estado.lower() in ['pendiente', 'proceso', 'finalizado']:
+                ensayos = ensayos.filter(estado=estado.lower())
+            else:
+                ensayos = ensayos.none()
+
+        colores_ensayos = {
+            'pendiente': '#94a3b8',
+            'proceso': '#f59e0b',
+            'finalizado': '#10b981',
+        }
+
+        for ensayo in ensayos:
+            inicio_date = ensayo.fecha_solicitud
+            
+            if ensayo.estado == 'finalizado' and ensayo.fecha_entrega_real:
+                fin_date = ensayo.fecha_entrega_real
+            else:
+                fin_date = ensayo.fecha_entrega_programada
+
+            if fin_date <= inicio_date:
+                fin_date = inicio_date + timedelta(days=1)
+
+            estado_val = ensayo.estado.lower()
+            color = colores_ensayos.get(estado_val, '#94a3b8')
+            progress = progress_map_ensayos.get(estado_val, 0)
+
+            data.append({
+                'id': f'ensayo-{ensayo.id}',
+                'name': f"{ensayo.codigo_solicitud}",
+                'start': inicio_date.strftime('%Y-%m-%d'),
+                'end': fin_date.strftime('%Y-%m-%d'),
+                'progress': progress,
+                'custom_class': f'estado-{estado_val}',
+                'color': color,
+                'estado': estado_val.upper(),
+                'clase': 'ENSAYO',
+                'proyecto': ensayo.cotizacion.proyecto_asociado or '',
+                'cliente': ensayo.cotizacion.cliente.razon_social if ensayo.cotizacion.cliente else '',
+                'descripcion': f"Solicitud {ensayo.codigo_solicitud}",
+                'tipo': 'ensayo',
+            })
+
+    data.sort(key=lambda x: x['start'])
     return JsonResponse(data, safe=False)
