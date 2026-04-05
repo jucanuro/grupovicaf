@@ -30,15 +30,55 @@ def dashboard_view(request):
     total_cotizaciones_aceptadas = Cotizacion.objects.filter(estado='Aceptada').count()
 
     total_proyectos = Proyecto.objects.count()
-    total_proyectos_pendiente = Proyecto.objects.filter(estado='PENDIENTE').count()
-    total_proyectos_en_curso = Proyecto.objects.filter(estado='EN_CURSO').count()
-    total_proyectos_muestras_asignadas = Proyecto.objects.filter(estado='MUESTRAS_ASIGNADAS').count()
-    total_proyectos_muestras_validadas = Proyecto.objects.filter(estado='MUESTRAS_VALIDADAS').count()
-    total_proyectos_finalizado = Proyecto.objects.filter(estado='FINALIZADO').count()
-    total_proyectos_cancelado = Proyecto.objects.filter(estado='CANCELADO').count()
-
     total_recepciones = RecepcionMuestra.objects.count()
     total_muestras = MuestraDetalle.objects.count()
+
+    total_proyectos_pendiente = 0
+    total_proyectos_en_curso = 0
+    total_proyectos_muestras_asignadas = 0
+    total_proyectos_muestras_validadas = 0
+    total_proyectos_finalizado = 0
+    total_proyectos_cancelado = 0
+
+    proyectos_qs = Proyecto.objects.select_related('cotizacion').prefetch_related(
+        'cotizacion__recepciones__muestras',
+        'cotizacion__solicitudes_ensayo',
+        'cotizacion__solicitudes_ensayo__informe_final'
+    )
+
+    for proyecto in proyectos_qs:
+        if proyecto.estado == 'CANCELADO':
+            total_proyectos_cancelado += 1
+            continue
+
+        cotizacion = proyecto.cotizacion
+        if not cotizacion:
+            total_proyectos_pendiente += 1
+            continue
+
+        recepciones = cotizacion.recepciones.all()
+        tiene_muestras = any(r.muestras.exists() for r in recepciones)
+
+        solicitudes = list(cotizacion.solicitudes_ensayo.all())
+        solicitud = solicitudes[0] if solicitudes else None
+
+        if solicitud:
+            if solicitud.estado in ['pendiente', 'proceso']:
+                total_proyectos_en_curso += 1
+                continue
+
+            if solicitud.estado == 'finalizado':
+                informe = InformeFinal.objects.filter(solicitud=solicitud).first()
+                if informe:
+                    total_proyectos_finalizado += 1
+                else:
+                    total_proyectos_muestras_validadas += 1
+                continue
+
+        if tiene_muestras:
+            total_proyectos_muestras_asignadas += 1
+        else:
+            total_proyectos_pendiente += 1
 
     total_solicitudes = SolicitudEnsayo.objects.count()
     total_ensayos = DetalleSolicitudEnsayo.objects.count()

@@ -110,11 +110,16 @@
         padding: 18px;
         z-index: 9999;
         min-width: 260px;
+        max-width: calc(100vw - 32px);
         display: none;
         pointer-events: all;
         transform: translate(-50%, -100%); 
         margin-top: -10px;
         animation: slideUp 0.15s ease-out;
+    }
+
+    .vpro-tooltip.below-tooltip {
+        transform: translate(-50%, 0);
     }
 
     @keyframes slideUp {
@@ -164,6 +169,205 @@
         background: #fef3c7;
         color: #92400e;
     }
+
+    .tabs-container {
+        display: flex;
+        gap: 4px;
+        padding: 12px 24px;
+        background: #ffffff;
+        border-bottom: 1px solid var(--gantt-line);
+        align-items: center;
+    }
+
+    .tab-button {
+        padding: 10px 20px;
+        border: none;
+        background: transparent;
+        color: #64748b;
+        font-weight: 600;
+        font-size: 13px;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: all 0.25s ease;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .tab-button:hover {
+        background: #f1f5f9;
+        color: #334155;
+    }
+
+    .tab-button.active {
+        color: #ffffff;
+        font-weight: 700;
+    }
+
+    .tab-button.active.tab-calendario {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        box-shadow: 0 4px 12px -2px rgba(59, 130, 246, 0.3);
+    }
+
+    .tab-button.active.tab-ensayos {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        box-shadow: 0 4px 12px -2px rgba(245, 158, 11, 0.3);
+    }
+
+    .tab-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        font-size: 10px;
+        font-weight: 700;
+        background: rgba(0, 0, 0, 0.1);
+    }
+
+    .tab-button.active .tab-badge {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    .dynamic-filters {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        flex: 1;
+    }
+
+    .hidden-tab {
+        display: none !important;
+    }
+
+    
+    @media (max-width: 900px) {
+        :root {
+            --label-width: 100%;
+            --row-height: auto;
+        }
+
+        .toolbar-container {
+            padding: 14px 16px;
+            gap: 10px;
+        }
+
+        .vpro-select {
+            flex: 1 1 100%;
+            min-width: 100%;
+        }
+
+        .btn-update {
+            width: 100%;
+            min-width: 100%;
+        }
+
+        .gantt-header-dates {
+            display: none;
+        }
+
+        .gantt-row {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--gantt-line);
+            background: #f8fafc;
+            border-radius: 20px;
+            margin-bottom: 14px;
+            min-height: auto;
+        }
+
+        .gantt-label {
+            flex: 1 1 100%;
+            min-width: 0;
+            padding: 14px 16px;
+            border-right: none;
+            border-bottom: none;
+            background: #ffffff;
+            border-radius: 18px;
+            align-items: flex-start;
+            box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
+        }
+
+        .label-text {
+            white-space: normal;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #0f172a;
+        }
+
+        .label-icon {
+            margin-right: 10px;
+        }
+
+        .gantt-bars-area {
+            flex: 1 1 100%;
+            min-height: 72px;
+            padding: 10px 12px;
+            background-image: linear-gradient(to right, rgba(226, 232, 240, 0.6) 1px, transparent 1px);
+            background-size: 28px 100%;
+            border-radius: 18px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        
+        .gantt-bar {
+            position: relative !important; 
+            left: 0 !important;           
+            width: 100% !important;        
+            top: 0 !important;             
+            transform: none !important;
+            height: 36px;
+            font-size: 12px;
+            padding: 0 12px;
+            border-radius: 999px;
+            box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+            margin-top: 8px;              
+            display: flex;
+            justify-content: center;      
+        }
+
+        .gantt-bar span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: inline-block;
+            max-width: 100%;
+        }
+
+        .gantt-main-card {
+            overflow-x: hidden;
+        }
+
+        .tabs-container {
+            padding: 12px 16px;
+            gap: 4px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+        }
+
+        .tab-button {
+            padding: 8px 14px;
+            font-size: 12px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .dynamic-filters {
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .vpro-select {
+            min-width: 140px;
+            flex: 0 1 auto;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -175,25 +379,38 @@
     </div>
 
     <div class="gantt-main-card">
+        <div class="tabs-container">
+            <button class="tab-button active tab-calendario" data-tab="calendario" onclick="switchTab('calendario')">
+                <span>📅 Calendario</span>
+                <span class="tab-badge">—</span>
+            </button>
+            <button class="tab-button tab-ensayos" data-tab="ensayos" onclick="switchTab('ensayos')">
+                <span>🧪 Ensayos</span>
+                <span class="tab-badge">—</span>
+            </button>
+        </div>
+
         <div class="toolbar-container">
-            <select id="filtroProyecto" class="vpro-select">
-                <option value="">📁 Proyectos</option>
-                {% for proyecto in proyectos %}
-                    <option value="{{ proyecto.id }}">{{ proyecto.codigo_proyecto }}</option>
-                {% endfor %}
-            </select>
-            <select id="filtroCategoria" class="vpro-select">
-                <option value="">🏷️ Categorías</option>
-                {% for categoria in categorias %}
-                    <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
-                {% endfor %}
-            </select>
-            <select id="filtroEstado" class="vpro-select">
-                <option value="">⚡ Estados</option>
-                <option value="PROGRAMADA">Programada</option>
-                <option value="EN_CURSO">En curso</option>
-                <option value="COMPLETADA">Completada</option>
-            </select>
+            <div class="dynamic-filters">
+                <select id="filtroProyecto" class="vpro-select">
+                    <option value="">📁 Proyectos</option>
+                    {% for proyecto in proyectos %}
+                        <option value="{{ proyecto.id }}">{{ proyecto.codigo_proyecto }}</option>
+                    {% endfor %}
+                </select>
+                <select id="filtroCategoria" class="vpro-select" data-tab="calendario">
+                    <option value="">🏷️ Categorías</option>
+                    {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+                    {% endfor %}
+                </select>
+                <select id="filtroEstado" class="vpro-select">
+                    <option value="">⚡ Estados</option>
+                    <option value="PROGRAMADA">Programada</option>
+                    <option value="EN_CURSO">En curso</option>
+                    <option value="COMPLETADA">Completada</option>
+                </select>
+            </div>
             <button onclick="loadGantt()" class="btn-update">🔄 Actualizar</button>
         </div>
 
@@ -221,6 +438,9 @@
 </div>
 
 <script>
+let currentTab = 'calendario';
+let allDataCache = null;
+
 function closeTooltip() {
     document.getElementById('customTooltip').style.display = 'none';
 }
@@ -242,36 +462,85 @@ function showTooltip(event, act) {
     esBadge.className = `tt-badge ${act.tipo === 'ensayo' ? 'ensayo' : ''}`;
 
     tt.style.display = 'block';
+    tt.classList.remove('below-tooltip');
     
     const barRect = event.currentTarget.getBoundingClientRect();
     const centerX = barRect.left + (barRect.width / 2);
-    const topY = barRect.top;
+    const tooltipRect = tt.getBoundingClientRect();
+    const preferAbove = barRect.top > tooltipRect.height + 16;
+    const topY = preferAbove ? barRect.top - 12 : barRect.bottom + 12;
 
     tt.style.left = `${centerX}px`;
     tt.style.top = `${topY}px`;
+    tt.classList.toggle('below-tooltip', !preferAbove);
     
     event.stopPropagation();
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`.tab-button[data-tab="${tab}"]`).classList.add('active');
+    
+    const categoriaSelect = document.getElementById('filtroCategoria');
+    if (tab === 'calendario') {
+        categoriaSelect.style.display = 'block';
+    } else {
+        categoriaSelect.style.display = 'none';
+    }
+    
+    updateEstadoOptions();
+    loadGantt();
+}
+
+function updateEstadoOptions() {
+    const estadoSelect = document.getElementById('filtroEstado');
+    estadoSelect.innerHTML = '';
+    
+    if (currentTab === 'calendario') {
+        estadoSelect.innerHTML = `
+            <option value="">⚡ Todos los estados</option>
+            <option value="PROGRAMADA">Programada</option>
+            <option value="EN_CURSO">En curso</option>
+            <option value="COMPLETADA">Completada</option>
+        `;
+    } else {
+        estadoSelect.innerHTML = `
+            <option value="">⚡ Todos los estados</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="proceso">En proceso</option>
+            <option value="finalizado">Finalizado</option>
+        `;
+    }
 }
 
 async function loadGantt() {
     closeTooltip();
     const container = document.getElementById('ganttContent');
+    const estadoValue = document.getElementById('filtroEstado').value;
+    
     const params = new URLSearchParams({
         proyecto: document.getElementById('filtroProyecto').value,
-        categoria: document.getElementById('filtroCategoria').value,
-        estado: document.getElementById('filtroEstado').value
+        categoria: currentTab === 'calendario' ? document.getElementById('filtroCategoria').value : '',
+        estado: estadoValue
     });
 
     try {
         const response = await fetch(`{% url 'actividades:gantt_actividades_json' %}?${params}`);
         const data = await response.json();
+        allDataCache = data;
 
-        if (!data || data.length === 0) {
-            container.innerHTML = '<div class="p-20 text-center text-slate-400">Sin datos registrados.</div>';
+        let filteredData = data.filter(item => item.tipo === (currentTab === 'calendario' ? 'actividad' : 'ensayo'));
+
+        if (!filteredData || filteredData.length === 0) {
+            const noDataMsg = currentTab === 'calendario' ? 'Sin actividades registradas.' : 'Sin ensayos registrados.';
+            container.innerHTML = `<div class="p-20 text-center text-slate-400">${noDataMsg}</div>`;
             return;
         }
 
-        const times = data.flatMap(a => [new Date(a.start).getTime(), new Date(a.end).getTime()]);
+        const times = filteredData.flatMap(a => [new Date(a.start).getTime(), new Date(a.end).getTime()]);
         const minTs = Math.min(...times) - (24 * 60 * 60 * 1000);
         const maxTs = Math.max(...times) + (24 * 60 * 60 * 1000);
         const duration = maxTs - minTs;
@@ -287,9 +556,10 @@ async function loadGantt() {
         headerHtml += '</div>';
 
         let bodyHtml = '<div class="gantt-body">';
-        data.forEach(act => {
+        filteredData.forEach(act => {
             const actStart = new Date(act.start).getTime();
             const actEnd = new Date(act.end).getTime();
+            
             const left = ((actStart - minTs) / duration) * 100;
             const width = ((actEnd - actStart) / duration) * 100;
             const actData = JSON.stringify(act).replace(/"/g, '&quot;');
@@ -305,8 +575,8 @@ async function loadGantt() {
                     </div>
                     <div class="gantt-bars-area" style="background-size: ${(saltos/totalDias)*100}% 100%">
                         <div class="gantt-bar ${tipoClass}" 
-                             style="left: ${left}%; width: ${Math.max(width, 2)}%; background: ${act.color || '#3b82f6'}"
-                             onclick='showTooltip(event, ${actData})'>
+                             onclick='showTooltip(event, ${actData})'
+                             style="left: ${left}%; width: ${width}%; background: ${act.color || '#3b82f6'}">
                              <span class="truncate" style="padding: 0 4px">${act.name}</span>
                         </div>
                     </div>
@@ -316,7 +586,8 @@ async function loadGantt() {
         container.innerHTML = headerHtml + bodyHtml;
 
     } catch (e) {
-        container.innerHTML = '<div class="p-20 text-center text-red-500 font-bold">Error en la API.</div>';
+        container.innerHTML = '<div class="p-20 text-center text-red-500 font-bold">Error al cargar el cronograma.</div>';
+        console.error(e);
     }
 }
 
@@ -326,6 +597,9 @@ document.addEventListener('click', (e) => {
     }
 });
 
-document.addEventListener('DOMContentLoaded', loadGantt);
+document.addEventListener('DOMContentLoaded', () => {
+    updateEstadoOptions();
+    loadGantt();
+});
 </script>
 {% endblock %}
