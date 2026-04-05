@@ -12,7 +12,7 @@ from django.template.loader import get_template
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Max
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.utils import timezone
@@ -31,7 +31,6 @@ def get_date_or_none(date_string):
     return date_string if date_string and date_string.strip() else None
 
 def generar_correlativo_lote():
-    """Genera código tipo REC-2026-0001"""
     anio = datetime.datetime.now().year
     ultimo = RecepcionMuestraLote.objects.filter(numero_registro__icontains=f"-{anio}-").order_by('-id').first()
     numero = 1
@@ -42,7 +41,6 @@ def generar_correlativo_lote():
     return f"REC-{anio}-{numero:04d}"
 
 def generar_codigo_vicaf(servicio_obj):
-    """Genera ID LAB tipo S-2026-001 basado en la inicial de la subcategoría"""
     prefijo = "X"
     if servicio_obj.subcategoria:
         prefijo = servicio_obj.subcategoria.nombre[0].upper()
@@ -119,7 +117,6 @@ def crear_tipo_muestra_ajax(request):
         nombre = request.POST.get('nombre', '').strip()
         sigla = request.POST.get('sigla', '').upper().strip() 
         
-        # Validaciones de seguridad
         if not nombre or len(nombre) < 2 or len(nombre) > 100:
             return JsonResponse({
                 'status': 'error', 
@@ -132,7 +129,6 @@ def crear_tipo_muestra_ajax(request):
                 'message': 'Sigla debe tener entre 1 y 10 caracteres.'
             }, status=400)
 
-        # Validar caracteres peligrosos
         import re
         if re.search(r'[<>]', nombre) or re.search(r'[<>]', sigla):
             logger.warning(f"Intento de XSS en crear_tipo_muestra_ajax por usuario {request.user.username}")
@@ -146,7 +142,6 @@ def crear_tipo_muestra_ajax(request):
             defaults={'nombre': nombre}
         )
         
-        # Log de seguridad
         if created:
             logger.info(f"Tipo de muestra creado exitosamente: {nombre} ({sigla}) por usuario {request.user.username}")
         else:
@@ -172,7 +167,6 @@ def crear_tipo_muestra_ajax(request):
         }, status=500)
     
 def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
-    # Si se pasa pk, estamos editando y obtenemos proyecto_id de la recepción
     if pk and not proyecto_id:
         recepcion_temp = get_object_or_404(RecepcionMuestra, pk=pk)
         proyecto_obj = Proyecto.objects.filter(cotizacion=recepcion_temp.cotizacion).first()
@@ -182,7 +176,6 @@ def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
         proyecto_id = proyecto_obj.id
 
     if not proyecto_id:
-        # Si no hay proyecto_id, redirigir a lista de proyectos pendientes
         messages.error(request, 'Debe seleccionar un proyecto para crear una recepción.')
         return redirect('proyectos:lista_proyectos_pendientes')
 
@@ -200,7 +193,6 @@ def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
         try:
             with transaction.atomic():
                 if not is_editing:
-                    # Crear nueva recepción
                     fecha_str = request.POST.get('fecha_recepcion')
                     hora_str = request.POST.get('hora_recepcion') or "00:00"
 
@@ -220,7 +212,6 @@ def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
                         responsable_recepcion=request.user,
                     )
 
-                # Agregar nuevas muestras (siempre, tanto en nueva como en edición)
                 tipos_ids = request.POST.getlist('tipo_muestra_id[]')
                 cantidades = request.POST.getlist('cantidad[]')
                 unidades_ids = request.POST.getlist('unidad_medida_id[]')
@@ -281,7 +272,6 @@ def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
         {'id': u.id, 'codigo': u.codigo, 'nombre': u.nombre} for u in unidades_qs
     ])
 
-    # Si estamos editando, incluir las muestras existentes en el JSON
     muestras_existentes = []
     if recepcion:
         for muestra in recepcion.muestras.select_related('tipo_muestra', 'unidad_medida').all():
@@ -434,14 +424,12 @@ def generar_y_enviar_whatsapp(request, recepcion_id):
 
         telefono_manual = request.POST.get('telefono', '').strip()
 
-        # Validaciones de seguridad
         if len(telefono_manual) > 20:
             return JsonResponse({
                 'ok': False,
                 'message': 'Número de teléfono no puede exceder 20 caracteres.'
             }, status=400)
 
-        # Validar caracteres peligrosos
         import re
         if re.search(r'[<>]', telefono_manual):
             logger.warning(f"Intento de XSS en generar_y_enviar_whatsapp por usuario {request.user.username}")
@@ -484,7 +472,6 @@ def generar_y_enviar_whatsapp(request, recepcion_id):
 
         whatsapp_url = f"https://wa.me/{telefono_destino}?text={quote(mensaje)}"
 
-        # Log de seguridad
         logger.info(f"WhatsApp generado para recepción {recepcion.id} por usuario {request.user.username}")
 
         return JsonResponse({
@@ -501,7 +488,6 @@ def generar_y_enviar_whatsapp(request, recepcion_id):
 @login_required
 def api_obtener_detalles_cotizacion(request, cotizacion_id):
     try:
-        # Validar que cotizacion_id sea numérico y razonable
         try:
             cotizacion_id = int(cotizacion_id)
             if cotizacion_id <= 0:
@@ -531,7 +517,6 @@ def api_obtener_detalles_cotizacion(request, cotizacion_id):
             recepcion__cotizacion=cotizacion
         ).values('id', 'codigo_laboratorio', 'descripcion')[:50]  # Limitar resultados
 
-        # Log de acceso
         logger.info(f"Detalles de cotización {cotizacion_id} consultados por usuario {request.user.username}")
 
         return JsonResponse({
@@ -581,8 +566,28 @@ def gestionar_solicitud_ensayo(request, pk=None):
                         )
                         return redirect('proyectos:editar_solicitud', pk=solicitud_existente.pk)
 
+                    cotizacion = get_object_or_404(Cotizacion, pk=cotizacion_id)
+                    year_part = str(timezone.now().year)
+                    
+                    cot_num = cotizacion.numero_oferta.split('-')[-1] if cotizacion.numero_oferta else '000'
+                    
+                    prefix_sol = f'SOL-{cot_num}-{year_part}'
+                    max_result = SolicitudEnsayo.objects.filter(
+                        codigo_solicitud__startswith=f'{prefix_sol}-'
+                    ).aggregate(Max('codigo_solicitud'))
+                    
+                    last_num_sol = max_result.get('codigo_solicitud__max')
+                    next_order_num = 1
+                    if last_num_sol:
+                        try:
+                            next_order_num = int(last_num_sol.split('-')[-1]) + 1
+                        except (IndexError, ValueError):
+                            next_order_num = 1
+                    
+                    codigo_solicitud = f'{prefix_sol}-{str(next_order_num).zfill(3)}'
+
                     solicitud = SolicitudEnsayo.objects.create(
-                        codigo_solicitud=f"SOL-{timezone.now().strftime('%Y%m%d%H%M%S')}",
+                        codigo_solicitud=codigo_solicitud,
                         recepcion=recepcion,
                         cotizacion_id=cotizacion_id,
                         fecha_solicitud=fecha_solicitud,
@@ -877,7 +882,6 @@ def gestionar_informe_final(request, solicitud_id=None):
                     informe_actual.save()
                 messages.success(request, f"Informe {informe_actual.codigo_informe} actualizado.")
             else:
-                # Creación
                 if not archivo:
                     messages.error(request, "El archivo PDF es obligatorio para nuevos informes.")
                     return render(request, 'proyectos/informes_form.html', locals())

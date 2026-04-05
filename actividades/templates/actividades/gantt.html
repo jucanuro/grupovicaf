@@ -35,13 +35,7 @@
         font-size: 13px; color: #334155; background: white; outline: none;
     }
 
-    .btn-update {
-        background: var(--primary-dark); color: white; padding: 10px 24px;
-        border-radius: 10px; font-weight: 700; font-size: 13px;
-        cursor: pointer; border: none; transition: all 0.2s;
-    }
 
-    .btn-update:hover { background: #000; transform: translateY(-1px); }
 
     .gantt-header-dates {
         display: flex; margin-left: var(--label-width);
@@ -260,10 +254,7 @@
             min-width: 100%;
         }
 
-        .btn-update {
-            width: 100%;
-            min-width: 100%;
-        }
+
 
         .gantt-header-dates {
             display: none;
@@ -392,26 +383,25 @@
 
         <div class="toolbar-container">
             <div class="dynamic-filters">
-                <select id="filtroProyecto" class="vpro-select">
+                <select id="filtroProyecto" class="vpro-select" onchange="loadGantt()">
                     <option value="">📁 Proyectos</option>
                     {% for proyecto in proyectos %}
                         <option value="{{ proyecto.id }}">{{ proyecto.codigo_proyecto }}</option>
                     {% endfor %}
                 </select>
-                <select id="filtroCategoria" class="vpro-select" data-tab="calendario">
+                <select id="filtroCategoria" class="vpro-select" data-tab="calendario" onchange="loadGantt()">
                     <option value="">🏷️ Categorías</option>
                     {% for categoria in categorias %}
                         <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
                     {% endfor %}
                 </select>
-                <select id="filtroEstado" class="vpro-select">
+                <select id="filtroEstado" class="vpro-select" onchange="loadGantt()">
                     <option value="">⚡ Estados</option>
                     <option value="PROGRAMADA">Programada</option>
                     <option value="EN_CURSO">En curso</option>
                     <option value="COMPLETADA">Completada</option>
                 </select>
             </div>
-            <button onclick="loadGantt()" class="btn-update">🔄 Actualizar</button>
         </div>
 
         <div id="customTooltip" class="vpro-tooltip">

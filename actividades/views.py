@@ -598,7 +598,7 @@ def gantt_actividades_json(request):
 
             data.append({
                 'id': f'ensayo-{ensayo.id}',
-                'name': f"{ensayo.codigo_solicitud}",
+                'name': f"{ensayo.codigo_solicitud} - {ensayo.cotizacion.cliente.razon_social[:25]}",
                 'start': inicio_date.strftime('%Y-%m-%d'),
                 'end': fin_date.strftime('%Y-%m-%d'),
                 'progress': progress,
