@@ -263,59 +263,89 @@ function closeTipoMuestraModal() {
     }
 }
 
-function saveNewTipoMuestra() {
-    const nombreInput = document.getElementById('new_tipo_nombre');
-    const siglaInput = document.getElementById('new_tipo_sigla');
-    const nombre = nombreInput.value.trim();
-    const sigla = siglaInput.value.trim();
-    const btnSave = document.getElementById('btn-save-tipo');
+function cargarMuestrasExistentes() {
+    const muestrasExistentes = JSON.parse(document.getElementById('muestras-existentes')?.textContent || '[]');
+    if (muestrasExistentes.length === 0) return;
 
-    if (!nombre || !sigla) {
-        alert("Complete los campos.");
-        return;
-    }
+    muestrasExistentes.forEach((muestra, index) => {
+        const tipoData = tiposMuestra.find(t => `${t.id}` === `${muestra.tipo_muestra_id}`);
+        const tipoNombre = tipoData ? tipoData.nombre : muestra.tipo_muestra_nombre || 'Tipo no encontrado';
+        const tipoPrefijo = tipoData ? tipoData.prefijo : 'XX';
 
-    btnSave.disabled = true;
-    btnSave.innerHTML = `<span class="animate-spin mr-2">◌</span> GUARDANDO...`;
+        const tr = document.createElement('tr');
+        const itemIndex = index + 1;
+        const idLab = muestra.codigo_laboratorio || generarCodigoLab(tipoPrefijo, itemIndex);
 
-    const formData = new FormData();
-    formData.append('nombre', nombre);
-    formData.append('sigla', sigla);
-    formData.append('csrfmiddlewaretoken', window.DjangoConfig.csrfToken);
+        tr.innerHTML = `
+            <td class="px-3 py-2 text-center border-r border-slate-100/50">
+                <span class="text-[10px] font-medium text-slate-400 font-mono">${itemIndex.toString().padStart(2, '0')}</span>
+            </td>
+            <td class="px-4 py-2 border-r border-slate-100/50">
+                <div class="relative group/id">
+                    <input type="text" name="id_lab[]" value="${idLab}" readonly 
+                        class="w-full bg-slate-50/50 border-none rounded-lg px-2 py-1.5 text-[11px] font-bold text-blue-600 text-center ring-1 ring-blue-100/50 outline-none transition-all group-hover/id:bg-blue-50">
+                </div>
+            </td>
+            <td class="px-4 py-2 border-r border-slate-100/50">
+                <div onclick="activarEdicion(this)" 
+                    class="flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 cursor-pointer hover:border-blue-400 hover:shadow-sm transition-all group/tipo">
+                    <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                        <span class="tipo-label text-[10px] font-black text-slate-700 uppercase tracking-tight">${tipoNombre}</span>
+                    </div>
+                    <i data-lucide="edit-3" class="w-3 h-3 text-slate-300 group-hover/tipo:text-blue-500 transition-colors"></i>
+                    <input type="hidden" name="tipo_muestra_id[]" value="${muestra.tipo_muestra_id}">
+                </div>
+            </td>
+            <td class="px-2 py-2 border-r border-slate-100/50">
+                <input type="number" step="1" name="cantidad[]" value="${muestra.cantidad}" placeholder="0" required 
+                    class="w-full px-2 py-1.5 bg-transparent border-none text-center text-[12px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/10 focus:bg-slate-50 rounded-lg transition-all">
+            </td>
+            <td class="px-2 py-2 border-r border-slate-100/50">
+                <select name="unidad_medida_id[]" required
+                    class="w-full px-2 py-1.5 bg-slate-100/50 border-none rounded-lg text-center text-[10px] font-black text-slate-500 uppercase outline-none focus:ring-2 focus:ring-slate-200">
+                    ${renderUnidadesOptions()}
+                </select>
+            </td>
+            <td class="px-2 py-2 border-r border-slate-100/50">
+                <div class="relative">
+                    <input type="text" name="masa[]" value="${muestra.masa}" placeholder="0.00" 
+                        class="w-full px-2 py-1.5 bg-transparent border-none text-center text-[11px] font-mono font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/10 rounded-lg">
+                </div>
+            </td>
+            <td class="px-4 py-2 border-r border-slate-100/50">
+                <input type="text" name="descripcion[]" value="${muestra.descripcion || ''}" placeholder="Describa la muestra..." 
+                    class="w-full px-0 py-1.5 bg-transparent border-none text-[11px] text-slate-600 placeholder:text-slate-300 outline-none focus:ring-0">
+            </td>
+            <td class="px-4 py-2 border-r border-slate-100/50">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="message-square" class="w-3 h-3 text-slate-300"></i>
+                    <input type="text" name="observaciones[]" value="${muestra.observaciones || ''}" placeholder="Observaciones..." 
+                        class="flex-1 bg-transparent border-none text-[10px] text-slate-500 placeholder:text-slate-300 outline-none focus:ring-0">
+                </div>
+            </td>
+            <td class="px-3 py-2 text-center">
+                <button type="button" onclick="eliminarFila(this)" 
+                    class="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+            </td>
+        `;
 
-    fetch(window.DjangoConfig.crearTipoMuestraUrl, {
-        method: 'POST',
-        body: formData,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-        .then(async response => {
-            const isJson = response.headers.get('content-type')?.includes('application/json');
-            const data = isJson ? await response.json() : null;
-            if (!response.ok) {
-                if (!isJson) {
-                    await response.text();
-                    throw new Error(`Error del servidor (${response.status}).`);
-                }
-                throw data || { message: 'Error desconocido' };
-            }
-            return data;
-        })
-        .then(data => {
-            if (data.status === 'success') {
-                tiposMuestra.push({ id: data.id, nombre: data.nombre, prefijo: data.sigla });
-                selectOption(data.id, data.nombre, data.sigla);
-                closeTipoMuestraModal();
-            }
-        })
-        .catch(error => alert(error.message || "Error al guardar."))
-        .finally(() => {
-            btnSave.disabled = false;
-            btnSave.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> GUARDAR`;
-            if (window.lucide) lucide.createIcons();
-        });
+        tbody.appendChild(tr);
+
+        // Set the unidad_medida value
+        const selectUnidad = tr.querySelector('select[name="unidad_medida_id[]"]');
+        if (selectUnidad && muestra.unidad_medida_id) {
+            selectUnidad.value = muestra.unidad_medida_id;
+        }
+    });
+
+    if (window.lucide) lucide.createIcons();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     initSelectorGlobal();
+    cargarMuestrasExistentes();
     if (window.lucide) lucide.createIcons();
 });

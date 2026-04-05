@@ -447,7 +447,10 @@ def crear_editar_cotizacion(request, pk=None):
     es_clonacion = request.GET.get('clon') == '1'
 
     if is_editing:
-        cotizacion = get_object_or_404(Cotizacion, pk=pk) 
+        cotizacion = get_object_or_404(Cotizacion, pk=pk)
+        if cotizacion.estado == 'Aceptada':
+            messages.error(request, 'Esta cotización ya está aprobada y no se puede editar.')
+            return redirect('servicios:lista_cotizaciones')
 
     if request.method == 'POST':
         try:

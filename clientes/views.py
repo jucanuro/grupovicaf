@@ -6,7 +6,10 @@ from django.db.models import Q
 from django.db import IntegrityError
 from django.core.paginator import Paginator
 from django.http import JsonResponse
+import logging
 from .models import Cliente 
+
+logger = logging.getLogger(__name__) 
 
 def is_admin_or_supervisor(user):
     """Verifica si el usuario es un administrador o supervisor del sistema."""
@@ -43,33 +46,51 @@ def lista_clientes(request):
 @user_passes_test(is_admin_or_supervisor)
 def buscar_clientes_api(request):
     """Devuelve un JSON con los resultados de búsqueda de clientes incluyendo ID y Logo."""
-    query = request.GET.get('q', '')
-    
-    clientes_qs = Cliente.objects.filter( 
-        Q(codigo_confidencial__icontains=query) | 
-        Q(razon_social__icontains=query) |
-        Q(ruc__icontains=query) |
-        Q(persona_contacto__icontains=query) |
-        Q(correo_contacto__icontains=query)
-    ).only( 
-        'pk', 'codigo_confidencial', 'razon_social', 'ruc', 
-        'persona_contacto', 'correo_contacto', 'creado_en', 'logo_empresa'
-    )[:10]
+    try:
+        query = request.GET.get('q', '').strip()
 
-    resultados = []
-    for cliente in clientes_qs:
-        resultados.append({
-            'pk': cliente.pk,
-            'codigo_confidencial': cliente.codigo_confidencial,
-            'razon_social': cliente.razon_social,
-            'ruc': cliente.ruc,
-            'persona_contacto': cliente.persona_contacto,
-            'correo_contacto': cliente.correo_contacto,
-            'creado_en': cliente.creado_en.strftime("%d %b %Y") if cliente.creado_en else 'N/A',
-            'logo_url': cliente.logo_empresa.url if cliente.logo_empresa else None,
-        })
+        # Validaciones de seguridad
+        if len(query) > 100:
+            return JsonResponse({'error': 'La consulta no puede exceder 100 caracteres.'}, status=400)
+        
+        # Validar caracteres peligrosos
+        import re
+        if re.search(r'[<>]', query):
+            logger.warning(f"Intento de XSS en buscar_clientes_api por usuario {request.user.username}")
+            return JsonResponse({'error': 'Caracteres no permitidos detectados.'}, status=400)
 
-    return JsonResponse(resultados, safe=False)
+        clientes_qs = Cliente.objects.filter( 
+            Q(codigo_confidencial__icontains=query) | 
+            Q(razon_social__icontains=query) |
+            Q(ruc__icontains=query) |
+            Q(persona_contacto__icontains=query) |
+            Q(correo_contacto__icontains=query)
+        ).only( 
+            'pk', 'codigo_confidencial', 'razon_social', 'ruc', 
+            'persona_contacto', 'correo_contacto', 'creado_en', 'logo_empresa'
+        )[:10]
+
+        resultados = []
+        for cliente in clientes_qs:
+            resultados.append({
+                'pk': cliente.pk,
+                'codigo_confidencial': cliente.codigo_confidencial,
+                'razon_social': cliente.razon_social,
+                'ruc': cliente.ruc,
+                'persona_contacto': cliente.persona_contacto,
+                'correo_contacto': cliente.correo_contacto,
+                'creado_en': cliente.creado_en.strftime("%d %b %Y") if cliente.creado_en else 'N/A',
+                'logo_url': cliente.logo_empresa.url if cliente.logo_empresa else None,
+            })
+
+        # Log de seguridad para consultas potencialmente sospechosas
+        if len(query) > 50:
+            logger.info(f"Consulta larga en buscar_clientes_api por usuario {request.user.username}: {query[:50]}...")
+        
+        return JsonResponse(resultados, safe=False)
+    except Exception as e:
+        logger.error(f"Error en buscar_clientes_api por usuario {request.user.username}: {str(e)}")
+        return JsonResponse({'error': 'Error interno del servidor.'}, status=500)
 
 @login_required
 @user_passes_test(is_admin_or_supervisor)
@@ -179,17 +200,65 @@ def confirmar_eliminar_cliente(request, pk):
     return render(request, 'clientes/clientes_confirm_delete.html', {'cliente': cliente})
 
 @require_POST
+@login_required
 def crear_cliente_ajax(request):
     try:
+        # Obtener y sanitizar datos
+        ruc = request.POST.get('ruc', '').strip()
+        razon_social = request.POST.get('razon_social', '').strip()
+        direccion = request.POST.get('direccion', '').strip()
+        persona_contacto = request.POST.get('persona_contacto', '').strip()
+        cargo_contacto = request.POST.get('cargo_contacto', '').strip()
+        celular_contacto = request.POST.get('celular_contacto', '').strip()
+        correo_contacto = request.POST.get('correo_contacto', '').strip()
+
+        # Validaciones de seguridad
+        if not ruc or len(ruc) < 8 or len(ruc) > 20:
+            return JsonResponse({'status': 'error', 'message': 'RUC debe tener entre 8 y 20 caracteres.'}, status=400)
+        
+        if not razon_social or len(razon_social) < 2 or len(razon_social) > 200:
+            return JsonResponse({'status': 'error', 'message': 'Razón social debe tener entre 2 y 200 caracteres.'}, status=400)
+        
+        if len(direccion) > 300:
+            return JsonResponse({'status': 'error', 'message': 'Dirección no puede exceder 300 caracteres.'}, status=400)
+        
+        if len(persona_contacto) > 100:
+            return JsonResponse({'status': 'error', 'message': 'Persona de contacto no puede exceder 100 caracteres.'}, status=400)
+        
+        if len(cargo_contacto) > 100:
+            return JsonResponse({'status': 'error', 'message': 'Cargo de contacto no puede exceder 100 caracteres.'}, status=400)
+        
+        if len(celular_contacto) > 20:
+            return JsonResponse({'status': 'error', 'message': 'Celular no puede exceder 20 caracteres.'}, status=400)
+        
+        if len(correo_contacto) > 100:
+            return JsonResponse({'status': 'error', 'message': 'Correo no puede exceder 100 caracteres.'}, status=400)
+
+        # Validar caracteres peligrosos
+        import re
+        campos_a_validar = [ruc, razon_social, direccion, persona_contacto, cargo_contacto, celular_contacto, correo_contacto]
+        for campo in campos_a_validar:
+            if re.search(r'[<>]', campo):
+                logger.warning(f"Intento de XSS en crear_cliente_ajax por usuario {request.user.username}")
+                return JsonResponse({'status': 'error', 'message': 'Caracteres no permitidos detectados.'}, status=400)
+
+        # Verificar duplicados
+        if Cliente.objects.filter(ruc=ruc).exists():
+            return JsonResponse({'status': 'error', 'message': 'Ya existe un cliente con este RUC.'}, status=400)
+
         cliente = Cliente.objects.create(
-            ruc=request.POST.get('ruc'),
-            razon_social=request.POST.get('razon_social'),
-            direccion=request.POST.get('direccion'),
-            persona_contacto=request.POST.get('persona_contacto'),
-            cargo_contacto=request.POST.get('cargo_contacto'),
-            celular_contacto=request.POST.get('celular_contacto'),
-            correo_contacto=request.POST.get('correo_contacto'),
+            ruc=ruc,
+            razon_social=razon_social,
+            direccion=direccion,
+            persona_contacto=persona_contacto,
+            cargo_contacto=cargo_contacto,
+            celular_contacto=celular_contacto,
+            correo_contacto=correo_contacto,
         )
+        
+        # Log de seguridad
+        logger.info(f"Cliente creado exitosamente: {razon_social} (RUC: {ruc}) por usuario {request.user.username}")
+        
         return JsonResponse({
             'status': 'success',
             'id': cliente.pk,
@@ -200,4 +269,5 @@ def crear_cliente_ajax(request):
             'celular_contacto': cliente.celular_contacto
         })
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+        logger.error(f"Error al crear cliente por usuario {request.user.username}: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': 'Error interno del servidor.'}, status=500)

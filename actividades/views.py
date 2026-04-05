@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import timedelta
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -7,6 +8,8 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
 from django.views.decorators.http import require_GET, require_POST
+
+logger = logging.getLogger(__name__)
 
 from clientes.models import Cliente
 from trabajadores.models import TrabajadorProfile
@@ -188,6 +191,15 @@ def calendario_actividad_guardar_json(request):
         payload = json.loads(request.body.decode('utf-8'))
         actividad_id = payload.get('id')
 
+        # Validaciones de seguridad para actividad_id
+        if actividad_id:
+            try:
+                actividad_id = int(actividad_id)
+                if actividad_id <= 0:
+                    raise ValueError
+            except (ValueError, TypeError):
+                return JsonResponse({'success': False, 'error': 'ID de actividad inválido.'}, status=400)
+
         if actividad_id:
             actividad = get_object_or_404(CalendarioActividad, pk=actividad_id)
             if actividad.es_automatica and not actividad.permite_edicion_manual:
@@ -203,8 +215,22 @@ def calendario_actividad_guardar_json(request):
             )
 
         titulo = (payload.get('titulo') or '').strip()
-        if not titulo:
-            return JsonResponse({'success': False, 'error': 'El título es obligatorio.'}, status=400)
+        if not titulo or len(titulo) < 2 or len(titulo) > 200:
+            return JsonResponse({'success': False, 'error': 'El título debe tener entre 2 y 200 caracteres.'}, status=400)
+
+        # Validar caracteres peligrosos
+        import re
+        if re.search(r'[<>]', titulo):
+            logger.warning(f"Intento de XSS en calendario_actividad_guardar_json por usuario {request.user.username}")
+            return JsonResponse({'success': False, 'error': 'Caracteres no permitidos detectados en el título.'}, status=400)
+
+        descripcion = (payload.get('descripcion') or '').strip()
+        if len(descripcion) > 1000:
+            return JsonResponse({'success': False, 'error': 'La descripción no puede exceder 1000 caracteres.'}, status=400)
+
+        if re.search(r'[<>]', descripcion):
+            logger.warning(f"Intento de XSS en calendario_actividad_guardar_json por usuario {request.user.username}")
+            return JsonResponse({'success': False, 'error': 'Caracteres no permitidos detectados en la descripción.'}, status=400)
 
         fecha_inicio = parse_datetime(payload.get('fecha_inicio') or '')
         fecha_fin = parse_datetime(payload.get('fecha_fin') or '')
@@ -213,7 +239,7 @@ def calendario_actividad_guardar_json(request):
             return JsonResponse({'success': False, 'error': 'Fechas inválidas.'}, status=400)
 
         actividad.titulo = titulo
-        actividad.descripcion = payload.get('descripcion') or ''
+        actividad.descripcion = descripcion
         actividad.clase = payload.get('clase') or 'OTRO'
         actividad.estado = payload.get('estado') or 'PROGRAMADA'
         actividad.prioridad = payload.get('prioridad') or 'MEDIA'
@@ -273,6 +299,9 @@ def calendario_actividad_guardar_json(request):
         if recordatorios_bulk:
             CalendarioRecordatorio.objects.bulk_create(recordatorios_bulk)
 
+        # Log de seguridad
+        logger.info(f"Actividad guardada: {titulo} (ID: {actividad.id}) por usuario {request.user.username}")
+
         return JsonResponse({
             'success': True,
             'id': actividad.id,
@@ -280,15 +309,25 @@ def calendario_actividad_guardar_json(request):
         })
 
     except ValueError as e:
+        logger.warning(f"Error de validación en calendario_actividad_guardar_json por usuario {request.user.username}: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
     except Exception as e:
-        return JsonResponse({'success': False, 'error': f'Error interno: {str(e)}'}, status=500)
+        logger.error(f"Error interno en calendario_actividad_guardar_json por usuario {request.user.username}: {str(e)}")
+        return JsonResponse({'success': False, 'error': 'Error interno del servidor.'}, status=500)
 
 
 @login_required
 @require_POST
 def calendario_actividad_eliminar_json(request, pk):
     try:
+        # Validar pk
+        try:
+            pk = int(pk)
+            if pk <= 0:
+                raise ValueError
+        except (ValueError, TypeError):
+            return JsonResponse({'success': False, 'error': 'ID de actividad inválido.'}, status=400)
+
         actividad = get_object_or_404(CalendarioActividad, pk=pk)
 
         if actividad.es_automatica and not actividad.permite_edicion_manual:
@@ -297,10 +336,16 @@ def calendario_actividad_eliminar_json(request, pk):
                 'error': 'Esta actividad automática no permite eliminación manual.'
             }, status=400)
 
+        titulo = actividad.titulo  # Guardar para logging
         actividad.delete()
+        
+        # Log de seguridad
+        logger.info(f"Actividad eliminada: {titulo} (ID: {pk}) por usuario {request.user.username}")
+        
         return JsonResponse({'success': True, 'message': 'Actividad eliminada correctamente.'})
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        logger.error(f"Error al eliminar actividad {pk} por usuario {request.user.username}: {str(e)}")
+        return JsonResponse({'success': False, 'error': 'Error interno del servidor.'}, status=500)
 
 
 @login_required
@@ -311,10 +356,32 @@ def calendario_categoria_crear_json(request):
         color = (request.POST.get('color') or '#2563eb').strip()
         icono = (request.POST.get('icono') or '').strip()
 
-        if not nombre:
+        # Validaciones de seguridad
+        if not nombre or len(nombre) < 2 or len(nombre) > 100:
             return JsonResponse({
                 'success': False,
-                'error': 'El nombre es obligatorio.'
+                'error': 'El nombre debe tener entre 2 y 100 caracteres.'
+            }, status=400)
+
+        if len(color) > 20:
+            return JsonResponse({
+                'success': False,
+                'error': 'El color no puede exceder 20 caracteres.'
+            }, status=400)
+
+        if len(icono) > 50:
+            return JsonResponse({
+                'success': False,
+                'error': 'El icono no puede exceder 50 caracteres.'
+            }, status=400)
+
+        # Validar caracteres peligrosos
+        import re
+        if re.search(r'[<>]', nombre) or re.search(r'[<>]', color) or re.search(r'[<>]', icono):
+            logger.warning(f"Intento de XSS en calendario_categoria_crear_json por usuario {request.user.username}")
+            return JsonResponse({
+                'success': False,
+                'error': 'Caracteres no permitidos detectados.'
             }, status=400)
 
         if CalendarioCategoria.objects.filter(nombre__iexact=nombre).exists():
@@ -330,6 +397,9 @@ def calendario_categoria_crear_json(request):
             activo=True
         )
 
+        # Log de seguridad
+        logger.info(f"Categoría creada: {nombre} por usuario {request.user.username}")
+
         return JsonResponse({
             'success': True,
             'id': categoria.id,
@@ -340,9 +410,10 @@ def calendario_categoria_crear_json(request):
         })
 
     except Exception as e:
+        logger.error(f"Error al crear categoría por usuario {request.user.username}: {str(e)}")
         return JsonResponse({
             'success': False,
-            'error': f'Error interno: {str(e)}'
+            'error': 'Error interno del servidor.'
         }, status=500)
 
 
@@ -350,6 +421,17 @@ def calendario_categoria_crear_json(request):
 @require_POST
 def calendario_actividad_reprogramar_json(request, pk):
     try:
+        # Validar pk
+        try:
+            pk = int(pk)
+            if pk <= 0:
+                raise ValueError
+        except (ValueError, TypeError):
+            return JsonResponse({
+                'success': False,
+                'error': 'ID de actividad inválido.'
+            }, status=400)
+
         actividad = get_object_or_404(CalendarioActividad, pk=pk)
 
         if actividad.es_automatica and not actividad.permite_edicion_manual:
@@ -374,15 +456,19 @@ def calendario_actividad_reprogramar_json(request, pk):
         actividad.actualizado_por = request.user
         actividad.save()
 
+        # Log de seguridad
+        logger.info(f"Actividad reprogramada: {actividad.titulo} (ID: {pk}) por usuario {request.user.username}")
+
         return JsonResponse({
             'success': True,
             'message': 'Actividad reprogramada correctamente.'
         })
 
     except Exception as e:
+        logger.error(f"Error al reprogramar actividad {pk} por usuario {request.user.username}: {str(e)}")
         return JsonResponse({
             'success': False,
-            'error': str(e)
+            'error': 'Error interno del servidor.'
         }, status=500)
 
 

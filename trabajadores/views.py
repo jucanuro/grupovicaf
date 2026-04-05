@@ -5,7 +5,10 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test 
 from django.db import transaction, IntegrityError 
+import logging
 from .models import TrabajadorProfile, RolTrabajador  
+
+logger = logging.getLogger(__name__)  
 
 User = get_user_model()
 
@@ -172,50 +175,85 @@ def lista_trabajadores(request):
     }
     return render(request, 'trabajadores/trabajadores_list.html', context)
 
+@login_required
+@user_passes_test(is_admin_or_supervisor)
 def buscar_trabajadores_api(request):
-    query = request.GET.get('q', '')
-    trabajadores = TrabajadorProfile.objects.filter(
-        Q(nombre_completo__icontains=query) |
-        Q(rol__nombre__icontains=query) | # Cambiado a rol__nombre
-        Q(user__email__icontains=query)
-    ).select_related('user', 'rol').values(
-        'pk', 
-        'nombre_completo', 
-        'rol__nombre', # Traemos el nombre del rol relacionado
-        'creado_en',
-        'user__email',
-        'user__username'
-    )[:10]
+    try:
+        query = request.GET.get('q', '').strip()
 
-    result = []
-    for t in trabajadores:
-        result.append({
-            'pk': t['pk'],
-            'nombre_completo': t['nombre_completo'],
-            'role': t['rol__nombre'], # Mapeado a 'role' para no romper el JS
-            'creado_en': t['creado_en'].strftime("%d %b %Y"),
-            'email': t['user__email'],
-            'username': t['user__username']
-        })
+        # Validaciones de seguridad
+        if len(query) > 100:
+            return JsonResponse({'error': 'La consulta no puede exceder 100 caracteres.'}, status=400)
+        
+        # Validar caracteres peligrosos
+        import re
+        if re.search(r'[<>]', query):
+            logger.warning(f"Intento de XSS en buscar_trabajadores_api por usuario {request.user.username}")
+            return JsonResponse({'error': 'Caracteres no permitidos detectados.'}, status=400)
 
-    return JsonResponse(result, safe=False)
+        trabajadores = TrabajadorProfile.objects.filter(
+            Q(nombre_completo__icontains=query) |
+            Q(rol__nombre__icontains=query) | # Cambiado a rol__nombre
+            Q(user__email__icontains=query)
+        ).select_related('user', 'rol').values(
+            'pk', 
+            'nombre_completo', 
+            'rol__nombre', # Traemos el nombre del rol relacionado
+            'creado_en',
+            'user__email',
+            'user__username'
+        )[:10]
+
+        result = []
+        for t in trabajadores:
+            result.append({
+                'pk': t['pk'],
+                'nombre_completo': t['nombre_completo'],
+                'role': t['rol__nombre'], # Mapeado a 'role' para no romper el JS
+                'creado_en': t['creado_en'].strftime("%d %b %Y"),
+                'email': t['user__email'],
+                'username': t['user__username']
+            })
+
+        # Log de seguridad para consultas potencialmente sospechosas
+        if len(query) > 50:
+            logger.info(f"Consulta larga en buscar_trabajadores_api por usuario {request.user.username}: {query[:50]}...")
+        
+        return JsonResponse(result, safe=False)
+    except Exception as e:
+        logger.error(f"Error en buscar_trabajadores_api por usuario {request.user.username}: {str(e)}")
+        return JsonResponse({'error': 'Error interno del servidor.'}, status=500)
 
 
 @login_required
 @user_passes_test(is_admin_or_supervisor)
 def crear_rol_ajax(request):
     if request.method == 'POST':
-        nombre = request.POST.get('nombre_rol')
-        descripcion = request.POST.get('descripcion_rol', '')
-
-        if not nombre:
-            return JsonResponse({'success': False, 'error': 'El nombre del rol es obligatorio.'}, status=400)
-
         try:
+            nombre = request.POST.get('nombre_rol', '').strip()
+            descripcion = request.POST.get('descripcion_rol', '').strip()
+
+            # Validaciones de seguridad
+            if not nombre or len(nombre) < 2 or len(nombre) > 50:
+                return JsonResponse({'success': False, 'error': 'El nombre del rol debe tener entre 2 y 50 caracteres.'}, status=400)
+            
+            if len(descripcion) > 200:
+                return JsonResponse({'success': False, 'error': 'La descripción no puede exceder 200 caracteres.'}, status=400)
+
+            # Validar caracteres peligrosos
+            import re
+            if re.search(r'[<>]', nombre) or re.search(r'[<>]', descripcion):
+                logger.warning(f"Intento de XSS en crear_rol_ajax por usuario {request.user.username}")
+                return JsonResponse({'success': False, 'error': 'Caracteres no permitidos detectados.'}, status=400)
+
             nuevo_rol = RolTrabajador.objects.create(
                 nombre=nombre,
                 descripcion=descripcion
             )
+            
+            # Log de seguridad
+            logger.info(f"Rol creado exitosamente: {nombre} por usuario {request.user.username}")
+            
             return JsonResponse({
                 'success': True,
                 'id': nuevo_rol.id,
@@ -224,7 +262,8 @@ def crear_rol_ajax(request):
         except IntegrityError:
             return JsonResponse({'success': False, 'error': 'Este rol ya existe.'}, status=400)
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+            logger.error(f"Error al crear rol por usuario {request.user.username}: {str(e)}")
+            return JsonResponse({'success': False, 'error': 'Error interno del servidor.'}, status=500)
 
     return JsonResponse({'success': False, 'error': 'Método no permitido.'}, status=405)
 

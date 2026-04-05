@@ -2,6 +2,7 @@ from django.views.generic import ListView
 from datetime import datetime
 import json
 import io
+import logging
 from django.db import IntegrityError
 from django.http import JsonResponse
 from django.template.loader import render_to_string
@@ -22,6 +23,8 @@ from django.db.models import Exists, OuterRef
 from .models import Proyecto, TipoMuestra, RecepcionMuestra, MuestraDetalle,UnidadMedida, SolicitudEnsayo, DetalleSolicitudEnsayo, IncidenciaSolicitud, InformeFinal
 from servicios.models import Servicio, CotizacionDetalle, CategoriaServicio, Subcategoria, CotizacionGrupo,Cotizacion
 from trabajadores.models import TrabajadorProfile
+
+logger = logging.getLogger(__name__)
 
 
 def get_date_or_none(date_string):
@@ -110,21 +113,44 @@ def lista_proyectos_pendientes(request):
     return render(request, 'proyectos/lista_proyectos_pendientes.html', context)
 
 @require_POST
+@login_required
 def crear_tipo_muestra_ajax(request):
-    nombre = request.POST.get('nombre', '').strip()
-    sigla = request.POST.get('sigla', '').upper().strip() 
-    
-    if not nombre or not sigla:
-        return JsonResponse({
-            'status': 'error', 
-            'message': 'Nombre y Sigla son obligatorios.'
-        }, status=400)
-    
     try:
+        nombre = request.POST.get('nombre', '').strip()
+        sigla = request.POST.get('sigla', '').upper().strip() 
+        
+        # Validaciones de seguridad
+        if not nombre or len(nombre) < 2 or len(nombre) > 100:
+            return JsonResponse({
+                'status': 'error', 
+                'message': 'Nombre debe tener entre 2 y 100 caracteres.'
+            }, status=400)
+        
+        if not sigla or len(sigla) < 1 or len(sigla) > 10:
+            return JsonResponse({
+                'status': 'error', 
+                'message': 'Sigla debe tener entre 1 y 10 caracteres.'
+            }, status=400)
+
+        # Validar caracteres peligrosos
+        import re
+        if re.search(r'[<>]', nombre) or re.search(r'[<>]', sigla):
+            logger.warning(f"Intento de XSS en crear_tipo_muestra_ajax por usuario {request.user.username}")
+            return JsonResponse({
+                'status': 'error', 
+                'message': 'Caracteres no permitidos detectados.'
+            }, status=400)
+        
         tipo, created = TipoMuestra.objects.get_or_create(
             sigla=sigla, 
             defaults={'nombre': nombre}
         )
+        
+        # Log de seguridad
+        if created:
+            logger.info(f"Tipo de muestra creado exitosamente: {nombre} ({sigla}) por usuario {request.user.username}")
+        else:
+            logger.info(f"Tipo de muestra existente utilizado: {nombre} ({sigla}) por usuario {request.user.username}")
         
         return JsonResponse({
             'status': 'success',
@@ -133,46 +159,68 @@ def crear_tipo_muestra_ajax(request):
             'sigla': tipo.sigla,
             'nuevo': created
         })
-
     except IntegrityError:
         return JsonResponse({
             'status': 'error', 
             'message': f'La sigla "{sigla}" ya está registrada con otro nombre.'
         }, status=400)
     except Exception as e:
+        logger.error(f"Error al crear tipo de muestra por usuario {request.user.username}: {str(e)}")
         return JsonResponse({
             'status': 'error', 
             'message': 'Error interno del servidor.'
         }, status=500)
     
-def gestionar_recepcion_muestra(request, proyecto_id):
+def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
+    # Si se pasa pk, estamos editando y obtenemos proyecto_id de la recepción
+    if pk and not proyecto_id:
+        recepcion_temp = get_object_or_404(RecepcionMuestra, pk=pk)
+        proyecto_obj = Proyecto.objects.filter(cotizacion=recepcion_temp.cotizacion).first()
+        if not proyecto_obj:
+            messages.error(request, 'No se encontró el proyecto asociado a esta recepción.')
+            return redirect('proyectos:lista_proyectos_pendientes')
+        proyecto_id = proyecto_obj.id
+
+    if not proyecto_id:
+        # Si no hay proyecto_id, redirigir a lista de proyectos pendientes
+        messages.error(request, 'Debe seleccionar un proyecto para crear una recepción.')
+        return redirect('proyectos:lista_proyectos_pendientes')
+
     proyecto = get_object_or_404(
         Proyecto.objects.select_related('cotizacion__cliente'),
         pk=proyecto_id
     )
 
+    recepcion = None
+    is_editing = pk is not None
+    if is_editing:
+        recepcion = get_object_or_404(RecepcionMuestra, pk=pk, cotizacion=proyecto.cotizacion)
+
     if request.method == 'POST':
         try:
             with transaction.atomic():
-                fecha_str = request.POST.get('fecha_recepcion')
-                hora_str = request.POST.get('hora_recepcion') or "00:00"
+                if not is_editing:
+                    # Crear nueva recepción
+                    fecha_str = request.POST.get('fecha_recepcion')
+                    hora_str = request.POST.get('hora_recepcion') or "00:00"
 
-                if fecha_str:
-                    fecha_final = datetime.strptime(f"{fecha_str} {hora_str}", "%Y-%m-%d %H:%M")
-                    fecha_final = timezone.make_aware(fecha_final, timezone.get_current_timezone())
-                else:
-                    fecha_final = timezone.now()
+                    if fecha_str:
+                        fecha_final = datetime.strptime(f"{fecha_str} {hora_str}", "%Y-%m-%d %H:%M")
+                        fecha_final = timezone.make_aware(fecha_final, timezone.get_current_timezone())
+                    else:
+                        fecha_final = timezone.now()
 
-                recepcion = RecepcionMuestra.objects.create(
-                    cotizacion=proyecto.cotizacion,
-                    procedencia=request.POST.get('procedencia', '').upper(),
-                    responsable_cliente=request.POST.get('responsable_entrega', '').upper(),
-                    telefono=request.POST.get('telefono_entrega', ''),
-                    fecha_recepcion=fecha_final,
-                    fecha_muestreo=request.POST.get('fecha_muestreo') or None,
-                    responsable_recepcion=request.user,
-                )
+                    recepcion = RecepcionMuestra.objects.create(
+                        cotizacion=proyecto.cotizacion,
+                        procedencia=request.POST.get('procedencia', '').upper(),
+                        responsable_cliente=request.POST.get('responsable_entrega', '').upper(),
+                        telefono=request.POST.get('telefono_entrega', ''),
+                        fecha_recepcion=fecha_final,
+                        fecha_muestreo=request.POST.get('fecha_muestreo') or None,
+                        responsable_recepcion=request.user,
+                    )
 
+                # Agregar nuevas muestras (siempre, tanto en nueva como en edición)
                 tipos_ids = request.POST.getlist('tipo_muestra_id[]')
                 cantidades = request.POST.getlist('cantidad[]')
                 unidades_ids = request.POST.getlist('unidad_medida_id[]')
@@ -200,7 +248,7 @@ def gestionar_recepcion_muestra(request, proyecto_id):
                         muestra = MuestraDetalle(
                             recepcion=recepcion,
                             tipo_muestra_id=tipos_ids[i],
-                            nro_item=i + 1,
+                            nro_item=recepcion.muestras.count() + i + 1,  # Continuar numeración
                             descripcion=descripciones[i][:255] if i < len(descripciones) else '',
                             masa_aprox=masa_val,
                             cantidad=cant_val,
@@ -212,9 +260,10 @@ def gestionar_recepcion_muestra(request, proyecto_id):
                 for m in muestras_a_crear:
                     m.save()
 
+                action_text = "agregadas" if is_editing else "registradas"
                 messages.success(
                     request,
-                    f"¡Éxito! Recepción #{recepcion.id} y {len(muestras_a_crear)} muestras registradas."
+                    f"¡Éxito! {len(muestras_a_crear)} muestras {action_text} a la recepción #{recepcion.id}."
                 )
                 return redirect('proyectos:lista_muestras_recepcion', recepcion_id=recepcion.id)
 
@@ -232,12 +281,30 @@ def gestionar_recepcion_muestra(request, proyecto_id):
         {'id': u.id, 'codigo': u.codigo, 'nombre': u.nombre} for u in unidades_qs
     ])
 
+    # Si estamos editando, incluir las muestras existentes en el JSON
+    muestras_existentes = []
+    if recepcion:
+        for muestra in recepcion.muestras.select_related('tipo_muestra', 'unidad_medida').all():
+            muestras_existentes.append({
+                'tipo_muestra_id': muestra.tipo_muestra.id,
+                'tipo_muestra_nombre': muestra.tipo_muestra.nombre,
+                'cantidad': str(muestra.cantidad),
+                'unidad_medida_id': muestra.unidad_medida.id if muestra.unidad_medida else '',
+                'masa': str(muestra.masa_aprox),
+                'descripcion': muestra.descripcion,
+                'observaciones': muestra.observaciones or '',
+                'codigo_laboratorio': muestra.codigo_laboratorio or ''
+            })
+
     context = {
         'proyecto': proyecto,
+        'recepcion': recepcion,  # Pasar la recepción si existe
         'fecha_hoy': timezone.now().strftime('%Y-%m-%d'),
         'hora_ahora': timezone.now().strftime('%H:%M'),
         'tipos_muestra_json': tipos_muestra_json,
         'unidades_medida_json': unidades_medida_json,
+        'muestras_existentes_json': json.dumps(muestras_existentes),
+        'is_editing': is_editing,
     }
     return render(request, 'proyectos/recepcion_form.html', context)
 
@@ -343,88 +410,137 @@ def limpiar_numero_whatsapp(numero: str) -> str:
 
 
 
+@login_required
 def generar_y_enviar_whatsapp(request, recepcion_id):
-    recepcion = get_object_or_404(
-        RecepcionMuestra.objects.select_related(
-            'cotizacion__cliente',
-            'responsable_recepcion'
-        ),
-        id=recepcion_id
-    )
-
-    if request.method != 'POST':
-        return JsonResponse({
-            'ok': False,
-            'message': 'Método no permitido.'
-        }, status=405)
-
-    if hasattr(recepcion, 'cotizacion') and recepcion.cotizacion:
-        cliente = recepcion.cotizacion.cliente
-    else:
-        cliente = getattr(recepcion, 'cliente', None)
-
-    telefono_manual = request.POST.get('telefono', '').strip()
-
-    telefono_cliente = ""
-    if cliente:
-        telefono_cliente = (
-            getattr(cliente, 'telefono', '') or
-            getattr(cliente, 'telefono_contacto', '') or
-            getattr(cliente, 'celular_contacto', '') or
-            ''
+    try:
+        recepcion = get_object_or_404(
+            RecepcionMuestra.objects.select_related(
+                'cotizacion__cliente',
+                'responsable_recepcion'
+            ),
+            id=recepcion_id
         )
 
-    telefono_destino = limpiar_numero_whatsapp(telefono_manual or telefono_cliente)
+        if request.method != 'POST':
+            return JsonResponse({
+                'ok': False,
+                'message': 'Método no permitido.'
+            }, status=405)
 
-    if not telefono_destino:
+        if hasattr(recepcion, 'cotizacion') and recepcion.cotizacion:
+            cliente = recepcion.cotizacion.cliente
+        else:
+            cliente = getattr(recepcion, 'cliente', None)
+
+        telefono_manual = request.POST.get('telefono', '').strip()
+
+        # Validaciones de seguridad
+        if len(telefono_manual) > 20:
+            return JsonResponse({
+                'ok': False,
+                'message': 'Número de teléfono no puede exceder 20 caracteres.'
+            }, status=400)
+
+        # Validar caracteres peligrosos
+        import re
+        if re.search(r'[<>]', telefono_manual):
+            logger.warning(f"Intento de XSS en generar_y_enviar_whatsapp por usuario {request.user.username}")
+            return JsonResponse({
+                'ok': False,
+                'message': 'Caracteres no permitidos detectados.'
+            }, status=400)
+
+        telefono_cliente = ""
+        if cliente:
+            telefono_cliente = (
+                getattr(cliente, 'telefono', '') or
+                getattr(cliente, 'telefono_contacto', '') or
+                getattr(cliente, 'celular_contacto', '') or
+                ''
+            )
+
+        telefono_destino = limpiar_numero_whatsapp(telefono_manual or telefono_cliente)
+
+        if not telefono_destino:
+            return JsonResponse({
+                'ok': False,
+                'message': 'No se encontró un número válido de WhatsApp.'
+            }, status=400)
+
+        if len(telefono_destino) < 9:
+            return JsonResponse({
+                'ok': False,
+                'message': 'Número de teléfono inválido.'
+            }, status=400)
+
+        pdf_url = request.build_absolute_uri(
+            f"/proyectos/recepcion/{recepcion.id}/pdf/"
+        )
+
+        mensaje = (
+            f"Estimado cliente, le compartimos el Cargo de Recepción de Muestras N° {recepcion.id:05d}.\n\n"
+            f"Puede verlo o descargarlo aquí:\n{pdf_url}"
+        )
+
+        whatsapp_url = f"https://wa.me/{telefono_destino}?text={quote(mensaje)}"
+
+        # Log de seguridad
+        logger.info(f"WhatsApp generado para recepción {recepcion.id} por usuario {request.user.username}")
+
+        return JsonResponse({
+            'ok': True,
+            'whatsapp_url': whatsapp_url
+        })
+    except Exception as e:
+        logger.error(f"Error al generar WhatsApp para recepción {recepcion_id} por usuario {request.user.username}: {str(e)}")
         return JsonResponse({
             'ok': False,
-            'message': 'No se encontró un número válido de WhatsApp.'
-        }, status=400)
-
-    pdf_url = request.build_absolute_uri(
-        f"/proyectos/recepcion/{recepcion.id}/pdf/"
-    )
-
-    mensaje = (
-        f"Estimado cliente, le compartimos el Cargo de Recepción de Muestras N° {recepcion.id:05d}.\n\n"
-        f"Puede verlo o descargarlo aquí:\n{pdf_url}"
-    )
-
-    whatsapp_url = f"https://wa.me/{telefono_destino}?text={quote(mensaje)}"
-
-    return JsonResponse({
-        'ok': True,
-        'whatsapp_url': whatsapp_url
-    })
+            'message': 'Error interno del servidor.'
+        }, status=500)
     
+@login_required
 def api_obtener_detalles_cotizacion(request, cotizacion_id):
-    cotizacion = get_object_or_404(Cotizacion, pk=cotizacion_id)
+    try:
+        # Validar que cotizacion_id sea numérico y razonable
+        try:
+            cotizacion_id = int(cotizacion_id)
+            if cotizacion_id <= 0:
+                raise ValueError
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'ID de cotización inválido.'}, status=400)
 
-    detalles = CotizacionDetalle.objects.filter(
-        grupo__cotizacion=cotizacion
-    ).select_related('servicio')
+        cotizacion = get_object_or_404(Cotizacion, pk=cotizacion_id)
 
-    servicios_data = []
-    for item in detalles:
-        norma = item.norma_manual or (item.servicio.norma if item.servicio else "")
-        metodo = item.metodo_manual or (item.servicio.metodo if item.servicio else "")
-        servicios_data.append({
-            'cotizacion_detalle_id': item.id,  
-            'servicio_id': item.servicio.id if item.servicio else None,  
-            'nombre_servicio': item.servicio.nombre if item.servicio else "Servicio Especial",
-            'norma': str(norma),
-            'metodo': str(metodo),
+        detalles = CotizacionDetalle.objects.filter(
+            grupo__cotizacion=cotizacion
+        ).select_related('servicio')
+
+        servicios_data = []
+        for item in detalles:
+            norma = item.norma_manual or (item.servicio.norma if item.servicio else "")
+            metodo = item.metodo_manual or (item.servicio.metodo if item.servicio else "")
+            servicios_data.append({
+                'cotizacion_detalle_id': item.id,  
+                'servicio_id': item.servicio.id if item.servicio else None,  
+                'nombre_servicio': item.servicio.nombre if item.servicio else "Servicio Especial",
+                'norma': str(norma),
+                'metodo': str(metodo),
+            })
+
+        muestras = MuestraDetalle.objects.filter(
+            recepcion__cotizacion=cotizacion
+        ).values('id', 'codigo_laboratorio', 'descripcion')[:50]  # Limitar resultados
+
+        # Log de acceso
+        logger.info(f"Detalles de cotización {cotizacion_id} consultados por usuario {request.user.username}")
+
+        return JsonResponse({
+            'servicios': servicios_data,
+            'muestras': list(muestras)
         })
-
-    muestras = MuestraDetalle.objects.filter(
-        recepcion__cotizacion=cotizacion
-    ).values('id', 'codigo_laboratorio', 'descripcion')
-
-    return JsonResponse({
-        'servicios': servicios_data,
-        'muestras': list(muestras)
-    })
+    except Exception as e:
+        logger.error(f"Error al obtener detalles de cotización {cotizacion_id} por usuario {request.user.username}: {str(e)}")
+        return JsonResponse({'error': 'Error interno del servidor.'}, status=500)
 
 @transaction.atomic
 def gestionar_solicitud_ensayo(request, pk=None):

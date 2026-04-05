@@ -44,25 +44,25 @@
 
 <div class="max-w-full mx-auto p-4 relative z-10 space-y-6">
     
-    <header class="bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-between p-4">
+    <header class="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div class="flex items-center gap-4">
             <div class="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center text-white shadow-md">
                 <i data-lucide="clipboard-check" class="w-5 h-5"></i>
             </div>
             <div>
                 <h1 class="text-xl font-extrabold text-slate-900 tracking-tight leading-none">
-                    Recepcion de Muestras
+                    {% if is_editing %}Editar Recepción{% else %}Recepcion de Muestras{% endif %}
                 </h1>
-                <p class="text-[9px] font-mono-tech text-blue-600 mt-1 uppercase tracking-[0.2em]">Formulario VCF-LAB-FOR-022 // v1.0</p>
+                <p class="text-[9px] font-mono-tech text-blue-600 mt-1 uppercase tracking-[0.2em]">Formulario VCF-LAB-FOR-022 // v1.0{% if is_editing %} // EDICIÓN{% endif %}</p>
             </div>
         </div>
 
-        <div class="flex items-center gap-3">
-            <div class="text-right mr-4 hidden md:block">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 w-full md:w-auto">
+            <div class="text-left sm:text-right w-full sm:w-auto">
                 <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Proyecto</p>
                 <p class="text-xs font-bold text-slate-700">{{ proyecto.codigo_proyecto }}</p>
             </div>
-            <a href="{% url 'proyectos:lista_proyectos_pendientes' %}" class="bg-white text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
+            <a href="{% url 'proyectos:lista_proyectos_pendientes' %}" class="w-full sm:w-auto bg-white text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2 shadow-sm">
                 <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Volver
             </a>
         </div>
@@ -97,16 +97,16 @@
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Procedencia / Obra</label>
-                            <input type="text" name="procedencia" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm" placeholder="Ej: Cantera La Gloria" required>
+                            <input type="text" name="procedencia" value="{{ recepcion.procedencia|default:'' }}" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm" placeholder="Ej: Cantera La Gloria" required>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Responsable Entrega</label>
-                                <input type="text" name="responsable_entrega" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm" required>
+                                <input type="text" name="responsable_entrega" value="{{ recepcion.responsable_cliente|default:'' }}" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm" required>
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Teléfono</label>
-                                <input type="text" name="telefono_entrega" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm">
+                                <input type="text" name="telefono_entrega" value="{{ recepcion.telefono|default:'' }}" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm">
                             </div>
                         </div>
                     </div>
@@ -118,20 +118,20 @@
                         <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Fechas y Registro</h3>
                     </div>
                     <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Fecha Recepción</label>
-                                <input type="date" name="fecha_recepcion" value="{{ fecha_hoy }}" class="w-full px-4 py-2.5 bg-blue-50/50 border border-blue-100 rounded-lg text-xs font-bold text-blue-700 outline-none shadow-sm">
+                                <input type="date" name="fecha_recepcion" value="{% if recepcion %}{{ recepcion.fecha_recepcion|date:'Y-m-d' }}{% else %}{{ fecha_hoy }}{% endif %}" class="w-full px-4 py-2.5 bg-blue-50/50 border border-blue-100 rounded-lg text-xs font-bold text-blue-700 outline-none shadow-sm">
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Hora Arribo</label>
-                                <input type="time" name="hora_recepcion" value="{{ hora_ahora }}" class="w-full px-4 py-2.5 bg-blue-50/50 border border-blue-100 rounded-lg text-xs font-bold text-blue-700 outline-none shadow-sm">
+                                <input type="time" name="hora_recepcion" value="{% if recepcion %}{{ recepcion.fecha_recepcion|date:'H:i' }}{% else %}{{ hora_ahora }}{% endif %}" class="w-full px-4 py-2.5 bg-blue-50/50 border border-blue-100 rounded-lg text-xs font-bold text-blue-700 outline-none shadow-sm">
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div class="col-span-1">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Fecha de Muestreo (Campo)</label>
-                                <input type="date" name="fecha_muestreo" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm">
+                                <input type="date" name="fecha_muestreo" value="{% if recepcion and recepcion.fecha_muestreo %}{{ recepcion.fecha_muestreo|date:'Y-m-d' }}{% endif %}" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm">
                             </div>
                         </div>
                         
@@ -162,18 +162,18 @@
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-3 bg-slate-900 px-5 py-2.5 rounded-xl shadow-lg shadow-slate-200">
                         <i data-lucide="layers" class="text-blue-400 w-5 h-5"></i>
-                        <h2 class="text-[12px] font-black text-white uppercase tracking-[0.2em]">Detalle de Muestras</h2>
+                        <h2 class="text-[12px] font-black text-white uppercase tracking-[0.2em]">{% if is_editing %}Agregar Más Muestras{% else %}Detalle de Muestras{% endif %}</h2>
                     </div>
                 </div>
 
                 <div class="flex flex-col sm:flex-row items-end sm:items-center gap-4 w-full lg:w-auto">
-                    <div class="flex flex-col w-full sm:w-80 group mr-4">
+                    <div class="flex flex-col w-full sm:w-80 group sm:mr-4">
                         <label id="label_selector" class="text-[9px] font-black text-slate-400 uppercase ml-2 mb-1.5 tracking-widest">
                             Tipo de muestra a generar:
                         </label>
                         
-                        <div class="grid grid-cols-12 gap-2">
-                           <div class="col-span-10 relative group" id="search-container">
+                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                           <div class="sm:col-span-10 relative group" id="search-container">
                                 <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none group-focus-within:text-blue-500 transition-colors z-10"></i>
                                 
                                 <input type="text" id="tipo_global_search" autocomplete="off"
@@ -190,9 +190,8 @@
                                 </div>
                             </div>
 
-                            <div class="col-span-2">
-                                <div onclick="openTipoMuestraModal()" 
-                                    class="w-full h-full min-h-[42px] cursor-pointer group relative flex items-center justify-center rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white shadow-sm transition-all hover:border-blue-400 hover:shadow-md active:scale-95"
+                            <div class="sm:col-span-2">
+                                <button type="button" class="w-full h-full min-h-[42px] cursor-pointer group relative flex items-center justify-center rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white shadow-sm transition-all hover:border-blue-400 hover:shadow-md active:scale-95"
                                     title="Añadir nuevo tipo de muestra">
                                     <div class="absolute inset-0 bg-blue-500/0 group-hover:bg-blue-500/5 rounded-xl transition-colors"></div>
                                     <i data-lucide="plus-square" class="w-5 h-5 text-blue-600 group-hover:text-blue-700 transition-transform group-hover:scale-110"></i>
@@ -200,13 +199,13 @@
                                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                                         <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-600"></span>
                                     </span>
-                                </div>
+                                </button>
                             </div>
                         </div>
                     </div>
 
                     <button type="button" id="btn_generar" onclick="crearOActualizarFila()" 
-                        class="group relative flex items-center gap-3 px-5 py-2.5 bg-white border border-slate-200 rounded-2xl transition-all duration-300 shadow-sm hover:border-blue-400 hover:shadow-[0_8px_20px_-6px_rgba(59,130,246,0.3)] active:scale-95 self-end h-[46px]">
+                        class="group relative flex w-full sm:w-auto items-center gap-3 px-5 py-2.5 bg-white border border-slate-200 rounded-2xl transition-all duration-300 shadow-sm hover:border-blue-400 hover:shadow-[0_8px_20px_-6px_rgba(59,130,246,0.3)] active:scale-95 self-end h-[46px]">
                         
                         <div id="btn_icon_container" 
                             class="flex items-center justify-center w-8 h-8 rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
@@ -254,7 +253,7 @@
 
                 <button type="submit" class="bg-slate-900 text-white px-12 py-4 rounded-2xl text-xs font-black hover:bg-blue-600 hover:-translate-y-1 shadow-2xl transition-all flex items-center gap-4 group">
                     <i data-lucide="save" class="w-5 h-5 group-hover:animate-bounce"></i>
-                    FINALIZAR REGISTRO DE RECEPCION
+                    {% if is_editing %}AGREGAR MUESTRAS A RECEPCIÓN{% else %}FINALIZAR REGISTRO DE RECEPCION{% endif %}
                 </button>
             </div>
         </div>
@@ -265,6 +264,7 @@
 <script id="data-unidades" type="application/json">
     {{ unidades_medida_json|safe }}
 </script>
+<script id="muestras-existentes" type="application/json">{{ muestras_existentes_json|safe }}</script>
 {% include 'proyectos/modals/tipo_muestra_modal.html' %}
 {% endblock %}
 
