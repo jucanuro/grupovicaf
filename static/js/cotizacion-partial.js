@@ -17,8 +17,12 @@
                         inputJson.value = JSON.stringify(detalles);
                     }
 
-                    if (typeof renderTablaDetalles === 'function') {
+                    if (typeof window.applyPlantillaDetalles === 'function') {
+                        window.applyPlantillaDetalles(detalles);
+                    } else if (typeof renderTablaDetalles === 'function') {
                         renderTablaDetalles(detalles);
+                    } else if (typeof renderTable === 'function') {
+                        renderTable();
                     }
                 } else {
                     alert("Error cargando plantilla");
@@ -95,15 +99,31 @@
             return;
         }
 
+        // Mostrar mensaje de carga
+        const btnCargar = document.querySelector('button[onclick="confirmarCargaPlantilla()"]');
+        if (btnCargar) {
+            btnCargar.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Cargando...';
+            btnCargar.disabled = true;
+        }
+
         seleccionarModo('plantilla');
         cerrarModalPlantillas();
         cargarPlantillaAjax(select.value);
+
+        // Restaurar botón después de un breve delay
+        setTimeout(() => {
+            if (btnCargar) {
+                btnCargar.innerHTML = '<i data-lucide="download" class="w-4 h-4"></i> Cargar plantilla';
+                btnCargar.disabled = false;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        }, 1000);
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        const selectPlantilla = document.getElementById('select-plantilla');
-        if (selectPlantilla) {
-            selectPlantilla.addEventListener('change', function (e) {
+        const selectPlantillaModal = document.getElementById('select-plantilla-modal');
+        if (selectPlantillaModal) {
+            selectPlantillaModal.addEventListener('change', function (e) {
                 if (e.target.value) {
                     seleccionarModo('plantilla');
                 }

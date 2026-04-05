@@ -28,7 +28,7 @@ urlpatterns = [
     path('cotizaciones/editar/<int:pk>/', views.editar_cotizacion, name='editar_cotizacion'),
     path('cotizaciones/eliminar/<int:pk>/', views.eliminar_cotizacion, name='eliminar_cotizacion'),
     path('cotizaciones/<int:pk>/pdf/', views.generar_pdf_cotizacion, name='ver_pdf_cotizacion'),
-    path('協助cotizaciones/<int:pk>/aprobar/', views.aprobar_cotizacion, name='aprobar_cotizacion'),
+    path('cotizaciones/<int:pk>/aprobar/', views.aprobar_cotizacion, name='aprobar_cotizacion'),
 
     path('plantillas/', views.lista_plantillas, name='lista_plantillas'),
     path('plantillas/crear/', views.crear_editar_plantilla, name='crear_plantilla'),

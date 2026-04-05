@@ -38,7 +38,7 @@
 
 <div class="max-w-7xl mx-auto p-4 relative z-10 space-y-6">
     
-    <header class="bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-between p-4">
+    <header class="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4">
         <div class="flex items-center gap-4">
             <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-200">
                 <i data-lucide="check-square" class="w-5 h-5"></i>
@@ -48,7 +48,7 @@
                 <p class="text-[9px] font-mono text-blue-600 mt-1 uppercase tracking-[0.2em]">Validación de Pago && Apertura de Proyecto</p>
             </div>
         </div>
-        <a href="{% url 'servicios:lista_cotizaciones' %}" class="bg-slate-100 text-slate-600 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-900 hover:text-white transition-all flex items-center gap-2">
+        <a href="{% url 'servicios:lista_cotizaciones' %}" class="w-full sm:w-auto bg-slate-100 text-slate-600 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-900 hover:text-white transition-all flex items-center gap-2">
             <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> VOLVER
         </a>
     </header>
@@ -87,14 +87,16 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
                     
-                    <div class="space-y-2 w-full"> <label class="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-                        <i data-lucide="hash" class="w-3 h-3 text-indigo-500"></i> Código Operación / O.C.
-                    </label>
-                    <input type="text" name="codigo_voucher" id="id_codigo_voucher"
-                        value="{{ codigo_voucher_value|default_if_none:'' }}" 
-                        class="input-engine w-full px-2" 
-                        placeholder="INGRESAR N° DE VOUCHER O PEDIDO" required>
-                </div>
+                    <div class="space-y-2 w-full"> 
+                        <label class="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                            <i data-lucide="hash" class="w-3 h-3 text-indigo-500"></i> Código Operación / O.C.
+                        </label>
+                        <input type="text" name="codigo_voucher" id="id_codigo_voucher"
+                            value="{{ codigo_voucher_value|default_if_none:'' }}" 
+                            class="input-engine w-full px-2" 
+                            placeholder="INGRESAR N° DE VOUCHER O PEDIDO" required>
+                        <div id="codigo-error" class="hidden text-[9px] text-rose-600 font-bold uppercase tracking-wider mt-1"></div>
+                    </div>
 
                     <div class="space-y-2">
                         <label class="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
@@ -103,6 +105,10 @@
                         <input type="number" step="0.01" name="monto_pagado" id="id_monto_pagado"
                                value="{{ monto_pagado_value|default:cotizacion.monto_total|floatformat:2 }}" 
                                class="input-engine font-mono text-indigo-600" required>
+                        <div id="monto-error" class="hidden text-[9px] text-rose-600 font-bold uppercase tracking-wider mt-1"></div>
+                        <div class="text-[9px] text-slate-400 font-medium mt-1">
+                            Monto cotizado: <span class="font-mono text-slate-600">S/ {{ cotizacion.monto_total|floatformat:2 }}</span>
+                        </div>
                     </div>
 
                     <div class="space-y-2">
@@ -111,6 +117,12 @@
                         </label>
                         <input type="file" name="imagen_voucher" id="id_imagen_voucher" 
                                accept="image/*,application/pdf" class="file-engine" required>
+                        <div id="voucher-preview" class="hidden mt-2 p-2 bg-slate-50 border border-slate-200 rounded-lg">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="file" class="w-4 h-4 text-slate-500"></i>
+                                <span id="voucher-filename" class="text-[9px] font-bold text-slate-600"></span>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="space-y-2">
@@ -119,12 +131,43 @@
                         </label>
                         <input type="file" name="documento_firmado_cliente" id="id_documento_firmado_cliente" 
                                accept="application/pdf" class="file-engine border-rose-200 bg-rose-50/30" required>
+                        <div id="documento-preview" class="hidden mt-2 p-2 bg-rose-50 border border-rose-200 rounded-lg">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="file-text" class="w-4 h-4 text-rose-500"></i>
+                                <span id="documento-filename" class="text-[9px] font-bold text-rose-600"></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="pt-6 border-t border-slate-100 flex justify-end">
+                <div class="pt-6 border-t border-slate-100">
+                    <!-- Checklist de validación -->
+                    <div class="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <h4 class="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <i data-lucide="check-circle" class="w-4 h-4"></i> Checklist de Validación
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <div class="flex items-center gap-2">
+                                <div id="check-codigo" class="w-3 h-3 rounded-full bg-slate-300 flex-shrink-0"></div>
+                                <span class="text-[9px] font-bold text-slate-500 uppercase">Código Voucher</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div id="check-monto" class="w-3 h-3 rounded-full bg-slate-300 flex-shrink-0"></div>
+                                <span class="text-[9px] font-bold text-slate-500 uppercase">Monto Válido</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div id="check-voucher" class="w-3 h-3 rounded-full bg-slate-300 flex-shrink-0"></div>
+                                <span class="text-[9px] font-bold text-slate-500 uppercase">Voucher Adjunto</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div id="check-documento" class="w-3 h-3 rounded-full bg-slate-300 flex-shrink-0"></div>
+                                <span class="text-[9px] font-bold text-slate-500 uppercase">Documento Firmado</span>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <button type="submit" id="submitBtn" 
-                            class="group bg-slate-900 text-white px-10 py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-blue-600 transition-all flex items-center gap-4 shadow-xl shadow-slate-200 hover:shadow-blue-200 active:scale-95">
+                            class="group bg-slate-900 text-white px-10 py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-blue-600 transition-all flex items-center gap-4 shadow-xl shadow-slate-200 hover:shadow-blue-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
                         <i data-lucide="rocket" class="w-4 h-4 group-hover:animate-bounce"></i>
                         GENERAR PROYECTO AHORA
                     </button>
@@ -143,9 +186,110 @@
         
         const approvalForm = document.getElementById('approvalForm');
         const submitBtn = document.getElementById('submitBtn');
-
+        const codigoInput = document.getElementById('id_codigo_voucher');
+        const montoInput = document.getElementById('id_monto_pagado');
+        const voucherInput = document.getElementById('id_imagen_voucher');
+        const documentoInput = document.getElementById('id_documento_firmado_cliente');
+        
+        // Validación en tiempo real
+        function validateForm() {
+            let isValid = true;
+            
+            // Validar código voucher
+            const codigoError = document.getElementById('codigo-error');
+            const checkCodigo = document.getElementById('check-codigo');
+            if (codigoInput.value.trim().length < 3) {
+                codigoError.textContent = 'Código debe tener al menos 3 caracteres';
+                codigoError.classList.remove('hidden');
+                checkCodigo.className = 'w-3 h-3 rounded-full bg-rose-400 flex-shrink-0';
+                isValid = false;
+            } else {
+                codigoError.classList.add('hidden');
+                checkCodigo.className = 'w-3 h-3 rounded-full bg-emerald-400 flex-shrink-0';
+            }
+            
+            // Validar monto
+            const montoError = document.getElementById('monto-error');
+            const checkMonto = document.getElementById('check-monto');
+            const montoValue = parseFloat(montoInput.value) || 0;
+            const cotizacionMonto = {{ cotizacion.monto_total|default:0 }};
+            
+            if (montoValue <= 0) {
+                montoError.textContent = 'Monto debe ser mayor a 0';
+                montoError.classList.remove('hidden');
+                checkMonto.className = 'w-3 h-3 rounded-full bg-rose-400 flex-shrink-0';
+                isValid = false;
+            } else if (montoValue > cotizacionMonto * 1.1) {
+                montoError.textContent = 'Monto no puede exceder 10% del cotizado';
+                montoError.classList.remove('hidden');
+                checkMonto.className = 'w-3 h-3 rounded-full bg-rose-400 flex-shrink-0';
+                isValid = false;
+            } else {
+                montoError.classList.add('hidden');
+                checkMonto.className = 'w-3 h-3 rounded-full bg-emerald-400 flex-shrink-0';
+            }
+            
+            // Validar archivos
+            const checkVoucher = document.getElementById('check-voucher');
+            const checkDocumento = document.getElementById('check-documento');
+            
+            if (voucherInput.files.length === 0) {
+                checkVoucher.className = 'w-3 h-3 rounded-full bg-rose-400 flex-shrink-0';
+                isValid = false;
+            } else {
+                checkVoucher.className = 'w-3 h-3 rounded-full bg-emerald-400 flex-shrink-0';
+            }
+            
+            if (documentoInput.files.length === 0) {
+                checkDocumento.className = 'w-3 h-3 rounded-full bg-rose-400 flex-shrink-0';
+                isValid = false;
+            } else {
+                checkDocumento.className = 'w-3 h-3 rounded-full bg-emerald-400 flex-shrink-0';
+            }
+            
+            submitBtn.disabled = !isValid;
+            submitBtn.classList.toggle('opacity-50', !isValid);
+            submitBtn.classList.toggle('cursor-not-allowed', !isValid);
+            
+            return isValid;
+        }
+        
+        // Preview de archivos
+        function updateFilePreview(input, previewId, filenameId) {
+            const preview = document.getElementById(previewId);
+            const filename = document.getElementById(filenameId);
+            
+            if (input.files.length > 0) {
+                const file = input.files[0];
+                filename.textContent = file.name;
+                preview.classList.remove('hidden');
+                
+                // Validar tamaño de archivo (máx 10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert(`El archivo ${file.name} es demasiado grande. Máximo 10MB permitido.`);
+                    input.value = '';
+                    preview.classList.add('hidden');
+                }
+            } else {
+                preview.classList.add('hidden');
+            }
+            validateForm();
+        }
+        
+        // Event listeners
+        codigoInput.addEventListener('input', validateForm);
+        montoInput.addEventListener('input', validateForm);
+        voucherInput.addEventListener('change', () => updateFilePreview(voucherInput, 'voucher-preview', 'voucher-filename'));
+        documentoInput.addEventListener('change', () => updateFilePreview(documentoInput, 'documento-preview', 'documento-filename'));
+        
+        // Submit handler
         if (approvalForm && submitBtn) {
-            approvalForm.addEventListener('submit', () => {
+            approvalForm.addEventListener('submit', (e) => {
+                if (!validateForm()) {
+                    e.preventDefault();
+                    return false;
+                }
+                
                 submitBtn.disabled = true;
                 submitBtn.classList.replace('bg-slate-900', 'bg-slate-400');
                 submitBtn.style.cursor = 'not-allowed';
@@ -157,6 +301,9 @@
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             });
         }
+        
+        // Inicializar validación
+        validateForm();
     });
 </script>
 {% endblock %}

@@ -219,6 +219,34 @@
             }
         };
 
+        window.applyPlantillaDetalles = (detalles = []) => {
+            if (!Array.isArray(detalles)) return;
+
+            DATA_ARRAY.length = 0;
+            detalles.forEach(item => {
+                const sBase = ALL_SERVICES.find(x => String(x.pk) === String(item.servicio_id));
+
+                if (item.tipo_fila === 'categoria' || item.tipo_fila === 'subcategoria') {
+                    DATA_ARRAY.push({
+                        tipo_fila: item.tipo_fila,
+                        descripcion_especifica: item.descripcion_especifica ? item.descripcion_especifica.toUpperCase() : ''
+                    });
+                } else if (item.tipo_fila === 'servicio') {
+                    DATA_ARRAY.push({
+                        tipo_fila: 'servicio',
+                        servicio_id: item.servicio_id,
+                        descripcion_especifica: item.descripcion_especifica || (sBase ? sBase.nombre : ''),
+                        cantidad: parseFloat(item.cantidad) || 1,
+                        precio_unitario: parseFloat(item.precio_unitario) || 0,
+                        norma_nombre: sBase ? (sBase.norma_codigo + (sBase.metodo_codigo ? ' / ' + sBase.metodo_codigo : '')) : '',
+                        unidad_medida: item.unidad_medida || (sBase ? sBase.unidad_base : 'UND')
+                    });
+                }
+            });
+
+            renderTable();
+        };
+
         // --- AGREGAR CABECERAS Y ÍTEMS ---
         window.addHeader = (tipo, valOverride = null) => {
             let val = valOverride || document.getElementById(tipo === 'categoria' ? 'reg_categoria' : 'reg_subcategoria')?.value;
@@ -401,41 +429,15 @@
         window.cargarPlantillaAjax = async (plantillaId) => {
             if (!plantillaId) return;
 
-            const select = document.getElementById('select-plantilla');
-            select.disabled = true;
+            const select = document.getElementById('select-plantilla-modal');
+            if (select) select.disabled = true;
 
             try {
                 const response = await fetch(`/servicios/api/plantilla/${plantillaId}/`);
                 const data = await response.json();
 
                 if (data.success) {
-
-                    DATA_ARRAY.length = 0;
-
-                    data.detalles.forEach(item => {
-                        const sBase = ALL_SERVICES.find(x => String(x.pk) === String(item.servicio_id));
-
-                        if (item.tipo_fila === 'categoria' || item.tipo_fila === 'subcategoria') {
-                            DATA_ARRAY.push({
-                                tipo_fila: item.tipo_fila,
-                                descripcion_especifica: item.descripcion_especifica.toUpperCase()
-                            });
-                        } 
-                        else if (item.tipo_fila === 'servicio') {
-                            DATA_ARRAY.push({
-                                tipo_fila: 'servicio',
-                                servicio_id: item.servicio_id,
-                                descripcion_especifica: item.descripcion_especifica || (sBase ? sBase.nombre : ''),
-                                cantidad: parseFloat(item.cantidad) || 1,
-                                precio_unitario: parseFloat(item.precio_unitario) || 0,
-                                norma_nombre: sBase ? (sBase.norma_codigo + (sBase.metodo_codigo ? ' / ' + sBase.metodo_codigo : '')) : '',
-                                unidad_medida: item.unidad_medida || (sBase ? sBase.unidad_base : 'UND')
-                            });
-                        }
-                    });
-
-                    renderTable();
-
+                    window.applyPlantillaDetalles?.(data.detalles);
                 } else {
                     alert("Error cargando plantilla");
                 }
@@ -444,7 +446,7 @@
                 console.error(error);
                 alert("Error al cargar plantilla");
             } finally {
-                select.disabled = false;
+                if (select) select.disabled = false;
             }
         };
 
@@ -452,7 +454,8 @@
             if (modo === 'vacio') {
                 if (confirm("¿Estás seguro de limpiar todo el detalle actual?")) {
                     DATA_ARRAY = [];
-                    document.getElementById('select-plantilla').value = "";
+                    const select = document.getElementById('select-plantilla-modal');
+                    if (select) select.value = "";
                     renderTable();
                 }
             }

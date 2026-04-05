@@ -94,28 +94,46 @@ def _procesar_guardado_servicio(request, servicio=None):
     """Lógica de guardado simplificada para el Servicio independiente."""
     try:
         with transaction.atomic():
-            # 1. Validación de Precio
-            precio_base_str = request.POST.get('precio_base', '0').replace(',', '.')
+            # 1. Validación y sanitización de Precio
+            precio_base_str = request.POST.get('precio_base', '0').strip().replace(',', '.')
             try:
                 precio_base = Decimal(precio_base_str)
-            except Exception:
-                raise ValueError("El campo 'Precio Base' debe ser un número válido.")
+                if precio_base < 0:
+                    raise ValueError("El precio no puede ser negativo.")
+                if precio_base > 999999.99:
+                    raise ValueError("El precio no puede exceder 999,999.99")
+            except (InvalidOperation, ValueError) as e:
+                raise ValueError(f"El campo 'Precio Base' debe ser un número válido: {str(e)}")
 
-            # 2. Preparar Datos (Sin subcategoría FK)
+            # 2. Sanitización y validación de textos
+            nombre = request.POST.get('nombre', '').strip()
+            codigo_facturacion = request.POST.get('codigo_facturacion', '').strip()
+            unidad_base = request.POST.get('unidad_base', 'Ensayo').strip()
+
+            # Validaciones de longitud y caracteres
+            if not nombre or len(nombre) < 2 or len(nombre) > 200:
+                raise ValueError("El nombre debe tener entre 2 y 200 caracteres.")
+            
+            if not codigo_facturacion or len(codigo_facturacion) < 2 or len(codigo_facturacion) > 50:
+                raise ValueError("El código de facturación debe tener entre 2 y 50 caracteres.")
+            
+            # Validar que no contenga caracteres peligrosos
+            import re
+            if re.search(r'[<>]', nombre) or re.search(r'[<>]', codigo_facturacion):
+                raise ValueError("Los campos no pueden contener caracteres especiales (< >).")
+
+            # 3. Preparar Datos (Sin subcategoría FK)
             data_servicio = {
-                'nombre': request.POST.get('nombre'),
-                'codigo_facturacion': request.POST.get('codigo_facturacion'),
+                'nombre': nombre,
+                'codigo_facturacion': codigo_facturacion,
                 'precio_base': precio_base,
-                'unidad_base': request.POST.get('unidad_base', 'Ensayo'),
+                'unidad_base': unidad_base[:50],  # Limitar longitud
                 'esta_acreditado': request.POST.get('esta_acreditado') == 'on',
                 'norma_id': request.POST.get('norma') or None,
                 'metodo_id': request.POST.get('metodo') or None,
             }
 
-            if not data_servicio['nombre'] or not data_servicio['codigo_facturacion']:
-                raise ValueError("Nombre y Código de Facturación son obligatorios.")
-
-            # 3. Crear o Actualizar
+            # 4. Crear o Actualizar
             if servicio:
                 for key, value in data_servicio.items():
                     setattr(servicio, key, value)
@@ -168,45 +186,92 @@ def eliminar_servicio(request, pk):
 from django.http import JsonResponse
 from .models import Norma, Metodo
 
+@login_required
+@login_required
 def crear_norma_ajax(request):
-    if request.method == 'POST':
-        codigo = request.POST.get('codigo_norma')
-        nombre = request.POST.get('nombre_norma')
-        descripcion = request.POST.get('descripcion_norma', '')
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método no permitido.'})
+    
+    try:
+        codigo = request.POST.get('codigo_norma', '').strip()
+        nombre = request.POST.get('nombre_norma', '').strip()
+        descripcion = request.POST.get('descripcion_norma', '').strip()
 
-        if not codigo or not nombre:
-            return JsonResponse({'success': False, 'error': 'Código y Nombre son obligatorios.'})
+        # Validaciones de seguridad
+        if not codigo or len(codigo) < 2 or len(codigo) > 20:
+            return JsonResponse({'success': False, 'error': 'Código debe tener entre 2 y 20 caracteres.'})
+        
+        if not nombre or len(nombre) < 2 or len(nombre) > 100:
+            return JsonResponse({'success': False, 'error': 'Nombre debe tener entre 2 y 100 caracteres.'})
+        
+        if len(descripcion) > 500:
+            return JsonResponse({'success': False, 'error': 'Descripción no puede exceder 500 caracteres.'})
+        
+        # Validar caracteres peligrosos
+        import re
+        if re.search(r'[<>]', codigo) or re.search(r'[<>]', nombre) or re.search(r'[<>]', descripcion):
+            logger.warning(f"Intento de XSS en crear_norma_ajax por usuario {request.user.username}")
+            return JsonResponse({'success': False, 'error': 'Caracteres no permitidos detectados.'})
 
-        try:
-            norma = Norma.objects.create(
-                codigo=codigo,
-                nombre=nombre,
-                descripcion=descripcion
-            )
-            return JsonResponse({
-                'success': True,
-                'id': norma.id,
-                'codigo': norma.codigo  # Usamos el código para mostrarlo en el select
-            })
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
-    return JsonResponse({'success': False, 'error': 'Método no permitido.'})
+        # Verificar duplicados
+        if Norma.objects.filter(codigo=codigo).exists():
+            return JsonResponse({'success': False, 'error': 'Ya existe una norma con este código.'})
 
+        norma = Norma.objects.create(
+            codigo=codigo,
+            nombre=nombre,
+            descripcion=descripcion
+        )
+        
+        logger.info(f"Norma creada: {codigo} por usuario {request.user.username}")
+        return JsonResponse({
+            'success': True,
+            'id': norma.id,
+            'codigo': norma.codigo
+        })
+        
+    except Exception as e:
+        logger.error(f"Error en crear_norma_ajax: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Error interno del servidor.'})
+
+@login_required
+@login_required
 def crear_metodo_ajax(request):
     if request.method == 'POST':
-        codigo = request.POST.get('codigo_metodo')
-        nombre = request.POST.get('nombre_metodo')
-        descripcion = request.POST.get('descripcion_metodo', '')
-
-        if not codigo or not nombre:
-            return JsonResponse({'success': False, 'error': 'Código y Nombre son obligatorios.'})
-
         try:
+            codigo = request.POST.get('codigo_metodo', '').strip()
+            nombre = request.POST.get('nombre_metodo', '').strip()
+            descripcion = request.POST.get('descripcion_metodo', '').strip()
+
+            # Validaciones de seguridad
+            if not codigo or len(codigo) < 2 or len(codigo) > 20:
+                return JsonResponse({'success': False, 'error': 'Código debe tener entre 2 y 20 caracteres.'})
+            
+            if not nombre or len(nombre) < 2 or len(nombre) > 100:
+                return JsonResponse({'success': False, 'error': 'Nombre debe tener entre 2 y 100 caracteres.'})
+            
+            if len(descripcion) > 500:
+                return JsonResponse({'success': False, 'error': 'Descripción no puede exceder 500 caracteres.'})
+            
+            # Validar caracteres peligrosos
+            import re
+            if re.search(r'[<>]', codigo) or re.search(r'[<>]', nombre) or re.search(r'[<>]', descripcion):
+                logger.warning(f"Intento de XSS en crear_metodo_ajax por usuario {request.user.username}")
+                return JsonResponse({'success': False, 'error': 'Caracteres no permitidos detectados.'})
+
+            # Verificar duplicados
+            if Metodo.objects.filter(codigo=codigo).exists():
+                return JsonResponse({'success': False, 'error': 'Ya existe un método con este código.'})
+
             metodo = Metodo.objects.create(
                 codigo=codigo,
                 nombre=nombre,
                 descripcion=descripcion
             )
+            
+            # Log de seguridad
+            logger.info(f"Método creado exitosamente: {codigo} por usuario {request.user.username}")
+            
             return JsonResponse({
                 'success': True,
                 'id': metodo.id,
@@ -214,7 +279,8 @@ def crear_metodo_ajax(request):
                 'codigo': metodo.codigo
             })
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
+            logger.error(f"Error al crear método por usuario {request.user.username}: {str(e)}")
+            return JsonResponse({'success': False, 'error': 'Error interno del servidor.'})
     return JsonResponse({'success': False, 'error': 'Método no permitido.'})
     
 class NormaListView(ListView):
@@ -256,14 +322,32 @@ class MetodoUpdateView(SuccessMessageMixin, UpdateView):
     success_message = "El método de ensayo fue actualizado con éxito."
     
 @require_POST
+@login_required
+@require_POST
+@login_required
 def crear_categoria_ajax(request):
-    nombre = request.POST.get('nombre', '').strip()
-    if not nombre:
-        return JsonResponse({'status': 'error', 'message': 'El nombre es obligatorio'}, status=400)
-    
     try:
+        nombre = request.POST.get('nombre', '').strip()
+
+        # Validaciones de seguridad
+        if not nombre or len(nombre) < 2 or len(nombre) > 100:
+            return JsonResponse({'status': 'error', 'message': 'Nombre debe tener entre 2 y 100 caracteres.'}, status=400)
+        
+        # Validar caracteres peligrosos
+        import re
+        if re.search(r'[<>]', nombre):
+            logger.warning(f"Intento de XSS en crear_categoria_ajax por usuario {request.user.username}")
+            return JsonResponse({'status': 'error', 'message': 'Caracteres no permitidos detectados.'}, status=400)
+
         # get_or_create evita errores si la categoría ya existe
         categoria, created = CategoriaServicio.objects.get_or_create(nombre=nombre)
+        
+        # Log de seguridad
+        if created:
+            logger.info(f"Categoría creada exitosamente: {nombre} por usuario {request.user.username}")
+        else:
+            logger.info(f"Categoría existente utilizada: {nombre} por usuario {request.user.username}")
+        
         return JsonResponse({
             'status': 'success',
             'id': categoria.pk,
@@ -271,16 +355,33 @@ def crear_categoria_ajax(request):
             'nuevo': created
         })
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+        logger.error(f"Error al crear categoría por usuario {request.user.username}: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': 'Error interno del servidor.'}, status=400)
 
 @require_POST
+@login_required
 def crear_subcategoria_ajax(request):
-    nombre = request.POST.get('nombre', '').strip()
-    if not nombre:
-        return JsonResponse({'status': 'error', 'message': 'El nombre es obligatorio'}, status=400)
-
     try:
+        nombre = request.POST.get('nombre', '').strip()
+
+        # Validaciones de seguridad
+        if not nombre or len(nombre) < 2 or len(nombre) > 100:
+            return JsonResponse({'status': 'error', 'message': 'Nombre debe tener entre 2 y 100 caracteres.'}, status=400)
+        
+        # Validar caracteres peligrosos
+        import re
+        if re.search(r'[<>]', nombre):
+            logger.warning(f"Intento de XSS en crear_subcategoria_ajax por usuario {request.user.username}")
+            return JsonResponse({'status': 'error', 'message': 'Caracteres no permitidos detectados.'}, status=400)
+
         subcategoria, created = Subcategoria.objects.get_or_create(nombre=nombre)
+        
+        # Log de seguridad
+        if created:
+            logger.info(f"Subcategoría creada exitosamente: {nombre} por usuario {request.user.username}")
+        else:
+            logger.info(f"Subcategoría existente utilizada: {nombre} por usuario {request.user.username}")
+        
         return JsonResponse({
             'status': 'success',
             'id': subcategoria.pk,
@@ -288,7 +389,8 @@ def crear_subcategoria_ajax(request):
             'nuevo': created
         })
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+        logger.error(f"Error al crear subcategoría por usuario {request.user.username}: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': 'Error interno del servidor.'}, status=400)
     
 @login_required
 def lista_cotizaciones(request):
@@ -325,10 +427,15 @@ def lista_cotizaciones(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    get_params = request.GET.copy()
+    if 'page' in get_params:
+        del get_params['page']
+
     context = {
         'cotizaciones': page_obj,
         'query': query,
         'estados_disponibles': Cotizacion.ESTADO_CHOICES, # ESTA LÍNEA ES VITAL
+        'get_params': get_params.urlencode(),
     }
     return render(request, 'servicios/cotizacion_list.html', context)
 
@@ -690,6 +797,7 @@ def aprobar_cotizacion(request, pk):
     cotizacion = get_object_or_404(Cotizacion, pk=pk)
     
     if cotizacion.estado == 'Aceptada':
+        messages.warning(request, f'La cotización {cotizacion.numero_oferta} ya fue aprobada anteriormente.')
         return redirect('proyectos:lista_proyectos_pendientes')
 
     if request.method == 'POST':
@@ -698,20 +806,63 @@ def aprobar_cotizacion(request, pk):
         imagen_voucher = request.FILES.get('imagen_voucher')
         documento_firmado_cliente = request.FILES.get('documento_firmado_cliente')
         
-        try:
-            monto_pagado = Decimal(monto_pagado_str.replace(',', ''))
-        except (TypeError, InvalidOperation, ValueError):
-            monto_pagado = Decimal('0.00')
-
-        if not codigo_voucher or not imagen_voucher or not documento_firmado_cliente:
+        # Validaciones adicionales
+        errores = []
+        
+        if not codigo_voucher or len(codigo_voucher) < 3:
+            errores.append('El código de voucher debe tener al menos 3 caracteres.')
+        
+        if not monto_pagado_str:
+            errores.append('El monto pagado es obligatorio.')
+        else:
+            try:
+                monto_pagado = Decimal(monto_pagado_str.replace(',', ''))
+                if monto_pagado <= 0:
+                    errores.append('El monto pagado debe ser mayor a 0.')
+                elif monto_pagado > cotizacion.monto_total * Decimal('1.1'):
+                    errores.append('El monto pagado no puede exceder el 10% del monto cotizado.')
+            except (TypeError, InvalidOperation, ValueError):
+                errores.append('El monto pagado debe ser un número válido.')
+        
+        if not imagen_voucher:
+            errores.append('El voucher de depósito es obligatorio.')
+        else:
+            # Validar tamaño del archivo (máx 10MB)
+            if imagen_voucher.size > 10 * 1024 * 1024:
+                errores.append('El voucher de depósito no puede exceder 10MB.')
+            # Validar tipo de archivo
+            allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf']
+            if hasattr(imagen_voucher, 'content_type') and imagen_voucher.content_type not in allowed_types:
+                errores.append('El voucher debe ser una imagen (JPG, PNG, GIF) o PDF.')
+        
+        if not documento_firmado_cliente:
+            errores.append('El documento firmado es obligatorio.')
+        else:
+            # Validar tamaño del archivo (máx 10MB)
+            if documento_firmado_cliente.size > 10 * 1024 * 1024:
+                errores.append('El documento firmado no puede exceder 10MB.')
+            # Validar que sea PDF
+            if hasattr(documento_firmado_cliente, 'content_type') and documento_firmado_cliente.content_type != 'application/pdf':
+                errores.append('El documento firmado debe ser un archivo PDF.')
+        
+        if errores:
             return render(request, 'servicios/aprobar_cotizacion.html', {
                 'cotizacion': cotizacion,
-                'error': 'Todos los campos y archivos son obligatorios.',
+                'error': ' '.join(errores),
                 'codigo_voucher_value': codigo_voucher,
                 'monto_pagado_value': monto_pagado_str,
             })
 
         try:
+            # Verificar que no exista ya un voucher para esta cotización
+            if Voucher.objects.filter(cotizacion=cotizacion).exists():
+                return render(request, 'servicios/aprobar_cotizacion.html', {
+                    'cotizacion': cotizacion,
+                    'error': 'Esta cotización ya tiene un voucher registrado.',
+                    'codigo_voucher_value': codigo_voucher,
+                    'monto_pagado_value': monto_pagado_str,
+                })
+            
             voucher = Voucher.objects.create(
                 cotizacion=cotizacion,
                 codigo=codigo_voucher,
@@ -730,24 +881,29 @@ def aprobar_cotizacion(request, pk):
             nombre_proyecto = f"{cotizacion.cliente.razon_social} ({cotizacion.numero_oferta})"
             codigo_proyecto = f"P-{cotizacion.numero_oferta}" 
             
-            Proyecto.objects.get_or_create(
+            proyecto, created = Proyecto.objects.get_or_create(
                 cotizacion=cotizacion,
                 defaults={
                     'nombre_proyecto': nombre_proyecto,
                     'codigo_proyecto': codigo_proyecto, 
                     'cliente': cotizacion.cliente,
                     'estado': 'PENDIENTE',
-                    'descripcion_proyecto': "Proyecto generado automáticamente.",
+                    'descripcion_proyecto': f"Proyecto generado automáticamente desde cotización {cotizacion.numero_oferta}.",
                     'monto_cotizacion': cotizacion.monto_total,
                     'codigo_voucher': voucher.codigo,
                     'numero_muestras': total_muestras,
                 }
             )
             
+            if created:
+                messages.success(request, f'Proyecto "{proyecto.nombre_proyecto}" creado exitosamente.')
+            else:
+                messages.info(request, f'Proyecto ya existía, se actualizó la información.')
+            
             return redirect('proyectos:lista_proyectos_pendientes')
     
         except Exception as e:
-            logger.error(f"Error en aprobación {pk}: {str(e)}", exc_info=True)
+            logger.error(f"Error en aprobación de cotización {pk}: {str(e)}", exc_info=True)
             return render(request, 'servicios/aprobar_cotizacion.html', {
                 'cotizacion': cotizacion,
                 'error': f'Ocurrió un error al procesar la aprobación: {str(e)}',
@@ -757,56 +913,97 @@ def aprobar_cotizacion(request, pk):
     
     return render(request, 'servicios/aprobar_cotizacion.html', {'cotizacion': cotizacion})
 
+@login_required
+@login_required
 def buscar_servicios_api(request):
     """
     API para la búsqueda de servicios que devuelve una respuesta JSON (autocompletado).
     """
-    query = request.GET.get('q', '')
-    servicios = []
-    if query:
-        servicios_qs = Servicio.objects.filter(
-            Q(nombre__icontains=query) | Q(codigo_facturacion__icontains=query)
-        ).order_by('nombre')
-        
-        for servicio in servicios_qs:
-            servicios.append({
-                'pk': servicio.pk,
-                'nombre': servicio.nombre,
-                'codigo_facturacion': servicio.codigo_facturacion,
-                'unidad_base': servicio.unidad_base,
-                'precio_base': str(servicio.precio_base),
-            })
-    return JsonResponse(servicios, safe=False)
+    try:
+        query = request.GET.get('q', '').strip()
 
+        # Validaciones de seguridad
+        if len(query) > 100:
+            return JsonResponse({'error': 'La consulta no puede exceder 100 caracteres.'}, status=400)
+        
+        # Validar caracteres peligrosos
+        import re
+        if re.search(r'[<>]', query):
+            logger.warning(f"Intento de XSS en buscar_servicios_api por usuario {request.user.username}")
+            return JsonResponse({'error': 'Caracteres no permitidos detectados.'}, status=400)
+
+        servicios = []
+        if query:
+            servicios_qs = Servicio.objects.filter(
+                Q(nombre__icontains=query) | Q(codigo_facturacion__icontains=query)
+            ).order_by('nombre')[:50]  # Limitar resultados
+            
+            for servicio in servicios_qs:
+                servicios.append({
+                    'pk': servicio.pk,
+                    'nombre': servicio.nombre,
+                    'codigo_facturacion': servicio.codigo_facturacion,
+                    'unidad_base': servicio.unidad_base,
+                    'precio_base': str(servicio.precio_base),
+                })
+        
+        # Log de seguridad para consultas potencialmente sospechosas
+        if len(query) > 50:
+            logger.info(f"Consulta larga en buscar_servicios_api por usuario {request.user.username}: {query[:50]}...")
+        
+        return JsonResponse(servicios, safe=False)
+    except Exception as e:
+        logger.error(f"Error en buscar_servicios_api por usuario {request.user.username}: {str(e)}")
+        return JsonResponse({'error': 'Error interno del servidor.'}, status=500)
+
+@login_required
 def buscar_cotizaciones_api(request):
     """ Endpoint API para la búsqueda dinámica de cotizaciones. """
     
-    query = request.GET.get('q', '')
-    data = []
+    try:
+        query = request.GET.get('q', '').strip()
 
-    if query:
-        cotizaciones = Cotizacion.objects.filter(
-            Q(numero_oferta__icontains=query) |
-            Q(cliente__razon_social__icontains=query) |
-            Q(asunto_servicio__icontains=query)
-        ).select_related('cliente') 
+        # Validaciones de seguridad
+        if len(query) > 100:
+            return JsonResponse({'error': 'La consulta no puede exceder 100 caracteres.'}, status=400)
+        
+        # Validar caracteres peligrosos
+        import re
+        if re.search(r'[<>]', query):
+            logger.warning(f"Intento de XSS en buscar_cotizaciones_api por usuario {request.user.username}")
+            return JsonResponse({'error': 'Caracteres no permitidos detectados.'}, status=400)
 
-        for cotizacion in cotizaciones:
-            monto_total = cotizacion.monto_total if cotizacion.monto_total is not None else Decimal('0.00')
-            
-            data.append({
-                'pk': cotizacion.pk,
-                'numero_oferta': cotizacion.numero_oferta,
-                
-                'monto_total': str(cotizacion.monto_total),
-                
-                'cliente_razon_social': cotizacion.cliente.razon_social,
-                
-                'estado': cotizacion.estado,
-                'estado_display': cotizacion.get_estado_display(), 
-            })
+        data = []
 
-    return JsonResponse(data, safe=False)
+        if query:
+            cotizaciones = Cotizacion.objects.filter(
+                Q(numero_oferta__icontains=query) |
+                Q(cliente__razon_social__icontains=query) |
+                Q(asunto_servicio__icontains=query)
+            ).select_related('cliente')[:50]  # Limitar resultados
+
+            for cotizacion in cotizaciones:
+                monto_total = cotizacion.monto_total if cotizacion.monto_total is not None else Decimal('0.00')
+                
+                data.append({
+                    'pk': cotizacion.pk,
+                    'numero_oferta': cotizacion.numero_oferta,
+                    'fecha_generacion': cotizacion.fecha_generacion.strftime('%d/%m/%Y') if cotizacion.fecha_generacion else '',
+                    'cliente_razon_social': cotizacion.cliente.razon_social,
+                    'asunto_servicio': cotizacion.asunto_servicio or '',
+                    'monto_total': str(monto_total),
+                    'estado': cotizacion.estado,
+                    'estado_display': cotizacion.get_estado_display(), 
+                })
+
+        # Log de seguridad para consultas potencialmente sospechosas
+        if len(query) > 50:
+            logger.info(f"Consulta larga en buscar_cotizaciones_api por usuario {request.user.username}: {query[:50]}...")
+        
+        return JsonResponse(data, safe=False)
+    except Exception as e:
+        logger.error(f"Error en buscar_cotizaciones_api por usuario {request.user.username}: {str(e)}")
+        return JsonResponse({'error': 'Error interno del servidor.'}, status=500)
 
 @login_required
 def administracion_view(request):
