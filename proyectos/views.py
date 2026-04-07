@@ -23,6 +23,9 @@ from django.db.models import Exists, OuterRef
 from .models import Proyecto, TipoMuestra, RecepcionMuestra, MuestraDetalle,UnidadMedida, SolicitudEnsayo, DetalleSolicitudEnsayo, IncidenciaSolicitud, InformeFinal
 from servicios.models import Servicio, CotizacionDetalle, CategoriaServicio, Subcategoria, CotizacionGrupo,Cotizacion
 from trabajadores.models import TrabajadorProfile
+import re
+from urllib.parse import quote
+
 
 logger = logging.getLogger(__name__)
 
@@ -385,19 +388,11 @@ def limpiar_numero_whatsapp(numero: str) -> str:
         return ""
     return re.sub(r"\D", "", numero)
 
-import re
-from urllib.parse import quote
-
-from django.contrib import messages
-from django.shortcuts import get_object_or_404, redirect
-from .models import RecepcionMuestra, Proyecto
-
 
 def limpiar_numero_whatsapp(numero: str) -> str:
     if not numero:
         return ""
     return re.sub(r"\D", "", numero)
-
 
 
 @login_required
@@ -497,37 +492,93 @@ def api_obtener_detalles_cotizacion(request, cotizacion_id):
 
         cotizacion = get_object_or_404(Cotizacion, pk=cotizacion_id)
 
-        detalles = CotizacionDetalle.objects.filter(
-            grupo__cotizacion=cotizacion
-        ).select_related('servicio')
+        # Recepción activa de la cotización
+        recepcion = RecepcionMuestra.objects.filter(
+            cotizacion=cotizacion
+        ).order_by('-id').first()
 
-        servicios_data = []
-        for item in detalles:
+        solicitud_existente = None
+        if recepcion:
+            solicitud_existente = SolicitudEnsayo.objects.filter(
+                recepcion=recepcion
+            ).select_related('cotizacion', 'recepcion').first()
+
+        # 1) Detalles ya asignados en ESTA solicitud
+        detalles_asignados = []
+        servicios_registrados_ids = set()
+
+        if solicitud_existente:
+            detalles_qs = solicitud_existente.detalles.select_related(
+                'muestra',
+                'servicio_cotizado__servicio',
+                'tecnico_asignado'
+            ).order_by('id')
+
+            for d in detalles_qs:
+                servicios_registrados_ids.add(d.servicio_cotizado_id)
+
+                detalles_asignados.append({
+                    'detalle_id': d.id,
+                    'muestra_id': d.muestra_id,
+                    'muestra_codigo': d.muestra.codigo_laboratorio if d.muestra else '',
+                    'servicio_cotizado_id': d.servicio_cotizado_id,
+                    'nombre_servicio': d.servicio_cotizado.servicio.nombre if d.servicio_cotizado and d.servicio_cotizado.servicio else "Servicio",
+                    'norma': d.norma or '',
+                    'metodo': d.metodo or '',
+                    'tecnico_id': d.tecnico_asignado_id or '',
+                    'tecnico_nombre': d.tecnico_asignado.nombre_completo if d.tecnico_asignado else '-- Sin Asignar --',
+                    'fecha_entrega': d.fecha_entrega_programada.strftime('%Y-%m-%d') if d.fecha_entrega_programada else '',
+                })
+
+        # 2) Servicios pendientes de ESTA cotización, excluyendo los ya registrados
+        detalles_cotizacion = CotizacionDetalle.objects.filter(
+            grupo__cotizacion=cotizacion
+        ).exclude(
+            id__in=servicios_registrados_ids
+        ).select_related('servicio').order_by('id')
+
+        servicios_pendientes = []
+        for item in detalles_cotizacion:
             norma = item.norma_manual or (item.servicio.norma if item.servicio else "")
             metodo = item.metodo_manual or (item.servicio.metodo if item.servicio else "")
-            servicios_data.append({
-                'cotizacion_detalle_id': item.id,  
-                'servicio_id': item.servicio.id if item.servicio else None,  
+
+            servicios_pendientes.append({
+                'cotizacion_detalle_id': item.id,
+                'servicio_id': item.servicio.id if item.servicio else None,
                 'nombre_servicio': item.servicio.nombre if item.servicio else "Servicio Especial",
                 'norma': str(norma),
                 'metodo': str(metodo),
             })
 
-        muestras = MuestraDetalle.objects.filter(
-            recepcion__cotizacion=cotizacion
-        ).values('id', 'codigo_laboratorio', 'descripcion')[:50]  # Limitar resultados
+        # 3) Muestras disponibles para esa cotización
+        muestras = list(
+            MuestraDetalle.objects.filter(
+                recepcion__cotizacion=cotizacion
+            ).order_by('codigo_laboratorio').values(
+                'id', 'codigo_laboratorio', 'descripcion'
+            )[:100]
+        )
 
-        logger.info(f"Detalles de cotización {cotizacion_id} consultados por usuario {request.user.username}")
+        logger.info(
+            f"Estado actual de cotización {cotizacion_id} consultado por usuario {request.user.username}"
+        )
 
         return JsonResponse({
-            'servicios': servicios_data,
-            'muestras': list(muestras)
+            'solicitud_existente_id': solicitud_existente.id if solicitud_existente else None,
+            'detalles_asignados': detalles_asignados,
+            'servicios_pendientes': servicios_pendientes,
+            'muestras': muestras,
+            'bloquear_cotizacion': len(servicios_pendientes) == 0 and len(detalles_asignados) > 0,
         })
+
     except Exception as e:
-        logger.error(f"Error al obtener detalles de cotización {cotizacion_id} por usuario {request.user.username}: {str(e)}")
+        logger.error(
+            f"Error al obtener detalles de cotización {cotizacion_id} por usuario {request.user.username}: {str(e)}"
+        )
         return JsonResponse({'error': 'Error interno del servidor.'}, status=500)
 
 @transaction.atomic
+@login_required
 def gestionar_solicitud_ensayo(request, pk=None):
     solicitud = get_object_or_404(SolicitudEnsayo, pk=pk) if pk else None
 
@@ -549,33 +600,25 @@ def gestionar_solicitud_ensayo(request, pk=None):
                 raise Exception("No existe una Recepción para esta Cotización.")
 
             with transaction.atomic():
+                if not solicitud:
+                    solicitud = SolicitudEnsayo.objects.filter(recepcion=recepcion).first()
+
                 if solicitud:
                     solicitud.cotizacion_id = cotizacion_id
                     solicitud.recepcion = recepcion
                     solicitud.fecha_solicitud = fecha_solicitud
                     solicitud.fecha_entrega_programada = fecha_entrega_cabecera
                     solicitud.save()
-                    solicitud.detalles.all().delete()
-                    solicitud.incidencias.all().delete()
                 else:
-                    solicitud_existente = SolicitudEnsayo.objects.filter(recepcion=recepcion).first()
-                    if solicitud_existente:
-                        messages.warning(
-                            request,
-                            f"Ya existe una solicitud para esta recepción: {solicitud_existente.codigo_solicitud}. Se abrió la existente para edición."
-                        )
-                        return redirect('proyectos:editar_solicitud', pk=solicitud_existente.pk)
-
                     cotizacion = get_object_or_404(Cotizacion, pk=cotizacion_id)
                     year_part = str(timezone.now().year)
-                    
                     cot_num = cotizacion.numero_oferta.split('-')[-1] if cotizacion.numero_oferta else '000'
-                    
                     prefix_sol = f'SOL-{cot_num}-{year_part}'
+
                     max_result = SolicitudEnsayo.objects.filter(
                         codigo_solicitud__startswith=f'{prefix_sol}-'
                     ).aggregate(Max('codigo_solicitud'))
-                    
+
                     last_num_sol = max_result.get('codigo_solicitud__max')
                     next_order_num = 1
                     if last_num_sol:
@@ -583,7 +626,7 @@ def gestionar_solicitud_ensayo(request, pk=None):
                             next_order_num = int(last_num_sol.split('-')[-1]) + 1
                         except (IndexError, ValueError):
                             next_order_num = 1
-                    
+
                     codigo_solicitud = f'{prefix_sol}-{str(next_order_num).zfill(3)}'
 
                     solicitud = SolicitudEnsayo.objects.create(
@@ -612,24 +655,49 @@ def gestionar_solicitud_ensayo(request, pk=None):
                     ).select_related('servicio')
                 }
 
+                servicios_ya_guardados = set(
+                    solicitud.detalles.values_list('servicio_cotizado_id', flat=True)
+                )
+
                 ensayos_list = []
-                total_filas = max(len(muestras_ids), len(servicios_ids))
+                omitidas = 0
+
+                total_filas = max(
+                    len(muestras_ids),
+                    len(servicios_ids),
+                    len(tecnicos_ids),
+                    len(entregas_det)
+                )
 
                 for i in range(total_filas):
                     m_id = muestras_ids[i].strip() if i < len(muestras_ids) and muestras_ids[i] else ""
                     s_id = servicios_ids[i].strip() if i < len(servicios_ids) and servicios_ids[i] else ""
+                    tecnico_id = tecnicos_ids[i].strip() if i < len(tecnicos_ids) and tecnicos_ids[i] else ""
+                    fecha_entrega_det = entregas_det[i].strip() if i < len(entregas_det) and entregas_det[i] else ""
 
-                    if not m_id or not s_id:
+                    if not m_id and not s_id and not tecnico_id and not fecha_entrega_det:
+                        continue
+
+                    if not (m_id and s_id and tecnico_id and fecha_entrega_det):
+                        omitidas += 1
+                        continue
+
+                    try:
+                        s_id_int = int(s_id)
+                    except ValueError:
+                        omitidas += 1
+                        continue
+
+                    if s_id_int in servicios_ya_guardados:
                         continue
 
                     cot_det = serv_map.get(s_id)
                     if not cot_det:
+                        omitidas += 1
                         continue
 
                     norma_val = normas[i].strip() if i < len(normas) and normas[i] else ""
                     metodo_val = metodos[i].strip() if i < len(metodos) and metodos[i] else ""
-                    tecnico_id = tecnicos_ids[i].strip() if i < len(tecnicos_ids) and tecnicos_ids[i] else None
-                    fecha_entrega_det = entregas_det[i].strip() if i < len(entregas_det) and entregas_det[i] else fecha_entrega_cabecera
 
                     ensayos_list.append(
                         DetalleSolicitudEnsayo(
@@ -644,16 +712,18 @@ def gestionar_solicitud_ensayo(request, pk=None):
                         )
                     )
 
-                if not ensayos_list:
-                    raise Exception("Debe registrar al menos un ensayo válido con muestra y servicio.")
-
-                DetalleSolicitudEnsayo.objects.bulk_create(ensayos_list)
+                if ensayos_list:
+                    DetalleSolicitudEnsayo.objects.bulk_create(ensayos_list)
 
                 inc_detalles = request.POST.getlist('incidencia_detalle[]')
                 inc_fechas = request.POST.getlist('incidencia_fecha[]')
                 inc_clientes = request.POST.getlist('incidencia_cliente[]')
                 inc_responsables = request.POST.getlist('incidencia_responsable_id[]')
                 inc_autorizados = request.POST.getlist('incidencia_autorizado[]')
+
+                incidencias_existentes = set(
+                    solicitud.incidencias.values_list('detalle_incidencia', 'representante_cliente')
+                )
 
                 incidencias_list = []
                 for j in range(len(inc_detalles)):
@@ -665,6 +735,10 @@ def gestionar_solicitud_ensayo(request, pk=None):
                     responsable_id = inc_responsables[j].strip() if j < len(inc_responsables) and inc_responsables[j] else None
                     fecha_ocurrencia = inc_fechas[j] if j < len(inc_fechas) and inc_fechas[j] else timezone.now()
                     representante_cliente = inc_clientes[j] if j < len(inc_clientes) else ""
+
+                    key_inc = (texto, representante_cliente)
+                    if key_inc in incidencias_existentes:
+                        continue
 
                     nueva_inc = IncidenciaSolicitud(
                         solicitud=solicitud,
@@ -684,8 +758,15 @@ def gestionar_solicitud_ensayo(request, pk=None):
                 if incidencias_list:
                     IncidenciaSolicitud.objects.bulk_create(incidencias_list)
 
-            messages.success(request, f"Solicitud {solicitud.codigo_solicitud} guardada con éxito.")
-            return redirect('proyectos:lista_solicitudes')
+            if omitidas:
+                messages.warning(
+                    request,
+                    f"Se guardó el avance. {omitidas} fila(s) incompletas no se registraron."
+                )
+            else:
+                messages.success(request, f"Solicitud {solicitud.codigo_solicitud} guardada con éxito.")
+
+            return redirect('proyectos:gestionar_solicitud_ensayo', pk=solicitud.pk)
 
         except Exception as e:
             print("ERROR EN gestionar_solicitud_ensayo:", repr(e))
@@ -700,63 +781,105 @@ def gestionar_solicitud_ensayo(request, pk=None):
         if proyecto and proyecto.cotizacion:
             cotizacion_preseleccionada = proyecto.cotizacion
 
-    subq_solicitud_finalizada = SolicitudEnsayo.objects.filter(
-        cotizacion=OuterRef('pk'),
-        estado='finalizado'
-    )
+    if request.method == 'GET' and not solicitud:
+        cotizacion_id = request.GET.get('cotizacion')
+        if cotizacion_id:
+            recepcion_existente = RecepcionMuestra.objects.filter(
+                cotizacion_id=cotizacion_id
+            ).order_by('-id').first()
 
-    subq_informe = InformeFinal.objects.filter(
-        solicitud__cotizacion=OuterRef('pk')
-    )
+            if recepcion_existente:
+                solicitud_existente = SolicitudEnsayo.objects.filter(
+                    recepcion=recepcion_existente
+                ).first()
 
-    cotizaciones_base = (
+                if solicitud_existente:
+                    solicitud = solicitud_existente
+
+    cotizaciones_disponibles_ids = []
+
+    cotizaciones_qs = (
         Cotizacion.objects
         .filter(
             estado='Aceptada',
             recepciones__isnull=False
         )
-        .annotate(
-            tiene_solicitud_finalizada=Exists(subq_solicitud_finalizada),
-            tiene_informe=Exists(subq_informe)
-        )
-        .filter(
-            tiene_solicitud_finalizada=False,
-            tiene_informe=False
-        )
+        .select_related('cliente')
         .distinct()
+        .order_by('-fecha_creacion')
     )
 
-    cotizacion_ids = list(cotizaciones_base.values_list('pk', flat=True))
+    for cot in cotizaciones_qs:
+        total_servicios = CotizacionDetalle.objects.filter(
+            grupo__cotizacion=cot
+        ).count()
 
-    if solicitud and solicitud.cotizacion_id and solicitud.cotizacion_id not in cotizacion_ids:
-        cotizacion_ids.append(solicitud.cotizacion_id)
+        recepcion = RecepcionMuestra.objects.filter(
+            cotizacion=cot
+        ).order_by('-id').first()
 
-    if cotizacion_preseleccionada and cotizacion_preseleccionada.pk not in cotizacion_ids:
-        cotizacion_ids.append(cotizacion_preseleccionada.pk)
+        solicitud_existente = None
+        if recepcion:
+            solicitud_existente = SolicitudEnsayo.objects.filter(
+                recepcion=recepcion
+            ).first()
+
+        servicios_registrados = 0
+        if solicitud_existente:
+            servicios_registrados = solicitud_existente.detalles.values(
+                'servicio_cotizado_id'
+            ).distinct().count()
+
+        if not solicitud_existente or servicios_registrados < total_servicios:
+            cotizaciones_disponibles_ids.append(cot.id)
+
+    if solicitud and solicitud.cotizacion_id and solicitud.cotizacion_id not in cotizaciones_disponibles_ids:
+        cotizaciones_disponibles_ids.append(solicitud.cotizacion_id)
+
+    if cotizacion_preseleccionada and cotizacion_preseleccionada.pk not in cotizaciones_disponibles_ids:
+        cotizaciones_disponibles_ids.append(cotizacion_preseleccionada.pk)
 
     cotizaciones = Cotizacion.objects.filter(
-        pk__in=cotizacion_ids
+        pk__in=cotizaciones_disponibles_ids
     ).select_related('cliente').order_by('-fecha_creacion')
 
     cotizacion_activa = solicitud.cotizacion if solicitud else cotizacion_preseleccionada
 
+    servicios_registrados_ids = (
+        solicitud.detalles.values_list('servicio_cotizado_id', flat=True)
+        if solicitud else []
+    )
+
     servicios_items = CotizacionDetalle.objects.filter(
         grupo__cotizacion=cotizacion_activa
+    ).exclude(
+        id__in=servicios_registrados_ids
     ).select_related('servicio') if cotizacion_activa else CotizacionDetalle.objects.none()
 
     muestras_disponibles = MuestraDetalle.objects.filter(
         recepcion__cotizacion=cotizacion_activa
     ).select_related('tipo_muestra', 'unidad_medida') if cotizacion_activa else MuestraDetalle.objects.none()
 
+    dias_plazo = ""
+    
+    if solicitud and solicitud.fecha_solicitud and solicitud.fecha_entrega_programada:
+        try:
+            dias_plazo = (solicitud.fecha_entrega_programada - solicitud.fecha_solicitud).days
+        except Exception:
+            dias_plazo = ""
+    
     context = {
         'solicitud': solicitud,
-        'detalles': solicitud.detalles.all() if solicitud else [],
+        'detalles': solicitud.detalles.select_related(
+            'muestra', 'servicio_cotizado__servicio', 'tecnico_asignado'
+        ).all() if solicitud else [],
         'incidencias': solicitud.incidencias.all() if solicitud else [],
         'cotizaciones': cotizaciones,
         'cotizacion_preseleccionada': cotizacion_activa,
         'trabajadores': TrabajadorProfile.objects.all(),
         'muestras_disponibles': muestras_disponibles,
         'servicios_items': servicios_items,
+        'dias_plazo': dias_plazo,
     }
     return render(request, 'proyectos/ensayos_form.html', context)
 

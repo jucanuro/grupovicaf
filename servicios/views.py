@@ -94,7 +94,6 @@ def _procesar_guardado_servicio(request, servicio=None):
     """Lógica de guardado simplificada para el Servicio independiente."""
     try:
         with transaction.atomic():
-            # 1. Validación y sanitización de Precio
             precio_base_str = request.POST.get('precio_base', '0').strip().replace(',', '.')
             try:
                 precio_base = Decimal(precio_base_str)
@@ -105,35 +104,30 @@ def _procesar_guardado_servicio(request, servicio=None):
             except (InvalidOperation, ValueError) as e:
                 raise ValueError(f"El campo 'Precio Base' debe ser un número válido: {str(e)}")
 
-            # 2. Sanitización y validación de textos
             nombre = request.POST.get('nombre', '').strip()
             codigo_facturacion = request.POST.get('codigo_facturacion', '').strip()
             unidad_base = request.POST.get('unidad_base', 'Ensayo').strip()
 
-            # Validaciones de longitud y caracteres
             if not nombre or len(nombre) < 2 or len(nombre) > 200:
                 raise ValueError("El nombre debe tener entre 2 y 200 caracteres.")
             
             if not codigo_facturacion or len(codigo_facturacion) < 2 or len(codigo_facturacion) > 50:
                 raise ValueError("El código de facturación debe tener entre 2 y 50 caracteres.")
             
-            # Validar que no contenga caracteres peligrosos
             import re
             if re.search(r'[<>]', nombre) or re.search(r'[<>]', codigo_facturacion):
                 raise ValueError("Los campos no pueden contener caracteres especiales (< >).")
 
-            # 3. Preparar Datos (Sin subcategoría FK)
             data_servicio = {
                 'nombre': nombre,
                 'codigo_facturacion': codigo_facturacion,
                 'precio_base': precio_base,
-                'unidad_base': unidad_base[:50],  # Limitar longitud
+                'unidad_base': unidad_base[:50], 
                 'esta_acreditado': request.POST.get('esta_acreditado') == 'on',
                 'norma_id': request.POST.get('norma') or None,
                 'metodo_id': request.POST.get('metodo') or None,
             }
 
-            # 4. Crear o Actualizar
             if servicio:
                 for key, value in data_servicio.items():
                     setattr(servicio, key, value)
@@ -197,23 +191,21 @@ def crear_norma_ajax(request):
         nombre = request.POST.get('nombre_norma', '').strip()
         descripcion = request.POST.get('descripcion_norma', '').strip()
 
-        # Validaciones de seguridad
-        if not codigo or len(codigo) < 2 or len(codigo) > 20:
-            return JsonResponse({'success': False, 'error': 'Código debe tener entre 2 y 20 caracteres.'})
+       
+        if not codigo or len(codigo) < 1 or len(codigo) > 20:
+            return JsonResponse({'success': False, 'error': 'Código debe tener entre 1 y 20 caracteres.'})
         
-        if not nombre or len(nombre) < 2 or len(nombre) > 100:
+        if not nombre or len(nombre) < 1 or len(nombre) > 100:
             return JsonResponse({'success': False, 'error': 'Nombre debe tener entre 2 y 100 caracteres.'})
         
         if len(descripcion) > 500:
             return JsonResponse({'success': False, 'error': 'Descripción no puede exceder 500 caracteres.'})
         
-        # Validar caracteres peligrosos
         import re
         if re.search(r'[<>]', codigo) or re.search(r'[<>]', nombre) or re.search(r'[<>]', descripcion):
             logger.warning(f"Intento de XSS en crear_norma_ajax por usuario {request.user.username}")
             return JsonResponse({'success': False, 'error': 'Caracteres no permitidos detectados.'})
 
-        # Verificar duplicados
         if Norma.objects.filter(codigo=codigo).exists():
             return JsonResponse({'success': False, 'error': 'Ya existe una norma con este código.'})
 
@@ -243,23 +235,20 @@ def crear_metodo_ajax(request):
             nombre = request.POST.get('nombre_metodo', '').strip()
             descripcion = request.POST.get('descripcion_metodo', '').strip()
 
-            # Validaciones de seguridad
-            if not codigo or len(codigo) < 2 or len(codigo) > 20:
-                return JsonResponse({'success': False, 'error': 'Código debe tener entre 2 y 20 caracteres.'})
+            if not codigo or len(codigo) < 1 or len(codigo) > 20:
+                return JsonResponse({'success': False, 'error': 'Código debe tener entre 1 y 20 caracteres.'})
             
-            if not nombre or len(nombre) < 2 or len(nombre) > 100:
+            if not nombre or len(nombre) < 1 or len(nombre) > 100:
                 return JsonResponse({'success': False, 'error': 'Nombre debe tener entre 2 y 100 caracteres.'})
             
             if len(descripcion) > 500:
                 return JsonResponse({'success': False, 'error': 'Descripción no puede exceder 500 caracteres.'})
             
-            # Validar caracteres peligrosos
             import re
             if re.search(r'[<>]', codigo) or re.search(r'[<>]', nombre) or re.search(r'[<>]', descripcion):
                 logger.warning(f"Intento de XSS en crear_metodo_ajax por usuario {request.user.username}")
                 return JsonResponse({'success': False, 'error': 'Caracteres no permitidos detectados.'})
 
-            # Verificar duplicados
             if Metodo.objects.filter(codigo=codigo).exists():
                 return JsonResponse({'success': False, 'error': 'Ya existe un método con este código.'})
 
@@ -269,7 +258,6 @@ def crear_metodo_ajax(request):
                 descripcion=descripcion
             )
             
-            # Log de seguridad
             logger.info(f"Método creado exitosamente: {codigo} por usuario {request.user.username}")
             
             return JsonResponse({
