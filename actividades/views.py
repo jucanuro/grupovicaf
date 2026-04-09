@@ -1,6 +1,8 @@
 import json
 import logging
+import re
 from datetime import timedelta
+
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
@@ -9,11 +11,9 @@ from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
 from django.views.decorators.http import require_GET, require_POST
 
-logger = logging.getLogger(__name__)
-
 from clientes.models import Cliente
-from trabajadores.models import TrabajadorProfile
 from proyectos.models import Proyecto, RecepcionMuestra, SolicitudEnsayo, InformeFinal, DetalleSolicitudEnsayo
+from trabajadores.models import TrabajadorProfile
 
 from .models import (
     CalendarioActividad,
@@ -21,6 +21,93 @@ from .models import (
     CalendarioParticipante,
     CalendarioRecordatorio,
 )
+
+logger = logging.getLogger(__name__)
+
+
+def normalizar_rango_fechas(inicio_date, fin_date):
+    if not fin_date or fin_date <= inicio_date:
+        fin_date = inicio_date + timedelta(days=1)
+    return inicio_date, fin_date
+
+
+def calcular_metricas_tiempo(inicio_date, fin_date, hoy=None):
+    hoy = hoy or timezone.localdate()
+    inicio_date, fin_date = normalizar_rango_fechas(inicio_date, fin_date)
+
+    duracion_total_dias = max((fin_date - inicio_date).days, 1)
+
+    if hoy < inicio_date:
+        return {
+            'duracion_total_dias': duracion_total_dias,
+            'dias_transcurridos': 0,
+            'dias_restantes': duracion_total_dias,
+            'progreso_temporal': 0,
+            'esta_vencido': False,
+        }
+
+    if hoy >= fin_date:
+        return {
+            'duracion_total_dias': duracion_total_dias,
+            'dias_transcurridos': duracion_total_dias,
+            'dias_restantes': 0,
+            'progreso_temporal': 100,
+            'esta_vencido': True,
+        }
+
+    dias_transcurridos = max((hoy - inicio_date).days, 0)
+    dias_restantes = max((fin_date - hoy).days, 0)
+    progreso_temporal = int((dias_transcurridos / duracion_total_dias) * 100)
+
+    return {
+        'duracion_total_dias': duracion_total_dias,
+        'dias_transcurridos': dias_transcurridos,
+        'dias_restantes': dias_restantes,
+        'progreso_temporal': max(0, min(progreso_temporal, 100)),
+        'esta_vencido': False,
+    }
+
+
+def obtener_responsable_actividad(actividad):
+    participante_responsable = actividad.participantes.filter(
+        rol='RESPONSABLE'
+    ).select_related('trabajador__user').first()
+
+    if participante_responsable:
+        return {
+            'id': participante_responsable.trabajador_id,
+            'nombre': str(participante_responsable.trabajador),
+            'rol': participante_responsable.rol,
+        }
+
+    primer_participante = actividad.participantes.select_related('trabajador__user').first()
+    if primer_participante:
+        return {
+            'id': primer_participante.trabajador_id,
+            'nombre': str(primer_participante.trabajador),
+            'rol': primer_participante.rol,
+        }
+
+    if getattr(actividad, 'creado_por', None):
+        return {
+            'id': actividad.creado_por.id,
+            'nombre': actividad.creado_por.get_full_name() or actividad.creado_por.username,
+            'rol': 'CREADOR',
+        }
+
+    return {
+        'id': None,
+        'nombre': 'Sin asignar',
+        'rol': '',
+    }
+
+
+def obtener_responsable_ensayo(ensayo):
+    return {
+        'id': None,
+        'nombre': 'Sin asignar',
+        'rol': '',
+    }
 
 
 @login_required
@@ -61,36 +148,69 @@ def calendario_eventos_json(request):
     categoria_id = request.GET.get('categoria')
     estado = request.GET.get('estado')
     responsable_id = request.GET.get('responsable')
+    proyecto_id = request.GET.get('proyecto')
 
-    actividades = CalendarioActividad.objects.filter(es_visible=True).select_related(
-        'categoria', 'cliente', 'proyecto', 'recepcion', 'solicitud_ensayo', 'informe_final'
-    ).prefetch_related('participantes__trabajador')
+    start_dt = parse_datetime(start) if start else None
+    end_dt = parse_datetime(end) if end else None
 
-    if start:
-        start_dt = parse_datetime(start)
-        if start_dt:
-            actividades = actividades.filter(fecha_fin__gte=start_dt)
+    start_date = start_dt.date() if start_dt else None
+    end_date = end_dt.date() if end_dt else None
 
-    if end:
-        end_dt = parse_datetime(end)
-        if end_dt:
-            actividades = actividades.filter(fecha_inicio__lte=end_dt)
+    proyecto_obj = None
+    cotizacion_id_proyecto = None
+
+    if proyecto_id:
+        proyecto_obj = Proyecto.objects.filter(pk=proyecto_id).select_related('cotizacion').first()
+        if proyecto_obj and proyecto_obj.cotizacion_id:
+            cotizacion_id_proyecto = proyecto_obj.cotizacion_id
+
+    actividades = CalendarioActividad.objects.filter(
+        es_visible=True
+    ).select_related(
+        'categoria',
+        'cliente',
+        'proyecto',
+        'recepcion',
+        'solicitud_ensayo',
+        'informe_final'
+    ).prefetch_related(
+        'participantes__trabajador'
+    )
+
+    if start_dt:
+        actividades = actividades.filter(fecha_fin__gte=start_dt)
+
+    if end_dt:
+        actividades = actividades.filter(fecha_inicio__lte=end_dt)
 
     if categoria_id:
         actividades = actividades.filter(categoria_id=categoria_id)
 
-    if estado:
-        actividades = actividades.filter(estado=estado)
+    if estado and estado.upper() in ['PROGRAMADA', 'EN_CURSO', 'COMPLETADA', 'CANCELADA', 'REPROGRAMADA', 'VENCIDA']:
+        actividades = actividades.filter(estado=estado.upper())
 
     if responsable_id:
         actividades = actividades.filter(participantes__trabajador_id=responsable_id)
 
+    if proyecto_id:
+        actividades = actividades.filter(proyecto_id=proyecto_id)
+
     actividades = actividades.distinct().order_by('fecha_inicio')
 
     eventos = []
+
     for actividad in actividades:
+        participantes = [
+            {
+                'nombre': str(p.trabajador),
+                'rol': p.rol,
+                'confirmado': p.confirmado,
+            }
+            for p in actividad.participantes.all()
+        ]
+
         eventos.append({
-            'id': actividad.id,
+            'id': f'actividad-{actividad.id}',
             'title': actividad.titulo,
             'start': actividad.fecha_inicio.isoformat(),
             'end': actividad.fecha_fin.isoformat(),
@@ -99,11 +219,11 @@ def calendario_eventos_json(request):
             'borderColor': actividad.color_visual,
             'textColor': '#ffffff',
             'extendedProps': {
-                'descripcion': actividad.descripcion or '',
-                'tipo': actividad.tipo,
+                'tipo': 'actividad',
                 'clase': actividad.clase,
                 'estado': actividad.estado,
                 'prioridad': actividad.prioridad,
+                'descripcion': actividad.descripcion or '',
                 'ubicacion': actividad.ubicacion or '',
                 'cliente': actividad.cliente.razon_social if actividad.cliente else '',
                 'proyecto': actividad.proyecto.nombre_proyecto if actividad.proyecto else '',
@@ -112,19 +232,122 @@ def calendario_eventos_json(request):
                 'bloquea_agenda': actividad.bloquea_agenda,
                 'permite_edicion_manual': actividad.permite_edicion_manual,
                 'categoria': actividad.categoria.nombre if actividad.categoria else '',
-                'participantes': [
-                    {
-                        'nombre': str(p.trabajador),
-                        'rol': p.rol,
-                        'confirmado': p.confirmado,
-                    }
-                    for p in actividad.participantes.all()
-                ]
+                'participantes': participantes,
+                'responsable': participantes[0]['nombre'] if participantes else 'Sin asignar',
+                'fecha_inicio_real': actividad.fecha_inicio.isoformat() if actividad.fecha_inicio else '',
+                'fecha_fin_real': actividad.fecha_fin.isoformat() if actividad.fecha_fin else '',
+                'calendar_style': 'standard',
+                'codigo_solicitud': '',
+                'muestra': '',
+                'servicio': '',
+                'render_hint': 'standard',
+            }
+        })
+
+    detalles_ensayo = DetalleSolicitudEnsayo.objects.select_related(
+        'solicitud',
+        'solicitud__cotizacion',
+        'solicitud__cotizacion__cliente',
+        'muestra',
+        'servicio_cotizado',
+        'servicio_cotizado__servicio',
+        'tecnico_asignado'
+    ).order_by('solicitud__fecha_solicitud', 'id')
+
+    if cotizacion_id_proyecto:
+        detalles_ensayo = detalles_ensayo.filter(
+            solicitud__cotizacion_id=cotizacion_id_proyecto
+        )
+
+    if start_date:
+        detalles_ensayo = detalles_ensayo.filter(
+            solicitud__fecha_solicitud__gte=start_date
+        )
+
+    if end_date:
+        detalles_ensayo = detalles_ensayo.filter(
+            solicitud__fecha_solicitud__lte=end_date
+        )
+
+    if estado:
+        estado_lower = estado.lower()
+        if estado_lower in ['pendiente', 'proceso', 'finalizado']:
+            detalles_ensayo = detalles_ensayo.filter(
+                solicitud__estado=estado_lower
+            )
+
+    if responsable_id:
+        detalles_ensayo = detalles_ensayo.filter(
+            tecnico_asignado_id=responsable_id
+        )
+
+    colores_ensayos = {
+        'pendiente': '#94a3b8',
+        'proceso': '#f59e0b',
+        'finalizado': '#10b981',
+    }
+
+    for detalle in detalles_ensayo:
+        solicitud = detalle.solicitud
+        if not solicitud or not solicitud.fecha_solicitud:
+            continue
+
+        fecha_registro = solicitud.fecha_solicitud
+        fecha_entrega = detalle.fecha_entrega_programada or fecha_registro
+
+        cliente_nombre = ''
+        if solicitud.cotizacion and solicitud.cotizacion.cliente:
+            cliente_nombre = solicitud.cotizacion.cliente.razon_social
+
+        codigo_solicitud = solicitud.codigo_solicitud if solicitud else f'DET-{detalle.id}'
+        muestra_codigo = detalle.muestra.codigo_laboratorio if detalle.muestra else 'Sin muestra'
+
+        if detalle.servicio_cotizado and detalle.servicio_cotizado.servicio:
+            servicio_nombre = detalle.servicio_cotizado.servicio.nombre
+        else:
+            servicio_nombre = detalle.descripcion_ensayo or 'Ensayo'
+
+        tecnico_nombre = detalle.tecnico_asignado.nombre_completo if detalle.tecnico_asignado else 'Sin asignar'
+        estado_val = (solicitud.estado or 'pendiente').lower()
+        color = colores_ensayos.get(estado_val, '#94a3b8')
+
+        titulo_evento = f'{muestra_codigo} · {servicio_nombre}'
+        if len(titulo_evento) > 60:
+            titulo_evento = titulo_evento[:57] + '...'
+
+        eventos.append({
+            'id': f'ensayo-detalle-{detalle.id}',
+            'title': titulo_evento,
+            'start': f'{fecha_registro.isoformat()}T08:00:00',
+            'allDay': False,
+            'backgroundColor': color,
+            'borderColor': color,
+            'textColor': '#1e293b',
+            'extendedProps': {
+                'tipo': 'ensayo',
+                'clase': 'ENSAYO',
+                'estado': estado_val.upper(),
+                'descripcion': detalle.descripcion_ensayo or servicio_nombre,
+                'cliente': cliente_nombre,
+                'proyecto': proyecto_obj.nombre_proyecto if proyecto_obj else '',
+                'proyecto_codigo': proyecto_obj.codigo_proyecto if proyecto_obj else '',
+                'responsable': tecnico_nombre,
+                'codigo_solicitud': codigo_solicitud,
+                'muestra': muestra_codigo,
+                'servicio': servicio_nombre,
+                'tecnico_id': detalle.tecnico_asignado_id,
+                'detalle_id': detalle.id,
+                'solicitud_id': solicitud.id if solicitud else None,
+                'fecha_inicio_real': f'{fecha_registro.isoformat()}T08:00:00',
+                'fecha_fin_real': f'{fecha_entrega.isoformat()}T18:00:00',
+                'fecha_entrega_programada': f'{fecha_entrega.isoformat()}T18:00:00',
+                'calendar_style': 'start_only',
+                'render_hint': 'dot_label',
+                'mostrar_solo_inicio': True,
             }
         })
 
     return JsonResponse(eventos, safe=False)
-
 
 @login_required
 @require_GET
@@ -191,7 +414,6 @@ def calendario_actividad_guardar_json(request):
         payload = json.loads(request.body.decode('utf-8'))
         actividad_id = payload.get('id')
 
-        # Validaciones de seguridad para actividad_id
         if actividad_id:
             try:
                 actividad_id = int(actividad_id)
@@ -218,8 +440,6 @@ def calendario_actividad_guardar_json(request):
         if not titulo or len(titulo) < 2 or len(titulo) > 200:
             return JsonResponse({'success': False, 'error': 'El título debe tener entre 2 y 200 caracteres.'}, status=400)
 
-        # Validar caracteres peligrosos
-        import re
         if re.search(r'[<>]', titulo):
             logger.warning(f"Intento de XSS en calendario_actividad_guardar_json por usuario {request.user.username}")
             return JsonResponse({'success': False, 'error': 'Caracteres no permitidos detectados en el título.'}, status=400)
@@ -299,7 +519,6 @@ def calendario_actividad_guardar_json(request):
         if recordatorios_bulk:
             CalendarioRecordatorio.objects.bulk_create(recordatorios_bulk)
 
-        # Log de seguridad
         logger.info(f"Actividad guardada: {titulo} (ID: {actividad.id}) por usuario {request.user.username}")
 
         return JsonResponse({
@@ -320,7 +539,6 @@ def calendario_actividad_guardar_json(request):
 @require_POST
 def calendario_actividad_eliminar_json(request, pk):
     try:
-        # Validar pk
         try:
             pk = int(pk)
             if pk <= 0:
@@ -336,12 +554,11 @@ def calendario_actividad_eliminar_json(request, pk):
                 'error': 'Esta actividad automática no permite eliminación manual.'
             }, status=400)
 
-        titulo = actividad.titulo  # Guardar para logging
+        titulo = actividad.titulo
         actividad.delete()
-        
-        # Log de seguridad
+
         logger.info(f"Actividad eliminada: {titulo} (ID: {pk}) por usuario {request.user.username}")
-        
+
         return JsonResponse({'success': True, 'message': 'Actividad eliminada correctamente.'})
     except Exception as e:
         logger.error(f"Error al eliminar actividad {pk} por usuario {request.user.username}: {str(e)}")
@@ -356,7 +573,6 @@ def calendario_categoria_crear_json(request):
         color = (request.POST.get('color') or '#2563eb').strip()
         icono = (request.POST.get('icono') or '').strip()
 
-        # Validaciones de seguridad
         if not nombre or len(nombre) < 2 or len(nombre) > 100:
             return JsonResponse({
                 'success': False,
@@ -375,8 +591,6 @@ def calendario_categoria_crear_json(request):
                 'error': 'El icono no puede exceder 50 caracteres.'
             }, status=400)
 
-        # Validar caracteres peligrosos
-        import re
         if re.search(r'[<>]', nombre) or re.search(r'[<>]', color) or re.search(r'[<>]', icono):
             logger.warning(f"Intento de XSS en calendario_categoria_crear_json por usuario {request.user.username}")
             return JsonResponse({
@@ -397,7 +611,6 @@ def calendario_categoria_crear_json(request):
             activo=True
         )
 
-        # Log de seguridad
         logger.info(f"Categoría creada: {nombre} por usuario {request.user.username}")
 
         return JsonResponse({
@@ -421,7 +634,6 @@ def calendario_categoria_crear_json(request):
 @require_POST
 def calendario_actividad_reprogramar_json(request, pk):
     try:
-        # Validar pk
         try:
             pk = int(pk)
             if pk <= 0:
@@ -456,7 +668,6 @@ def calendario_actividad_reprogramar_json(request, pk):
         actividad.actualizado_por = request.user
         actividad.save()
 
-        # Log de seguridad
         logger.info(f"Actividad reprogramada: {actividad.titulo} (ID: {pk}) por usuario {request.user.username}")
 
         return JsonResponse({
@@ -472,15 +683,16 @@ def calendario_actividad_reprogramar_json(request, pk):
         }, status=500)
 
 
-
 @login_required
 def gantt_dashboard(request):
     proyectos = Proyecto.objects.all().order_by('-fecha_inicio')
     categorias = CalendarioCategoria.objects.filter(activo=True).order_by('nombre')
+    trabajadores = TrabajadorProfile.objects.select_related('user').all().order_by('user__username')
 
     context = {
         'proyectos': proyectos,
         'categorias': categorias,
+        'trabajadores': trabajadores,
     }
     return render(request, 'actividades/gantt.html', context)
 
@@ -490,11 +702,21 @@ def gantt_dashboard(request):
 def gantt_actividades_json(request):
     proyecto_id = request.GET.get('proyecto')
     estado = request.GET.get('estado')
+    responsable_id = request.GET.get('responsable')
     incluir_ensayos = request.GET.get('ensayos', 'true').lower() == 'true'
 
-    hoy = timezone.now()
-    hace_1_ano = hoy - timedelta(days=365)
-    hasta_1_ano = hoy + timedelta(days=365)
+    hoy_dt = timezone.now()
+    hoy = timezone.localdate()
+    hace_1_ano = hoy_dt - timedelta(days=365)
+    hasta_1_ano = hoy_dt + timedelta(days=365)
+
+    proyecto_obj = None
+    cotizacion_id_proyecto = None
+
+    if proyecto_id:
+        proyecto_obj = Proyecto.objects.filter(pk=proyecto_id).select_related('cotizacion').first()
+        if proyecto_obj and proyecto_obj.cotizacion_id:
+            cotizacion_id_proyecto = proyecto_obj.cotizacion_id
 
     actividades = CalendarioActividad.objects.filter(
         es_visible=True,
@@ -507,54 +729,52 @@ def gantt_actividades_json(request):
         'recepcion',
         'solicitud_ensayo',
         'informe_final',
+        'creado_por',
+    ).prefetch_related(
+        'participantes__trabajador__user'
     ).order_by('fecha_inicio', 'id')
 
     if proyecto_id:
         actividades = actividades.filter(proyecto_id=proyecto_id)
 
-    if estado:
-        actividades = actividades.filter(estado=estado)
+    if estado and estado.upper() in ['PROGRAMADA', 'EN_CURSO', 'COMPLETADA', 'CANCELADA', 'REPROGRAMADA', 'VENCIDA']:
+        actividades = actividades.filter(estado=estado.upper())
 
-    progress_map_actividades = {
-        'PROGRAMADA': 20,
-        'EN_CURSO': 65,
-        'COMPLETADA': 100,
-        'CANCELADA': 100,
-        'REPROGRAMADA': 35,
-        'VENCIDA': 100,
-    }
-
-    progress_map_ensayos = {
-        'pendiente': 10,
-        'proceso': 60,
-        'finalizado': 100,
-    }
+    if responsable_id:
+        actividades = actividades.filter(participantes__trabajador_id=responsable_id).distinct()
 
     data = []
 
     for actividad in actividades:
         inicio_date = actividad.fecha_inicio.date()
         fin_date = actividad.fecha_fin.date()
+        inicio_date, fin_date = normalizar_rango_fechas(inicio_date, fin_date)
 
-        if fin_date <= inicio_date:
-            fin_date = inicio_date + timedelta(days=1)
+        metricas = calcular_metricas_tiempo(inicio_date, fin_date, hoy=hoy)
+        responsable = obtener_responsable_actividad(actividad)
 
         estado_val = (actividad.estado or 'PROGRAMADA').upper()
         estado_css = estado_val.lower().replace('_', '-')
 
-        color = actividad.color_visual or '#2563eb'
-        progress = progress_map_actividades.get(estado_val, 0)
-
         data.append({
             'id': f'actividad-{actividad.id}',
+            'db_id': actividad.id,
             'name': actividad.titulo,
             'start': inicio_date.strftime('%Y-%m-%d'),
             'end': fin_date.strftime('%Y-%m-%d'),
-            'progress': progress,
+            'progress': metricas['progreso_temporal'],
+            'progreso_temporal': metricas['progreso_temporal'],
+            'duracion_total_dias': metricas['duracion_total_dias'],
+            'dias_transcurridos': metricas['dias_transcurridos'],
+            'dias_restantes': metricas['dias_restantes'],
+            'esta_vencido': metricas['esta_vencido'] and estado_val not in ['COMPLETADA', 'CANCELADA'],
+            'responsable': responsable['nombre'],
+            'responsable_id': responsable['id'],
+            'responsable_rol': responsable['rol'],
             'custom_class': f'estado-{estado_css}',
-            'color': color,
-            'estado': actividad.estado,
-            'clase': actividad.clase,
+            'color': actividad.color_visual or '#2563eb',
+            'estado': actividad.estado or 'PROGRAMADA',
+            'clase': actividad.clase or 'OTRO',
             'proyecto': actividad.proyecto.nombre_proyecto if actividad.proyecto else '',
             'cliente': actividad.cliente.razon_social if actividad.cliente else '',
             'descripcion': actividad.descripcion or '',
@@ -562,18 +782,31 @@ def gantt_actividades_json(request):
         })
 
     if incluir_ensayos:
-        ensayos = SolicitudEnsayo.objects.filter(
-            fecha_entrega_programada__gte=hace_1_ano.date(),
-            fecha_solicitud__lte=hasta_1_ano.date(),
+        detalles_ensayo = DetalleSolicitudEnsayo.objects.filter(
+            solicitud__fecha_solicitud__gte=hace_1_ano.date(),
+            solicitud__fecha_solicitud__lte=hasta_1_ano.date(),
         ).select_related(
-            'cotizacion__cliente',
-        ).order_by('fecha_solicitud')
+            'solicitud',
+            'solicitud__cotizacion',
+            'solicitud__cotizacion__cliente',
+            'muestra',
+            'servicio_cotizado',
+            'servicio_cotizado__servicio',
+            'tecnico_asignado',
+        ).order_by('solicitud__fecha_solicitud', 'id')
+
+        if cotizacion_id_proyecto:
+            detalles_ensayo = detalles_ensayo.filter(solicitud__cotizacion_id=cotizacion_id_proyecto)
 
         if estado:
-            if estado.lower() in ['pendiente', 'proceso', 'finalizado']:
-                ensayos = ensayos.filter(estado=estado.lower())
-            else:
-                ensayos = ensayos.none()
+            estado_lower = estado.lower()
+            if estado_lower in ['pendiente', 'proceso', 'finalizado']:
+                detalles_ensayo = detalles_ensayo.filter(solicitud__estado=estado_lower)
+            elif estado.upper() in ['PROGRAMADA', 'EN_CURSO', 'COMPLETADA', 'CANCELADA', 'REPROGRAMADA', 'VENCIDA']:
+                detalles_ensayo = detalles_ensayo.none()
+
+        if responsable_id:
+            detalles_ensayo = detalles_ensayo.filter(tecnico_asignado_id=responsable_id)
 
         colores_ensayos = {
             'pendiente': '#94a3b8',
@@ -581,36 +814,61 @@ def gantt_actividades_json(request):
             'finalizado': '#10b981',
         }
 
-        for ensayo in ensayos:
-            inicio_date = ensayo.fecha_solicitud
-            
-            if ensayo.estado == 'finalizado' and ensayo.fecha_entrega_real:
-                fin_date = ensayo.fecha_entrega_real
-            else:
-                fin_date = ensayo.fecha_entrega_programada
+        for detalle in detalles_ensayo:
+            solicitud = detalle.solicitud
+            inicio_date = solicitud.fecha_solicitud if solicitud and solicitud.fecha_solicitud else hoy
+            fin_date = detalle.fecha_entrega_programada or inicio_date
+            inicio_date, fin_date = normalizar_rango_fechas(inicio_date, fin_date)
 
-            if fin_date <= inicio_date:
-                fin_date = inicio_date + timedelta(days=1)
+            metricas = calcular_metricas_tiempo(inicio_date, fin_date, hoy=hoy)
 
-            estado_val = ensayo.estado.lower()
+            estado_val = (solicitud.estado or 'pendiente').lower()
             color = colores_ensayos.get(estado_val, '#94a3b8')
-            progress = progress_map_ensayos.get(estado_val, 0)
+
+            cliente_nombre = ''
+            if solicitud and solicitud.cotizacion and solicitud.cotizacion.cliente:
+                cliente_nombre = solicitud.cotizacion.cliente.razon_social
+
+            muestra_codigo = detalle.muestra.codigo_laboratorio if detalle.muestra else 'Sin muestra'
+            servicio_nombre = ''
+            if detalle.servicio_cotizado and detalle.servicio_cotizado.servicio:
+                servicio_nombre = detalle.servicio_cotizado.servicio.nombre
+            else:
+                servicio_nombre = detalle.descripcion_ensayo or 'Ensayo'
+
+            responsable_nombre = detalle.tecnico_asignado.nombre_completo if detalle.tecnico_asignado else 'Sin asignar'
+
+            codigo_solicitud = solicitud.codigo_solicitud if solicitud else f'DET-{detalle.id}'
+            nombre_barra = f'{codigo_solicitud} | {muestra_codigo} | {servicio_nombre}'
 
             data.append({
-                'id': f'ensayo-{ensayo.id}',
-                'name': f"{ensayo.codigo_solicitud} - {ensayo.cotizacion.cliente.razon_social[:25]}",
+                'id': f'ensayo-detalle-{detalle.id}',
+                'db_id': detalle.id,
+                'solicitud_id': solicitud.id if solicitud else None,
+                'name': nombre_barra[:140],
                 'start': inicio_date.strftime('%Y-%m-%d'),
                 'end': fin_date.strftime('%Y-%m-%d'),
-                'progress': progress,
+                'progress': metricas['progreso_temporal'],
+                'progreso_temporal': metricas['progreso_temporal'],
+                'duracion_total_dias': metricas['duracion_total_dias'],
+                'dias_transcurridos': metricas['dias_transcurridos'],
+                'dias_restantes': metricas['dias_restantes'],
+                'esta_vencido': metricas['esta_vencido'] and estado_val != 'finalizado',
+                'responsable': responsable_nombre,
+                'responsable_id': detalle.tecnico_asignado_id,
+                'responsable_rol': 'TÉCNICO',
                 'custom_class': f'estado-{estado_val}',
                 'color': color,
                 'estado': estado_val.upper(),
                 'clase': 'ENSAYO',
-                'proyecto': ensayo.cotizacion.proyecto_asociado or '',
-                'cliente': ensayo.cotizacion.cliente.razon_social if ensayo.cotizacion.cliente else '',
-                'descripcion': f"Solicitud {ensayo.codigo_solicitud}",
+                'proyecto': proyecto_obj.nombre_proyecto if proyecto_obj else '',
+                'cliente': cliente_nombre,
+                'descripcion': detalle.descripcion_ensayo or servicio_nombre,
                 'tipo': 'ensayo',
+                'muestra': muestra_codigo,
+                'servicio': servicio_nombre,
+                'codigo_solicitud': codigo_solicitud,
             })
 
-    data.sort(key=lambda x: x['start'])
+    data.sort(key=lambda x: (x['start'], x['name']))
     return JsonResponse(data, safe=False)

@@ -3,6 +3,284 @@
 
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/calendario-config.css' %}">
+
+<style>
+    :root {
+        --cal-surface: #ffffff;
+        --cal-surface-soft: #f8fafc;
+        --cal-border: #e2e8f0;
+        --cal-border-strong: #cbd5e1;
+        --cal-text: #0f172a;
+        --cal-text-soft: #475569;
+        --cal-text-muted: #94a3b8;
+        --cal-shadow: 0 18px 45px -18px rgba(15, 23, 42, 0.22);
+        --cal-shadow-soft: 0 10px 30px -18px rgba(15, 23, 42, 0.18);
+    }
+
+    .calendar-glass {
+        background:
+            radial-gradient(circle at top right, rgba(59,130,246,0.10), transparent 22%),
+            radial-gradient(circle at bottom left, rgba(14,165,233,0.08), transparent 20%),
+            linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), var(--cal-shadow-soft);
+    }
+
+    .fc {
+        --fc-border-color: #e2e8f0;
+        --fc-page-bg-color: transparent;
+        --fc-neutral-bg-color: #f8fafc;
+        --fc-list-event-hover-bg-color: #f1f5f9;
+        --fc-today-bg-color: rgba(59, 130, 246, 0.08);
+        color: var(--cal-text);
+    }
+
+    .fc .fc-scrollgrid {
+        border: 1px solid var(--cal-border) !important;
+        border-radius: 1.6rem;
+        overflow: hidden;
+        background: white;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+    }
+
+    .fc .fc-col-header-cell {
+        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        border-color: var(--cal-border) !important;
+        padding: 0.45rem 0;
+    }
+
+    .fc .fc-col-header-cell-cushion {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #475569;
+        padding: 1rem 0.25rem;
+    }
+
+    .fc .fc-daygrid-day-number,
+    .fc .fc-timegrid-slot-label-cushion,
+    .fc .fc-timegrid-axis-cushion {
+        font-weight: 800;
+        color: #475569;
+        font-size: 12px;
+    }
+
+    .fc .fc-daygrid-day-top {
+        padding: 0.45rem 0.55rem 0.15rem;
+    }
+
+    .fc .fc-daygrid-day.fc-day-today {
+        background: linear-gradient(180deg, rgba(59,130,246,0.08), rgba(59,130,246,0.03)) !important;
+    }
+
+    .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+        background: #2563eb;
+        color: white;
+        width: 1.9rem;
+        height: 1.9rem;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 20px -8px rgba(37,99,235,0.5);
+    }
+
+    .fc .fc-daygrid-day-frame {
+        min-height: 126px;
+    }
+
+    .fc .fc-timegrid-slot {
+        height: 3.15rem;
+    }
+
+    .fc .fc-timegrid-col.fc-day-today {
+        background: linear-gradient(180deg, rgba(59,130,246,0.08), rgba(59,130,246,0.03)) !important;
+    }
+
+    .fc .fc-timegrid-now-indicator-line {
+        border-color: #ef4444 !important;
+        border-width: 2px;
+    }
+
+    .fc .fc-timegrid-now-indicator-arrow {
+        border-color: #ef4444 !important;
+    }
+
+    .fc .fc-event {
+        transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+    }
+
+    .fc .fc-event:hover {
+        transform: translateY(-1px);
+        filter: saturate(1.03);
+    }
+
+    .fc .fc-event.fc-actividad-standard {
+        border: 0 !important;
+        border-radius: 999px !important;
+        box-shadow: 0 8px 18px -10px rgba(15,23,42,0.28);
+        padding: 2px 4px !important;
+        overflow: hidden;
+    }
+
+    .fc-actividad-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        min-width: 0;
+        padding: 4px 10px;
+        border-radius: 999px;
+        color: white;
+        font-size: 11px;
+        font-weight: 900;
+        line-height: 1.1;
+    }
+
+    .fc-actividad-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.95);
+        box-shadow: 0 0 0 3px rgba(255,255,255,0.16);
+        flex-shrink: 0;
+    }
+
+    .fc-actividad-title {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .fc .fc-event.fc-ensayo-soft {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        overflow: visible !important;
+    }
+
+    .fc .fc-daygrid-event.fc-ensayo-soft {
+        margin: 4px 0 !important;
+    }
+
+    .fc .fc-timegrid-event.fc-ensayo-soft {
+        min-height: 28px;
+    }
+
+    .fc-ensayo-wrap {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        max-width: 100%;
+        padding: 2px 2px;
+    }
+
+    .fc-ensayo-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        flex-shrink: 0;
+        box-shadow:
+            0 0 0 2px rgba(255,255,255,0.95),
+            0 6px 14px -6px rgba(15,23,42,0.25);
+    }
+
+    .fc-ensayo-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        max-width: 100%;
+        background: rgba(255,255,255,0.97);
+        border: 1px solid rgba(203,213,225,0.95);
+        border-radius: 999px;
+        padding: 4px 10px;
+        box-shadow: 0 8px 18px -14px rgba(15,23,42,0.25);
+    }
+
+    .fc-ensayo-mini-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        flex-shrink: 0;
+    }
+
+    .fc-ensayo-time {
+        font-size: 10px;
+        font-weight: 900;
+        color: #0f172a;
+        letter-spacing: 0.02em;
+        flex-shrink: 0;
+    }
+
+    .fc-ensayo-label {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 10px;
+        font-weight: 900;
+        color: #334155;
+        line-height: 1.1;
+    }
+
+    .fc .fc-more-link {
+        font-size: 10px;
+        font-weight: 900;
+        color: #2563eb;
+    }
+
+    .fc .fc-toolbar-title {
+        font-weight: 900;
+        color: #0f172a;
+        letter-spacing: -0.03em;
+    }
+
+    .calendar-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .fc-theme-standard td,
+    .fc-theme-standard th {
+        border-color: var(--cal-border) !important;
+    }
+
+    .fc .fc-daygrid-day:hover,
+    .fc .fc-timegrid-col:hover {
+        background: rgba(248,250,252,0.78);
+        transition: background 0.2s ease;
+    }
+
+    @media (max-width: 1280px) {
+        .fc .fc-daygrid-day-frame {
+            min-height: 112px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .calendar-detail-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .fc-ensayo-pill {
+            max-width: 100%;
+        }
+
+        .fc-ensayo-label {
+            max-width: 135px;
+        }
+
+        .fc .fc-daygrid-day-frame {
+            min-height: 96px;
+        }
+    }
+</style>
+
 <div class="bg-vicaf-calendar"></div>
 
 <div class="max-w-[1700px] mx-auto p-2 md:p-2 relative z-10 space-y-6">
@@ -186,11 +464,11 @@
 </div>
 
 <div id="modalDetalle" class="hidden fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50 items-center justify-center p-4">
-    <div class="w-full max-w-2xl bg-white rounded-[2rem] shadow-2xl border border-slate-200 overflow-hidden">
+    <div class="w-full max-w-3xl bg-white rounded-[2rem] shadow-2xl border border-slate-200 overflow-hidden">
         <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200">
             <div>
-                <h3 class="text-xl font-black text-slate-900">Detalle de Actividad</h3>
-                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">Información operativa</p>
+                <h3 id="modalDetalleTitulo" class="text-xl font-black text-slate-900">Detalle de Evento</h3>
+                <p id="modalDetalleSubtitulo" class="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">Información operativa</p>
             </div>
             <button id="cerrarModal" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black">×</button>
         </div>
@@ -483,6 +761,8 @@
     const modalDetalle = document.getElementById('modalDetalle');
     const modalContent = document.getElementById('modalContent');
     const cerrarModal = document.getElementById('cerrarModal');
+    const modalDetalleTitulo = document.getElementById('modalDetalleTitulo');
+    const modalDetalleSubtitulo = document.getElementById('modalDetalleSubtitulo');
 
     const modalFormulario = document.getElementById('modalFormulario');
     const cerrarFormulario = document.getElementById('cerrarFormulario');
@@ -502,7 +782,6 @@
     const categoriaForm = document.getElementById('categoriaForm');
     const categoriaSelect = document.getElementById('categoria_id');
 
-    // NUEVO: modal resumen (null-safe para no romper si aún no existe en HTML)
     const modalResumenListado = document.getElementById('modalResumenListado');
     const cerrarModalResumenListado = document.getElementById('cerrarModalResumenListado');
     const modalResumenTitulo = document.getElementById('modalResumenTitulo');
@@ -529,6 +808,28 @@
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
     }
 
+    function formatDisplayDate(dateStr) {
+        if (!dateStr) return '—';
+        const date = new Date(dateStr);
+        if (Number.isNaN(date.getTime())) return dateStr;
+        return date.toLocaleString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
     function lockBodyScroll() {
         document.documentElement.classList.add('modal-open');
         document.body.classList.add('modal-open');
@@ -550,9 +851,7 @@
             const dialog = document.getElementById(dialogId);
             const scrollBody = scrollBodyId ? document.getElementById(scrollBodyId) : null;
 
-            if (scrollBody) {
-                scrollBody.scrollTop = 0;
-            }
+            if (scrollBody) scrollBody.scrollTop = 0;
 
             if (dialog) {
                 dialog.scrollIntoView({
@@ -586,9 +885,7 @@
         lockBodyScroll();
 
         const modalBody = document.getElementById('modalFormularioBody');
-        if (modalBody) {
-            modalBody.scrollTop = 0;
-        }
+        if (modalBody) modalBody.scrollTop = 0;
 
         centrarDialogoEnViewport('modalFormularioDialog', 'modalFormularioBody');
     }
@@ -688,38 +985,98 @@
         if (fechaFin) fechaFin.value = toDatetimeLocalValue(endStr || startStr);
     }
 
+    function renderEnsayoDetalle(event) {
+        const p = event.extendedProps || {};
+
+        if (modalDetalleTitulo) modalDetalleTitulo.textContent = 'Detalle de Ensayo';
+        if (modalDetalleSubtitulo) modalDetalleSubtitulo.textContent = 'Programación por detalle de solicitud';
+
+        modalContent.innerHTML = `
+            <div class="space-y-5">
+                <div>
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="inline-block w-4 h-4 rounded-full" style="background:${event.backgroundColor || '#94a3b8'}"></span>
+                        <h4 class="text-2xl font-black text-slate-900">${escapeHtml(event.title)}</h4>
+                    </div>
+                    <p class="text-sm text-slate-500">${escapeHtml(p.descripcion || 'Sin descripción')}</p>
+                </div>
+
+                <div class="calendar-detail-grid">
+                    <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Solicitud</p>
+                        <p class="text-sm font-bold text-slate-800">${escapeHtml(p.codigo_solicitud || '—')}</p>
+                    </div>
+                    <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Estado</p>
+                        <p class="text-sm font-bold text-slate-800">${escapeHtml(p.estado || 'PENDIENTE')}</p>
+                    </div>
+                    <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Muestra</p>
+                        <p class="text-sm font-bold text-slate-800">${escapeHtml(p.muestra || 'Sin muestra')}</p>
+                    </div>
+                    <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Servicio</p>
+                        <p class="text-sm font-bold text-slate-800">${escapeHtml(p.servicio || 'Ensayo')}</p>
+                    </div>
+                    <div class="rounded-2xl bg-blue-50 p-4 border border-blue-100">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-1">Responsable</p>
+                        <p class="text-sm font-bold text-slate-800">${escapeHtml(p.responsable || 'Sin asignar')}</p>
+                    </div>
+                    <div class="rounded-2xl bg-indigo-50 p-4 border border-indigo-100">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-1">Cliente</p>
+                        <p class="text-sm font-bold text-slate-800">${escapeHtml(p.cliente || 'No asignado')}</p>
+                    </div>
+                    <div class="rounded-2xl bg-amber-50 p-4 border border-amber-100">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-amber-500 mb-1">Fecha registro</p>
+                        <p class="text-sm font-bold text-slate-800">${formatDisplayDate(p.fecha_inicio_real || event.startStr)}</p>
+                    </div>
+                    <div class="rounded-2xl bg-emerald-50 p-4 border border-emerald-100">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-1">Entrega programada</p>
+                        <p class="text-sm font-bold text-slate-800">${formatDisplayDate(p.fecha_fin_real || event.endStr)}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        abrirModalDetalleUI();
+    }
+
     async function verDetalle(id) {
-        const response = await fetch(`/actividades/calendario/evento/${id}/`);
+        const numericId = String(id).replace('actividad-', '');
+        const response = await fetch(`/actividades/calendario/evento/${numericId}/`);
         const data = await response.json();
 
         if (!modalContent || !modalDetalle) return;
+
+        if (modalDetalleTitulo) modalDetalleTitulo.textContent = 'Detalle de Actividad';
+        if (modalDetalleSubtitulo) modalDetalleSubtitulo.textContent = 'Información operativa';
 
         modalContent.innerHTML = `
             <div class="space-y-5">
                 <div>
                     <div class="flex items-center gap-3 mb-2">
                         <span class="inline-block w-4 h-4 rounded-full" style="background:${data.color_visual}"></span>
-                        <h4 class="text-2xl font-black text-slate-900">${data.titulo}</h4>
+                        <h4 class="text-2xl font-black text-slate-900">${escapeHtml(data.titulo)}</h4>
                     </div>
-                    <p class="text-sm text-slate-500">${data.descripcion || 'Sin descripción'}</p>
+                    <p class="text-sm text-slate-500">${escapeHtml(data.descripcion || 'Sin descripción')}</p>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="calendar-detail-grid">
                     <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200">
                         <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Clase</p>
-                        <p class="text-sm font-bold text-slate-800">${data.clase}</p>
+                        <p class="text-sm font-bold text-slate-800">${escapeHtml(data.clase)}</p>
                     </div>
                     <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200">
                         <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Estado</p>
-                        <p class="text-sm font-bold text-slate-800">${data.estado}</p>
+                        <p class="text-sm font-bold text-slate-800">${escapeHtml(data.estado)}</p>
                     </div>
                     <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200">
                         <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Inicio</p>
-                        <p class="text-sm font-bold text-slate-800">${data.fecha_inicio}</p>
+                        <p class="text-sm font-bold text-slate-800">${formatDisplayDate(data.fecha_inicio)}</p>
                     </div>
                     <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200">
                         <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Fin</p>
-                        <p class="text-sm font-bold text-slate-800">${data.fecha_fin}</p>
+                        <p class="text-sm font-bold text-slate-800">${formatDisplayDate(data.fecha_fin)}</p>
                     </div>
                 </div>
 
@@ -842,9 +1199,7 @@
         }
 
         cerrarModalFormulario();
-        if (calendar) {
-            calendar.refetchEvents();
-        }
+        if (calendar) calendar.refetchEvents();
     }
 
     async function eliminarActividad() {
@@ -868,9 +1223,7 @@
         }
 
         cerrarModalFormulario();
-        if (calendar) {
-            calendar.refetchEvents();
-        }
+        if (calendar) calendar.refetchEvents();
     }
 
     async function guardarCategoria(event) {
@@ -932,7 +1285,15 @@
     }
 
     async function reprogramarActividad(info) {
-        const response = await fetch(`/actividades/calendario/evento/${info.event.id}/reprogramar/`, {
+        if (String(info.event.id).startsWith('ensayo-detalle-')) {
+            info.revert();
+            alert('Los ensayos se gestionan desde la solicitud de ensayos, no desde el calendario.');
+            return;
+        }
+
+        const numericId = String(info.event.id).replace('actividad-', '');
+
+        const response = await fetch(`/actividades/calendario/evento/${numericId}/reprogramar/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -952,7 +1313,6 @@
         }
     }
 
-    // NUEVO: helpers modal resumen, seguros
     function abrirModalResumenListadoUI() {
         if (!modalResumenListado) return;
         modalResumenListado.classList.remove('hidden');
@@ -1106,9 +1466,7 @@
 
             renderResumenItems(data.results || []);
 
-            if (window.lucide) {
-                window.lucide.createIcons();
-            }
+            if (window.lucide) window.lucide.createIcons();
 
         } catch (error) {
             if (modalResumenLoader) modalResumenLoader.classList.add('hidden');
@@ -1135,9 +1493,7 @@
             const icon = toggleAsideBtn.querySelector('i');
             if (!icon) return;
             icon.setAttribute('data-lucide', iconName);
-            if (window.lucide) {
-                window.lucide.createIcons();
-            }
+            if (window.lucide) window.lucide.createIcons();
         }
 
         function renderAsideState() {
@@ -1174,6 +1530,47 @@
         });
 
         renderAsideState();
+    }
+
+    function getEnsayoVisualColor(event) {
+        return event.backgroundColor || event.borderColor || '#94a3b8';
+    }
+
+    function buildEnsayoContent(arg) {
+        const event = arg.event;
+        const p = event.extendedProps || {};
+        const color = getEnsayoVisualColor(event);
+        const title = escapeHtml(event.title || p.muestra || p.codigo_solicitud || 'Ensayo');
+
+        const hora = event.start
+            ? event.start.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false })
+            : '08:00';
+
+        return {
+            html: `
+                <div class="fc-ensayo-wrap">
+                    <span class="fc-ensayo-dot" style="background:${color}"></span>
+                    <span class="fc-ensayo-pill">
+                        <span class="fc-ensayo-mini-dot" style="background:${color}"></span>
+                        <span class="fc-ensayo-time">${hora}</span>
+                        <span class="fc-ensayo-label">${title}</span>
+                    </span>
+                </div>
+            `
+        };
+    }
+
+    function buildActividadContent(arg) {
+        const title = escapeHtml(arg.event.title || '');
+
+        return {
+            html: `
+                <div class="fc-actividad-chip">
+                    <span class="fc-actividad-dot"></span>
+                    <span class="fc-actividad-title">${title}</span>
+                </div>
+            `
+        };
     }
 
     function initCalendar() {
@@ -1218,13 +1615,39 @@
                 );
             },
             eventClick: function(info) {
-                verDetalle(info.event.id);
+                const tipo = info.event.extendedProps?.tipo;
+                if (tipo === 'ensayo') {
+                    renderEnsayoDetalle(info.event);
+                } else {
+                    const cleanId = String(info.event.id).replace('actividad-', '');
+                    verDetalle(cleanId);
+                }
             },
             eventDrop: function(info) {
                 reprogramarActividad(info);
             },
             eventResize: function(info) {
                 reprogramarActividad(info);
+            },
+            eventContent: function(arg) {
+                const tipo = arg.event.extendedProps?.tipo;
+                if (tipo === 'ensayo') {
+                    return buildEnsayoContent(arg);
+                }
+                return buildActividadContent(arg);
+            },
+            eventDidMount: function(arg) {
+                const tipo = arg.event.extendedProps?.tipo;
+
+                if (tipo === 'ensayo') {
+                    arg.el.classList.add('fc-ensayo-soft');
+                    arg.el.setAttribute(
+                        'title',
+                        `${arg.event.extendedProps?.codigo_solicitud || ''} | ${arg.event.extendedProps?.muestra || ''} | ${arg.event.extendedProps?.servicio || ''}`
+                    );
+                } else {
+                    arg.el.classList.add('fc-actividad-standard');
+                }
             },
             eventTimeFormat: {
                 hour: '2-digit',
@@ -1261,9 +1684,7 @@
         button.classList.add('bg-slate-900', 'text-white');
 
         currentCategory = button.dataset.categoria;
-        if (calendar) {
-            calendar.refetchEvents();
-        }
+        if (calendar) calendar.refetchEvents();
     }
 
     window.verDetalle = verDetalle;
@@ -1297,26 +1718,14 @@
         });
     });
 
-    // NUEVO: listeners resumen, seguros
     document.querySelectorAll('.resumenCard').forEach(btn => {
         btn.addEventListener('click', function () {
-            abrirResumenListado(
-                this.dataset.resumenFiltro || 'total',
-                this.dataset.resumenTitulo || 'Listado de actividades'
-            );
+            abrirResumenListado(this.dataset.resumenFiltro, this.dataset.resumenTitulo);
         });
     });
 
     if (cerrarModalResumenListado) {
         cerrarModalResumenListado.addEventListener('click', cerrarModalResumen);
-    }
-
-    if (modalResumenListado) {
-        modalResumenListado.addEventListener('click', function (e) {
-            if (e.target === modalResumenListado) {
-                cerrarModalResumen();
-            }
-        });
     }
 
     const btnHoy = document.getElementById('btnHoy');
@@ -1338,53 +1747,15 @@
 
             if (calendar) {
                 calendar.changeView(this.dataset.view);
-                setTimeout(() => {
-                    calendar.updateSize();
-                }, 50);
             }
         });
-    });
-
-    [modalFormulario, modalDetalle, modalCategoria].forEach(modal => {
-        if (!modal) return;
-
-        modal.addEventListener('click', function (e) {
-            if (e.target === modal) {
-                if (modal === modalFormulario) cerrarModalFormulario();
-                if (modal === modalDetalle) cerrarModalDetalle();
-                if (modal === modalCategoria) cerrarCategoriaModal();
-            }
-        });
-    });
-
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') {
-            if (modalResumenListado && !modalResumenListado.classList.contains('hidden')) {
-                cerrarModalResumen();
-                return;
-            }
-
-            if (modalCategoria && !modalCategoria.classList.contains('hidden')) {
-                cerrarCategoriaModal();
-                return;
-            }
-
-            if (modalFormulario && !modalFormulario.classList.contains('hidden')) {
-                cerrarModalFormulario();
-                return;
-            }
-
-            if (modalDetalle && !modalDetalle.classList.contains('hidden')) {
-                cerrarModalDetalle();
-            }
-        }
     });
 
     if (window.lucide) {
         window.lucide.createIcons();
     }
 
-    initCalendar();
     initAsideToggle();
+    initCalendar();
 </script>
 {% endblock %}
