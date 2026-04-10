@@ -36,13 +36,94 @@
         background: #cbd5e1;
         border-radius: 10px;
     }
+
+    .sol-tab-btn{
+        display:flex;
+        align-items:center;
+        gap:.9rem;
+        width:100%;
+        padding:.95rem 1rem;
+        border:1px solid #e2e8f0;
+        border-radius:1rem;
+        background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
+        transition:all .25s ease;
+        text-align:left;
+    }
+
+    .sol-tab-btn:hover{
+        border-color:#93c5fd;
+        box-shadow:0 8px 24px rgba(37,99,235,.08);
+        transform:translateY(-1px);
+    }
+
+    .sol-tab-btn.active{
+        background:linear-gradient(135deg,#eff6ff 0%,#ffffff 100%);
+        border-color:#3b82f6;
+        box-shadow:0 10px 28px rgba(59,130,246,.12);
+    }
+
+    .sol-tab-step{
+        width:2rem;
+        height:2rem;
+        min-width:2rem;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        border-radius:.8rem;
+        background:#0f172a;
+        color:white;
+        font-size:.72rem;
+        font-weight:900;
+        letter-spacing:.08em;
+    }
+
+    .sol-tab-btn.active .sol-tab-step{
+        background:#2563eb;
+    }
+
+    .sol-tab-text{
+        display:flex;
+        flex-direction:column;
+        line-height:1.1;
+    }
+
+    .sol-tab-text strong{
+        font-size:.78rem;
+        font-weight:900;
+        text-transform:uppercase;
+        color:#0f172a;
+        letter-spacing:.08em;
+    }
+
+    .sol-tab-text small{
+        font-size:.68rem;
+        font-weight:700;
+        color:#64748b;
+        margin-top:.2rem;
+        text-transform:uppercase;
+        letter-spacing:.08em;
+    }
+
+    .sol-tab-panel{
+        display:none;
+    }
+
+    .sol-tab-panel.active{
+        display:block;
+        animation:solTabFade .22s ease;
+    }
+
+    @keyframes solTabFade{
+        from{opacity:0; transform:translateY(6px);}
+        to{opacity:1; transform:translateY(0);}
+    }
 </style>
 
 <div class="bg-vicaf-engine"></div>
 
 <div class="max-w-full mx-auto p-4 relative z-10 space-y-6">
     
-    <header class="bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-between p-4">
+    <header class="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col gap-4 md:flex-row md:items-center md:justify-between p-4">
         <div class="flex items-center gap-4">
             <div class="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center text-white shadow-md">
                 <i data-lucide="file-text" class="w-5 h-5"></i>
@@ -62,277 +143,357 @@
         </div>
     </header>
 
+    <!-- NAV TABS -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <button type="button"
+                    class="sol-tab-btn active"
+                    data-tab="control"
+                    onclick="switchSolicitudTab('control')">
+                <span class="sol-tab-step">01</span>
+                <span class="sol-tab-text">
+                    <strong>Control</strong>
+                    <small>Datos de solicitud</small>
+                </span>
+            </button>
+
+            <button type="button"
+                    class="sol-tab-btn"
+                    data-tab="ensayos"
+                    onclick="switchSolicitudTab('ensayos')">
+                <span class="sol-tab-step">02</span>
+                <span class="sol-tab-text">
+                    <strong>Ensayos</strong>
+                    <small>Detalle técnico</small>
+                </span>
+            </button>
+
+            <button type="button"
+                    class="sol-tab-btn"
+                    data-tab="incidencias"
+                    onclick="switchSolicitudTab('incidencias')">
+                <span class="sol-tab-step">03</span>
+                <span class="sol-tab-text">
+                    <strong>Incidencias</strong>
+                    <small>Reporte de control</small>
+                </span>
+            </button>
+        </div>
+    </div>
+
     <form method="POST" class="space-y-6">
         {% csrf_token %}
         
-        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-            <div class="p-1 bg-slate-50 border-b border-slate-100 flex items-center px-4 py-2">
-                <i data-lucide="database" class="w-3.5 h-3.5 text-blue-600 mr-2"></i>
-                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Información de Control de la Solicitud</span>
-            </div>
-
-            <div class="p-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                <div class="md:col-span-1 lg:col-span-1">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cotización / Oferta / Cliente</label>
-                    <select name="cotizacion" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm" required>
-                        <option value="" disabled {% if not solicitud and not cotizacion_preseleccionada %}selected{% endif %}>
-                            -- Seleccionar Cotización --
-                        </option>
-                        {% for c in cotizaciones %}
-                        <option value="{{ c.id }}"
-                            {% if solicitud and c.id == solicitud.cotizacion.id %}selected{% endif %}
-                            {% if cotizacion_preseleccionada and c.id == cotizacion_preseleccionada.id %}selected{% endif %}>
-                            {{ c.codigo_cotizacion }} | {{ c.numero_oferta|default:"S/N" }} | {{ c.cliente.codigo_confidencial }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Fecha Solicitud</label>
-                    <input type="date" id="fecha_solicitud" name="fecha_solicitud" 
-                        class="w-full px-4 py-2.5 bg-blue-50/30 border border-blue-100 rounded-lg text-xs font-bold text-blue-700 outline-none" 
-                        value="{% if solicitud.fecha_solicitud %}{{ solicitud.fecha_solicitud|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}">
+        <!-- TAB 1 -->
+        <div id="sol-tab-panel-control" class="sol-tab-panel active">
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div class="p-1 bg-slate-50 border-b border-slate-100 flex items-center px-4 py-2">
+                    <i data-lucide="database" class="w-3.5 h-3.5 text-blue-600 mr-2"></i>
+                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Información de Control de la Solicitud</span>
                 </div>
 
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Plazo (Días Calendario)</label>
-                    <input type="number" id="dias_plazo" name="dias_plazo" placeholder="Ej: 20" min="0"
-                        value="{{ dias_plazo }}"
-                        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-sm">
-                </div>
-
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Entrega Programada</label>
-                    <input type="date" id="fecha_entrega_programada" name="fecha_entrega_programada" 
-                        class="w-full px-4 py-2.5 bg-amber-50/30 border border-amber-100 rounded-lg text-xs font-bold text-amber-700 outline-none" 
-                        value="{{ solicitud.fecha_entrega_programada|date:'Y-m-d' }}">
-                </div>
-
-                <div class="md:col-span-3 lg:col-span-1">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Responsable</label>
-                    <div class="flex items-center gap-3 p-1.5 bg-slate-50 border border-slate-200 rounded-lg">
-                        <div class="w-7 h-7 rounded-full bg-slate-900 flex items-center justify-center text-white text-[10px] font-bold">
-                            {{ user.username|slice:":2"|upper }}
-                        </div>
-                        <div class="leading-none">
-                            <p class="text-[10px] font-black text-slate-700 uppercase">{{ user.get_full_name|default:user.username }}</p>
-                            <p class="text-[8px] text-emerald-600 font-bold uppercase tracking-tighter">Online</p>
-                        </div>
-                    </div>
-                    <input type="hidden" name="usuario_creador" value="{{ user.id }}">
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-            <div class="flex items-center justify-between bg-white p-4 border-b border-slate-100">
-                <div class="flex items-center gap-3 bg-slate-900 px-5 py-2.5 rounded-xl shadow-lg">
-                    <i data-lucide="layers" class="text-blue-400 w-5 h-5"></i>
-                    <h2 class="text-[12px] font-black text-white uppercase tracking-[0.2em]">Detalle de Ensayos</h2>
-                </div>
-                
-                {% if servicios_items %}
-                    <button type="button" id="btn-agregar-fila" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase hover:bg-emerald-700 transition-all shadow-md active:scale-95">
-                        <i data-lucide="plus-circle" class="w-4 h-4"></i> Agregar Ítem
-                    </button>
-                    {% else %}
-                    <div class="px-4 py-2 bg-slate-100 text-slate-500 rounded-xl text-[10px] font-black uppercase border border-slate-200">
-                        Todos los ítems de esta cotización ya fueron registrados
-                    </div>
-                {% endif %}
-            </div>
-
-            <div class="overflow-x-auto table-container">
-                <table class="w-full border-collapse" id="tabla-detalles">
-                    <thead>
-                        <tr class="bg-slate-50 border-b border-slate-200">
-                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left w-[17%]">Muestra (ID LAB)</th>
-                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left w-[18%]">Servicio</th>
-                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left w-[16%]">Norma</th>
-                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left w-[16%]">Método</th>
-                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left w-[17%]">Técnico Asignado</th>
-                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-center w-[12%]">F. Entrega</th>
-                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-center w-[4%]"></th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        {% if detalles %}
-                            {% for d in detalles %}
-                            <tr data-preloaded-detalle="true" class="hover:bg-amber-50/50 transition-colors bg-amber-50/20">
-                                <td class="p-3">
-                                    <div class="w-full p-2.5 bg-amber-100/40 border border-amber-200 rounded-xl text-[11px] font-bold text-amber-900">
-                                        {{ d.muestra.codigo_laboratorio }}
-                                        <input type="hidden" name="muestra_id[]" value="{{ d.muestra_id }}">
-                                    </div>
-                                </td>
-                                <td class="p-3">
-                                    <div class="w-full p-2.5 bg-amber-100/40 border border-amber-200 rounded-xl text-[11px] font-bold text-amber-900">
-                                        {{ d.servicio_cotizado.servicio.nombre }}
-                                        <input type="hidden" name="servicio_id[]" value="{{ d.servicio_cotizado_id }}">
-                                    </div>
-                                </td>
-                                <td class="p-3">
-                                    <input type="text" value="{{ d.norma }}" disabled class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] font-mono text-slate-400 bg-slate-100" placeholder="Norma">
-                                    <input type="hidden" name="norma[]" value="{{ d.norma }}">
-                                </td>
-                                <td class="p-3">
-                                    <input type="text" value="{{ d.metodo }}" disabled class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] text-slate-400 bg-slate-100" placeholder="Método">
-                                    <input type="hidden" name="metodo[]" value="{{ d.metodo }}">
-                                </td>
-                                <td class="p-3">
-                                    <div class="w-full p-2.5 bg-amber-100/40 border border-amber-200 rounded-xl text-[11px] font-bold text-amber-900">
-                                        {{ d.tecnico_asignado.nombre_completo|default:"-- Sin Asignar --" }}
-                                        <input type="hidden" name="tecnico_id[]" value="{{ d.tecnico_asignado_id }}">
-                                    </div>
-                                </td>
-                                <td class="p-3 text-center">
-                                    <input type="date" value="{{ d.fecha_entrega_programada|date:'Y-m-d' }}" disabled class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-slate-100 text-slate-400">
-                                    <input type="hidden" name="entrega_detalle[]" value="{{ d.fecha_entrega_programada|date:'Y-m-d' }}">
-                                </td>
-                                <td class="p-3 text-center">
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-100 text-slate-400 text-[10px] font-bold uppercase">
-                                        OK
-                                    </span>
-                                </td>
-                            </tr>
+                <div class="p-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                    <div class="md:col-span-1 lg:col-span-1">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cotización / Oferta / Cliente</label>
+                        <select name="cotizacion" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm" required>
+                            <option value="" disabled {% if not solicitud and not cotizacion_preseleccionada %}selected{% endif %}>
+                                -- Seleccionar Cotización --
+                            </option>
+                            {% for c in cotizaciones %}
+                            <option value="{{ c.id }}"
+                                {% if solicitud and c.id == solicitud.cotizacion.id %}selected{% endif %}
+                                {% if cotizacion_preseleccionada and c.id == cotizacion_preseleccionada.id %}selected{% endif %}>
+                                {{ c.codigo_cotizacion }} | {{ c.numero_oferta|default:"S/N" }} | {{ c.cliente.codigo_confidencial }}
+                            </option>
                             {% endfor %}
-                        {% endif %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Fecha Solicitud</label>
+                        <input type="date" id="fecha_solicitud" name="fecha_solicitud" 
+                            class="w-full px-4 py-2.5 bg-blue-50/30 border border-blue-100 rounded-lg text-xs font-bold text-blue-700 outline-none" 
+                            value="{% if solicitud.fecha_solicitud %}{{ solicitud.fecha_solicitud|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}">
+                    </div>
 
-                        {% if not detalles and servicios_items %}
-                        <tr class="hover:bg-blue-50/30 transition-colors fila-base-vacia">
-                            <td class="p-3">
-                                <select name="muestra_id[]" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700">
-                                    <option value="">-- Seleccionar --</option>
-                                    {% for m in muestras_disponibles %}
-                                    <option value="{{ m.id }}">{{ m.codigo_laboratorio }}</option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-                            <td class="p-3">
-                                <select name="servicio_id[]" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700">
-                                    <option value="">-- Seleccionar --</option>
-                                    {% for s in servicios_items %}
-                                    <option value="{{ s.id }}"
-                                            data-norma="{{ s.norma_manual|default_if_none:'' }}"
-                                            data-metodo="{{ s.metodo_manual|default_if_none:'' }}">
-                                        {{ s.servicio.nombre }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-                            <td class="p-3">
-                                <input type="text" name="norma[]" class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] font-mono text-blue-600" placeholder="Norma">
-                            </td>
-                            <td class="p-3">
-                                <input type="text" name="metodo[]" class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] text-slate-600" placeholder="Método">
-                            </td>
-                            <td class="p-3">
-                                <select name="tecnico_id[]" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700">
-                                    <option value="">-- Técnico --</option>
-                                    {% for t in trabajadores %}
-                                    <option value="{{ t.id }}">{{ t.nombre_completo }}</option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-                            <td class="p-3 text-center">
-                                <input type="date" name="entrega_detalle[]" class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] font-bold">
-                            </td>
-                            <td class="p-3 text-center">
-                                <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-xl text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors" onclick="eliminarFila(this)">
-                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Plazo (Días Calendario)</label>
+                        <input type="number" id="dias_plazo" name="dias_plazo" placeholder="Ej: 20" min="0"
+                            value="{{ dias_plazo }}"
+                            class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-sm">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Entrega Programada</label>
+                        <input type="date" id="fecha_entrega_programada" name="fecha_entrega_programada" 
+                            class="w-full px-4 py-2.5 bg-amber-50/30 border border-amber-100 rounded-lg text-xs font-bold text-amber-700 outline-none" 
+                            value="{{ solicitud.fecha_entrega_programada|date:'Y-m-d' }}">
+                    </div>
+
+                    <div class="md:col-span-3 lg:col-span-1">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Responsable</label>
+                        <div class="flex items-center gap-3 p-1.5 bg-slate-50 border border-slate-200 rounded-lg">
+                            <div class="w-7 h-7 rounded-full bg-slate-900 flex items-center justify-center text-white text-[10px] font-bold">
+                                {{ user.username|slice:":2"|upper }}
+                            </div>
+                            <div class="leading-none">
+                                <p class="text-[10px] font-black text-slate-700 uppercase">{{ user.get_full_name|default:user.username }}</p>
+                                <p class="text-[8px] text-emerald-600 font-bold uppercase tracking-tighter">Online</p>
+                            </div>
+                        </div>
+                        <input type="hidden" name="usuario_creador" value="{{ user.id }}">
+                    </div>
+                </div>
+
+                <div class="px-6 pb-6 flex justify-end">
+                    <button type="button"
+                            onclick="switchSolicitudTab('ensayos')"
+                            class="bg-slate-900 hover:bg-blue-600 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg transition-all flex items-center gap-3">
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        Continuar a ensayos
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-6">
-            <div class="flex items-center justify-between bg-white p-4 border-b border-slate-100">
-                <div class="flex items-center gap-3 bg-slate-100 px-5 py-2.5 rounded-xl border border-slate-200">
-                    <i data-lucide="alert-circle" class="text-amber-600 w-5 h-5"></i>
-                    <h2 class="text-[12px] font-black text-slate-800 uppercase tracking-[0.2em]">3. Reporte de Incidencias</h2>
+        <!-- TAB 2 -->
+        <div id="sol-tab-panel-ensayos" class="sol-tab-panel">
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 border-b border-slate-100">
+                    <div class="flex items-center gap-3 bg-slate-900 px-5 py-2.5 rounded-xl shadow-lg">
+                        <i data-lucide="layers" class="text-blue-400 w-5 h-5"></i>
+                        <h2 class="text-[12px] font-black text-white uppercase tracking-[0.2em]">Detalle de Ensayos</h2>
+                    </div>
+                    
+                    {% if servicios_items %}
+                        <button type="button" id="btn-agregar-fila" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase hover:bg-emerald-700 transition-all shadow-md active:scale-95">
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i> Agregar Ítem
+                        </button>
+                    {% else %}
+                        <div class="px-4 py-2 bg-slate-100 text-slate-500 rounded-xl text-[10px] font-black uppercase border border-slate-200">
+                            Todos los ítems de esta cotización ya fueron registrados
+                        </div>
+                    {% endif %}
                 </div>
-                
-                <button type="button" id="btn-agregar-incidencia" class="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase hover:bg-slate-700 transition-all shadow-md active:scale-95">
-                    <i data-lucide="plus" class="w-4 h-4"></i> Añadir Incidencia
-                </button>
-            </div>
 
-            <div class="overflow-x-auto table-container">
-                <table class="w-full border-collapse" id="tabla-incidencias">
-                    <thead>
-                        <tr class="bg-slate-50 border-b border-slate-200">
-                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-center w-12">Ítem</th>
-                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-center w-24">Autorizar</th>
-                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left w-1/3">Detalle de la incidencia</th>
-                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-center">Fecha ocurrencia</th>
-                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left">Representante del cliente</th>
-                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left">Responsable lab (JL/SL)</th>
-                            <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-center w-12"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="body-incidencias" class="divide-y divide-slate-100">
-                        {% if incidencias %}
-                            {% for inc in incidencias %}
-                            <tr class="hover:bg-slate-50/50 transition-colors">
-                                <td class="p-3 text-center text-[11px] font-mono text-slate-400 item-incidencia-index">{{ forloop.counter }}</td>
-                                <td class="p-3 text-center">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="hidden" name="incidencia_autorizado[]" value="{% if inc.autorizado %}true{% else %}false{% endif %}">
-                                        <input type="checkbox" class="sr-only peer auth-check" {% if inc.autorizado %}checked{% endif %} onchange="updateAuthValue(this)">
-                                        <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
-                                    </label>
-                                </td>
+                <div class="overflow-x-auto table-container">
+                    <table class="w-full border-collapse" id="tabla-detalles">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200">
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left w-[17%]">Muestra (ID LAB)</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left w-[18%]">Servicio</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left w-[16%]">Norma</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left w-[16%]">Método</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left w-[17%]">Técnico Asignado</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-center w-[12%]">F. Entrega</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-center w-[4%]"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% if detalles %}
+                                {% for d in detalles %}
+                                <tr data-preloaded-detalle="true" class="hover:bg-amber-50/50 transition-colors bg-amber-50/20">
+                                    <td class="p-3">
+                                        <div class="w-full p-2.5 bg-amber-100/40 border border-amber-200 rounded-xl text-[11px] font-bold text-amber-900">
+                                            {{ d.muestra.codigo_laboratorio }}
+                                            <input type="hidden" name="muestra_id[]" value="{{ d.muestra_id }}">
+                                        </div>
+                                    </td>
+                                    <td class="p-3">
+                                        <div class="w-full p-2.5 bg-amber-100/40 border border-amber-200 rounded-xl text-[11px] font-bold text-amber-900">
+                                            {{ d.servicio_cotizado.servicio.nombre }}
+                                            <input type="hidden" name="servicio_id[]" value="{{ d.servicio_cotizado_id }}">
+                                        </div>
+                                    </td>
+                                    <td class="p-3">
+                                        <input type="text" value="{{ d.norma }}" disabled class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] font-mono text-slate-400 bg-slate-100" placeholder="Norma">
+                                        <input type="hidden" name="norma[]" value="{{ d.norma }}">
+                                    </td>
+                                    <td class="p-3">
+                                        <input type="text" value="{{ d.metodo }}" disabled class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] text-slate-400 bg-slate-100" placeholder="Método">
+                                        <input type="hidden" name="metodo[]" value="{{ d.metodo }}">
+                                    </td>
+                                    <td class="p-3">
+                                        <div class="w-full p-2.5 bg-amber-100/40 border border-amber-200 rounded-xl text-[11px] font-bold text-amber-900">
+                                            {{ d.tecnico_asignado.nombre_completo|default:"-- Sin Asignar --" }}
+                                            <input type="hidden" name="tecnico_id[]" value="{{ d.tecnico_asignado_id }}">
+                                        </div>
+                                    </td>
+                                    <td class="p-3 text-center">
+                                        <input type="date" value="{{ d.fecha_entrega_programada|date:'Y-m-d' }}" disabled class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-slate-100 text-slate-400">
+                                        <input type="hidden" name="entrega_detalle[]" value="{{ d.fecha_entrega_programada|date:'Y-m-d' }}">
+                                    </td>
+                                    <td class="p-3 text-center">
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-100 text-slate-400 text-[10px] font-bold uppercase">
+                                            OK
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% endif %}
+
+                            {% if not detalles and servicios_items %}
+                            <tr class="hover:bg-blue-50/30 transition-colors fila-base-vacia">
                                 <td class="p-3">
-                                    <textarea name="incidencia_detalle[]" rows="2" class="w-full p-2 border border-slate-200 rounded text-[11px] text-slate-700 focus:bg-white outline-none" placeholder="Detalle..." required>{{ inc.detalle_incidencia }}</textarea>
-                                </td>
-                                <td class="p-3">
-                                    <input type="datetime-local" name="incidencia_fecha[]" value="{{ inc.fecha_ocurrencia|date:'Y-m-d\TH:i' }}" class="w-full p-2 border border-slate-200 rounded text-[11px] font-bold text-slate-600">
-                                </td>
-                                <td class="p-3">
-                                    <input type="text" name="incidencia_cliente[]" value="{{ inc.representante_cliente|default:'' }}" class="w-full p-2 border border-slate-200 rounded text-[11px] text-slate-700" placeholder="Nombre completo">
-                                </td>
-                                <td class="p-3">
-                                    <select name="incidencia_responsable_id[]" class="w-full p-2 border border-slate-200 rounded text-[11px] font-bold text-slate-700">
+                                    <select name="muestra_id[]" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700">
                                         <option value="">-- Seleccionar --</option>
+                                        {% for m in muestras_disponibles %}
+                                        <option value="{{ m.id }}">{{ m.codigo_laboratorio }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td class="p-3">
+                                    <select name="servicio_id[]" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700">
+                                        <option value="">-- Seleccionar --</option>
+                                        {% for s in servicios_items %}
+                                        <option value="{{ s.id }}"
+                                                data-norma="{{ s.norma_manual|default_if_none:'' }}"
+                                                data-metodo="{{ s.metodo_manual|default_if_none:'' }}">
+                                            {{ s.servicio.nombre }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td class="p-3">
+                                    <input type="text" name="norma[]" class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] font-mono text-blue-600" placeholder="Norma">
+                                </td>
+                                <td class="p-3">
+                                    <input type="text" name="metodo[]" class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] text-slate-600" placeholder="Método">
+                                </td>
+                                <td class="p-3">
+                                    <select name="tecnico_id[]" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700">
+                                        <option value="">-- Técnico --</option>
                                         {% for t in trabajadores %}
-                                        <option value="{{ t.id }}" {% if inc.representante_laboratorio_id == t.id %}selected{% endif %}>{{ t.nombre_completo }}</option>
+                                        <option value="{{ t.id }}">{{ t.nombre_completo }}</option>
                                         {% endfor %}
                                     </select>
                                 </td>
                                 <td class="p-3 text-center">
-                                    <button type="button" class="text-slate-300 hover:text-red-500 transition-colors" onclick="eliminarFilaIncidencia(this)">
-                                        <i data-lucide="x-circle" class="w-4 h-4"></i>
+                                    <input type="date" name="entrega_detalle[]" class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] font-bold">
+                                </td>
+                                <td class="p-3 text-center">
+                                    <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-xl text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors" onclick="eliminarFila(this)">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
                                     </button>
                                 </td>
                             </tr>
-                            {% endfor %}
-                        {% endif %}
-                    </tbody>
-                </table>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="p-6 flex flex-col sm:flex-row justify-between gap-3">
+                    <button type="button"
+                            onclick="switchSolicitudTab('control')"
+                            class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-sm transition-all flex items-center justify-center gap-3">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        Volver a control
+                    </button>
+
+                    <button type="button"
+                            onclick="switchSolicitudTab('incidencias')"
+                            class="bg-slate-900 hover:bg-blue-600 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg transition-all flex items-center justify-center gap-3">
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        Continuar a incidencias
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div class="p-8 bg-slate-50 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div class="flex items-center gap-4 text-blue-600 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100">
-                <i data-lucide="info" class="w-5 h-5"></i>
-                <p class="text-[10px] font-bold leading-tight uppercase">
-                    Verifique que los servicios coincidan con los ítems<br>
-                    aprobados en la cotización seleccionada.
-                </p>
-            </div>
+        <!-- TAB 3 -->
+        <div id="sol-tab-panel-incidencias" class="sol-tab-panel">
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-0">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 border-b border-slate-100">
+                    <div class="flex items-center gap-3 bg-slate-100 px-5 py-2.5 rounded-xl border border-slate-200">
+                        <i data-lucide="alert-circle" class="text-amber-600 w-5 h-5"></i>
+                        <h2 class="text-[12px] font-black text-slate-800 uppercase tracking-[0.2em]">Reporte de Incidencias</h2>
+                    </div>
+                    
+                    <button type="button" id="btn-agregar-incidencia" class="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase hover:bg-slate-700 transition-all shadow-md active:scale-95">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Añadir Incidencia
+                    </button>
+                </div>
 
-            <div class="flex items-center gap-3">
-                <a href="{% url 'proyectos:lista_solicitudes' %}" class="px-8 py-4 text-xs font-black text-slate-500 uppercase tracking-widest hover:text-slate-800 transition-all">
-                    Cancelar
-                </a>
-                <button type="submit" class="bg-slate-900 text-white px-12 py-4 rounded-2xl text-xs font-black hover:bg-blue-600 hover:-translate-y-1 shadow-2xl transition-all flex items-center gap-4 group">
-                    <i data-lucide="save" class="w-5 h-5 group-hover:animate-bounce"></i>
-                    GUARDAR SOLICITUD DE ENSAYO
-                </button>
+                <div class="overflow-x-auto table-container">
+                    <table class="w-full border-collapse" id="tabla-incidencias">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200">
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-center w-12">Ítem</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-center w-24">Autorizar</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left w-1/3">Detalle de la incidencia</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-center">Fecha ocurrencia</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left">Representante del cliente</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-left">Responsable lab (JL/SL)</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase text-center w-12"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="body-incidencias" class="divide-y divide-slate-100">
+                            {% if incidencias %}
+                                {% for inc in incidencias %}
+                                <tr class="hover:bg-slate-50/50 transition-colors">
+                                    <td class="p-3 text-center text-[11px] font-mono text-slate-400 item-incidencia-index">{{ forloop.counter }}</td>
+                                    <td class="p-3 text-center">
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="hidden" name="incidencia_autorizado[]" value="{% if inc.autorizado %}true{% else %}false{% endif %}">
+                                            <input type="checkbox" class="sr-only peer auth-check" {% if inc.autorizado %}checked{% endif %} onchange="updateAuthValue(this)">
+                                            <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                                        </label>
+                                    </td>
+                                    <td class="p-3">
+                                        <textarea name="incidencia_detalle[]" rows="2" class="w-full p-2 border border-slate-200 rounded text-[11px] text-slate-700 focus:bg-white outline-none" placeholder="Detalle..." required>{{ inc.detalle_incidencia }}</textarea>
+                                    </td>
+                                    <td class="p-3">
+                                        <input type="datetime-local" name="incidencia_fecha[]" value="{{ inc.fecha_ocurrencia|date:'Y-m-d\TH:i' }}" class="w-full p-2 border border-slate-200 rounded text-[11px] font-bold text-slate-600">
+                                    </td>
+                                    <td class="p-3">
+                                        <input type="text" name="incidencia_cliente[]" value="{{ inc.representante_cliente|default:'' }}" class="w-full p-2 border border-slate-200 rounded text-[11px] text-slate-700" placeholder="Nombre completo">
+                                    </td>
+                                    <td class="p-3">
+                                        <select name="incidencia_responsable_id[]" class="w-full p-2 border border-slate-200 rounded text-[11px] font-bold text-slate-700">
+                                            <option value="">-- Seleccionar --</option>
+                                            {% for t in trabajadores %}
+                                            <option value="{{ t.id }}" {% if inc.representante_laboratorio_id == t.id %}selected{% endif %}>{{ t.nombre_completo }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td class="p-3 text-center">
+                                        <button type="button" class="text-slate-300 hover:text-red-500 transition-colors" onclick="eliminarFilaIncidencia(this)">
+                                            <i data-lucide="x-circle" class="w-4 h-4"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="p-8 bg-slate-50 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div class="flex items-center gap-4 text-blue-600 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100">
+                        <i data-lucide="info" class="w-5 h-5"></i>
+                        <p class="text-[10px] font-bold leading-tight uppercase">
+                            Verifique que los servicios coincidan con los ítems<br>
+                            aprobados en la cotización seleccionada.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                        <button type="button"
+                                onclick="switchSolicitudTab('ensayos')"
+                                class="w-full sm:w-auto px-8 py-4 text-xs font-black text-slate-500 uppercase tracking-widest hover:text-slate-800 border border-slate-200 rounded-2xl bg-white hover:bg-slate-50 transition-all flex items-center justify-center gap-3">
+                            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                            Volver a ensayos
+                        </button>
+
+                        <a href="{% url 'proyectos:lista_solicitudes' %}" class="w-full sm:w-auto px-8 py-4 text-xs font-black text-slate-500 uppercase tracking-widest hover:text-slate-800 transition-all text-center">
+                            Cancelar
+                        </a>
+
+                        <button type="submit" class="w-full sm:w-auto bg-slate-900 text-white px-12 py-4 rounded-2xl text-xs font-black hover:bg-blue-600 hover:-translate-y-1 shadow-2xl transition-all flex items-center justify-center gap-4 group">
+                            <i data-lucide="save" class="w-5 h-5 group-hover:animate-bounce"></i>
+                            GUARDAR SOLICITUD DE ENSAYO
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </form>
@@ -345,6 +506,29 @@
 
 <script src="https://unpkg.com/lucide@latest"></script>
 <script>
+    function switchSolicitudTab(tabName) {
+        document.querySelectorAll('.sol-tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        document.querySelectorAll('.sol-tab-panel').forEach(panel => {
+            panel.classList.remove('active');
+        });
+
+        const activeBtn = document.querySelector(`.sol-tab-btn[data-tab="${tabName}"]`);
+        const activePanel = document.getElementById(`sol-tab-panel-${tabName}`);
+
+        if (activeBtn) activeBtn.classList.add('active');
+        if (activePanel) activePanel.classList.add('active');
+
+        if (window.lucide) lucide.createIcons();
+
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
+
     function updateAuthValue(checkbox) {
         const hiddenInput = checkbox.closest('td').querySelector('input[type="hidden"]');
         if (hiddenInput) {
@@ -555,18 +739,15 @@
                 const detallesAsignados = data.detalles_asignados || [];
                 const serviciosPendientes = data.servicios_pendientes || [];
 
-                // 1. Pintar asignados
                 detallesAsignados.forEach((d) => {
                     tablaBody.insertAdjacentHTML('beforeend', renderFilaAsignada(d));
                 });
 
-                // 2. Pintar pendientes
                 const opcionesMuestrasHTML = construirOpcionesMuestras(muestrasGlobales);
                 serviciosPendientes.forEach((item) => {
                     tablaBody.insertAdjacentHTML('beforeend', renderFilaPendiente(item, opcionesMuestrasHTML));
                 });
 
-                // 3. Si no hay nada, una fila base vacía
                 if (detallesAsignados.length === 0 && serviciosPendientes.length === 0) {
                     window.agregarNuevaFila();
                 }
@@ -666,7 +847,6 @@
                 cargarDetalleCotizacion(this.value, false);
             });
 
-            // Al abrir la pantalla con cotización ya seleccionada, cargar su estado actual real
             if (selectCotizacion.value) {
                 cargarDetalleCotizacion(selectCotizacion.value, true);
             }
