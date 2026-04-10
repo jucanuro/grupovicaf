@@ -76,7 +76,7 @@
         {% include 'footer.html' %}
     </div>
     {% include 'buscador.html' %}
-
+     {% block modals %}{% endblock %}
     <script src="{% static 'js/vicafbase.js' %}"></script>
     {% block extra_scripts %}{% endblock %}
 </body>

@@ -280,7 +280,101 @@
         }
     }
 </style>
+<style>
+    .actividad-tab-btn{
+        display:flex;
+        align-items:center;
+        gap:.85rem;
+        width:100%;
+        padding:.9rem 1rem;
+        border:1px solid #e2e8f0;
+        border-radius:1rem;
+        background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
+        transition:all .22s ease;
+        text-align:left;
+    }
 
+    .actividad-tab-btn:hover{
+        border-color:#93c5fd;
+        box-shadow:0 8px 24px rgba(37,99,235,.08);
+        transform:translateY(-1px);
+    }
+
+    .actividad-tab-btn.active{
+        background:linear-gradient(135deg,#eff6ff 0%,#ffffff 100%);
+        border-color:#3b82f6;
+        box-shadow:0 10px 28px rgba(59,130,246,.12);
+    }
+
+    .actividad-tab-step{
+        width:2rem;
+        height:2rem;
+        min-width:2rem;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        border-radius:.8rem;
+        background:#0f172a;
+        color:#fff;
+        font-size:.72rem;
+        font-weight:900;
+        letter-spacing:.08em;
+    }
+
+    .actividad-tab-btn.active .actividad-tab-step{
+        background:#2563eb;
+    }
+
+    .actividad-tab-text{
+        display:flex;
+        flex-direction:column;
+        line-height:1.1;
+    }
+
+    .actividad-tab-text strong{
+        font-size:.78rem;
+        font-weight:900;
+        text-transform:uppercase;
+        color:#0f172a;
+        letter-spacing:.08em;
+    }
+
+    .actividad-tab-text small{
+        font-size:.68rem;
+        font-weight:700;
+        color:#64748b;
+        margin-top:.2rem;
+        text-transform:uppercase;
+        letter-spacing:.08em;
+    }
+
+    .actividad-tab-panel{
+        display:none;
+    }
+
+    .actividad-tab-panel.active{
+        display:block;
+        animation:actividadTabFade .2s ease;
+    }
+
+    @keyframes actividadTabFade{
+        from{opacity:0; transform:translateY(6px);}
+        to{opacity:1; transform:translateY(0);}
+    }
+
+    .actividad-form-shell{
+        display:flex;
+        flex-direction:column;
+        min-height:100%;
+    }
+
+    .actividad-sticky-footer{
+        position:sticky;
+        bottom:0;
+        background:#fff;
+        z-index:15;
+    }
+</style>
 <div class="bg-vicaf-calendar"></div>
 
 <div class="max-w-[1700px] mx-auto p-2 md:p-2 relative z-10 space-y-6">
@@ -462,7 +556,8 @@
         </section>
     </div>
 </div>
-
+{% endblock %}
+{% block modals %}
 <div id="modalDetalle" class="hidden fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50 items-center justify-center p-4">
     <div class="w-full max-w-3xl bg-white rounded-[2rem] shadow-2xl border border-slate-200 overflow-hidden">
         <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200">
@@ -477,7 +572,7 @@
 </div>
 
 <div id="modalFormulario"
-     class="hidden fixed inset-0 z-[99999] bg-slate-950/70 backdrop-blur-md">
+     class="hidden fixed inset-0 z-[100] bg-slate-950/70 backdrop-blur-md">
 
     <div class="w-screen h-screen flex items-center justify-center p-4 md:p-6">
         <div
@@ -504,149 +599,233 @@
             </div>
 
             <div id="modalFormularioBody" class="flex-1 overflow-y-auto custom-scroll p-6">
-                <form id="actividadForm" class="space-y-6">
+                <form id="actividadForm" class="actividad-form-shell space-y-6">
                     <input type="hidden" id="actividad_id">
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="md:col-span-2">
-                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Título</label>
-                            <input id="titulo" type="text" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" required>
-                        </div>
+                    <!-- TABS -->
+                    <div class="shrink-0">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <button type="button"
+                                    class="actividad-tab-btn active"
+                                    data-actividad-tab="general"
+                                    onclick="switchActividadTab('general')">
+                                <span class="actividad-tab-step">01</span>
+                                <span class="actividad-tab-text">
+                                    <strong>General</strong>
+                                    <small>Datos base</small>
+                                </span>
+                            </button>
 
-                        <div class="md:col-span-2">
-                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Descripción</label>
-                            <textarea id="descripcion" rows="3" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"></textarea>
-                        </div>
+                            <button type="button"
+                                    class="actividad-tab-btn"
+                                    data-actividad-tab="config"
+                                    onclick="switchActividadTab('config')">
+                                <span class="actividad-tab-step">02</span>
+                                <span class="actividad-tab-text">
+                                    <strong>Configuración</strong>
+                                    <small>Opciones y relación</small>
+                                </span>
+                            </button>
 
-                        <div>
-                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Clase</label>
-                            <select id="clase" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                                {% for value, label in clases_actividad %}
-                                <option value="{{ value }}">{{ label }}</option>
-                                {% endfor %}
-                            </select>
+                            <button type="button"
+                                    class="actividad-tab-btn"
+                                    data-actividad-tab="equipo"
+                                    onclick="switchActividadTab('equipo')">
+                                <span class="actividad-tab-step">03</span>
+                                <span class="actividad-tab-text">
+                                    <strong>Equipo</strong>
+                                    <small>Participantes y alertas</small>
+                                </span>
+                            </button>
                         </div>
+                    </div>
 
-                        <div>
-                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Estado</label>
-                            <select id="estado" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                                {% for value, label in estados_actividad %}
-                                <option value="{{ value }}">{{ label }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                    <!-- TAB 1 -->
+                    <div id="actividad-tab-panel-general" class="actividad-tab-panel active">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Título</label>
+                                <input id="titulo" type="text" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" required>
+                            </div>
 
-                        <div>
-                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Prioridad</label>
-                            <select id="prioridad" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                                {% for value, label in prioridades_actividad %}
-                                <option value="{{ value }}">{{ label }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Descripción</label>
+                                <textarea id="descripcion" rows="4" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"></textarea>
+                            </div>
 
-                        <div>
-                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Categoría</label>
-                            <div class="flex gap-2">
-                                <select id="categoria_id" class="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                                    <option value="">-- Seleccionar --</option>
-                                    {% for categoria in categorias %}
-                                    <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+                            <div>
+                                <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Clase</label>
+                                <select id="clase" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                                    {% for value, label in clases_actividad %}
+                                    <option value="{{ value }}">{{ label }}</option>
                                     {% endfor %}
                                 </select>
+                            </div>
 
-                                <button
-                                    type="button"
-                                    id="btnAbrirModalCategoria"
-                                    class="w-12 h-12 rounded-2xl bg-slate-900 text-white hover:bg-blue-600 transition flex items-center justify-center"
-                                    title="Agregar categoría"
-                                >
-                                    <i data-lucide="plus" class="w-5 h-5"></i>
+                            <div>
+                                <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Estado</label>
+                                <select id="estado" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                                    {% for value, label in estados_actividad %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Prioridad</label>
+                                <select id="prioridad" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                                    {% for value, label in prioridades_actividad %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Categoría</label>
+                                <div class="flex gap-2">
+                                    <select id="categoria_id" class="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                                        <option value="">-- Seleccionar --</option>
+                                        {% for categoria in categorias %}
+                                        <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+                                        {% endfor %}
+                                    </select>
+
+                                    <button
+                                        type="button"
+                                        id="btnAbrirModalCategoria"
+                                        class="w-12 h-12 rounded-2xl bg-slate-900 text-white hover:bg-blue-600 transition flex items-center justify-center"
+                                        title="Agregar categoría"
+                                    >
+                                        <i data-lucide="plus" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Inicio</label>
+                                <input id="fecha_inicio" type="datetime-local" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Fin</label>
+                                <input id="fecha_fin" type="datetime-local" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                            </div>
+
+                            <div class="md:col-span-2 flex justify-end">
+                                <button type="button"
+                                        onclick="switchActividadTab('config')"
+                                        class="px-5 py-3 rounded-2xl bg-slate-900 text-white text-sm font-black uppercase tracking-wider hover:bg-blue-600 transition">
+                                    Continuar
                                 </button>
                             </div>
                         </div>
+                    </div>
 
-                        <div>
-                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Inicio</label>
-                            <input id="fecha_inicio" type="datetime-local" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                        </div>
+                    <!-- TAB 2 -->
+                    <div id="actividad-tab-panel-config" class="actividad-tab-panel">
+                        <div class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Cliente</label>
+                                    <select id="cliente_id" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                                        <option value="">-- Seleccionar --</option>
+                                        {% for cliente in clientes %}
+                                        <option value="{{ cliente.id }}">{{ cliente.razon_social }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
 
-                        <div>
-                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Fin</label>
-                            <input id="fecha_fin" type="datetime-local" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                        </div>
+                                <div>
+                                    <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Proyecto</label>
+                                    <select id="proyecto_id" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                                        <option value="">-- Seleccionar --</option>
+                                        {% for proyecto in proyectos %}
+                                        <option value="{{ proyecto.id }}">{{ proyecto.codigo_proyecto }} - {{ proyecto.nombre_proyecto }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
 
-                        <div>
-                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Cliente</label>
-                            <select id="cliente_id" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                                <option value="">-- Seleccionar --</option>
-                                {% for cliente in clientes %}
-                                <option value="{{ cliente.id }}">{{ cliente.razon_social }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                                <div>
+                                    <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Ubicación</label>
+                                    <input id="ubicacion" type="text" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                                </div>
 
-                        <div>
-                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Proyecto</label>
-                            <select id="proyecto_id" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                                <option value="">-- Seleccionar --</option>
-                                {% for proyecto in proyectos %}
-                                <option value="{{ proyecto.id }}">{{ proyecto.codigo_proyecto }} - {{ proyecto.nombre_proyecto }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                                <div>
+                                    <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Enlace</label>
+                                    <input id="enlace_externo" type="url" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                                </div>
 
-                        <div>
-                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Ubicación</label>
-                            <input id="ubicacion" type="text" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                        </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Observaciones</label>
+                                    <textarea id="observaciones" rows="4" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"></textarea>
+                                </div>
+                            </div>
 
-                        <div>
-                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Enlace</label>
-                            <input id="enlace_externo" type="url" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                        </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <label class="flex items-center gap-3 rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                                    <input id="todo_el_dia" type="checkbox" class="w-4 h-4">
+                                    <span class="text-sm font-bold text-slate-700">Todo el día</span>
+                                </label>
 
-                        <div class="md:col-span-2">
-                            <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Observaciones</label>
-                            <textarea id="observaciones" rows="3" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"></textarea>
+                                <label class="flex items-center gap-3 rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                                    <input id="bloquea_agenda" type="checkbox" class="w-4 h-4">
+                                    <span class="text-sm font-bold text-slate-700">Bloquea agenda</span>
+                                </label>
+
+                                <label class="flex items-center gap-3 rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                                    <input id="es_visible" type="checkbox" class="w-4 h-4" checked>
+                                    <span class="text-sm font-bold text-slate-700">Visible</span>
+                                </label>
+                            </div>
+
+                            <div class="flex justify-between gap-3">
+                                <button type="button"
+                                        onclick="switchActividadTab('general')"
+                                        class="px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 text-sm font-black uppercase tracking-wider hover:bg-slate-200">
+                                    Volver
+                                </button>
+
+                                <button type="button"
+                                        onclick="switchActividadTab('equipo')"
+                                        class="px-5 py-3 rounded-2xl bg-slate-900 text-white text-sm font-black uppercase tracking-wider hover:bg-blue-600">
+                                    Continuar
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <label class="flex items-center gap-3 rounded-2xl bg-slate-50 border border-slate-200 p-4">
-                            <input id="todo_el_dia" type="checkbox" class="w-4 h-4">
-                            <span class="text-sm font-bold text-slate-700">Todo el día</span>
-                        </label>
+                    <!-- TAB 3 -->
+                    <div id="actividad-tab-panel-equipo" class="actividad-tab-panel">
+                        <div class="space-y-6">
+                            <div class="rounded-[2rem] border border-slate-200 p-5">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h4 class="text-sm font-black uppercase tracking-[0.2em] text-slate-700">Participantes</h4>
+                                    <button type="button" id="addParticipante" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-black uppercase">+ Agregar</button>
+                                </div>
+                                <div id="participantesContainer" class="space-y-3"></div>
+                            </div>
 
-                        <label class="flex items-center gap-3 rounded-2xl bg-slate-50 border border-slate-200 p-4">
-                            <input id="bloquea_agenda" type="checkbox" class="w-4 h-4">
-                            <span class="text-sm font-bold text-slate-700">Bloquea agenda</span>
-                        </label>
+                            <div class="rounded-[2rem] border border-slate-200 p-5">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h4 class="text-sm font-black uppercase tracking-[0.2em] text-slate-700">Recordatorios</h4>
+                                    <button type="button" id="addRecordatorio" class="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-black uppercase">+ Agregar</button>
+                                </div>
+                                <div id="recordatoriosContainer" class="space-y-3"></div>
+                            </div>
 
-                        <label class="flex items-center gap-3 rounded-2xl bg-slate-50 border border-slate-200 p-4">
-                            <input id="es_visible" type="checkbox" class="w-4 h-4" checked>
-                            <span class="text-sm font-bold text-slate-700">Visible</span>
-                        </label>
-                    </div>
-
-                    <div class="rounded-[2rem] border border-slate-200 p-5">
-                        <div class="flex items-center justify-between mb-4">
-                            <h4 class="text-sm font-black uppercase tracking-[0.2em] text-slate-700">Participantes</h4>
-                            <button type="button" id="addParticipante" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-black uppercase">+ Agregar</button>
+                            <div class="flex justify-start">
+                                <button type="button"
+                                        onclick="switchActividadTab('config')"
+                                        class="px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 text-sm font-black uppercase tracking-wider hover:bg-slate-200">
+                                    Volver
+                                </button>
+                            </div>
                         </div>
-                        <div id="participantesContainer" class="space-y-3"></div>
                     </div>
 
-                    <div class="rounded-[2rem] border border-slate-200 p-5">
-                        <div class="flex items-center justify-between mb-4">
-                            <h4 class="text-sm font-black uppercase tracking-[0.2em] text-slate-700">Recordatorios</h4>
-                            <button type="button" id="addRecordatorio" class="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-black uppercase">+ Agregar</button>
-                        </div>
-                        <div id="recordatoriosContainer" class="space-y-3"></div>
-                    </div>
-
-                    <div class="sticky bottom-0 bg-white pt-4">
-                        <div class="flex items-center justify-between border-t border-slate-200 pt-4">
+                    <!-- FOOTER -->
+                    <div class="actividad-sticky-footer pt-4">
+                        <div class="flex items-center justify-between border-t border-slate-200 pt-4 bg-white">
                             <button type="button" id="btnEliminarActividad" class="hidden px-5 py-3 rounded-2xl bg-rose-600 text-white text-sm font-black uppercase tracking-wider hover:bg-rose-700">
                                 Eliminar
                             </button>
@@ -708,7 +887,6 @@
         </div>
     </div>
 </div>
-
 <div id="modalResumenListado" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[999999] items-center justify-center p-4">
     <div class="w-full max-w-6xl bg-white rounded-[2rem] shadow-2xl border border-slate-200 overflow-hidden">
         <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200">
@@ -754,7 +932,6 @@
     </div>
 </div>
 {% endblock %}
-
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.19/index.global.min.js"></script>
 <script>
@@ -1757,5 +1934,29 @@
 
     initAsideToggle();
     initCalendar();
+</script>
+<script>
+    function switchActividadTab(tabName) {
+        document.querySelectorAll('.actividad-tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        document.querySelectorAll('.actividad-tab-panel').forEach(panel => {
+            panel.classList.remove('active');
+        });
+
+        const activeBtn = document.querySelector(`[data-actividad-tab="${tabName}"]`);
+        const activePanel = document.getElementById(`actividad-tab-panel-${tabName}`);
+
+        if (activeBtn) activeBtn.classList.add('active');
+        if (activePanel) activePanel.classList.add('active');
+
+        const modalBody = document.getElementById('modalFormularioBody');
+        if (modalBody) modalBody.scrollTop = 0;
+
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    }
 </script>
 {% endblock %}
