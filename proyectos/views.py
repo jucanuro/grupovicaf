@@ -585,12 +585,32 @@ def gestionar_solicitud_ensayo(request, pk=None):
     if request.method == 'POST':
         try:
             perfil_trabajador = TrabajadorProfile.objects.filter(user=request.user).first()
+
+            if not perfil_trabajador:
+                messages.error(
+                    request,
+                    "Tu usuario no tiene un perfil de trabajador asociado. Contacta al administrador antes de registrar ensayos."
+                )
+                return redirect(request.path)
+
             cotizacion_id = request.POST.get('cotizacion')
-            fecha_solicitud = request.POST.get('fecha_solicitud') or timezone.now().date()
-            fecha_entrega_cabecera = request.POST.get('fecha_entrega_programada')
+            fecha_solicitud_raw = request.POST.get('fecha_solicitud')
+            fecha_entrega_cabecera_raw = request.POST.get('fecha_entrega_programada')
 
             if not cotizacion_id:
                 raise Exception("Debe seleccionar una Cotización.")
+
+            fecha_solicitud = (
+                datetime.strptime(fecha_solicitud_raw, "%Y-%m-%d").date()
+                if fecha_solicitud_raw else timezone.now().date()
+            )
+
+            if not fecha_entrega_cabecera_raw:
+                raise Exception("Debe indicar la fecha de entrega programada.")
+
+            fecha_entrega_cabecera = datetime.strptime(
+                fecha_entrega_cabecera_raw, "%Y-%m-%d"
+            ).date()
 
             recepcion = RecepcionMuestra.objects.filter(
                 cotizacion_id=cotizacion_id
@@ -608,6 +628,10 @@ def gestionar_solicitud_ensayo(request, pk=None):
                     solicitud.recepcion = recepcion
                     solicitud.fecha_solicitud = fecha_solicitud
                     solicitud.fecha_entrega_programada = fecha_entrega_cabecera
+
+                    if not solicitud.elaborado_por_id:
+                        solicitud.elaborado_por = perfil_trabajador
+
                     solicitud.save()
                 else:
                     cotizacion = get_object_or_404(Cotizacion, pk=cotizacion_id)
@@ -635,7 +659,7 @@ def gestionar_solicitud_ensayo(request, pk=None):
                         cotizacion_id=cotizacion_id,
                         fecha_solicitud=fecha_solicitud,
                         fecha_entrega_programada=fecha_entrega_cabecera,
-                        elaborado_por=perfil_trabajador if perfil_trabajador else None,
+                        elaborado_por=perfil_trabajador,
                         estado='pendiente'
                     )
 
@@ -654,6 +678,12 @@ def gestionar_solicitud_ensayo(request, pk=None):
                         grupo__cotizacion_id=cotizacion_id
                     ).select_related('servicio')
                 }
+
+                muestras_validas = set(
+                    MuestraDetalle.objects.filter(
+                        recepcion__cotizacion_id=cotizacion_id
+                    ).values_list('id', flat=True)
+                )
 
                 servicios_ya_guardados = set(
                     solicitud.detalles.values_list('servicio_cotizado_id', flat=True)
@@ -683,8 +713,13 @@ def gestionar_solicitud_ensayo(request, pk=None):
                         continue
 
                     try:
+                        m_id_int = int(m_id)
                         s_id_int = int(s_id)
                     except ValueError:
+                        omitidas += 1
+                        continue
+
+                    if m_id_int not in muestras_validas:
                         omitidas += 1
                         continue
 
@@ -696,21 +731,28 @@ def gestionar_solicitud_ensayo(request, pk=None):
                         omitidas += 1
                         continue
 
+                    try:
+                        fecha_entrega_det_obj = datetime.strptime(fecha_entrega_det, "%Y-%m-%d").date()
+                    except ValueError:
+                        omitidas += 1
+                        continue
+
                     norma_val = normas[i].strip() if i < len(normas) and normas[i] else ""
                     metodo_val = metodos[i].strip() if i < len(metodos) and metodos[i] else ""
 
                     ensayos_list.append(
                         DetalleSolicitudEnsayo(
                             solicitud=solicitud,
-                            muestra_id=m_id,
-                            servicio_cotizado_id=s_id,
+                            muestra_id=m_id_int,
+                            servicio_cotizado_id=s_id_int,
                             descripcion_ensayo=cot_det.servicio.nombre if cot_det.servicio else "Ensayo",
                             norma=norma_val,
                             metodo=metodo_val,
                             tecnico_asignado_id=tecnico_id,
-                            fecha_entrega_programada=fecha_entrega_det
+                            fecha_entrega_programada=fecha_entrega_det_obj
                         )
                     )
+                    servicios_ya_guardados.add(s_id_int)
 
                 if ensayos_list:
                     DetalleSolicitudEnsayo.objects.bulk_create(ensayos_list)
@@ -733,8 +775,12 @@ def gestionar_solicitud_ensayo(request, pk=None):
 
                     is_auth = j < len(inc_autorizados) and inc_autorizados[j].lower() == 'true'
                     responsable_id = inc_responsables[j].strip() if j < len(inc_responsables) and inc_responsables[j] else None
-                    fecha_ocurrencia = inc_fechas[j] if j < len(inc_fechas) and inc_fechas[j] else timezone.now()
                     representante_cliente = inc_clientes[j] if j < len(inc_clientes) else ""
+
+                    try:
+                        fecha_ocurrencia = datetime.strptime(inc_fechas[j], "%Y-%m-%dT%H:%M") if j < len(inc_fechas) and inc_fechas[j] else timezone.now()
+                    except ValueError:
+                        fecha_ocurrencia = timezone.now()
 
                     key_inc = (texto, representante_cliente)
                     if key_inc in incidencias_existentes:
@@ -766,7 +812,7 @@ def gestionar_solicitud_ensayo(request, pk=None):
             else:
                 messages.success(request, f"Solicitud {solicitud.codigo_solicitud} guardada con éxito.")
 
-            return redirect('proyectos:gestionar_solicitud_ensayo', pk=solicitud.pk)
+            return redirect('proyectos:lista_solicitudes')
 
         except Exception as e:
             print("ERROR EN gestionar_solicitud_ensayo:", repr(e))
@@ -861,13 +907,13 @@ def gestionar_solicitud_ensayo(request, pk=None):
     ).select_related('tipo_muestra', 'unidad_medida') if cotizacion_activa else MuestraDetalle.objects.none()
 
     dias_plazo = ""
-    
+
     if solicitud and solicitud.fecha_solicitud and solicitud.fecha_entrega_programada:
         try:
             dias_plazo = (solicitud.fecha_entrega_programada - solicitud.fecha_solicitud).days
         except Exception:
             dias_plazo = ""
-    
+
     context = {
         'solicitud': solicitud,
         'detalles': solicitud.detalles.select_related(

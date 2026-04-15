@@ -411,11 +411,9 @@
             closeClienteModal();
         });
 
-        handleAjaxForm('formNuevaCategoriaAjax', config.urlCrearCategoria, (data) => {
-            const name = data.nombre.toUpperCase();
-            tsRegCategoria?.addOption({ value: name, text: name });
-            tsRegCategoria?.setValue(name);
+        handleAjaxForm('formNuevaCategoriaAjax', config.urlCrearCategoria, () => {
             closeCategoriaModal();
+            window.location.reload();
         });
 
         handleAjaxForm('formNuevaSubcategoriaAjax', config.urlCrearSubcategoria, (data) => {

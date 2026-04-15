@@ -312,7 +312,10 @@
                                 </div>
 
                                 <div class="sm:col-span-2">
-                                    <button type="button" class="w-full h-full min-h-[42px] cursor-pointer group relative flex items-center justify-center rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white shadow-sm transition-all hover:border-blue-400 hover:shadow-md active:scale-95"
+                                    <button
+                                        type="button"
+                                        id="btn-open-tipo-muestra-modal"
+                                        class="w-full h-full min-h-[42px] cursor-pointer group relative flex items-center justify-center rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white shadow-sm transition-all hover:border-blue-400 hover:shadow-md active:scale-95"
                                         title="Añadir nuevo tipo de muestra">
                                         <div class="absolute inset-0 bg-blue-500/0 group-hover:bg-blue-500/5 rounded-xl transition-colors"></div>
                                         <i data-lucide="plus-square" class="w-5 h-5 text-blue-600 group-hover:text-blue-700 transition-transform group-hover:scale-110"></i>
@@ -402,7 +405,7 @@
 {% block extra_scripts %}
 <script>
     window.DjangoConfig = {
-        crearTipoMuestraUrl: "{% url 'proyectos:crear_tipo_muestra_ajax' %}", 
+        crearTipoMuestraUrl: "{% url 'proyectos:crear_tipo_muestra_ajax' %}",
         csrfToken: "{{ csrf_token }}"
     };
 
@@ -430,6 +433,176 @@
             behavior: 'smooth'
         });
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const openBtn = document.getElementById('btn-open-tipo-muestra-modal');
+        const modal = document.getElementById('tipoMuestraModal');
+        const form = document.getElementById('form-tipo-muestra');
+        const nombreInput = document.getElementById('tipo_muestra_nombre');
+        const siglaInput = document.getElementById('tipo_muestra_sigla');
+        const submitBtn = document.getElementById('btn-submit-tipo-muestra');
+        const messageBox = document.getElementById('tipo-muestra-modal-message');
+        const closeButtons = document.querySelectorAll('[data-close-tipo-muestra-modal]');
+        const globalSearchInput = document.getElementById('tipo_global_search');
+        const globalHiddenInput = document.getElementById('tipo_global_selector');
+
+        function showMessage(text, type = 'error') {
+            if (!messageBox) return;
+
+            messageBox.classList.remove('hidden', 'bg-red-50', 'border-red-200', 'text-red-700', 'bg-emerald-50', 'border-emerald-200', 'text-emerald-700');
+
+            if (type === 'success') {
+                messageBox.classList.add('bg-emerald-50', 'border', 'border-emerald-200', 'text-emerald-700');
+            } else {
+                messageBox.classList.add('bg-red-50', 'border', 'border-red-200', 'text-red-700');
+            }
+
+            messageBox.textContent = text;
+        }
+
+        function clearMessage() {
+            if (!messageBox) return;
+            messageBox.classList.add('hidden');
+            messageBox.textContent = '';
+        }
+
+        function openModal() {
+            if (!modal) return;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.classList.add('overflow-hidden');
+            clearMessage();
+
+            if (form) form.reset();
+
+            setTimeout(() => {
+                if (nombreInput) nombreInput.focus();
+            }, 80);
+
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        }
+
+        function closeModal() {
+            if (!modal) return;
+
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.classList.remove('overflow-hidden');
+            clearMessage();
+
+            if (form) form.reset();
+        }
+
+        if (openBtn) {
+            openBtn.addEventListener('click', openModal);
+        }
+
+        closeButtons.forEach(btn => {
+            btn.addEventListener('click', closeModal);
+        });
+
+        if (modal) {
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+        }
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
+                closeModal();
+            }
+        });
+
+        if (siglaInput) {
+            siglaInput.addEventListener('input', function () {
+                this.value = this.value.toUpperCase().replace(/\s+/g, '');
+            });
+        }
+
+        if (form) {
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                clearMessage();
+
+                const nombre = nombreInput ? nombreInput.value.trim() : '';
+                const sigla = siglaInput ? siglaInput.value.trim().toUpperCase() : '';
+
+                if (!nombre || nombre.length < 2 || nombre.length > 100) {
+                    showMessage('El nombre debe tener entre 2 y 100 caracteres.');
+                    if (nombreInput) nombreInput.focus();
+                    return;
+                }
+
+                if (!sigla || sigla.length < 1 || sigla.length > 10) {
+                    showMessage('La sigla debe tener entre 1 y 10 caracteres.');
+                    if (siglaInput) siglaInput.focus();
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('nombre', nombre);
+                formData.append('sigla', sigla);
+
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.dataset.originalText = submitBtn.textContent;
+                    submitBtn.textContent = 'Guardando...';
+                }
+
+                try {
+                    const response = await fetch(window.DjangoConfig.crearTipoMuestraUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': window.DjangoConfig.csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok || data.status !== 'success') {
+                        showMessage(data.message || 'No se pudo guardar el tipo de muestra.');
+                        return;
+                    }
+
+                    // Actualiza visualmente antes de recargar
+                    if (globalSearchInput) {
+                        globalSearchInput.value = `${data.sigla} - ${data.nombre}`;
+                    }
+
+                    if (globalHiddenInput) {
+                        globalHiddenInput.value = data.id;
+                    }
+
+                    showMessage(
+                        data.nuevo
+                            ? 'Tipo de muestra creado correctamente. Recargando...'
+                            : 'El tipo de muestra ya existía. Recargando...',
+                        'success'
+                    );
+
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 900);
+
+                } catch (error) {
+                    console.error('Error guardando tipo de muestra:', error);
+                    showMessage('Ocurrió un error de conexión al guardar.');
+                } finally {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = submitBtn.dataset.originalText || 'Guardar';
+                    }
+                }
+            });
+        }
+    });
 </script>
 <script src="{% static 'js/gestion_muestras.js' %}"></script>
 {% endblock %}

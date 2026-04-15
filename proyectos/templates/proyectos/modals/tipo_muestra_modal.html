@@ -1,36 +1,59 @@
-<div id="modal-tipo-muestra" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-    <div class="bg-white border border-slate-200 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-        <div class="p-6">
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
-                        <i data-lucide="beaker" class="w-5 h-5"></i>
-                    </div>
-                    <h3 class="text-sm font-bold text-slate-900 uppercase tracking-tight">Nuevo Tipo de Muestra</h3>
-                </div>
-                <button type="button" onclick="closeTipoMuestraModal()" class="text-slate-400 hover:text-slate-600">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombre de la Muestra</label>
-                    <input type="text" id="new_tipo_nombre" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" placeholder="Ej: CONCRETO FRESCO">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sigla / Prefijo (Máx 3-4 letras)</label>
-                    <input type="text" id="new_tipo_sigla" maxlength="5" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-blue-600 uppercase outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" placeholder="Ej: CON">
-                    <p class="text-[9px] text-slate-400 mt-1 italic">Este prefijo se usará para generar el ID: V-M-2026-<b>CON</b>-0001</p>
-                </div>
-            </div>
-
-            <div class="mt-8 flex items-center gap-3">
-                <button type="button" onclick="closeTipoMuestraModal()" class="flex-1 px-4 py-2.5 rounded-lg text-xs font-bold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-all">CANCELAR</button>
-                <button type="button" onclick="saveNewTipoMuestra()" id="btn-save-tipo" class="flex-1 px-4 py-2.5 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md transition-all flex items-center justify-center gap-2">
-                    <i data-lucide="save" class="w-4 h-4"></i> GUARDAR
-                </button>
-            </div>
+<div id="tipoMuestraModal" class="fixed inset-0 z-[999999] hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+    <div id="tipoMuestraModalPanel" class="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
+        
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
+            <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest">
+                Nuevo Tipo de Muestra
+            </h3>
+            <button type="button" data-close-tipo-muestra-modal class="text-slate-500 hover:text-red-500">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
         </div>
+
+        <form id="form-tipo-muestra" class="p-6 space-y-4">
+            <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombre</label>
+                <input
+                    type="text"
+                    id="tipo_muestra_nombre"
+                    name="nombre"
+                    required
+                    minlength="2"
+                    maxlength="100"
+                    class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
+                    placeholder="Ej: Suelo natural">
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sigla</label>
+                <input
+                    type="text"
+                    id="tipo_muestra_sigla"
+                    name="sigla"
+                    required
+                    minlength="1"
+                    maxlength="10"
+                    class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 uppercase"
+                    placeholder="Ej: SN">
+            </div>
+
+            <div id="tipo-muestra-modal-message" class="hidden rounded-xl border px-4 py-3 text-xs font-bold"></div>
+
+            <div class="flex justify-end gap-3 pt-2">
+                <button
+                    type="button"
+                    data-close-tipo-muestra-modal
+                    class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-black uppercase">
+                    Cancelar
+                </button>
+
+                <button
+                    type="submit"
+                    id="btn-submit-tipo-muestra"
+                    class="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-black uppercase hover:bg-blue-600 transition-all">
+                    Guardar
+                </button>
+            </div>
+        </form>
     </div>
 </div>

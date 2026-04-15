@@ -303,17 +303,27 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     handleAjaxForm('formNuevoClienteAjax', config.urlCrearCliente, (data) => {
-        tsCliente?.addOption({ value: data.id, text: `${data.ruc} - ${data.razon_social}`, razonSocial: data.razon_social, contacto: data.persona_contacto, correo: data.correo_contacto, telefono: data.celular_contacto });
+        tsCliente?.addOption({ 
+            value: data.id, 
+            text: `${data.ruc} - ${data.razon_social}`, 
+            razonSocial: data.razon_social, 
+            contacto: data.persona_contacto, 
+            correo: data.correo_contacto, 
+            telefono: data.celular_contacto 
+        });
         tsCliente?.setValue(data.id);
-        loadClientData({ dataset: { razonSocial: data.razon_social, contacto: data.persona_contacto, correo: data.correo_contacto, telefono: data.celular_contacto }});
+        loadClientData({ dataset: { 
+            razonSocial: data.razon_social, 
+            contacto: data.persona_contacto, 
+            correo: data.correo_contacto, 
+            telefono: data.celular_contacto 
+        }});
         closeClienteModal();
     });
 
-    handleAjaxForm('formNuevaCategoriaAjax', config.urlCrearCategoria, (data) => {
-        const name = data.nombre.toUpperCase();
-        tsRegCategoria?.addOption({ value: name, text: name });
-        tsRegCategoria?.setValue(name);
+    handleAjaxForm('formNuevaCategoriaAjax', config.urlCrearCategoria, () => {
         closeCategoriaModal();
+        window.location.reload();
     });
 
     handleAjaxForm('formNuevaSubcategoriaAjax', config.urlCrearSubcategoria, (data) => {

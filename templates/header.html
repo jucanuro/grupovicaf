@@ -102,35 +102,81 @@
             </span>
         </a>
 
-        <div class="relative group/dropdown px-0.5">
-            <div id="proyectos-btn" 
-                    class="nav-item cursor-pointer justify-between pr-4 relative flex items-center h-14 rounded-2xl transition-all duration-300 group/item hover:bg-white/80
-                        {% if 'proyectos' in request.path %} bg-white shadow-md border border-slate-100 {% endif %}">
-                <div class="flex items-center">
-                    <div class="nav-icon-box w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-500 flex-shrink-0 
-                                text-slate-400 group-hover/item:text-indigo-600
-                                {% if 'proyectos' in request.path %} bg-gradient-to-br from-indigo-600 to-blue-600 text-white shadow-[0_5px_15px_rgba(79,70,229,0.4)] {% endif %}">
-                        <i data-lucide="layers" class="w-5 h-5"></i>
-                    </div>
-                    <span class="ml-4 text-[13px] font-bold text-slate-600 whitespace-nowrap nav-text opacity-0 transition-all duration-500 translate-x-[-15px] group-hover/sidebar:opacity-100 group-hover/sidebar:translate-x-0">
-                        Ecosistema de Proyectos
-                    </span>
-                </div>
-                <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-300 nav-text opacity-0 transition-all duration-500 group-hover/sidebar:opacity-100 group-hover/dropdown:rotate-90"></i>
+        <div class="relative px-0.5">
+    <button
+        id="proyectos-btn"
+        type="button"
+        aria-expanded="{% if 'proyectos' in request.path %}true{% else %}false{% endif %}"
+        aria-controls="proyectos-menu"
+        class="w-full nav-item cursor-pointer justify-between pr-4 relative flex items-center h-14 rounded-2xl transition-all duration-300 group/item hover:bg-white/80
+               {% if 'proyectos' in request.path %} bg-white shadow-md border border-slate-100 {% endif %}">
+        
+        <div class="flex items-center min-w-0">
+            <div class="nav-icon-box w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-500 flex-shrink-0 
+                        text-slate-400 group-hover/item:text-indigo-600
+                        {% if 'proyectos' in request.path %} bg-gradient-to-br from-indigo-600 to-blue-600 text-white shadow-[0_5px_15px_rgba(79,70,229,0.4)] {% endif %}">
+                <i data-lucide="layers" class="w-5 h-5"></i>
             </div>
-            
-            <div id="proyectos-menu" class="hidden flex-col bg-slate-100/50 mx-2 mt-1 rounded-2xl border border-white/50 overflow-hidden mb-2 backdrop-blur-sm">
-                <a href="{% url 'proyectos:lista_proyectos_pendientes' %}" class="pl-14 pr-4 py-3 text-[12px] font-bold text-slate-500 hover:text-indigo-600 hover:bg-white transition-all flex items-center">
-                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 mr-3 animate-pulse"></span>Nuestros Proyectos
-                </a>
-                <a href="{% url 'proyectos:lista_recepciones' %}" class="pl-14 pr-4 py-3 text-[12px] font-bold text-slate-500 hover:text-indigo-600 hover:bg-white transition-all flex items-center">
-                    <span class="w-1.5 h-1.5 rounded-full bg-blue-400 mr-3"></span> Control de Muestras
-                </a>
-                <a href="{% url 'proyectos:lista_solicitudes' %}" class="pl-14 pr-4 py-3 text-[12px] font-bold text-slate-500 hover:text-indigo-600 hover:bg-white transition-all flex items-center">
-                    <span class="w-1.5 h-1.5 rounded-full bg-purple-400 mr-3"></span> Solicitudes de Ensayo
-                </a>
-            </div>
+
+            <span class="ml-4 text-[13px] font-bold text-slate-600 whitespace-nowrap nav-text opacity-0 transition-all duration-500 translate-x-[-15px] group-hover/sidebar:opacity-100 group-hover/sidebar:translate-x-0">
+                Ecosistema de Proyectos
+            </span>
         </div>
+
+        <i id="arrow-proyectos"
+           data-lucide="chevron-right"
+           class="w-3.5 h-3.5 text-slate-300 nav-text opacity-0 transition-all duration-300 group-hover/sidebar:opacity-100 {% if 'proyectos' in request.path %}rotate-90{% endif %}">
+        </i>
+    </button>
+
+    <div id="proyectos-menu"
+         class="{% if 'proyectos' in request.path %}flex{% else %}hidden{% endif %} flex-col bg-slate-100/50 mx-2 mt-1 rounded-2xl border border-white/50 overflow-hidden mb-2 backdrop-blur-sm">
+
+        <a href="{% url 'proyectos:lista_proyectos_pendientes' %}"
+           class="pl-14 pr-4 py-3 text-[12px] font-bold transition-all flex items-center
+                  {% if request.resolver_match.url_name == 'lista_proyectos_pendientes' %}
+                      text-indigo-600 bg-white
+                  {% else %}
+                      text-slate-500 hover:text-indigo-600 hover:bg-white
+                  {% endif %}">
+            <span class="w-1.5 h-1.5 rounded-full mr-3 {% if request.resolver_match.url_name == 'lista_proyectos_pendientes' %}bg-indigo-500{% else %}bg-amber-400 animate-pulse{% endif %}"></span>
+            Nuestros Proyectos
+        </a>
+
+        <a href="{% url 'proyectos:lista_recepciones' %}"
+           class="pl-14 pr-4 py-3 text-[12px] font-bold transition-all flex items-center
+                  {% if request.resolver_match.url_name == 'lista_recepciones' or request.resolver_match.url_name == 'crear_recepcion' or request.resolver_match.url_name == 'crear_recepcion_desde_proyecto' or request.resolver_match.url_name == 'editar_recepcion' or request.resolver_match.url_name == 'lista_muestras_recepcion' %}
+                      text-indigo-600 bg-white
+                  {% else %}
+                      text-slate-500 hover:text-indigo-600 hover:bg-white
+                  {% endif %}">
+            <span class="w-1.5 h-1.5 rounded-full mr-3 {% if request.resolver_match.url_name == 'lista_recepciones' or request.resolver_match.url_name == 'crear_recepcion' or request.resolver_match.url_name == 'crear_recepcion_desde_proyecto' or request.resolver_match.url_name == 'editar_recepcion' or request.resolver_match.url_name == 'lista_muestras_recepcion' %}bg-indigo-500{% else %}bg-blue-400{% endif %}"></span>
+            Control de Muestras
+        </a>
+
+        <a href="{% url 'proyectos:lista_solicitudes' %}"
+           class="pl-14 pr-4 py-3 text-[12px] font-bold transition-all flex items-center
+                  {% if request.resolver_match.url_name == 'lista_solicitudes' or request.resolver_match.url_name == 'crear_solicitud' or request.resolver_match.url_name == 'editar_solicitud' %}
+                      text-indigo-600 bg-white
+                  {% else %}
+                      text-slate-500 hover:text-indigo-600 hover:bg-white
+                  {% endif %}">
+            <span class="w-1.5 h-1.5 rounded-full mr-3 {% if request.resolver_match.url_name == 'lista_solicitudes' or request.resolver_match.url_name == 'crear_solicitud' or request.resolver_match.url_name == 'editar_solicitud' %}bg-indigo-500{% else %}bg-purple-400{% endif %}"></span>
+            Solicitudes de Ensayo
+        </a>
+
+        <a href="{% url 'proyectos:lista_informes' %}"
+           class="pl-14 pr-4 py-3 text-[12px] font-bold transition-all flex items-center
+                  {% if request.resolver_match.url_name == 'lista_informes' or request.resolver_match.url_name == 'gestionar_informe' or request.resolver_match.url_name == 'descargar_pdf_informe' %}
+                      text-indigo-600 bg-white
+                  {% else %}
+                      text-slate-500 hover:text-indigo-600 hover:bg-white
+                  {% endif %}">
+            <span class="w-1.5 h-1.5 rounded-full mr-3 {% if request.resolver_match.url_name == 'lista_informes' or request.resolver_match.url_name == 'gestionar_informe' or request.resolver_match.url_name == 'descargar_pdf_informe' %}bg-indigo-500{% else %}bg-emerald-400{% endif %}"></span>
+            Informes Finales
+        </a>
+    </div>
+</div>
 
         <a href="{% url 'proyectos:lista_informes' %}" 
             class="nav-item relative flex items-center h-14 rounded-2xl transition-all duration-300 group hover:bg-white/80

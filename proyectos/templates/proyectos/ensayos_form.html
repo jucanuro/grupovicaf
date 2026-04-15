@@ -3,7 +3,6 @@
 
 {% block content %}
 <style>
-    /* Estética de Ingeniería: Cuadrícula Técnica */
     .font-mono-tech {
         font-family: 'JetBrains Mono', 'Fira Code', monospace;
     }
@@ -32,6 +31,7 @@
     .table-container::-webkit-scrollbar {
         height: 6px;
     }
+
     .table-container::-webkit-scrollbar-thumb {
         background: #cbd5e1;
         border-radius: 10px;
@@ -117,6 +117,103 @@
         from{opacity:0; transform:translateY(6px);}
         to{opacity:1; transform:translateY(0);}
     }
+
+    .ts-wrapper{
+        width:100%;
+    }
+
+    .ts-wrapper.single .ts-control{
+        min-height:42px;
+        height:42px;
+        padding:0 2.75rem 0 0.95rem;
+        border:1px solid #e2e8f0 !important;
+        border-radius:0.5rem !important;
+        background:#ffffff !important;
+        box-shadow:0 1px 2px rgba(15,23,42,.05);
+        font-size:.75rem;
+        font-weight:700;
+        color:#334155;
+        display:flex;
+        align-items:center;
+    }
+
+    .ts-wrapper.single .ts-control input{
+        font-size:.75rem !important;
+        font-weight:700 !important;
+        color:#334155 !important;
+    }
+
+    .ts-wrapper.single .ts-control .item{
+        font-size:.75rem;
+        font-weight:700;
+        color:#334155;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        max-width:100%;
+    }
+
+    .ts-wrapper.focus .ts-control{
+        border-color:#3b82f6 !important;
+        box-shadow:0 0 0 4px rgba(59,130,246,.1) !important;
+        transform:translateY(-1px);
+    }
+
+    .ts-wrapper.single .ts-control::after{
+        content:"";
+        position:absolute;
+        right:0.95rem;
+        top:50%;
+        transform:translateY(-50%);
+        width:0;
+        height:0;
+        border-left:5px solid transparent;
+        border-right:5px solid transparent;
+        border-top:6px solid #94a3b8;
+        pointer-events:none;
+    }
+
+    .ts-dropdown{
+        margin-top:.35rem;
+        border:1px solid #e2e8f0 !important;
+        border-radius:.85rem !important;
+        overflow:hidden;
+        box-shadow:0 18px 40px rgba(15,23,42,.12);
+        background:#ffffff;
+        z-index:70;
+    }
+
+    .ts-dropdown .ts-dropdown-content{
+        max-height:260px;
+        padding:.3rem;
+    }
+
+    .ts-dropdown .option{
+        padding:.7rem .85rem;
+        border-radius:.65rem;
+        font-size:.75rem;
+        font-weight:700;
+        color:#334155;
+        line-height:1.25rem;
+    }
+
+    .ts-dropdown .option.active,
+    .ts-dropdown .option:hover{
+        background:#eff6ff !important;
+        color:#1d4ed8 !important;
+    }
+
+    .ts-wrapper.plugin-remove_button .item .remove{
+        border-left:none;
+        color:#94a3b8;
+    }
+
+    .ts-control,
+    .ts-dropdown,
+    .ts-wrapper.single .ts-control input,
+    .ts-wrapper.single .ts-control .item{
+        text-transform:none !important;
+    }
 </style>
 
 <div class="bg-vicaf-engine"></div>
@@ -195,17 +292,21 @@
                 <div class="p-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
                     <div class="md:col-span-1 lg:col-span-1">
                         <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cotización / Oferta / Cliente</label>
-                        <select name="cotizacion" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm" required>
-                            <option value="" disabled {% if not solicitud and not cotizacion_preseleccionada %}selected{% endif %}>
-                                -- Seleccionar Cotización --
-                            </option>
-                            {% for c in cotizaciones %}
-                            <option value="{{ c.id }}"
-                                {% if solicitud and c.id == solicitud.cotizacion.id %}selected{% endif %}
-                                {% if cotizacion_preseleccionada and c.id == cotizacion_preseleccionada.id %}selected{% endif %}>
-                                {{ c.codigo_cotizacion }} | {{ c.numero_oferta|default:"S/N" }} | {{ c.cliente.codigo_confidencial }}
-                            </option>
-                            {% endfor %}
+                        <select id="id_cotizacion" name="cotizacion" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm" required>
+                            {% if cotizaciones %}
+                                <option value="" disabled {% if not solicitud and not cotizacion_preseleccionada %}selected{% endif %}>
+                                    -- Seleccionar Cotización --
+                                </option>
+                                {% for c in cotizaciones %}
+                                <option value="{{ c.id }}"
+                                    {% if solicitud and c.id == solicitud.cotizacion.id %}selected{% endif %}
+                                    {% if cotizacion_preseleccionada and c.id == cotizacion_preseleccionada.id %}selected{% endif %}>
+                                    {{ c.codigo_cotizacion }} | {{ c.numero_oferta|default:"S/N" }} | {{ c.cliente.codigo_confidencial }}
+                                </option>
+                                {% endfor %}
+                            {% else %}
+                                <option value="" selected>No hay cotizaciones pendientes</option>
+                            {% endif %}
                         </select>
                     </div>
                     <div>
@@ -506,21 +607,17 @@
 
 <script src="https://unpkg.com/lucide@latest"></script>
 <script>
-    function switchSolicitudTab(tabName) {
-        document.querySelectorAll('.sol-tab-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
+    window.detalleCotizacionUrlTemplate = "{% url 'proyectos:api_cotizacion_detalles' 0 %}";
 
-        document.querySelectorAll('.sol-tab-panel').forEach(panel => {
-            panel.classList.remove('active');
-        });
+    function switchSolicitudTab(tabName) {
+        document.querySelectorAll('.sol-tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.sol-tab-panel').forEach(panel => panel.classList.remove('active'));
 
         const activeBtn = document.querySelector(`.sol-tab-btn[data-tab="${tabName}"]`);
         const activePanel = document.getElementById(`sol-tab-panel-${tabName}`);
 
         if (activeBtn) activeBtn.classList.add('active');
         if (activePanel) activePanel.classList.add('active');
-
         if (window.lucide) lucide.createIcons();
 
         window.scrollTo({
@@ -530,21 +627,65 @@
     }
 
     function updateAuthValue(checkbox) {
-        const hiddenInput = checkbox.closest('td').querySelector('input[type="hidden"]');
-        if (hiddenInput) {
-            hiddenInput.value = checkbox.checked ? "true" : "false";
-        }
+        const hiddenInput = checkbox.closest('td')?.querySelector('input[type="hidden"]');
+        if (hiddenInput) hiddenInput.value = checkbox.checked ? "true" : "false";
     }
 
     let muestrasGlobales = [];
+    let serviciosPendientesGlobales = [];
+    let tsCotizacion = null;
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function buildDetalleCotizacionUrl(cotizacionId) {
+        return window.detalleCotizacionUrlTemplate.replace(/0\/$/, `${cotizacionId}/`);
+    }
+
+    function construirOpcionesMuestras(muestras) {
+        let html = '<option value="">-- Seleccionar --</option>';
+        (muestras || []).forEach(m => {
+            html += `<option value="${escapeHtml(m.id)}">${escapeHtml(m.codigo_laboratorio)}</option>`;
+        });
+        return html;
+    }
+
+    function construirOpcionesServicios(servicios) {
+        let html = '<option value="">-- Servicio --</option>';
+        (servicios || []).forEach(s => {
+            html += `
+                <option value="${escapeHtml(s.cotizacion_detalle_id)}"
+                        data-norma="${escapeHtml(s.norma || '')}"
+                        data-metodo="${escapeHtml(s.metodo || '')}">
+                    ${escapeHtml(s.nombre_servicio || 'Servicio')}
+                </option>
+            `;
+        });
+        return html;
+    }
+
+    function construirOpcionesTecnicos() {
+        return `
+            <option value="">-- Técnico --</option>
+            {% for t in trabajadores %}
+            <option value="{{ t.id }}">{{ t.nombre_completo|escapejs }}</option>
+            {% endfor %}
+        `;
+    }
 
     window.agregarNuevaFila = function () {
         const tabla = document.querySelector('#tabla-detalles tbody');
-        let opcionesMuestrasHTML = '<option value="">-- Muestra --</option>';
+        if (!tabla) return null;
 
-        muestrasGlobales.forEach(m => {
-            opcionesMuestrasHTML += `<option value="${m.id}">${m.codigo_laboratorio} (${m.descripcion || ''})</option>`;
-        });
+        const opcionesMuestrasHTML = construirOpcionesMuestras(muestrasGlobales);
+        const opcionesServiciosHTML = construirOpcionesServicios(serviciosPendientesGlobales);
+        const opcionesTecnicosHTML = construirOpcionesTecnicos();
 
         const rowHTML = `
             <tr class="group hover:bg-slate-50 transition-colors border-b border-slate-100">
@@ -555,14 +696,7 @@
                 </td>
                 <td class="p-3">
                     <select name="servicio_id[]" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700">
-                        <option value="">-- Servicio --</option>
-                        {% for s in servicios_items %}
-                        <option value="{{ s.id }}"
-                                data-norma="{{ s.norma_manual|default_if_none:'' }}"
-                                data-metodo="{{ s.metodo_manual|default_if_none:'' }}">
-                            {{ s.servicio.nombre }}
-                        </option>
-                        {% endfor %}
+                        ${opcionesServiciosHTML}
                     </select>
                 </td>
                 <td class="p-3">
@@ -573,10 +707,7 @@
                 </td>
                 <td class="p-3">
                     <select name="tecnico_id[]" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700">
-                        <option value="">-- Técnico --</option>
-                        {% for t in trabajadores %}
-                        <option value="{{ t.id }}">{{ t.nombre_completo }}</option>
-                        {% endfor %}
+                        ${opcionesTecnicosHTML}
                     </select>
                 </td>
                 <td class="p-3">
@@ -597,57 +728,54 @@
 
     window.eliminarFila = function (btn) {
         const tabla = document.querySelector('#tabla-detalles tbody');
+        if (!tabla) return;
+
         if (tabla.rows.length > 1) {
-            btn.closest('tr').remove();
+            btn.closest('tr')?.remove();
         } else {
             const row = tabla.rows[0];
+            if (!row) return;
             row.querySelectorAll('input').forEach(i => {
                 if (i.type !== 'hidden') i.value = "";
             });
-            row.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+            row.querySelectorAll('select').forEach(s => {
+                s.selectedIndex = 0;
+            });
         }
     };
-
-    function construirOpcionesMuestras(muestras) {
-        let opcionesMuestrasHTML = '<option value="">-- Seleccionar --</option>';
-        (muestras || []).forEach(m => {
-            opcionesMuestrasHTML += `<option value="${m.id}">${m.codigo_laboratorio}</option>`;
-        });
-        return opcionesMuestrasHTML;
-    }
 
     function renderFilaAsignada(detalle) {
         return `
             <tr data-preloaded-detalle="true" class="hover:bg-amber-50/50 transition-colors bg-amber-50/20">
                 <td class="p-3">
                     <div class="w-full p-2.5 bg-amber-100/40 border border-amber-200 rounded-xl text-[11px] font-bold text-amber-900">
-                        ${detalle.muestra_codigo || '--'}
-                        <input type="hidden" name="muestra_id[]" value="${detalle.muestra_id || ''}">
+                        ${escapeHtml(detalle.muestra_codigo || '--')}
+                        <input type="hidden" name="muestra_id[]" value="${escapeHtml(detalle.muestra_id || '')}">
                     </div>
                 </td>
                 <td class="p-3">
                     <div class="w-full p-2.5 bg-amber-100/40 border border-amber-200 rounded-xl text-[11px] font-bold text-amber-900">
-                        ${detalle.nombre_servicio || 'Servicio'}
-                        <input type="hidden" name="servicio_id[]" value="${detalle.servicio_cotizado_id || ''}">
+                        ${escapeHtml(detalle.nombre_servicio || 'Servicio')}
+                        <input type="hidden" name="servicio_id[]" value="${escapeHtml(detalle.servicio_cotizado_id || '')}">
                     </div>
                 </td>
                 <td class="p-3">
-                    <input type="text" value="${detalle.norma || ''}" disabled class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] font-mono text-slate-400 bg-slate-100" placeholder="Norma">
-                    <input type="hidden" name="norma[]" value="${detalle.norma || ''}">
+                    <input type="text" value="${escapeHtml(detalle.norma || '')}" disabled class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] font-mono text-slate-400 bg-slate-100" placeholder="Norma">
+                    <input type="hidden" name="norma[]" value="${escapeHtml(detalle.norma || '')}">
                 </td>
                 <td class="p-3">
-                    <input type="text" value="${detalle.metodo || ''}" disabled class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] text-slate-400 bg-slate-100" placeholder="Método">
-                    <input type="hidden" name="metodo[]" value="${detalle.metodo || ''}">
+                    <input type="text" value="${escapeHtml(detalle.metodo || '')}" disabled class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] text-slate-400 bg-slate-100" placeholder="Método">
+                    <input type="hidden" name="metodo[]" value="${escapeHtml(detalle.metodo || '')}">
                 </td>
                 <td class="p-3">
                     <div class="w-full p-2.5 bg-amber-100/40 border border-amber-200 rounded-xl text-[11px] font-bold text-amber-900">
-                        ${detalle.tecnico_nombre || '-- Sin Asignar --'}
-                        <input type="hidden" name="tecnico_id[]" value="${detalle.tecnico_id || ''}">
+                        ${escapeHtml(detalle.tecnico_nombre || '-- Sin Asignar --')}
+                        <input type="hidden" name="tecnico_id[]" value="${escapeHtml(detalle.tecnico_id || '')}">
                     </div>
                 </td>
                 <td class="p-3 text-center">
-                    <input type="date" value="${detalle.fecha_entrega || ''}" disabled class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-slate-100 text-slate-400">
-                    <input type="hidden" name="entrega_detalle[]" value="${detalle.fecha_entrega || ''}">
+                    <input type="date" value="${escapeHtml(detalle.fecha_entrega || '')}" disabled class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-slate-100 text-slate-400">
+                    <input type="hidden" name="entrega_detalle[]" value="${escapeHtml(detalle.fecha_entrega || '')}">
                 </td>
                 <td class="p-3 text-center">
                     <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-100 text-slate-400 text-[10px] font-bold uppercase">
@@ -668,22 +796,19 @@
                 </td>
                 <td class="p-3">
                     <div class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700">
-                        ${item.nombre_servicio || 'Servicio'}
-                        <input type="hidden" name="servicio_id[]" value="${item.cotizacion_detalle_id || ''}">
+                        ${escapeHtml(item.nombre_servicio || 'Servicio')}
+                        <input type="hidden" name="servicio_id[]" value="${escapeHtml(item.cotizacion_detalle_id || '')}">
                     </div>
                 </td>
                 <td class="p-3">
-                    <input type="text" name="norma[]" value="${item.norma || ''}" class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] font-mono text-blue-600" placeholder="Norma">
+                    <input type="text" name="norma[]" value="${escapeHtml(item.norma || '')}" class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] font-mono text-blue-600" placeholder="Norma">
                 </td>
                 <td class="p-3">
-                    <input type="text" name="metodo[]" value="${item.metodo || ''}" class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] text-slate-600" placeholder="Método">
+                    <input type="text" name="metodo[]" value="${escapeHtml(item.metodo || '')}" class="w-full p-2.5 border border-slate-200 rounded-xl text-[11px] text-slate-600" placeholder="Método">
                 </td>
                 <td class="p-3">
                     <select name="tecnico_id[]" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700">
-                        <option value="">-- Técnico --</option>
-                        {% for t in trabajadores %}
-                        <option value="{{ t.id }}">{{ t.nombre_completo }}</option>
-                        {% endfor %}
+                        ${construirOpcionesTecnicos()}
                     </select>
                 </td>
                 <td class="p-3 text-center">
@@ -709,7 +834,7 @@
             const fechaInput = tr.querySelector('input[name="entrega_detalle[]"]');
             const muestraSelect = tr.querySelector('select[name="muestra_id[]"]');
 
-            return (
+            return Boolean(
                 (servicioSelect && servicioSelect.value) ||
                 (servicioHidden && servicioHidden.value) ||
                 (tecnicoSelect && tecnicoSelect.value) ||
@@ -720,50 +845,67 @@
 
         if (tieneDatos && !forzar) {
             if (!confirm("¿Cargar el estado actual de esta cotización? Se perderán las filas no guardadas.")) {
+                if (tsCotizacion && tsCotizacion.lastValidValue) {
+                    tsCotizacion.setValue(tsCotizacion.lastValidValue, true);
+                }
                 return;
             }
         }
 
-        tablaBody.innerHTML = '';
+        const contenidoAnterior = tablaBody.innerHTML;
+        const url = buildDetalleCotizacionUrl(cotizacionId);
 
-        fetch(`/proyectos/api/cotizacion-detalles/${cotizacionId}/`, {
-            credentials: 'same-origin'
+        fetch(url, {
+            credentials: 'same-origin',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         })
             .then(response => {
-                if (!response.ok) throw new Error('Error en el servidor');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 return response.json();
             })
             .then(data => {
+                tablaBody.innerHTML = '';
+
                 muestrasGlobales = data.muestras || [];
+                serviciosPendientesGlobales = data.servicios_pendientes || [];
 
                 const detallesAsignados = data.detalles_asignados || [];
-                const serviciosPendientes = data.servicios_pendientes || [];
+                const opcionesMuestrasHTML = construirOpcionesMuestras(muestrasGlobales);
 
-                detallesAsignados.forEach((d) => {
+                detallesAsignados.forEach(d => {
                     tablaBody.insertAdjacentHTML('beforeend', renderFilaAsignada(d));
                 });
 
-                const opcionesMuestrasHTML = construirOpcionesMuestras(muestrasGlobales);
-                serviciosPendientes.forEach((item) => {
+                serviciosPendientesGlobales.forEach(item => {
                     tablaBody.insertAdjacentHTML('beforeend', renderFilaPendiente(item, opcionesMuestrasHTML));
                 });
 
-                if (detallesAsignados.length === 0 && serviciosPendientes.length === 0) {
+                if (detallesAsignados.length === 0 && serviciosPendientesGlobales.length === 0) {
                     window.agregarNuevaFila();
                 }
 
-                if (typeof lucide !== 'undefined') {
-                    lucide.createIcons();
+                if (tsCotizacion) {
+                    tsCotizacion.lastValidValue = String(cotizacionId);
                 }
+
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             })
             .catch(error => {
-                console.error('Error:', error);
+                console.error('Error al obtener detalle de cotización:', error);
+                tablaBody.innerHTML = contenidoAnterior;
+                if (tsCotizacion && tsCotizacion.lastValidValue) {
+                    tsCotizacion.setValue(tsCotizacion.lastValidValue, true);
+                }
                 alert("Error al obtener los datos de la cotización.");
             });
     }
 
     function agregarFilaIncidencia() {
         const tbody = document.getElementById('body-incidencias');
+        if (!tbody) return;
+
         const index = tbody.rows.length + 1;
         const now = new Date().toISOString().slice(0, 16);
 
@@ -790,7 +932,7 @@
                     <select name="incidencia_responsable_id[]" class="w-full p-2 border border-slate-200 rounded text-[11px]">
                         <option value="">-- Seleccionar --</option>
                         {% for t in trabajadores %}
-                        <option value="{{ t.id }}">{{ t.nombre_completo }}</option>
+                        <option value="{{ t.id }}">{{ t.nombre_completo|escapejs }}</option>
                         {% endfor %}
                     </select>
                 </td>
@@ -801,24 +943,26 @@
                 </td>
             </tr>
         `;
+
         tbody.insertAdjacentHTML('beforeend', rowHTML);
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
     function eliminarFilaIncidencia(btn) {
-        btn.closest('tr').remove();
+        btn.closest('tr')?.remove();
         actualizarNumeracionIncidencias();
     }
 
     function actualizarNumeracionIncidencias() {
-        const filas = document.querySelectorAll('.item-incidencia-index');
-        filas.forEach((td, i) => { td.innerText = i + 1; });
+        document.querySelectorAll('.item-incidencia-index').forEach((td, i) => {
+            td.innerText = i + 1;
+        });
     }
 
     document.addEventListener('DOMContentLoaded', () => {
         if (typeof lucide !== 'undefined') lucide.createIcons();
 
-        const selectCotizacion = document.querySelector('select[name="cotizacion"]');
+        const selectCotizacion = document.getElementById('id_cotizacion');
         const tablaBody = document.querySelector('#tabla-detalles tbody');
         const inputFechaSolicitud = document.getElementById('fecha_solicitud');
         const inputDiasPlazo = document.getElementById('dias_plazo');
@@ -826,9 +970,10 @@
 
         function calcularFechaEntrega() {
             const fechaBase = inputFechaSolicitud?.value;
-            const dias = parseInt(inputDiasPlazo?.value);
+            const dias = parseInt(inputDiasPlazo?.value, 10);
+
             if (fechaBase && !isNaN(dias) && inputFechaEntrega) {
-                const date = new Date(fechaBase + 'T00:00:00');
+                const date = new Date(`${fechaBase}T00:00:00`);
                 date.setDate(date.getDate() + dias);
                 const year = date.getFullYear();
                 const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -843,32 +988,64 @@
         }
 
         if (selectCotizacion) {
-            selectCotizacion.addEventListener('change', function () {
-                cargarDetalleCotizacion(this.value, false);
-            });
+            const sinPendientes = selectCotizacion.options.length === 1 && !selectCotizacion.options[0].value;
 
-            if (selectCotizacion.value) {
-                cargarDetalleCotizacion(selectCotizacion.value, true);
+            if (window.TomSelect && !sinPendientes) {
+                tsCotizacion = new TomSelect('#id_cotizacion', {
+                    create: false,
+                    allowEmptyOption: false,
+                    placeholder: 'Buscar cotización, oferta o cliente...',
+                    maxOptions: 500,
+                    searchField: ['text'],
+                    onInitialize: function () {
+                        this.wrapper.classList.add('vicaf-search');
+                        this.lastValidValue = this.getValue() || '';
+                    },
+                    onChange: function (value) {
+                        if (!value) return;
+                        cargarDetalleCotizacion(value, false);
+                    },
+                    render: {
+                        no_results: function() {
+                            return '<div class="p-3 text-xs font-bold text-slate-400">No se encontraron coincidencias</div>';
+                        }
+                    }
+                });
+            } else if (!sinPendientes) {
+                selectCotizacion.addEventListener('change', function () {
+                    cargarDetalleCotizacion(this.value, false);
+                });
+            } else {
+                selectCotizacion.setAttribute('disabled', 'disabled');
+                selectCotizacion.classList.add('bg-slate-50', 'text-slate-400', 'cursor-not-allowed');
+            }
+
+            const valorInicial = selectCotizacion.value;
+            if (valorInicial && !sinPendientes) {
+                if (tsCotizacion) {
+                    tsCotizacion.lastValidValue = String(valorInicial);
+                }
+                cargarDetalleCotizacion(valorInicial, true);
             }
         }
 
         if (tablaBody) {
-            tablaBody.addEventListener('change', (e) => {
+            tablaBody.addEventListener('change', e => {
                 if (e.target && e.target.name === 'servicio_id[]') {
                     const fila = e.target.closest('tr');
                     const selectedOption = e.target.options[e.target.selectedIndex];
-                    const normaInput = fila.querySelector('input[name="norma[]"]');
-                    const metodoInput = fila.querySelector('input[name="metodo[]"]');
+                    const normaInput = fila?.querySelector('input[name="norma[]"]');
+                    const metodoInput = fila?.querySelector('input[name="metodo[]"]');
 
-                    if (normaInput) normaInput.value = selectedOption.dataset.norma || "";
-                    if (metodoInput) metodoInput.value = selectedOption.dataset.metodo || "";
+                    if (normaInput) normaInput.value = selectedOption?.dataset?.norma || "";
+                    if (metodoInput) metodoInput.value = selectedOption?.dataset?.metodo || "";
                 }
             });
         }
 
         const btnAddEnsayo = document.getElementById('btn-agregar-fila');
         if (btnAddEnsayo) {
-            btnAddEnsayo.addEventListener('click', (e) => {
+            btnAddEnsayo.addEventListener('click', e => {
                 e.preventDefault();
                 window.agregarNuevaFila();
             });
@@ -876,7 +1053,7 @@
 
         const btnIncidencia = document.getElementById('btn-agregar-incidencia');
         if (btnIncidencia) {
-            btnIncidencia.addEventListener('click', (e) => {
+            btnIncidencia.addEventListener('click', e => {
                 e.preventDefault();
                 agregarFilaIncidencia();
             });
