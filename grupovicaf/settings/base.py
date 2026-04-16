@@ -154,20 +154,22 @@ JAZZMIN_SETTINGS = {
         "proyectos.unidadmedida",
     ],
 }
+
 JAZZMIN_UI_TWEAKS = {
-    "theme": "flatly",
-    "dark_mode_theme": None,
     "navbar_small_text": False,
     "footer_small_text": True,
     "body_small_text": False,
     "brand_small_text": False,
     "sidebar_nav_small_text": False,
+
     "accent": "accent-primary",
     "navbar": "navbar-white navbar-light",
     "no_navbar_border": False,
     "navbar_fixed": True,
+
     "layout_boxed": False,
     "footer_fixed": False,
+
     "sidebar_fixed": True,
     "sidebar": "sidebar-light-primary",
     "sidebar_nav_flat_style": False,
@@ -181,6 +183,7 @@ JAZZMIN_UI_TWEAKS = {
     "sidebar_mini": False,
     "sidebar_mini_md": False,
     "sidebar_mini_xs": False,
+
     "nav_accordion": True,
     "nav_accordion_remember_state": True,
     "disable_navtree_expand": False,
