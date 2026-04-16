@@ -12,9 +12,12 @@
     
     <link rel="stylesheet" href="{% static 'css/vicafstyle.css' %}">
     <script src="https://cdn.tailwindcss.com"></script>
+
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
     <script src="https://unpkg.com/lucide@latest"></script>
+
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 
@@ -62,21 +65,24 @@
 <body class="flex h-screen overflow-hidden antialiased selection:bg-brand-600 selection:text-white">
 
     {% include 'header.html' %}
-    <div class="flex-1 flex flex-col h-screen overflow-hidden relative lg:ml-[5.5rem] transition-all duration-300">
+
+    <div class="flex-1 flex flex-col h-screen overflow-hidden relative transition-all duration-300 min-w-0">
         
         {% include 'cabecera_base.html' %}
 
-        <main class="flex-1 overflow-y-auto p-6 lg:p-6 scroll-smooth animate-fade-in-up">
+        <main class="flex-1 overflow-y-auto px-4 py-4 lg:px-4 lg:py-6 scroll-smooth animate-fade-in-up">
             {% block content %}
                 
             {% endblock content %}
-            
-           
         </main>
+
         {% include 'footer.html' %}
     </div>
+
     {% include 'buscador.html' %}
-     {% block modals %}{% endblock %}
+    {% block modals %}{% endblock %}
+
+    <script src="https://unpkg.com/lucide@latest" defer></script>
     <script src="{% static 'js/vicafbase.js' %}"></script>
     {% block extra_scripts %}{% endblock %}
 </body>

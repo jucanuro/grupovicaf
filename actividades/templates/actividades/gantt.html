@@ -251,34 +251,38 @@
         border-radius: 14px;
         box-shadow: 0 15px 30px -10px rgba(0,0,0,0.25);
         padding: 18px;
-        z-index: 9999;
+        z-index: 99999;
         min-width: 340px;
-        max-width: calc(100vw - 32px);
+        max-width: min(380px, calc(100vw - 24px));
         display: none;
-        pointer-events: all;
-        transform: translate(-50%, -100%);
-        margin-top: -10px;
-        animation: slideUp 0.15s ease-out;
+        pointer-events: auto;
+        opacity: 0;
+        transform: translateY(8px);
+        transition: opacity 0.18s ease, transform 0.18s ease;
     }
 
-    .vpro-tooltip.below-tooltip {
-        transform: translate(-50%, 0);
-    }
-
-    @keyframes slideUp {
-        from { opacity: 0; transform: translate(-50%, -95%); }
-        to { opacity: 1; transform: translate(-50%, -100%); }
+    .vpro-tooltip.is-visible {
+        opacity: 1;
+        transform: translateY(0);
     }
 
     .vpro-tooltip::after {
         content: "";
         position: absolute;
-        top: 100%;
         left: 50%;
         margin-left: -8px;
         border-width: 8px;
         border-style: solid;
+    }
+
+    .vpro-tooltip.tooltip-above::after {
+        top: 100%;
         border-color: white transparent transparent transparent;
+    }
+
+    .vpro-tooltip.tooltip-below::after {
+        bottom: 100%;
+        border-color: transparent transparent white transparent;
     }
 
     .tooltip-header {
@@ -534,6 +538,11 @@
             flex-wrap: wrap;
             gap: 8px;
         }
+
+        .vpro-tooltip {
+            min-width: unset;
+            width: min(360px, calc(100vw - 24px));
+        }
     }
 </style>
 {% endblock %}
@@ -591,47 +600,68 @@
             </div>
         </div>
 
-        <div id="customTooltip" class="vpro-tooltip">
-            <div class="tooltip-header">
-                <div>
-                    <div class="tooltip-title" id="ttName">Actividad</div>
-                    <div class="tooltip-badges">
-                        <span class="tt-badge" id="ttTipo">actividad</span>
-                        <span class="tt-badge vencido" id="ttVencido" style="display:none;">vencido</span>
-                    </div>
-                </div>
-                <button class="tooltip-close" onclick="closeTooltip()">×</button>
-            </div>
-
-            <div class="tooltip-body">
-                <div><span class="tooltip-label">Solicitud</span> <span class="tt-value" id="ttSolicitud"></span></div>
-                <div><span class="tooltip-label">Muestra</span> <span class="tt-value" id="ttMuestra"></span></div>
-                <div><span class="tooltip-label">Servicio</span> <span class="tt-value" id="ttServicio"></span></div>
-                <div><span class="tooltip-label">Inicio</span> <span class="tt-value" id="ttStart"></span></div>
-                <div><span class="tooltip-label">Fin</span> <span class="tt-value" id="ttEnd"></span></div>
-                <div><span class="tooltip-label">Estado</span> <span class="tt-value" id="ttEstado"></span></div>
-                <div><span class="tooltip-label">Clase</span> <span class="tt-value" id="ttClase"></span></div>
-                <div><span class="tooltip-label">Cliente</span> <span class="tt-value" id="ttCliente"></span></div>
-                <div><span class="tooltip-label">Responsable</span> <span class="tt-value" id="ttResponsable"></span></div>
-                <div><span class="tooltip-label">Duración</span> <span class="tt-value" id="ttDuracion"></span></div>
-                <div><span class="tooltip-label">Transcurridos</span> <span class="tt-value" id="ttTranscurridos"></span></div>
-                <div><span class="tooltip-label">Restantes</span> <span class="tt-value" id="ttRestantes"></span></div>
-                <div><span class="tooltip-label">Progreso</span> <span class="tt-value" id="ttProgress"></span></div>
-            </div>
-        </div>
-
         <div id="ganttContent" class="flex flex-col w-full min-h-[400px]">
             <div class="p-20 text-center text-slate-400 italic font-medium">Cargando cronograma...</div>
         </div>
     </div>
 </div>
 
+<div id="customTooltip" class="vpro-tooltip">
+    <div class="tooltip-header">
+        <div>
+            <div class="tooltip-title" id="ttName">Actividad</div>
+            <div class="tooltip-badges">
+                <span class="tt-badge" id="ttTipo">actividad</span>
+                <span class="tt-badge vencido" id="ttVencido" style="display:none;">vencido</span>
+            </div>
+        </div>
+        <button class="tooltip-close" type="button" onclick="closeTooltip()">×</button>
+    </div>
+
+    <div class="tooltip-body">
+        <div><span class="tooltip-label">Solicitud</span> <span class="tt-value" id="ttSolicitud"></span></div>
+        <div><span class="tooltip-label">Muestra</span> <span class="tt-value" id="ttMuestra"></span></div>
+        <div><span class="tooltip-label">Servicio</span> <span class="tt-value" id="ttServicio"></span></div>
+        <div><span class="tooltip-label">Inicio</span> <span class="tt-value" id="ttStart"></span></div>
+        <div><span class="tooltip-label">Fin</span> <span class="tt-value" id="ttEnd"></span></div>
+        <div><span class="tooltip-label">Estado</span> <span class="tt-value" id="ttEstado"></span></div>
+        <div><span class="tooltip-label">Clase</span> <span class="tt-value" id="ttClase"></span></div>
+        <div><span class="tooltip-label">Cliente</span> <span class="tt-value" id="ttCliente"></span></div>
+        <div><span class="tooltip-label">Responsable</span> <span class="tt-value" id="ttResponsable"></span></div>
+        <div><span class="tooltip-label">Duración</span> <span class="tt-value" id="ttDuracion"></span></div>
+        <div><span class="tooltip-label">Transcurridos</span> <span class="tt-value" id="ttTranscurridos"></span></div>
+        <div><span class="tooltip-label">Restantes</span> <span class="tt-value" id="ttRestantes"></span></div>
+        <div><span class="tooltip-label">Progreso</span> <span class="tt-value" id="ttProgress"></span></div>
+    </div>
+</div>
+
 <script>
 let currentTab = 'calendario';
 let allDataCache = null;
+let activeTooltipTarget = null;
+let activeTooltipData = null;
+let scrollRepositionRaf = null;
+
+function getTooltipEl() {
+    return document.getElementById('customTooltip');
+}
+
+function ensureTooltipInBody() {
+    const tooltip = getTooltipEl();
+    if (tooltip && tooltip.parentElement !== document.body) {
+        document.body.appendChild(tooltip);
+    }
+}
 
 function closeTooltip() {
-    document.getElementById('customTooltip').style.display = 'none';
+    const tooltip = getTooltipEl();
+    if (!tooltip) return;
+
+    tooltip.classList.remove('is-visible', 'tooltip-above', 'tooltip-below');
+    tooltip.style.display = 'none';
+
+    activeTooltipTarget = null;
+    activeTooltipData = null;
 }
 
 function getSafeDate(dateStr) {
@@ -647,8 +677,56 @@ function escapeHtml(text) {
         .replaceAll("'", '&#39;');
 }
 
-function showTooltip(event, act) {
-    const tooltip = document.getElementById('customTooltip');
+function positionTooltip(targetEl) {
+    const tooltip = getTooltipEl();
+    if (!tooltip || !targetEl) return;
+
+    const rect = targetEl.getBoundingClientRect();
+
+    if (rect.width === 0 && rect.height === 0) {
+        closeTooltip();
+        return;
+    }
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const spacing = 14;
+    const sidePadding = 12;
+    const topPadding = 8;
+
+    tooltip.style.left = '0px';
+    tooltip.style.top = '0px';
+    tooltip.style.display = 'block';
+
+    const tooltipRect = tooltip.getBoundingClientRect();
+
+    let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+    left = Math.max(sidePadding, Math.min(left, viewportWidth - tooltipRect.width - sidePadding));
+
+    const spaceAbove = rect.top - topPadding;
+    const spaceBelow = viewportHeight - rect.bottom - topPadding;
+
+    const shouldShowAbove = spaceAbove >= (tooltipRect.height + spacing) || spaceAbove > spaceBelow;
+
+    let top;
+    if (shouldShowAbove) {
+        top = rect.top - tooltipRect.height - spacing;
+        top = Math.max(topPadding, top);
+        tooltip.classList.remove('tooltip-below');
+        tooltip.classList.add('tooltip-above');
+    } else {
+        top = rect.bottom + spacing;
+        top = Math.min(viewportHeight - tooltipRect.height - topPadding, top);
+        top = Math.max(topPadding, top);
+        tooltip.classList.remove('tooltip-above');
+        tooltip.classList.add('tooltip-below');
+    }
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+}
+
+function populateTooltip(act) {
     const badgeTipo = document.getElementById('ttTipo');
     const badgeVencido = document.getElementById('ttVencido');
 
@@ -669,40 +747,65 @@ function showTooltip(event, act) {
 
     badgeTipo.innerText = act.tipo === 'ensayo' ? 'ENSAYO' : 'ACTIVIDAD';
     badgeTipo.className = `tt-badge ${act.tipo === 'ensayo' ? 'ensayo' : ''}`;
+    badgeVencido.style.display = act.esta_vencido ? 'inline-block' : 'none';
+}
 
-    if (act.esta_vencido) {
-        badgeVencido.style.display = 'inline-block';
-    } else {
-        badgeVencido.style.display = 'none';
-    }
+function showTooltip(event, act) {
+    const tooltip = getTooltipEl();
+    if (!tooltip) return;
+
+    ensureTooltipInBody();
+    populateTooltip(act);
+
+    activeTooltipTarget = event.currentTarget;
+    activeTooltipData = act;
 
     tooltip.style.display = 'block';
-    tooltip.classList.remove('below-tooltip');
+    tooltip.classList.remove('tooltip-above', 'tooltip-below', 'is-visible');
 
-    const barRect = event.currentTarget.getBoundingClientRect();
-    const centerX = barRect.left + (barRect.width / 2);
-    const tooltipRect = tooltip.getBoundingClientRect();
-    const preferAbove = barRect.top > tooltipRect.height + 16;
-    const topY = preferAbove ? barRect.top - 12 : barRect.bottom + 12;
+    positionTooltip(activeTooltipTarget);
 
-    tooltip.style.left = `${centerX}px`;
-    tooltip.style.top = `${topY}px`;
-    tooltip.classList.toggle('below-tooltip', !preferAbove);
+    requestAnimationFrame(() => {
+        tooltip.classList.add('is-visible');
+    });
 
     event.stopPropagation();
 }
 
+function repositionTooltipIfNeeded() {
+    const tooltip = getTooltipEl();
+    if (!tooltip || tooltip.style.display === 'none' || !activeTooltipTarget) return;
+    positionTooltip(activeTooltipTarget);
+}
+
+function requestTooltipReposition() {
+    if (scrollRepositionRaf) {
+        cancelAnimationFrame(scrollRepositionRaf);
+    }
+
+    scrollRepositionRaf = requestAnimationFrame(() => {
+        repositionTooltipIfNeeded();
+        scrollRepositionRaf = null;
+    });
+}
+
 function switchTab(tab) {
     currentTab = tab;
+    closeTooltip();
 
     document.querySelectorAll('.tab-button').forEach(btn => {
         btn.classList.remove('active');
     });
 
-    document.querySelector(`.tab-button[data-tab="${tab}"]`).classList.add('active');
+    const activeTabButton = document.querySelector(`.tab-button[data-tab="${tab}"]`);
+    if (activeTabButton) {
+        activeTabButton.classList.add('active');
+    }
 
     const categoriaSelect = document.getElementById('filtroCategoria');
-    categoriaSelect.style.display = tab === 'calendario' ? 'block' : 'none';
+    if (categoriaSelect) {
+        categoriaSelect.style.display = tab === 'calendario' ? 'block' : 'none';
+    }
 
     updateEstadoOptions();
     loadGantt();
@@ -710,6 +813,7 @@ function switchTab(tab) {
 
 function updateEstadoOptions() {
     const estadoSelect = document.getElementById('filtroEstado');
+    if (!estadoSelect) return;
 
     if (currentTab === 'calendario') {
         estadoSelect.innerHTML = `
@@ -737,6 +841,7 @@ function renderNoData(message) {
 
 function buildHeader(minTs, totalDias, saltos) {
     let headerHtml = '<div class="gantt-header-dates">';
+
     for (let i = 0; i < totalDias; i += saltos) {
         const d = new Date(minTs + (i * 24 * 60 * 60 * 1000));
         headerHtml += `
@@ -746,6 +851,7 @@ function buildHeader(minTs, totalDias, saltos) {
             </div>
         `;
     }
+
     headerHtml += '</div>';
     return headerHtml;
 }
@@ -754,6 +860,7 @@ function buildLabelMeta(act, diasInfo) {
     if (act.tipo === 'ensayo') {
         const muestra = act.muestra || 'Sin muestra';
         const servicio = act.servicio || 'Sin servicio';
+
         return `
             <div class="label-meta">
                 <span class="label-user">👤 ${escapeHtml(act.responsable || 'Sin asignar')}</span>
@@ -850,15 +957,20 @@ async function loadGantt() {
     container.innerHTML = '<div class="p-20 text-center text-slate-400 italic font-medium">Cargando cronograma...</div>';
 
     const params = new URLSearchParams({
-        proyecto: document.getElementById('filtroProyecto').value,
-        categoria: currentTab === 'calendario' ? document.getElementById('filtroCategoria').value : '',
-        estado: document.getElementById('filtroEstado').value,
-        responsable: document.getElementById('filtroResponsable').value,
+        proyecto: document.getElementById('filtroProyecto')?.value || '',
+        categoria: currentTab === 'calendario' ? (document.getElementById('filtroCategoria')?.value || '') : '',
+        estado: document.getElementById('filtroEstado')?.value || '',
+        responsable: document.getElementById('filtroResponsable')?.value || '',
         ensayos: 'true'
     });
 
     try {
         const response = await fetch(`{% url 'actividades:gantt_actividades_json' %}?${params.toString()}`);
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
         const data = await response.json();
         allDataCache = data;
 
@@ -903,7 +1015,16 @@ document.addEventListener('click', (e) => {
     }
 });
 
+document.addEventListener('scroll', () => {
+    requestTooltipReposition();
+}, true);
+
+window.addEventListener('resize', () => {
+    requestTooltipReposition();
+});
+
 document.addEventListener('DOMContentLoaded', () => {
+    ensureTooltipInBody();
     updateEstadoOptions();
     loadGantt();
 });

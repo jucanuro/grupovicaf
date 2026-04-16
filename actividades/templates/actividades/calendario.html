@@ -256,6 +256,100 @@
         transition: background 0.2s ease;
     }
 
+    .actividad-tab-btn {
+        display: flex;
+        align-items: center;
+        gap: .85rem;
+        width: 100%;
+        padding: .9rem 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        background: linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
+        transition: all .22s ease;
+        text-align: left;
+    }
+
+    .actividad-tab-btn:hover {
+        border-color: #93c5fd;
+        box-shadow: 0 8px 24px rgba(37,99,235,.08);
+        transform: translateY(-1px);
+    }
+
+    .actividad-tab-btn.active {
+        background: linear-gradient(135deg,#eff6ff 0%,#ffffff 100%);
+        border-color: #3b82f6;
+        box-shadow: 0 10px 28px rgba(59,130,246,.12);
+    }
+
+    .actividad-tab-step {
+        width: 2rem;
+        height: 2rem;
+        min-width: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: .8rem;
+        background: #0f172a;
+        color: #fff;
+        font-size: .72rem;
+        font-weight: 900;
+        letter-spacing: .08em;
+    }
+
+    .actividad-tab-btn.active .actividad-tab-step {
+        background: #2563eb;
+    }
+
+    .actividad-tab-text {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.1;
+    }
+
+    .actividad-tab-text strong {
+        font-size: .78rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        color: #0f172a;
+        letter-spacing: .08em;
+    }
+
+    .actividad-tab-text small {
+        font-size: .68rem;
+        font-weight: 700;
+        color: #64748b;
+        margin-top: .2rem;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+    }
+
+    .actividad-tab-panel {
+        display: none;
+    }
+
+    .actividad-tab-panel.active {
+        display: block;
+        animation: actividadTabFade .2s ease;
+    }
+
+    @keyframes actividadTabFade {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .actividad-form-shell {
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+    }
+
+    .actividad-sticky-footer {
+        position: sticky;
+        bottom: 0;
+        background: #fff;
+        z-index: 15;
+    }
+
     @media (max-width: 1280px) {
         .fc .fc-daygrid-day-frame {
             min-height: 112px;
@@ -267,117 +361,274 @@
             grid-template-columns: 1fr;
         }
 
-        .fc-ensayo-pill {
-            max-width: 100%;
+        .max-w-full.mx-auto.relative.z-10.space-y-6 {
+            gap: 1rem;
         }
 
-        .fc-ensayo-label {
-            max-width: 135px;
+        header.rounded-\[2rem\] {
+            border-radius: 1.5rem;
+        }
+
+        .fc .fc-toolbar {
+            gap: .75rem;
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .fc .fc-toolbar-title {
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .fc .fc-button-group,
+        .fc .fc-toolbar-chunk {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: .5rem;
+        }
+
+        .fc .fc-button {
+            border-radius: .95rem !important;
+            padding: .72rem .9rem !important;
+            font-size: .72rem !important;
+            font-weight: 900 !important;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            box-shadow: none !important;
+        }
+
+        .fc .fc-scrollgrid {
+            border-radius: 1.25rem;
+        }
+
+        .fc .fc-col-header-cell-cushion {
+            font-size: 9px;
+            letter-spacing: .12em;
+            padding: .75rem .15rem;
         }
 
         .fc .fc-daygrid-day-frame {
-            min-height: 96px;
+            min-height: 82px;
+            padding-bottom: .35rem;
+        }
+
+        .fc .fc-daygrid-day-top {
+            padding: .4rem .45rem .1rem;
+        }
+
+        .fc .fc-daygrid-day-number {
+            font-size: 11px;
+        }
+
+        .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+            width: 1.65rem;
+            height: 1.65rem;
+            font-size: 11px;
+        }
+
+        .fc .fc-daygrid-body-natural .fc-daygrid-day-events {
+            margin-bottom: 0;
+        }
+
+        .fc .fc-daygrid-event-harness {
+            margin-top: 3px !important;
+        }
+
+        .fc-actividad-chip,
+        .fc-ensayo-pill {
+            padding: 4px 8px;
+            border-radius: .9rem;
+        }
+
+        .fc-actividad-title,
+        .fc-ensayo-label {
+            font-size: 9px;
+        }
+
+        .fc-ensayo-time {
+            font-size: 9px;
+        }
+
+        .fc .fc-more-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 4px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #eff6ff;
+            color: #2563eb;
+            font-size: 9px;
+            font-weight: 900;
+        }
+
+        .bg-white.border.border-slate-200.rounded-\[2rem\].shadow-sm.overflow-hidden {
+            border-radius: 1.5rem;
+        }
+
+        .p-4.md\:p-6 {
+            padding: 1rem;
+        }
+
+        .calendar-glass {
+            border-radius: 1.35rem;
+            padding: .85rem;
+        }
+
+        .viewBtn {
+            min-width: max-content;
+            border-radius: .95rem;
+            padding: .75rem 1rem;
+            font-size: 10px;
+            letter-spacing: .14em;
+        }
+
+        .flex.flex-wrap.items-center.gap-3 {
+            gap: .65rem;
+        }
+
+        .resumenCard {
+            min-height: 110px;
+        }
+
+        .actividad-tab-btn {
+            padding: .85rem .9rem;
+            border-radius: .9rem;
+        }
+
+        .actividad-tab-step {
+            width: 1.85rem;
+            height: 1.85rem;
+            min-width: 1.85rem;
+        }
+
+        .actividad-sticky-footer {
+            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + .2rem);
         }
     }
-</style>
-<style>
-    .actividad-tab-btn{
-        display:flex;
-        align-items:center;
-        gap:.85rem;
-        width:100%;
-        padding:.9rem 1rem;
-        border:1px solid #e2e8f0;
-        border-radius:1rem;
-        background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
-        transition:all .22s ease;
-        text-align:left;
-    }
 
-    .actividad-tab-btn:hover{
-        border-color:#93c5fd;
-        box-shadow:0 8px 24px rgba(37,99,235,.08);
-        transform:translateY(-1px);
-    }
+    @media (max-width: 640px) {
+        .bg-vicaf-calendar + .max-w-full {
+            padding-inline: 0;
+        }
 
-    .actividad-tab-btn.active{
-        background:linear-gradient(135deg,#eff6ff 0%,#ffffff 100%);
-        border-color:#3b82f6;
-        box-shadow:0 10px 28px rgba(59,130,246,.12);
-    }
+        .max-w-full.mx-auto.relative.z-10.space-y-6 {
+            gap: .9rem;
+        }
 
-    .actividad-tab-step{
-        width:2rem;
-        height:2rem;
-        min-width:2rem;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        border-radius:.8rem;
-        background:#0f172a;
-        color:#fff;
-        font-size:.72rem;
-        font-weight:900;
-        letter-spacing:.08em;
-    }
+        .flex.flex-col.xl\:flex-row.xl\:items-center.xl\:justify-between.gap-5.px-6.py-6.md\:px-8 {
+            padding: 1rem;
+        }
 
-    .actividad-tab-btn.active .actividad-tab-step{
-        background:#2563eb;
-    }
+        .grid.grid-cols-1.xl\:grid-cols-\[auto_minmax\(0\,1fr\)\].gap-6.items-start {
+            gap: 1rem;
+        }
 
-    .actividad-tab-text{
-        display:flex;
-        flex-direction:column;
-        line-height:1.1;
-    }
+        .bg-white.border.border-slate-200.rounded-\[2rem\].shadow-sm.overflow-hidden {
+            border-radius: 1.25rem;
+        }
 
-    .actividad-tab-text strong{
-        font-size:.78rem;
-        font-weight:900;
-        text-transform:uppercase;
-        color:#0f172a;
-        letter-spacing:.08em;
-    }
+        .flex.flex-col.xl\:flex-row.xl\:items-center.xl\:justify-between.gap-4.px-6.py-5.border-b.border-slate-100.bg-slate-50\/80 {
+            padding: 1rem;
+        }
 
-    .actividad-tab-text small{
-        font-size:.68rem;
-        font-weight:700;
-        color:#64748b;
-        margin-top:.2rem;
-        text-transform:uppercase;
-        letter-spacing:.08em;
-    }
+        .p-4.md\:p-6 {
+            padding: .85rem;
+        }
 
-    .actividad-tab-panel{
-        display:none;
-    }
+        .calendar-glass {
+            padding: .75rem;
+            border-radius: 1.1rem;
+        }
 
-    .actividad-tab-panel.active{
-        display:block;
-        animation:actividadTabFade .2s ease;
-    }
+        .fc .fc-header-toolbar {
+            margin-bottom: .85rem !important;
+        }
 
-    @keyframes actividadTabFade{
-        from{opacity:0; transform:translateY(6px);}
-        to{opacity:1; transform:translateY(0);}
-    }
+        .fc .fc-toolbar-title {
+            font-size: .92rem;
+            line-height: 1.2;
+        }
 
-    .actividad-form-shell{
-        display:flex;
-        flex-direction:column;
-        min-height:100%;
-    }
+        .fc .fc-button {
+            padding: .62rem .72rem !important;
+            font-size: .66rem !important;
+            border-radius: .82rem !important;
+        }
 
-    .actividad-sticky-footer{
-        position:sticky;
-        bottom:0;
-        background:#fff;
-        z-index:15;
+        .fc .fc-col-header-cell-cushion {
+            font-size: 8px;
+            letter-spacing: .08em;
+            padding: .6rem .1rem;
+        }
+
+        .fc .fc-daygrid-day-frame {
+            min-height: 74px;
+        }
+
+        .fc .fc-daygrid-day-top {
+            padding: .3rem .35rem .05rem;
+        }
+
+        .fc .fc-daygrid-day-number {
+            font-size: 10px;
+        }
+
+        .fc-actividad-chip {
+            gap: 6px;
+            padding: 3px 7px;
+        }
+
+        .fc-actividad-dot,
+        .fc-ensayo-mini-dot {
+            width: 6px;
+            height: 6px;
+        }
+
+        .fc-actividad-title,
+        .fc-ensayo-label,
+        .fc-ensayo-time {
+            font-size: 8px;
+        }
+
+        .fc .fc-timegrid-slot {
+            height: 2.65rem;
+        }
+
+        .fc .fc-timegrid-axis-cushion,
+        .fc .fc-timegrid-slot-label-cushion {
+            font-size: 10px;
+        }
+
+        .viewBtn {
+            padding: .65rem .85rem;
+            font-size: 9px;
+            letter-spacing: .12em;
+        }
+
+        #btnNuevaActividad,
+        #btnHoy {
+            width: 100%;
+            justify-content: center;
+            padding: .9rem 1rem;
+            border-radius: 1rem;
+            font-size: 10px;
+        }
+
+        .fc .fc-timegrid-event.fc-ensayo-soft {
+            min-height: 24px;
+        }
+
+        .fc .fc-list-event-title,
+        .fc .fc-list-event-time {
+            font-size: 12px;
+        }
     }
 </style>
 <div class="bg-vicaf-calendar"></div>
 
-<div class="max-w-[1700px] mx-auto p-2 md:p-2 relative z-10 space-y-6">
+<div class="max-w-full mx-auto relative z-10 space-y-6">
 
     <header class="relative overflow-hidden bg-white border border-slate-200 shadow-sm rounded-[2rem]">
         <div class="absolute inset-y-0 left-0 w-2 bg-gradient-to-b from-blue-600 via-indigo-500 to-cyan-400"></div>
