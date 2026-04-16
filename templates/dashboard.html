@@ -123,130 +123,233 @@
                 </div>
 
                 {% with total_clientes|default:0 as clientes %}
-                {% with 100 as meta_clientes %}
-                {% widthratio clientes meta_clientes 100 as porcentaje_clientes %}
-                <div class="relative flex flex-col items-center justify-center mt-2">
+                {% with 100 as objetivo_clientes %}
+                {% widthratio clientes objetivo_clientes 100 as porcentaje_clientes %}
+                {% if porcentaje_clientes > 100 %}
+                    {% with 100 as porcentaje_gauge %}
+                    <div class="relative flex flex-col items-center justify-center mt-2">
 
-                    <!-- Gauge -->
-                    <div class="relative w-[290px] h-[185px] flex items-end justify-center">
-                        <svg viewBox="0 0 240 140" class="w-full h-full overflow-visible">
+                        <div class="relative w-[290px] h-[185px] flex items-end justify-center">
+                            <svg viewBox="0 0 240 140" class="w-full h-full overflow-visible">
 
-                            <!-- arco base -->
-                            <path
-                                d="M 30 120 A 90 90 0 0 1 210 120"
-                                fill="none"
-                                stroke="#e2e8f0"
-                                stroke-width="14"
-                                stroke-linecap="round"
-                                pathLength="100"
-                            />
+                                <!-- arco base -->
+                                <path
+                                    d="M 30 120 A 90 90 0 0 1 210 120"
+                                    fill="none"
+                                    stroke="#e2e8f0"
+                                    stroke-width="14"
+                                    stroke-linecap="round"
+                                    pathLength="100"
+                                />
 
-                            <!-- segmentos -->
-                            <path
-                                d="M 30 120 A 90 90 0 0 1 210 120"
-                                fill="none"
-                                stroke="#2563eb"
-                                stroke-width="14"
-                                stroke-linecap="round"
-                                pathLength="100"
-                                stroke-dasharray="18 82"
-                            />
-                            <path
-                                d="M 30 120 A 90 90 0 0 1 210 120"
-                                fill="none"
-                                stroke="#10b981"
-                                stroke-width="14"
-                                stroke-linecap="round"
-                                pathLength="100"
-                                stroke-dasharray="32 68"
-                                stroke-dashoffset="-18"
-                            />
-                            <path
-                                d="M 30 120 A 90 90 0 0 1 210 120"
-                                fill="none"
-                                stroke="#f59e0b"
-                                stroke-width="14"
-                                stroke-linecap="round"
-                                pathLength="100"
-                                stroke-dasharray="25 75"
-                                stroke-dashoffset="-50"
-                            />
-                            <path
-                                d="M 30 120 A 90 90 0 0 1 210 120"
-                                fill="none"
-                                stroke="#ef4444"
-                                stroke-width="14"
-                                stroke-linecap="round"
-                                pathLength="100"
-                                stroke-dasharray="25 75"
-                                stroke-dashoffset="-75"
-                            />
+                                <!-- segmentos -->
+                                <path
+                                    d="M 30 120 A 90 90 0 0 1 210 120"
+                                    fill="none"
+                                    stroke="#2563eb"
+                                    stroke-width="14"
+                                    stroke-linecap="round"
+                                    pathLength="100"
+                                    stroke-dasharray="18 82"
+                                />
+                                <path
+                                    d="M 30 120 A 90 90 0 0 1 210 120"
+                                    fill="none"
+                                    stroke="#10b981"
+                                    stroke-width="14"
+                                    stroke-linecap="round"
+                                    pathLength="100"
+                                    stroke-dasharray="32 68"
+                                    stroke-dashoffset="-18"
+                                />
+                                <path
+                                    d="M 30 120 A 90 90 0 0 1 210 120"
+                                    fill="none"
+                                    stroke="#f59e0b"
+                                    stroke-width="14"
+                                    stroke-linecap="round"
+                                    pathLength="100"
+                                    stroke-dasharray="25 75"
+                                    stroke-dashoffset="-50"
+                                />
+                                <path
+                                    d="M 30 120 A 90 90 0 0 1 210 120"
+                                    fill="none"
+                                    stroke="#ef4444"
+                                    stroke-width="14"
+                                    stroke-linecap="round"
+                                    pathLength="100"
+                                    stroke-dasharray="25 75"
+                                    stroke-dashoffset="-75"
+                                />
 
-                            <!-- marcas pequeñas -->
-                            {% for i in "0123456789" %}
-                            {% endfor %}
-                            <g stroke="#94a3b8" stroke-width="1.4" stroke-linecap="round">
-                                <line x1="30" y1="120" x2="38" y2="116"/>
-                                <line x1="40" y1="92" x2="47" y2="89"/>
-                                <line x1="58" y1="67" x2="64" y2="61"/>
-                                <line x1="82" y1="47" x2="87" y2="40"/>
-                                <line x1="110" y1="33" x2="112" y2="25"/>
-                                <line x1="130" y1="33" x2="128" y2="25"/>
-                                <line x1="158" y1="47" x2="153" y2="40"/>
-                                <line x1="182" y1="67" x2="176" y2="61"/>
-                                <line x1="200" y1="92" x2="193" y2="89"/>
-                                <line x1="210" y1="120" x2="202" y2="116"/>
-                            </g>
+                                <!-- marcas -->
+                                <g stroke="#94a3b8" stroke-width="1.4" stroke-linecap="round">
+                                    <line x1="30" y1="120" x2="38" y2="116"/>
+                                    <line x1="40" y1="92" x2="47" y2="89"/>
+                                    <line x1="58" y1="67" x2="64" y2="61"/>
+                                    <line x1="82" y1="47" x2="87" y2="40"/>
+                                    <line x1="110" y1="33" x2="112" y2="25"/>
+                                    <line x1="130" y1="33" x2="128" y2="25"/>
+                                    <line x1="158" y1="47" x2="153" y2="40"/>
+                                    <line x1="182" y1="67" x2="176" y2="61"/>
+                                    <line x1="200" y1="92" x2="193" y2="89"/>
+                                    <line x1="210" y1="120" x2="202" y2="116"/>
+                                </g>
 
-                            <!-- numeración -->
-                            <g font-size="9" font-weight="800" fill="#64748b">
-                                <text x="25" y="128">0</text>
-                                <text x="40" y="86">10</text>
-                                <text x="58" y="56">20</text>
-                                <text x="83" y="33">30</text>
-                                <text x="112" y="18">40</text>
-                                <text x="143" y="18">50</text>
-                                <text x="171" y="33">60</text>
-                                <text x="193" y="56">70</text>
-                                <text x="208" y="86">80</text>
-                                <text x="214" y="128">100</text>
-                            </g>
+                                <!-- numeración -->
+                                <g font-size="9" font-weight="800" fill="#64748b">
+                                    <text x="25" y="128">0</text>
+                                    <text x="40" y="86">10</text>
+                                    <text x="58" y="56">20</text>
+                                    <text x="83" y="33">30</text>
+                                    <text x="112" y="18">40</text>
+                                    <text x="143" y="18">50</text>
+                                    <text x="171" y="33">60</text>
+                                    <text x="193" y="56">70</text>
+                                    <text x="208" y="86">80</text>
+                                    <text x="214" y="128">100</text>
+                                </g>
 
-                            <!-- Aguja -->
-                            <g
-                                style="transform-origin: 120px 120px; transform: rotate({% widthratio porcentaje_clientes 100 180 %}deg); transition: transform 0.9s ease;">
-                                <line x1="120" y1="120" x2="188" y2="120" stroke="#f59e0b" stroke-width="4.5" stroke-linecap="round"/>
-                                <circle cx="120" cy="120" r="8" fill="#f59e0b"/>
-                                <circle cx="120" cy="120" r="4" fill="#fff"/>
-                            </g>
-                        </svg>
+                                <!-- Aguja corregida -->
+                                <g
+                                    style="transform-origin: 120px 120px; transform: rotate({% widthratio porcentaje_gauge 100 180 %}deg); transition: transform 0.9s ease;">
+                                    <line x1="120" y1="120" x2="58" y2="120" stroke="#f59e0b" stroke-width="4.5" stroke-linecap="round"/>
+                                    <circle cx="120" cy="120" r="8" fill="#f59e0b"/>
+                                    <circle cx="120" cy="120" r="4" fill="#fff"/>
+                                </g>
+                            </svg>
 
-                        <!-- centro -->
-                        <div class="absolute inset-0 flex flex-col items-center justify-center pt-10">
-                            <span class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Clientes</span>
-                            <h2 class="text-5xl font-black text-slate-900 tracking-tighter leading-none mt-2">
-                                {{ total_clientes }}
-                            </h2>
-                            <div class="mt-3 px-3 py-1 rounded-full bg-slate-100 border border-slate-200">
-                                <span class="text-[10px] font-black uppercase tracking-[0.16em] text-slate-600">
-                                    {{ porcentaje_clientes }}% del objetivo
-                                </span>
+                            <!-- centro -->
+                            <div class="absolute inset-0 flex flex-col items-center justify-center pt-10">
+                                <h2 class="text-5xl font-black text-slate-900 tracking-tighter leading-none mt-2">
+                                    {{ total_clientes }}
+                                </h2>
+                                <div class="mt-3 px-3 py-1 rounded-full bg-slate-100 border border-slate-200">
+                                    <span class="text-[10px] font-black uppercase tracking-[0.16em] text-slate-600">
+                                        {{ porcentaje_clientes }}% del objetivo
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                    {% endwith %}
+                {% else %}
+                    <div class="relative flex flex-col items-center justify-center mt-2">
+
+                        <div class="relative w-[290px] h-[185px] flex items-end justify-center">
+                            <svg viewBox="0 0 240 140" class="w-full h-full overflow-visible">
+
+                                <!-- arco base -->
+                                <path
+                                    d="M 30 120 A 90 90 0 0 1 210 120"
+                                    fill="none"
+                                    stroke="#e2e8f0"
+                                    stroke-width="14"
+                                    stroke-linecap="round"
+                                    pathLength="100"
+                                />
+
+                                <!-- segmentos -->
+                                <path
+                                    d="M 30 120 A 90 90 0 0 1 210 120"
+                                    fill="none"
+                                    stroke="#2563eb"
+                                    stroke-width="14"
+                                    stroke-linecap="round"
+                                    pathLength="100"
+                                    stroke-dasharray="18 82"
+                                />
+                                <path
+                                    d="M 30 120 A 90 90 0 0 1 210 120"
+                                    fill="none"
+                                    stroke="#10b981"
+                                    stroke-width="14"
+                                    stroke-linecap="round"
+                                    pathLength="100"
+                                    stroke-dasharray="32 68"
+                                    stroke-dashoffset="-18"
+                                />
+                                <path
+                                    d="M 30 120 A 90 90 0 0 1 210 120"
+                                    fill="none"
+                                    stroke="#f59e0b"
+                                    stroke-width="14"
+                                    stroke-linecap="round"
+                                    pathLength="100"
+                                    stroke-dasharray="25 75"
+                                    stroke-dashoffset="-50"
+                                />
+                                <path
+                                    d="M 30 120 A 90 90 0 0 1 210 120"
+                                    fill="none"
+                                    stroke="#ef4444"
+                                    stroke-width="14"
+                                    stroke-linecap="round"
+                                    pathLength="100"
+                                    stroke-dasharray="25 75"
+                                    stroke-dashoffset="-75"
+                                />
+
+                                <!-- marcas -->
+                                <g stroke="#94a3b8" stroke-width="1.4" stroke-linecap="round">
+                                    <line x1="30" y1="120" x2="38" y2="116"/>
+                                    <line x1="40" y1="92" x2="47" y2="89"/>
+                                    <line x1="58" y1="67" x2="64" y2="61"/>
+                                    <line x1="82" y1="47" x2="87" y2="40"/>
+                                    <line x1="110" y1="33" x2="112" y2="25"/>
+                                    <line x1="130" y1="33" x2="128" y2="25"/>
+                                    <line x1="158" y1="47" x2="153" y2="40"/>
+                                    <line x1="182" y1="67" x2="176" y2="61"/>
+                                    <line x1="200" y1="92" x2="193" y2="89"/>
+                                    <line x1="210" y1="120" x2="202" y2="116"/>
+                                </g>
+
+                                <!-- numeración -->
+                                <g font-size="9" font-weight="800" fill="#64748b">
+                                    <text x="25" y="128">0</text>
+                                    <text x="40" y="86">10</text>
+                                    <text x="58" y="56">20</text>
+                                    <text x="83" y="33">30</text>
+                                    <text x="112" y="18">40</text>
+                                    <text x="143" y="18">50</text>
+                                    <text x="171" y="33">60</text>
+                                    <text x="193" y="56">70</text>
+                                    <text x="208" y="86">80</text>
+                                    <text x="214" y="128">100</text>
+                                </g>
+
+                                <!-- Aguja corregida -->
+                                <g
+                                    style="transform-origin: 120px 120px; transform: rotate({% widthratio porcentaje_clientes 100 180 %}deg); transition: transform 0.9s ease;">
+                                    <line x1="120" y1="120" x2="30" y2="120" stroke="#f59e0b" stroke-width="4.5" stroke-linecap="round"/>
+                                    <circle cx="120" cy="120" r="8" fill="#f59e0b"/>
+                                    <circle cx="120" cy="120" r="4" fill="#fff"/>
+                                </g>
+                            </svg>
+
+                            <!-- centro -->
+                            <div class="absolute inset-0 flex flex-col items-center justify-center pt-10">
+                                <h2 class="text-5xl font-black text-slate-900 tracking-tighter leading-none mt-2">
+                                    {{ total_clientes }}
+                                </h2>
+                                <div class="mt-3 px-3 py-1 rounded-full bg-slate-100 border border-slate-200">
+                                    <span class="text-[10px] font-black uppercase tracking-[0.16em] text-slate-600">
+                                        {{ porcentaje_clientes }}% del objetivo
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
                 {% endwith %}
                 {% endwith %}
 
                 <div class="relative mt-6 pt-6 border-t border-slate-100">
-                    <div class="grid grid-cols-3 gap-3">
+                    <div class="grid grid-cols-2 gap-3">
                         <div class="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 text-center">
                             <p class="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Base</p>
                             <p class="mt-1 text-lg font-black text-slate-800">{{ total_clientes }}</p>
-                        </div>
-                        <div class="rounded-2xl bg-blue-50 border border-blue-100 px-4 py-3 text-center">
-                            <p class="text-[10px] font-black uppercase tracking-[0.14em] text-blue-500">Meta</p>
-                            <p class="mt-1 text-lg font-black text-blue-700">100</p>
                         </div>
                         <div class="rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-center">
                             <p class="text-[10px] font-black uppercase tracking-[0.14em] text-emerald-500">Nivel</p>
