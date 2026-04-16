@@ -15,6 +15,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # Apps por defecto y de terceros
 INSTALLED_APPS = [
+    "jazzmin",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -108,3 +109,79 @@ LOGIN_URL = 'login'
 LOGOUT_REDIRECT_URL = 'login'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+JAZZMIN_SETTINGS = {
+    "site_title": "VICAF Admin",
+    "site_header": "VICAF",
+    "site_brand": "VICAF",
+    "welcome_sign": "Bienvenido al panel administrativo de VICAF",
+    "copyright": "VICAF Systems",
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "show_ui_builder": False,
+    "custom_css": "admin/css/vicaf_admin.css",
+
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+
+        "servicios": "fas fa-flask",
+        "servicios.categoriaservicio": "fas fa-layer-group",
+        "servicios.subcategoria": "fas fa-sitemap",
+        "servicios.norma": "fas fa-book",
+        "servicios.metodo": "fas fa-vial",
+
+        "proyectos": "fas fa-microscope",
+        "proyectos.tipomuestra": "fas fa-vials",
+        "proyectos.unidadmedida": "fas fa-ruler-combined",
+    },
+
+    "default_icon_parents": "fas fa-chevron-circle-right",
+    "default_icon_children": "fas fa-circle",
+
+    "order_with_respect_to": [
+        "auth",
+        "auth.user",
+        "auth.Group",
+        "servicios",
+        "servicios.categoriaservicio",
+        "servicios.subcategoria",
+        "servicios.norma",
+        "servicios.metodo",
+        "proyectos",
+        "proyectos.tipomuestra",
+        "proyectos.unidadmedida",
+    ],
+}
+JAZZMIN_UI_TWEAKS = {
+    "theme": "flatly",
+    "dark_mode_theme": None,
+    "navbar_small_text": False,
+    "footer_small_text": True,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "sidebar_nav_small_text": False,
+    "accent": "accent-primary",
+    "navbar": "navbar-white navbar-light",
+    "no_navbar_border": False,
+    "navbar_fixed": True,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": True,
+    "sidebar": "sidebar-light-primary",
+    "sidebar_nav_flat_style": False,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_child_indent": True,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_collapsible": True,
+    "sidebar_nav_animation_speed": 200,
+    "sidebar_disable_expand": False,
+    "sidebar_no_expand": False,
+    "sidebar_mini": False,
+    "sidebar_mini_md": False,
+    "sidebar_mini_xs": False,
+    "nav_accordion": True,
+    "nav_accordion_remember_state": True,
+    "disable_navtree_expand": False,
+}

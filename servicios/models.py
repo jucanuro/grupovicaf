@@ -47,8 +47,8 @@ class CategoriaServicio(models.Model):
         return self.nombre
 
     class Meta:
-        verbose_name = "1. Categoría Principal"
-        verbose_name_plural = "1. Categorías Principales"
+        verbose_name = "Categoría Principal"
+        verbose_name_plural = "Categorías Principales"
         ordering = ['nombre']
 
 class Subcategoria(models.Model):
@@ -57,8 +57,8 @@ class Subcategoria(models.Model):
         return self.nombre
 
     class Meta:
-        verbose_name = "2. Subcategoría"
-        verbose_name_plural = "2. Subcategorías"
+        verbose_name = "Subcategoría"
+        verbose_name_plural = "Subcategorías"
         ordering = ['nombre']
 
 class Servicio(models.Model):
