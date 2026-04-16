@@ -103,105 +103,333 @@
     <div class="bg-gradient-to-br from-slate-50 via-white to-blue-50 p-8 rounded-[3rem] border border-slate-200/60 shadow-inner font-sans">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-            <div class="group lg:col-span-4 relative bg-white/70 backdrop-blur-2xl rounded-[2.5rem] p-8 border border-white shadow-xl transition-all duration-500 hover:shadow-blue-200/50 hover:-translate-y-2 overflow-hidden flex flex-col justify-between">
+            <!-- CLIENTES -->
+            <div class="group lg:col-span-4 relative bg-white/80 backdrop-blur-2xl rounded-[2.5rem] p-8 border border-white shadow-xl transition-all duration-500 hover:shadow-blue-200/50 hover:-translate-y-2 overflow-hidden flex flex-col justify-between">
                 <div class="absolute -right-10 -top-10 w-40 h-40 bg-blue-400/10 rounded-full blur-3xl group-hover:bg-blue-400/20 transition-all duration-700"></div>
-                
+                <div class="absolute -left-10 -bottom-10 w-36 h-36 bg-indigo-400/10 rounded-full blur-3xl"></div>
+
                 <div class="relative">
-                    <div class="flex items-center justify-between mb-8">
+                    <div class="flex items-center justify-between mb-6">
                         <div class="w-16 h-16 rounded-3xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-2xl shadow-blue-200 group-hover:rotate-6 transition-transform duration-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-1a4 4 0 00-5-3.87M9 20H4v-1a4 4 0 015-3.87m8-6a4 4 0 11-8 0 4 4 0 018 0zM15 3a4 4 0 110 8"/>
-                            </svg>
+                            <i data-lucide="users" class="w-8 h-8 text-white"></i>
                         </div>
-                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700 bg-blue-100/50 px-4 py-1.5 rounded-full border border-blue-200">CRM Premium</span>
+
+                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700 bg-blue-100/60 px-4 py-1.5 rounded-full border border-blue-200">
+                            CRM Premium
+                        </span>
                     </div>
-                    
-                    <p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Total Clientes</p>
-                    <h2 class="text-5xl font-black text-slate-900 tracking-tighter">{{ total_clientes }}</h2>
+
+                    <p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Total Clientes</p>
                 </div>
 
-                <div class="relative mt-6 pt-6 border-t border-slate-100">
-                    <div class="flex items-center gap-3">
-                        <div class="flex -space-x-3">
-                            <div class="w-8 h-8 rounded-full border-2 border-white bg-slate-200"></div>
-                            <div class="w-8 h-8 rounded-full border-2 border-white bg-slate-300"></div>
-                            <div class="w-8 h-8 rounded-full border-2 border-white bg-blue-500 flex items-center justify-center text-[10px] text-white font-bold">+</div>
+                {% with total_clientes|default:0 as clientes %}
+                {% with 100 as meta_clientes %}
+                {% widthratio clientes meta_clientes 100 as porcentaje_clientes %}
+                <div class="relative flex flex-col items-center justify-center mt-2">
+
+                    <!-- Gauge -->
+                    <div class="relative w-[290px] h-[185px] flex items-end justify-center">
+                        <svg viewBox="0 0 240 140" class="w-full h-full overflow-visible">
+
+                            <!-- arco base -->
+                            <path
+                                d="M 30 120 A 90 90 0 0 1 210 120"
+                                fill="none"
+                                stroke="#e2e8f0"
+                                stroke-width="14"
+                                stroke-linecap="round"
+                                pathLength="100"
+                            />
+
+                            <!-- segmentos -->
+                            <path
+                                d="M 30 120 A 90 90 0 0 1 210 120"
+                                fill="none"
+                                stroke="#2563eb"
+                                stroke-width="14"
+                                stroke-linecap="round"
+                                pathLength="100"
+                                stroke-dasharray="18 82"
+                            />
+                            <path
+                                d="M 30 120 A 90 90 0 0 1 210 120"
+                                fill="none"
+                                stroke="#10b981"
+                                stroke-width="14"
+                                stroke-linecap="round"
+                                pathLength="100"
+                                stroke-dasharray="32 68"
+                                stroke-dashoffset="-18"
+                            />
+                            <path
+                                d="M 30 120 A 90 90 0 0 1 210 120"
+                                fill="none"
+                                stroke="#f59e0b"
+                                stroke-width="14"
+                                stroke-linecap="round"
+                                pathLength="100"
+                                stroke-dasharray="25 75"
+                                stroke-dashoffset="-50"
+                            />
+                            <path
+                                d="M 30 120 A 90 90 0 0 1 210 120"
+                                fill="none"
+                                stroke="#ef4444"
+                                stroke-width="14"
+                                stroke-linecap="round"
+                                pathLength="100"
+                                stroke-dasharray="25 75"
+                                stroke-dashoffset="-75"
+                            />
+
+                            <!-- marcas pequeñas -->
+                            {% for i in "0123456789" %}
+                            {% endfor %}
+                            <g stroke="#94a3b8" stroke-width="1.4" stroke-linecap="round">
+                                <line x1="30" y1="120" x2="38" y2="116"/>
+                                <line x1="40" y1="92" x2="47" y2="89"/>
+                                <line x1="58" y1="67" x2="64" y2="61"/>
+                                <line x1="82" y1="47" x2="87" y2="40"/>
+                                <line x1="110" y1="33" x2="112" y2="25"/>
+                                <line x1="130" y1="33" x2="128" y2="25"/>
+                                <line x1="158" y1="47" x2="153" y2="40"/>
+                                <line x1="182" y1="67" x2="176" y2="61"/>
+                                <line x1="200" y1="92" x2="193" y2="89"/>
+                                <line x1="210" y1="120" x2="202" y2="116"/>
+                            </g>
+
+                            <!-- numeración -->
+                            <g font-size="9" font-weight="800" fill="#64748b">
+                                <text x="25" y="128">0</text>
+                                <text x="40" y="86">10</text>
+                                <text x="58" y="56">20</text>
+                                <text x="83" y="33">30</text>
+                                <text x="112" y="18">40</text>
+                                <text x="143" y="18">50</text>
+                                <text x="171" y="33">60</text>
+                                <text x="193" y="56">70</text>
+                                <text x="208" y="86">80</text>
+                                <text x="214" y="128">100</text>
+                            </g>
+
+                            <!-- Aguja -->
+                            <g
+                                style="transform-origin: 120px 120px; transform: rotate({% widthratio porcentaje_clientes 100 180 %}deg); transition: transform 0.9s ease;">
+                                <line x1="120" y1="120" x2="188" y2="120" stroke="#f59e0b" stroke-width="4.5" stroke-linecap="round"/>
+                                <circle cx="120" cy="120" r="8" fill="#f59e0b"/>
+                                <circle cx="120" cy="120" r="4" fill="#fff"/>
+                            </g>
+                        </svg>
+
+                        <!-- centro -->
+                        <div class="absolute inset-0 flex flex-col items-center justify-center pt-10">
+                            <span class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Clientes</span>
+                            <h2 class="text-5xl font-black text-slate-900 tracking-tighter leading-none mt-2">
+                                {{ total_clientes }}
+                            </h2>
+                            <div class="mt-3 px-3 py-1 rounded-full bg-slate-100 border border-slate-200">
+                                <span class="text-[10px] font-black uppercase tracking-[0.16em] text-slate-600">
+                                    {{ porcentaje_clientes }}% del objetivo
+                                </span>
+                            </div>
                         </div>
-                        <p class="text-[11px] text-slate-500 font-semibold italic">Base activa</p>
+                    </div>
+                </div>
+                {% endwith %}
+                {% endwith %}
+
+                <div class="relative mt-6 pt-6 border-t border-slate-100">
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 text-center">
+                            <p class="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Base</p>
+                            <p class="mt-1 text-lg font-black text-slate-800">{{ total_clientes }}</p>
+                        </div>
+                        <div class="rounded-2xl bg-blue-50 border border-blue-100 px-4 py-3 text-center">
+                            <p class="text-[10px] font-black uppercase tracking-[0.14em] text-blue-500">Meta</p>
+                            <p class="mt-1 text-lg font-black text-blue-700">100</p>
+                        </div>
+                        <div class="rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-center">
+                            <p class="text-[10px] font-black uppercase tracking-[0.14em] text-emerald-500">Nivel</p>
+                            <p class="mt-1 text-lg font-black text-emerald-700">{{ porcentaje_clientes }}%</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="lg:col-span-8 bg-white/40 backdrop-blur-md rounded-[3rem] p-8 border border-white shadow-sm relative group">
-                <div class="flex items-center justify-between mb-8">
-                    <div class="flex flex-col">
-                        <span class="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] mb-1">Sales Analytics</span>
-                        <h2 class="text-2xl font-black text-slate-800">Gestión de Cotizaciones</h2>
-                    </div>
-                    <div class="bg-slate-900 text-white p-2 px-4 rounded-2xl text-xs font-bold shadow-lg shadow-slate-200">
-                        Total: {{ total_cotizaciones }}
-                    </div>
-                </div>
+            <!-- COTIZACIONES / EMBUDO -->
+            <div class="lg:col-span-8 bg-white/60 backdrop-blur-md rounded-[3rem] p-8 border border-white shadow-sm relative overflow-hidden">
+                <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_20%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.06),transparent_18%)] pointer-events-none"></div>
 
-                <div class="flex flex-col lg:row-reverse md:flex-row items-center gap-12">
-                    <div class="relative w-56 h-56 flex-shrink-0">
-                        <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90 transition-all duration-1000">
-                            <circle cx="18" cy="18" r="16" fill="none" class="stroke-slate-100" stroke-width="3"></circle>
+                <div class="relative z-10">
+                    <div class="flex items-center justify-between mb-8">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] mb-1">Embudo Comercial</span>
+                            <h2 class="text-2xl font-black text-slate-800">Conversión de cotizaciones</h2>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 xl:grid-cols-[430px_minmax(0,1fr)] gap-10 items-center">
+
+                        <!-- FUNNEL ESTILO REFERENCIA -->
+                        <div class="flex justify-center">
+                            <div class="relative w-full max-w-[390px] pt-2">
+
+                                <!-- fila 1 -->
+                                <div class="flex items-center">
+                                    <div class="relative w-[100%] h-[64px]">
+                                        <div class="absolute inset-0 bg-gradient-to-r from-[#d64b1f] to-[#ff6a2a]"
+                                            style="clip-path: polygon(0 0, 100% 0, 86% 100%, 14% 100%);">
+                                        </div>
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <span class="text-white text-lg font-black tracking-tight">
+                                                {% if total_cotizaciones > 0 %}100%{% else %}0%{% endif %}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- fila 2 -->
+                                <div class="flex items-center -mt-1 justify-center">
+                                    <div class="relative w-[78%] h-[62px]">
+                                        <div class="absolute inset-0 bg-gradient-to-r from-[#ffb300] to-[#ffd000]"
+                                            style="clip-path: polygon(0 0, 100% 0, 84% 100%, 16% 100%);">
+                                        </div>
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <span class="text-white text-lg font-black tracking-tight">
+                                                {{ p_pendientes|floatformat:0 }}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- fila 3 -->
+                                <div class="flex items-center -mt-1 justify-center">
+                                    <div class="relative w-[58%] h-[60px]">
+                                        <div class="absolute inset-0 bg-gradient-to-r from-[#3b82c4] to-[#4aa0df]"
+                                            style="clip-path: polygon(0 0, 100% 0, 82% 100%, 18% 100%);">
+                                        </div>
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <span class="text-white text-lg font-black tracking-tight">
+                                                {{ p_aceptadas|floatformat:0 }}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- fila 4 -->
+                                <div class="flex items-center -mt-1 justify-center">
+                                    <div class="relative w-[38%] h-[58px]">
+                                        <div class="absolute inset-0 bg-gradient-to-r from-[#8cab1d] to-[#bfd645]"
+                                            style="clip-path: polygon(0 0, 100% 0, 76% 100%, 24% 100%);">
+                                        </div>
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <span class="text-white text-lg font-black tracking-tight">
+                                                {{ efectividad|floatformat:0 }}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- punta final -->
+                                <div class="flex justify-center -mt-1">
+                                    <div class="w-[10%] h-[38px] bg-gradient-to-b from-[#c8d95a] to-[#dbe97a]"
+                                        style="clip-path: polygon(14% 0, 86% 0, 100% 100%, 0 100%);">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PANEL DERECHO COMO REFERENCIA -->
+                        <div class="space-y-4">
                             
-                            <circle cx="18" cy="18" r="16" fill="none" class="stroke-emerald-500 transition-all duration-1000" stroke-width="3.5" 
-                                stroke-dasharray="{{ p_aceptadas|floatformat:0 }}, 100" stroke-linecap="round"></circle>
-                            
-                            <circle cx="18" cy="18" r="16" fill="none" class="stroke-orange-500 transition-all duration-1000" stroke-width="3.5" 
-                                stroke-dasharray="{{ p_pendientes|floatformat:0 }}, 100" 
-                                stroke-dashoffset="-{{ p_aceptadas|floatformat:0 }}" stroke-linecap="round"></circle>
-                        </svg>
-                        
-                        <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
-                            <span class="text-4xl font-black text-slate-900 tracking-tighter">{{ total_cotizaciones }}</span>
-                            <div class="px-2 py-0.5 bg-emerald-100 rounded-lg mt-1">
-                                <span class="text-[10px] font-black text-emerald-700 uppercase tracking-tighter">{{ efectividad|floatformat:0 }}% Éxito</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex flex-col gap-4 w-full">
-                        <div class="group flex items-center justify-between p-4 rounded-3xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all">
+                            <!-- Marketing / emitidas -->
                             <div class="flex items-center gap-4">
-                                <div class="w-10 h-10 rounded-2xl bg-slate-900 flex items-center justify-center text-white">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6M9 8h6m-7 12h10a2 2 0 002-2V6l-5-3H6a2 2 0 00-2 2v13a2 2 0 002 2z"/></svg>
+                                <div class="flex-1 min-w-0 rounded-r-[2rem] rounded-l-[0.6rem] bg-gradient-to-r from-[#e85b2a] to-[#ff7a33] px-5 py-4 text-white shadow-lg">
+                                    <div class="flex items-start justify-between gap-4">
+                                        <div>
+                                            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Emitidas</p>
+                                            <h3 class="text-sm font-black mt-1">Histórico total</h3>
+                                            <p class="text-[11px] text-white/80 mt-1">
+                                                Total acumulado de cotizaciones generadas dentro del flujo comercial.
+                                            </p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-2xl font-black leading-none">{{ total_cotizaciones }}</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p class="text-xs font-bold text-slate-400 uppercase tracking-tighter leading-none mb-1">Emitidas</p>
-                                    <p class="text-sm font-bold text-slate-700">Histórico Total</p>
-                                </div>
-                            </div>
-                            <span class="text-2xl font-black text-slate-900">{{ total_cotizaciones }}</span>
-                        </div>
 
-                        <div class="group flex items-center justify-between p-4 rounded-3xl bg-orange-50/50 border border-orange-100 hover:bg-orange-50 transition-all">
-                            <div class="flex items-center gap-4">
-                                <div class="w-10 h-10 rounded-2xl bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-200">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-bold text-orange-400 uppercase tracking-tighter leading-none mb-1">Pendientes ({{ p_pendientes|floatformat:1 }}%)</p>
-                                    <p class="text-sm font-bold text-slate-700">Por Gestionar</p>
+                                <div class="w-14 h-14 rounded-full bg-[#f36e34] text-white shadow-[0_10px_24px_rgba(243,110,52,0.35)] border-[4px] border-white flex items-center justify-center shrink-0">
+                                    <i data-lucide="briefcase-business" class="w-5 h-5"></i>
                                 </div>
                             </div>
-                            <span class="text-2xl font-black text-orange-600">{{ total_cotizaciones_pendientes }}</span>
-                        </div>
 
-                        <div class="group flex items-center justify-between p-4 rounded-3xl bg-emerald-50/50 border border-emerald-100 hover:bg-emerald-50 transition-all">
+                            <!-- Strategy / pendientes -->
                             <div class="flex items-center gap-4">
-                                <div class="w-10 h-10 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-200">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <div class="flex-1 min-w-0 rounded-r-[2rem] rounded-l-[0.6rem] bg-gradient-to-r from-[#ffbe00] to-[#ffd84a] px-5 py-4 text-white shadow-lg">
+                                    <div class="flex items-start justify-between gap-4">
+                                        <div>
+                                            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Pendientes</p>
+                                            <h3 class="text-sm font-black mt-1">Por gestionar</h3>
+                                            <p class="text-[11px] text-white/85 mt-1">
+                                                Cotizaciones que todavía requieren seguimiento y cierre comercial.
+                                            </p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-2xl font-black leading-none">{{ total_cotizaciones_pendientes }}</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p class="text-xs font-bold text-emerald-400 uppercase tracking-tighter leading-none mb-1">Aprobadas ({{ p_aceptadas|floatformat:1 }}%)</p>
-                                    <p class="text-sm font-bold text-slate-700">Ventas Cerradas</p>
+
+                                <div class="w-14 h-14 rounded-full bg-[#ffc81e] text-white shadow-[0_10px_24px_rgba(255,200,30,0.35)] border-[4px] border-white flex items-center justify-center shrink-0">
+                                    <i data-lucide="hourglass" class="w-5 h-5"></i>
                                 </div>
                             </div>
-                            <span class="text-2xl font-black text-emerald-600">{{ total_cotizaciones_aceptadas }}</span>
+
+                            <!-- Financial / aprobadas -->
+                            <div class="flex items-center gap-4">
+                                <div class="flex-1 min-w-0 rounded-r-[2rem] rounded-l-[0.6rem] bg-gradient-to-r from-[#3d88c2] to-[#56a7df] px-5 py-4 text-white shadow-lg">
+                                    <div class="flex items-start justify-between gap-4">
+                                        <div>
+                                            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Aprobadas</p>
+                                            <h3 class="text-sm font-black mt-1">Ventas cerradas</h3>
+                                            <p class="text-[11px] text-white/85 mt-1">
+                                                Propuestas aceptadas y convertidas efectivamente en venta.
+                                            </p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-2xl font-black leading-none">{{ total_cotizaciones_aceptadas }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="w-14 h-14 rounded-full bg-[#4c98d2] text-white shadow-[0_10px_24px_rgba(76,152,210,0.35)] border-[4px] border-white flex items-center justify-center shrink-0">
+                                    <i data-lucide="wallet" class="w-5 h-5"></i>
+                                </div>
+                            </div>
+
+                            <!-- Advertise / efectividad -->
+                            <div class="flex items-center gap-4">
+                                <div class="flex-1 min-w-0 rounded-r-[2rem] rounded-l-[0.6rem] bg-gradient-to-r from-[#8da81e] to-[#b8d645] px-5 py-4 text-white shadow-lg">
+                                    <div class="flex items-start justify-between gap-4">
+                                        <div>
+                                            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Conversión</p>
+                                            <h3 class="text-sm font-black mt-1">Efectividad comercial</h3>
+                                            <p class="text-[11px] text-white/85 mt-1">
+                                                Porcentaje global de éxito en el cierre de cotizaciones emitidas.
+                                            </p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-2xl font-black leading-none">{{ efectividad|floatformat:0 }}%</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="w-14 h-14 rounded-full bg-[#a9c63a] text-white shadow-[0_10px_24px_rgba(169,198,58,0.35)] border-[4px] border-white flex items-center justify-center shrink-0">
+                                    <i data-lucide="badge-percent" class="w-5 h-5"></i>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 </div>
@@ -346,6 +574,7 @@
     
     <div class="grid grid-cols-1 lg:grid-cols-6 gap-6 mb-12 mt-4 font-sans">
 
+        <!-- KPIs PROYECTOS -->
         <div class="lg:col-span-2 grid grid-cols-2 gap-4 bg-slate-500/5 rounded-[2.5rem] p-4 border border-slate-200/50 relative">
             <div class="absolute -top-3 left-6 bg-blue-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-lg z-10">
                 Proyectos
@@ -372,118 +601,208 @@
             </div>
         </div>
 
+        <!-- EMBUDO PROYECTOS -->
         <div class="lg:col-span-4 bg-white rounded-[2.5rem] p-8 border border-slate-200/60 shadow-xl shadow-slate-200/40 relative overflow-hidden group">
-            <div class="mb-6">
-                <span class="bg-slate-900 text-white text-[10px] font-bold px-4 py-1.5 rounded-full uppercase tracking-widest shadow-sm">
-                    Distribución de Proyectos
-                </span>
-            </div>
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_20%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.06),transparent_18%)] pointer-events-none"></div>
 
-            <div class="flex flex-col md:flex-row items-center gap-10">
-                <div class="relative w-48 h-48 flex-shrink-0">
-                    <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90 transition-transform duration-700 group-hover:scale-105">
-                        <circle cx="18" cy="18" r="16" fill="none" class="stroke-slate-100" stroke-width="3.5"></circle>
-
-                        <circle cx="18" cy="18" r="16" fill="none" class="stroke-slate-400" stroke-width="4"
-                            stroke-dasharray="{{ p_pr_pendiente|floatformat:0 }}, 100" stroke-linecap="round"></circle>
-
-                        <circle cx="18" cy="18" r="16" fill="none" class="stroke-blue-500" stroke-width="4"
-                            stroke-dasharray="{{ p_pr_en_curso|floatformat:0 }}, 100"
-                            stroke-dashoffset="{{ o_pr_en_curso|floatformat:0 }}" stroke-linecap="round"></circle>
-
-                        <circle cx="18" cy="18" r="16" fill="none" class="stroke-emerald-500" stroke-width="4"
-                            stroke-dasharray="{{ p_pr_muestras_asignadas|floatformat:0 }}, 100"
-                            stroke-dashoffset="{{ o_pr_muestras_asignadas|floatformat:0 }}" stroke-linecap="round"></circle>
-
-                        <circle cx="18" cy="18" r="16" fill="none" class="stroke-indigo-500" stroke-width="4"
-                            stroke-dasharray="{{ p_pr_muestras_validadas|floatformat:0 }}, 100"
-                            stroke-dashoffset="{{ o_pr_muestras_validadas|floatformat:0 }}" stroke-linecap="round"></circle>
-
-                        <circle cx="18" cy="18" r="16" fill="none" class="stroke-teal-500" stroke-width="4"
-                            stroke-dasharray="{{ p_pr_finalizado|floatformat:0 }}, 100"
-                            stroke-dashoffset="{{ o_pr_finalizado|floatformat:0 }}" stroke-linecap="round"></circle>
-
-                        <circle cx="18" cy="18" r="16" fill="none" class="stroke-rose-500" stroke-width="4"
-                            stroke-dasharray="{{ p_pr_cancelado|floatformat:0 }}, 100"
-                            stroke-dashoffset="{{ o_pr_cancelado|floatformat:0 }}" stroke-linecap="round"></circle>
-                    </svg>
-
-                    <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase leading-none">Total</span>
-                        <span class="text-4xl font-black text-slate-900 tracking-tighter leading-tight">{{ total_proyectos }}</span>
-                    </div>
+            <div class="relative z-10">
+                <div class="mb-6">
+                    <span class="bg-slate-900 text-white text-[10px] font-bold px-4 py-1.5 rounded-full uppercase tracking-widest shadow-sm">
+                        Distribución de Proyectos
+                    </span>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
-                    <div class="flex items-center justify-between p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 transition-all hover:bg-slate-50">
-                        <div class="flex items-center gap-3">
-                            <div class="w-3 h-3 rounded-full bg-slate-400"></div>
-                            <span class="text-sm font-bold text-slate-600 tracking-tight">Pendientes</span>
-                        </div>
-                        <div class="flex flex-col items-end">
-                            <span class="text-xl font-black text-slate-700">{{ total_proyectos_pendiente }}</span>
-                            <span class="text-[10px] font-bold text-slate-400 leading-none">{{ p_pr_pendiente|floatformat:1 }}%</span>
+                <div class="grid grid-cols-1 xl:grid-cols-[370px_minmax(0,1fr)] gap-8 items-center">
+
+                    <!-- FUNNEL IZQUIERDO -->
+                    <div class="flex justify-center">
+                        <div class="relative w-full max-w-[340px] flex flex-col items-start gap-2">
+
+                            <!-- Pendientes -->
+                            <div class="relative w-full h-[58px]">
+                                <div class="absolute inset-0 bg-gradient-to-r from-[#facc15] to-[#eab308] shadow-[0_10px_24px_-12px_rgba(234,179,8,0.45)]"
+                                    style="clip-path: polygon(0 18%, 100% 0, 88% 100%, 0 82%);">
+                                </div>
+                                <div class="relative z-10 h-full flex items-center justify-between px-5 text-white">
+                                    <span class="text-base font-black">{{ p_pr_pendiente|floatformat:0 }}%</span>
+                                    <span class="text-[11px] font-black uppercase tracking-[0.16em] text-white/80">Pendientes</span>
+                                </div>
+                            </div>
+
+                            <!-- En curso -->
+                            <div class="relative w-[86%] h-[58px] ml-4">
+                                <div class="absolute inset-0 bg-gradient-to-r from-[#4b9cd3] to-[#2d7fb7] shadow-[0_10px_24px_-12px_rgba(45,127,183,0.45)]"
+                                    style="clip-path: polygon(0 16%, 100% 0, 88% 100%, 0 84%);">
+                                </div>
+                                <div class="relative z-10 h-full flex items-center justify-between px-5 text-white">
+                                    <span class="text-base font-black">{{ p_pr_en_curso|floatformat:0 }}%</span>
+                                    <span class="text-[11px] font-black uppercase tracking-[0.16em] text-white/80">En curso</span>
+                                </div>
+                            </div>
+
+                            <!-- Muestras asignadas -->
+                            <div class="relative w-[72%] h-[58px] ml-8">
+                                <div class="absolute inset-0 bg-gradient-to-r from-[#f59e0b] to-[#ea580c] shadow-[0_10px_24px_-12px_rgba(245,158,11,0.45)]"
+                                    style="clip-path: polygon(0 14%, 100% 0, 88% 100%, 0 86%);">
+                                </div>
+                                <div class="relative z-10 h-full flex items-center justify-between px-5 text-white">
+                                    <span class="text-base font-black">{{ p_pr_muestras_asignadas|floatformat:0 }}%</span>
+                                    <span class="text-[11px] font-black uppercase tracking-[0.16em] text-white/80">Asignadas</span>
+                                </div>
+                            </div>
+
+                            <!-- Muestras validadas -->
+                            <div class="relative w-[58%] h-[58px] ml-12">
+                                <div class="absolute inset-0 bg-gradient-to-r from-[#84cc16] to-[#65a30d] shadow-[0_10px_24px_-12px_rgba(132,204,22,0.45)]"
+                                    style="clip-path: polygon(0 12%, 100% 0, 88% 100%, 0 88%);">
+                                </div>
+                                <div class="relative z-10 h-full flex items-center justify-between px-5 text-white">
+                                    <span class="text-base font-black">{{ p_pr_muestras_validadas|floatformat:0 }}%</span>
+                                    <span class="text-[11px] font-black uppercase tracking-[0.16em] text-white/80">Validadas</span>
+                                </div>
+                            </div>
+
+                            <!-- Finalizados -->
+                            <div class="relative w-[44%] h-[58px] ml-16">
+                                <div class="absolute inset-0 bg-gradient-to-r from-[#0ea5e9] to-[#0284c7] shadow-[0_10px_24px_-12px_rgba(14,165,233,0.45)]"
+                                    style="clip-path: polygon(0 10%, 100% 0, 88% 100%, 0 90%);">
+                                </div>
+                                <div class="relative z-10 h-full flex items-center justify-between px-5 text-white">
+                                    <span class="text-base font-black">{{ p_pr_finalizado|floatformat:0 }}%</span>
+                                    <span class="text-[11px] font-black uppercase tracking-[0.16em] text-white/80">Finalizados</span>
+                                </div>
+                            </div>
+
+                            <!-- Punta -->
+                            <div class="relative w-[10%] h-[40px] ml-[5.35rem]">
+                                <div class="absolute inset-0 bg-gradient-to-b from-slate-300 to-slate-400"
+                                    style="clip-path: polygon(28% 0, 72% 0, 100% 100%, 0 100%);">
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-between p-4 rounded-2xl bg-blue-50/50 border border-blue-100/40 transition-all hover:bg-blue-50">
-                        <div class="flex items-center gap-3">
-                            <div class="w-3 h-3 rounded-full bg-blue-500"></div>
-                            <span class="text-sm font-bold text-slate-600 tracking-tight">En Curso</span>
-                        </div>
-                        <div class="flex flex-col items-end">
-                            <span class="text-xl font-black text-blue-600">{{ total_proyectos_en_curso }}</span>
-                            <span class="text-[10px] font-bold text-blue-400 leading-none">{{ p_pr_en_curso|floatformat:1 }}%</span>
-                        </div>
-                    </div>
+                    <!-- DETALLE DERECHO -->
+                    <div class="space-y-3">
 
-                    <div class="flex items-center justify-between p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100/40 transition-all hover:bg-emerald-50">
-                        <div class="flex items-center gap-3">
-                            <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
-                            <span class="text-sm font-bold text-slate-600 tracking-tight">Muestras Asignadas</span>
+                        <div class="flex items-center gap-4">
+                            <div class="flex-1 rounded-r-[1.8rem] rounded-l-[0.7rem] bg-gradient-to-r from-[#facc15] to-[#eab308] px-5 py-4 text-white shadow-lg">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div>
+                                        <p class="text-[10px] font-black uppercase tracking-[0.18em] text-white/80">Pendientes</p>
+                                        <h3 class="text-sm font-black mt-1">Proyectos en espera</h3>
+                                        <p class="text-[11px] text-white/85 mt-1">Aún no han iniciado su ejecución operativa.</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-2xl font-black leading-none">{{ total_proyectos_pendiente }}</p>
+                                        <p class="text-[10px] font-black text-white/80 mt-1">{{ p_pr_pendiente|floatformat:1 }}%</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="w-14 h-14 rounded-full bg-[#eab308] text-white border-[4px] border-white shadow-[0_10px_24px_rgba(234,179,8,0.35)] flex items-center justify-center shrink-0">
+                                <i data-lucide="pause-circle" class="w-5 h-5"></i>
+                            </div>
                         </div>
-                        <div class="flex flex-col items-end">
-                            <span class="text-xl font-black text-emerald-600">{{ total_proyectos_muestras_asignadas }}</span>
-                            <span class="text-[10px] font-bold text-emerald-500 leading-none">{{ p_pr_muestras_asignadas|floatformat:1 }}%</span>
-                        </div>
-                    </div>
 
-                    <div class="flex items-center justify-between p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100/40 transition-all hover:bg-indigo-50">
-                        <div class="flex items-center gap-3">
-                            <div class="w-3 h-3 rounded-full bg-indigo-500"></div>
-                            <span class="text-sm font-bold text-slate-600 tracking-tight">Muestras Validadas</span>
+                        <div class="flex items-center gap-4">
+                            <div class="flex-1 rounded-r-[1.8rem] rounded-l-[0.7rem] bg-gradient-to-r from-[#4b9cd3] to-[#2d7fb7] px-5 py-4 text-white shadow-lg">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div>
+                                        <p class="text-[10px] font-black uppercase tracking-[0.18em] text-white/80">En curso</p>
+                                        <h3 class="text-sm font-black mt-1">Operación activa</h3>
+                                        <p class="text-[11px] text-white/85 mt-1">Proyectos actualmente en proceso y ejecución.</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-2xl font-black leading-none">{{ total_proyectos_en_curso }}</p>
+                                        <p class="text-[10px] font-black text-white/80 mt-1">{{ p_pr_en_curso|floatformat:1 }}%</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="w-14 h-14 rounded-full bg-[#2d7fb7] text-white border-[4px] border-white shadow-[0_10px_24px_rgba(45,127,183,0.35)] flex items-center justify-center shrink-0">
+                                <i data-lucide="loader-circle" class="w-5 h-5"></i>
+                            </div>
                         </div>
-                        <div class="flex flex-col items-end">
-                            <span class="text-xl font-black text-indigo-600">{{ total_proyectos_muestras_validadas }}</span>
-                            <span class="text-[10px] font-bold text-indigo-500 leading-none">{{ p_pr_muestras_validadas|floatformat:1 }}%</span>
-                        </div>
-                    </div>
 
-                    <div class="flex items-center justify-between p-4 rounded-2xl bg-teal-50/50 border border-teal-100/40 transition-all hover:bg-teal-50">
-                        <div class="flex items-center gap-3">
-                            <div class="w-3 h-3 rounded-full bg-teal-500"></div>
-                            <span class="text-sm font-bold text-slate-600 tracking-tight">Finalizados</span>
+                        <div class="flex items-center gap-4">
+                            <div class="flex-1 rounded-r-[1.8rem] rounded-l-[0.7rem] bg-gradient-to-r from-[#f59e0b] to-[#ea580c] px-5 py-4 text-white shadow-lg">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div>
+                                        <p class="text-[10px] font-black uppercase tracking-[0.18em] text-white/80">Muestras asignadas</p>
+                                        <h3 class="text-sm font-black mt-1">Etapa de asignación</h3>
+                                        <p class="text-[11px] text-white/85 mt-1">Proyectos con muestras ya distribuidas para su gestión.</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-2xl font-black leading-none">{{ total_proyectos_muestras_asignadas }}</p>
+                                        <p class="text-[10px] font-black text-white/80 mt-1">{{ p_pr_muestras_asignadas|floatformat:1 }}%</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="w-14 h-14 rounded-full bg-[#ea580c] text-white border-[4px] border-white shadow-[0_10px_24px_rgba(234,88,12,0.35)] flex items-center justify-center shrink-0">
+                                <i data-lucide="package-check" class="w-5 h-5"></i>
+                            </div>
                         </div>
-                        <div class="flex flex-col items-end">
-                            <span class="text-xl font-black text-teal-600">{{ total_proyectos_finalizado }}</span>
-                            <span class="text-[10px] font-bold text-teal-500 leading-none">{{ p_pr_finalizado|floatformat:1 }}%</span>
-                        </div>
-                    </div>
 
-                    <div class="flex items-center justify-between p-4 rounded-2xl bg-rose-50/50 border border-rose-100/40 transition-all hover:bg-rose-50">
-                        <div class="flex items-center gap-3">
-                            <div class="w-3 h-3 rounded-full bg-rose-500"></div>
-                            <span class="text-sm font-bold text-slate-600 tracking-tight">Cancelados</span>
+                        <div class="flex items-center gap-4">
+                            <div class="flex-1 rounded-r-[1.8rem] rounded-l-[0.7rem] bg-gradient-to-r from-[#84cc16] to-[#65a30d] px-5 py-4 text-white shadow-lg">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div>
+                                        <p class="text-[10px] font-black uppercase tracking-[0.18em] text-white/80">Muestras validadas</p>
+                                        <h3 class="text-sm font-black mt-1">Control validado</h3>
+                                        <p class="text-[11px] text-white/85 mt-1">Proyectos con trazabilidad y validación confirmada.</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-2xl font-black leading-none">{{ total_proyectos_muestras_validadas }}</p>
+                                        <p class="text-[10px] font-black text-white/80 mt-1">{{ p_pr_muestras_validadas|floatformat:1 }}%</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="w-14 h-14 rounded-full bg-[#65a30d] text-white border-[4px] border-white shadow-[0_10px_24px_rgba(101,163,13,0.35)] flex items-center justify-center shrink-0">
+                                <i data-lucide="badge-check" class="w-5 h-5"></i>
+                            </div>
                         </div>
-                        <div class="flex flex-col items-end">
-                            <span class="text-xl font-black text-rose-600">{{ total_proyectos_cancelado }}</span>
-                            <span class="text-[10px] font-bold text-rose-500 leading-none">{{ p_pr_cancelado|floatformat:1 }}%</span>
+
+                        <div class="flex items-center gap-4">
+                            <div class="flex-1 rounded-r-[1.8rem] rounded-l-[0.7rem] bg-gradient-to-r from-[#0ea5e9] to-[#0284c7] px-5 py-4 text-white shadow-lg">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div>
+                                        <p class="text-[10px] font-black uppercase tracking-[0.18em] text-white/80">Finalizados</p>
+                                        <h3 class="text-sm font-black mt-1">Cierre del flujo</h3>
+                                        <p class="text-[11px] text-white/85 mt-1">Proyectos concluidos y listos para reporte o entrega.</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-2xl font-black leading-none">{{ total_proyectos_finalizado }}</p>
+                                        <p class="text-[10px] font-black text-white/80 mt-1">{{ p_pr_finalizado|floatformat:1 }}%</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="w-14 h-14 rounded-full bg-[#0284c7] text-white border-[4px] border-white shadow-[0_10px_24px_rgba(2,132,199,0.35)] flex items-center justify-center shrink-0">
+                                <i data-lucide="flag" class="w-5 h-5"></i>
+                            </div>
                         </div>
+
+                        <div class="flex items-center gap-4">
+                            <div class="flex-1 rounded-r-[1.8rem] rounded-l-[0.7rem] bg-gradient-to-r from-[#f43f5e] to-[#e11d48] px-5 py-4 text-white shadow-lg">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div>
+                                        <p class="text-[10px] font-black uppercase tracking-[0.18em] text-white/80">Cancelados</p>
+                                        <h3 class="text-sm font-black mt-1">Flujo detenido</h3>
+                                        <p class="text-[11px] text-white/85 mt-1">Proyectos cerrados sin continuidad operativa.</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-2xl font-black leading-none">{{ total_proyectos_cancelado }}</p>
+                                        <p class="text-[10px] font-black text-white/80 mt-1">{{ p_pr_cancelado|floatformat:1 }}%</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="w-14 h-14 rounded-full bg-[#e11d48] text-white border-[4px] border-white shadow-[0_10px_24px_rgba(225,29,72,0.35)] flex items-center justify-center shrink-0">
+                                <i data-lucide="x-circle" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
         </div>
-
     </div>
 </div>
 {% endblock %}
