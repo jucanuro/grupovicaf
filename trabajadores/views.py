@@ -3,135 +3,156 @@ from django.db.models import Count, Q
 from django.core.paginator import Paginator
 from django.http import JsonResponse, HttpResponseForbidden
 from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import login_required, user_passes_test 
-from django.db import transaction, IntegrityError 
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.db import transaction, IntegrityError
+from django.contrib import messages
 import logging
-from .models import TrabajadorProfile, RolTrabajador  
+from .models import TrabajadorProfile, RolTrabajador
 
-logger = logging.getLogger(__name__)  
-
+logger = logging.getLogger(__name__)
 User = get_user_model()
+
 
 def is_admin_or_supervisor(user):
     if user.is_superuser:
         return True
-    
+
     try:
-        profile = TrabajadorProfile.objects.get(user=user)
-        nombre_rol = profile.rol.nombre.lower()
+        profile = TrabajadorProfile.objects.select_related('rol').get(user=user)
+        nombre_rol = (profile.rol.nombre or '').lower()
         return 'administrador' in nombre_rol or 'supervisor' in nombre_rol
     except (TrabajadorProfile.DoesNotExist, AttributeError):
         return False
 
-@login_required 
-@user_passes_test(is_admin_or_supervisor) 
+
+@login_required
+@user_passes_test(is_admin_or_supervisor)
 def crear_trabajador(request):
-    # Obtenemos los roles para el select del template
-    roles_disponibles = RolTrabajador.objects.all()
-    
+    roles_disponibles = RolTrabajador.objects.all().order_by('nombre')
+
     if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        email = request.POST.get('email')
-        nombre_completo = request.POST.get('nombre_completo')
-        rol_id = request.POST.get('rol') # Ahora recibimos el ID del RolTrabajador
-        titulo_profesional = request.POST.get('titulo_profesional')
-        
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
+        email = request.POST.get('email', '').strip()
+        nombre_completo = request.POST.get('nombre_completo', '').strip()
+        rol_id = request.POST.get('rol', '').strip()
+        titulo_profesional = request.POST.get('titulo_profesional', '').strip()
+
+        context = {
+            'roles_disponibles': roles_disponibles,
+            'user_username': username,
+            'user_email': email,
+            'form_nombre_completo': nombre_completo,
+            'form_titulo_profesional': titulo_profesional,
+            'form_rol_id': rol_id,
+        }
+
         if not all([username, password, email, nombre_completo, rol_id]):
-            return render(request, 'trabajadores/trabajadores_form.html', {
-                'error': 'Faltan campos obligatorios para la creación del usuario/perfil.',
-                'roles_disponibles': roles_disponibles
-            })
-        
+            context['error'] = 'Faltan campos obligatorios para la creación del usuario/perfil.'
+            return render(request, 'trabajadores/trabajadores_form.html', context)
+
+        try:
+            rol_obj = RolTrabajador.objects.get(id=rol_id)
+        except RolTrabajador.DoesNotExist:
+            context['error'] = 'El rol seleccionado no existe.'
+            return render(request, 'trabajadores/trabajadores_form.html', context)
+
         try:
             with transaction.atomic():
                 user = User.objects.create_user(
-                    username=username, 
-                    email=email, 
+                    username=username,
+                    email=email,
                     password=password,
                 )
-                
-                # Obtenemos la instancia del rol seleccionado
-                rol_obj = RolTrabajador.objects.get(id=rol_id)
-                
-                TrabajadorProfile.objects.create(
+
+                perfil = TrabajadorProfile.objects.create(
                     user=user,
                     nombre_completo=nombre_completo,
-                    rol=rol_obj, # Asignamos el objeto rol
+                    rol=rol_obj,
                     titulo_profesional=titulo_profesional,
                     correo_contacto=email,
                 )
-            
-            return redirect('trabajadores:lista_trabajadores')
-            
+
+            messages.success(request, f'El colaborador "{perfil.nombre_completo}" fue creado correctamente.')
+            return redirect('trabajadores:editar_trabajador', pk=perfil.pk)
+
         except IntegrityError:
-            return render(request, 'trabajadores/trabajadores_form.html', {
-                'error': 'El nombre de usuario o el correo electrónico ya está en uso por otra persona.',
-                'roles_disponibles': roles_disponibles
-            })
+            context['error'] = 'El nombre de usuario o el correo electrónico ya está en uso por otra persona.'
+            return render(request, 'trabajadores/trabajadores_form.html', context)
         except Exception as e:
-            return render(request, 'trabajadores/trabajadores_form.html', {
-                'error': f'Ocurrió un error al crear el trabajador: {e}',
-                'roles_disponibles': roles_disponibles
-            })
+            logger.exception("Error al crear trabajador")
+            context['error'] = f'Ocurrió un error al crear el trabajador: {e}'
+            return render(request, 'trabajadores/trabajadores_form.html', context)
 
     return render(request, 'trabajadores/trabajadores_form.html', {
         'roles_disponibles': roles_disponibles
     })
 
-@login_required 
-@user_passes_test(is_admin_or_supervisor) 
+
+@login_required
+@user_passes_test(is_admin_or_supervisor)
 def editar_trabajador(request, pk):
-    trabajador = get_object_or_404(TrabajadorProfile, pk=pk)
-    roles_disponibles = RolTrabajador.objects.all()
-    
+    trabajador = get_object_or_404(
+        TrabajadorProfile.objects.select_related('user', 'rol'),
+        pk=pk
+    )
+    roles_disponibles = RolTrabajador.objects.all().order_by('nombre')
+
     if request.method == 'POST':
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        new_password = request.POST.get('new_password')
-        nombre_completo = request.POST.get('nombre_completo')
-        rol_id = request.POST.get('rol') # ID del RolTrabajador
-        titulo_profesional = request.POST.get('titulo_profesional')
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
+        new_password = request.POST.get('new_password', '')
+        nombre_completo = request.POST.get('nombre_completo', '').strip()
+        rol_id = request.POST.get('rol', '').strip()
+        titulo_profesional = request.POST.get('titulo_profesional', '').strip()
+
+        context = {
+            'trabajador': trabajador,
+            'roles_disponibles': roles_disponibles,
+            'user_username': username,
+            'user_email': email,
+            'form_nombre_completo': nombre_completo,
+            'form_titulo_profesional': titulo_profesional,
+            'form_rol_id': rol_id,
+        }
 
         if not all([username, email, nombre_completo, rol_id]):
-            return render(request, 'trabajadores/trabajadores_form.html', {
-                'trabajador': trabajador,
-                'error': 'Faltan campos obligatorios.',
-                'roles_disponibles': roles_disponibles
-            })
+            context['error'] = 'Faltan campos obligatorios.'
+            return render(request, 'trabajadores/trabajadores_form.html', context)
+
+        try:
+            rol_obj = RolTrabajador.objects.get(id=rol_id)
+        except RolTrabajador.DoesNotExist:
+            context['error'] = 'El rol seleccionado no existe.'
+            return render(request, 'trabajadores/trabajadores_form.html', context)
 
         try:
             with transaction.atomic():
                 user = trabajador.user
                 user.username = username
                 user.email = email
-                
+
                 if new_password:
                     user.set_password(new_password)
-                
+
                 user.save()
 
                 trabajador.nombre_completo = nombre_completo
-                trabajador.rol = RolTrabajador.objects.get(id=rol_id) # Actualizamos el objeto rol
+                trabajador.rol = rol_obj
                 trabajador.titulo_profesional = titulo_profesional
                 trabajador.correo_contacto = email
-                
                 trabajador.save()
 
-            return redirect('trabajadores:lista_trabajadores')
-        
+            messages.success(request, f'El perfil de "{trabajador.nombre_completo}" fue actualizado correctamente.')
+            return redirect('trabajadores:editar_trabajador', pk=trabajador.pk)
+
         except IntegrityError:
-            return render(request, 'trabajadores/trabajadores_form.html', {
-                'trabajador': trabajador,
-                'error': 'El nombre de usuario o el correo electrónico ya está en uso por otra persona.',
-                'roles_disponibles': roles_disponibles
-            })
+            context['error'] = 'El nombre de usuario o el correo electrónico ya está en uso por otra persona.'
+            return render(request, 'trabajadores/trabajadores_form.html', context)
         except Exception as e:
-            return render(request, 'trabajadores/trabajadores_form.html', {
-                'trabajador': trabajador,
-                'error': f'Ocurrió un error al editar el trabajador: {e}',
-                'roles_disponibles': roles_disponibles
-            })
+            logger.exception("Error al editar trabajador")
+            context['error'] = f'Ocurrió un error al editar el trabajador: {e}'
+            return render(request, 'trabajadores/trabajadores_form.html', context)
 
     context = {
         'trabajador': trabajador,
@@ -141,26 +162,30 @@ def editar_trabajador(request, pk):
     }
     return render(request, 'trabajadores/trabajadores_form.html', context)
 
-@login_required 
-@user_passes_test(is_admin_or_supervisor) 
+
+@login_required
+@user_passes_test(is_admin_or_supervisor)
 def eliminar_trabajador(request, pk):
     trabajador = get_object_or_404(TrabajadorProfile, pk=pk)
-    
+
     if request.method == 'POST':
         trabajador.user.delete()
+        messages.success(request, f'El colaborador "{trabajador.nombre_completo}" fue eliminado correctamente.')
         return redirect('trabajadores:lista_trabajadores')
-    
+
     return render(request, 'trabajadores/confirmar_eliminar_trabajador.html', {'trabajador': trabajador})
 
+
+@login_required
+@user_passes_test(is_admin_or_supervisor)
 def lista_trabajadores(request):
-    query = request.GET.get('q')
-    # select_related('rol') agregado para optimizar la consulta
-    trabajadores = TrabajadorProfile.objects.select_related('user', 'rol').all()
+    query = request.GET.get('q', '').strip()
+    trabajadores = TrabajadorProfile.objects.select_related('user', 'rol').all().order_by('nombre_completo')
 
     if query:
         trabajadores = trabajadores.filter(
             Q(nombre_completo__icontains=query) |
-            Q(rol__nombre__icontains=query) | # Cambiado a rol__nombre
+            Q(rol__nombre__icontains=query) |
             Q(user__username__icontains=query) |
             Q(user__email__icontains=query)
         ).distinct()
@@ -175,17 +200,16 @@ def lista_trabajadores(request):
     }
     return render(request, 'trabajadores/trabajadores_list.html', context)
 
+
 @login_required
 @user_passes_test(is_admin_or_supervisor)
 def buscar_trabajadores_api(request):
     try:
         query = request.GET.get('q', '').strip()
 
-        # Validaciones de seguridad
         if len(query) > 100:
             return JsonResponse({'error': 'La consulta no puede exceder 100 caracteres.'}, status=400)
-        
-        # Validar caracteres peligrosos
+
         import re
         if re.search(r'[<>]', query):
             logger.warning(f"Intento de XSS en buscar_trabajadores_api por usuario {request.user.username}")
@@ -193,12 +217,12 @@ def buscar_trabajadores_api(request):
 
         trabajadores = TrabajadorProfile.objects.filter(
             Q(nombre_completo__icontains=query) |
-            Q(rol__nombre__icontains=query) | # Cambiado a rol__nombre
+            Q(rol__nombre__icontains=query) |
             Q(user__email__icontains=query)
         ).select_related('user', 'rol').values(
-            'pk', 
-            'nombre_completo', 
-            'rol__nombre', # Traemos el nombre del rol relacionado
+            'pk',
+            'nombre_completo',
+            'rol__nombre',
             'creado_en',
             'user__email',
             'user__username'
@@ -209,16 +233,15 @@ def buscar_trabajadores_api(request):
             result.append({
                 'pk': t['pk'],
                 'nombre_completo': t['nombre_completo'],
-                'role': t['rol__nombre'], # Mapeado a 'role' para no romper el JS
+                'role': t['rol__nombre'],
                 'creado_en': t['creado_en'].strftime("%d %b %Y"),
                 'email': t['user__email'],
                 'username': t['user__username']
             })
 
-        # Log de seguridad para consultas potencialmente sospechosas
         if len(query) > 50:
             logger.info(f"Consulta larga en buscar_trabajadores_api por usuario {request.user.username}: {query[:50]}...")
-        
+
         return JsonResponse(result, safe=False)
     except Exception as e:
         logger.error(f"Error en buscar_trabajadores_api por usuario {request.user.username}: {str(e)}")
@@ -233,14 +256,12 @@ def crear_rol_ajax(request):
             nombre = request.POST.get('nombre_rol', '').strip()
             descripcion = request.POST.get('descripcion_rol', '').strip()
 
-            # Validaciones de seguridad
             if not nombre or len(nombre) < 2 or len(nombre) > 50:
                 return JsonResponse({'success': False, 'error': 'El nombre del rol debe tener entre 2 y 50 caracteres.'}, status=400)
-            
+
             if len(descripcion) > 200:
                 return JsonResponse({'success': False, 'error': 'La descripción no puede exceder 200 caracteres.'}, status=400)
 
-            # Validar caracteres peligrosos
             import re
             if re.search(r'[<>]', nombre) or re.search(r'[<>]', descripcion):
                 logger.warning(f"Intento de XSS en crear_rol_ajax por usuario {request.user.username}")
@@ -250,10 +271,9 @@ def crear_rol_ajax(request):
                 nombre=nombre,
                 descripcion=descripcion
             )
-            
-            # Log de seguridad
+
             logger.info(f"Rol creado exitosamente: {nombre} por usuario {request.user.username}")
-            
+
             return JsonResponse({
                 'success': True,
                 'id': nuevo_rol.id,
@@ -271,10 +291,10 @@ def crear_rol_ajax(request):
 @login_required
 @user_passes_test(is_admin_or_supervisor)
 def lista_roles(request):
-    query = request.GET.get('q')
-    
+    query = request.GET.get('q', '').strip()
+
     roles = RolTrabajador.objects.annotate(
-        num_trabajadores=Count('perfiles') 
+        num_trabajadores=Count('perfiles')
     ).all().order_by('nombre')
 
     if query:
@@ -293,25 +313,27 @@ def lista_roles(request):
     }
     return render(request, 'trabajadores/roles_list.html', context)
 
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from .models import RolTrabajador
 
 @login_required
 @user_passes_test(is_admin_or_supervisor)
 def crear_rol(request):
     if request.method == 'POST':
-        nombre = request.POST.get('nombre')
-        descripcion = request.POST.get('descripcion')
-        
+        nombre = request.POST.get('nombre', '').strip()
+        descripcion = request.POST.get('descripcion', '').strip()
+
         if nombre:
-            # Crear el objeto
-            RolTrabajador.objects.create(
-                nombre=nombre,
-                descripcion=descripcion
-            )
-            messages.success(request, f'El rol "{nombre}" ha sido creado correctamente.')
-            return redirect('trabajadores:lista_roles')
+            try:
+                RolTrabajador.objects.create(
+                    nombre=nombre,
+                    descripcion=descripcion
+                )
+                messages.success(request, f'El rol "{nombre}" ha sido creado correctamente.')
+                return redirect('trabajadores:lista_roles')
+            except IntegrityError:
+                messages.error(request, 'Ya existe un rol con ese nombre.')
+            except Exception as e:
+                logger.exception("Error al crear rol")
+                messages.error(request, f'Error al crear el rol: {e}')
         else:
             messages.error(request, 'El nombre del rol es obligatorio.')
 
@@ -319,33 +341,56 @@ def crear_rol(request):
         'titulo_pagina': 'Crear Nuevo Rol',
         'icono': 'shield-plus'
     })
-    
+
+
 @login_required
 @user_passes_test(is_admin_or_supervisor)
 def editar_rol(request, pk):
     rol = get_object_or_404(RolTrabajador, pk=pk)
+
     if request.method == 'POST':
-        rol.nombre = request.POST.get('nombre')
-        rol.descripcion = request.POST.get('descripcion')
-        rol.save()
-        messages.success(request, f'Rol "{rol.nombre}" actualizado.')
-        return redirect('trabajadores:lista_roles')
-    
+        nombre = request.POST.get('nombre', '').strip()
+        descripcion = request.POST.get('descripcion', '').strip()
+
+        if not nombre:
+            messages.error(request, 'El nombre del rol es obligatorio.')
+            return render(request, 'trabajadores/rol_form.html', {
+                'rol': rol,
+                'titulo_pagina': f'Editando Rol: {rol.nombre}',
+            })
+
+        try:
+            rol.nombre = nombre
+            rol.descripcion = descripcion
+            rol.save()
+            messages.success(request, f'Rol "{rol.nombre}" actualizado.')
+            return redirect('trabajadores:lista_roles')
+        except IntegrityError:
+            messages.error(request, 'Ya existe un rol con ese nombre.')
+        except Exception as e:
+            logger.exception("Error al editar rol")
+            messages.error(request, f'Error al editar el rol: {e}')
+
     return render(request, 'trabajadores/rol_form.html', {
         'rol': rol,
         'titulo_pagina': f'Editando Rol: {rol.nombre}',
     })
-    
+
+
 @login_required
 @user_passes_test(is_admin_or_supervisor)
 def eliminar_rol(request, pk):
     rol = get_object_or_404(RolTrabajador, pk=pk)
-    
+
     if rol.perfiles.exists():
         messages.error(request, f'No se puede eliminar el rol "{rol.nombre}" porque tiene trabajadores asociados.')
     else:
-        nombre_eliminado = rol.nombre
-        rol.delete()
-        messages.success(request, f'El rol "{nombre_eliminado}" ha sido eliminado correctamente.')
-    
+        try:
+            nombre_eliminado = rol.nombre
+            rol.delete()
+            messages.success(request, f'El rol "{nombre_eliminado}" ha sido eliminado correctamente.')
+        except Exception as e:
+            logger.exception("Error al eliminar rol")
+            messages.error(request, f'Error al eliminar el rol: {e}')
+
     return redirect('trabajadores:lista_roles')
