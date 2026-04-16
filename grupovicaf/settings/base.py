@@ -15,7 +15,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # Apps por defecto y de terceros
 INSTALLED_APPS = [
-    "jazzmin",
+    
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
