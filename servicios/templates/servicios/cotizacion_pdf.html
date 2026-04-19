@@ -7,30 +7,30 @@
     <style>
         @page {
             size: A4;
-            margin: 4.2cm 1.2cm 2.2cm 1.2cm;
+            margin: 3.9cm 1.1cm 2.0cm 1.1cm;
 
             @frame header_frame {
                 -pdf-frame-content: header_content;
-                top: 0.8cm;
-                left: 1.2cm;
-                width: 18.6cm;
-                height: 3.0cm;
+                top: 0.55cm;
+                left: 1.1cm;
+                width: 18.8cm;
+                height: 2.8cm;
             }
 
             @frame footer_frame {
                 -pdf-frame-content: footer_content;
-                bottom: 0.6cm;
-                left: 1.2cm;
-                width: 18.6cm;
-                height: 1.0cm;
+                bottom: 0.45cm;
+                left: 1.1cm;
+                width: 18.8cm;
+                height: 0.8cm;
             }
         }
 
         body {
             font-family: Helvetica, Arial, sans-serif;
-            font-size: 9px;
-            color: #111111;
-            line-height: 1.35;
+            font-size: 8.3px;
+            color: #1a1a1a;
+            line-height: 1.28;
         }
 
         table {
@@ -38,275 +38,336 @@
             border-collapse: collapse;
         }
 
-        td, th {
-            vertical-align: top;
+        th, td {
+            word-wrap: break-word;
         }
 
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         .font-bold { font-weight: bold; }
-
-        .meta-top {
-            font-size: 8px;
-            text-align: right;
-            color: #333333;
-            margin-bottom: 5px;
-        }
+        .nowrap { white-space: nowrap; }
 
         #header_content table,
-        #header_content td {
+        #header_content td,
+        #footer_content table,
+        #footer_content td {
             border: none;
         }
 
-        #footer_content {
-            font-size: 8px;
-            color: #333333;
+        .meta-top {
+            font-size: 7px;
+            text-align: right;
+            color: #5d6470;
+            margin-bottom: 3px;
+            letter-spacing: 0.15px;
         }
 
         .header-shell {
-            border-bottom: 1px solid #cfcfcf;
+            border-bottom: 1px solid #d7dde6;
             padding-bottom: 4px;
         }
 
         .logo-img {
-            width: 180px;
+            width: 175px;
             height: auto;
         }
 
         .header-contact {
             text-align: right;
-            font-size: 9px;
-            line-height: 1.45;
+            font-size: 8px;
+            line-height: 1.35;
             color: #243b7c;
             font-weight: bold;
+        }
+
+        #footer_content {
+            font-size: 7px;
+            color: #5d6470;
+        }
+
+        .footer-line {
+            border-top: 1px solid #d9dee7;
+            padding-top: 4px;
         }
 
         .main-title-box {
-            border: 1px solid #cfcfcf;
-            margin-top: 6px;
-            margin-bottom: 10px;
+            border: 1px solid #cfd6df;
+            margin-top: 4px;
+            margin-bottom: 8px;
         }
 
         .main-title-box td {
-            border: 1px solid #d7d7d7;
-            padding: 10px 12px;
+            border: 1px solid #d9dfe8;
+            padding: 7px 9px;
+            vertical-align: middle;
         }
 
         .offer-label {
-            width: 18%;
-            font-size: 11px;
+            width: 16%;
+            font-size: 9px;
             font-weight: bold;
             color: #243b7c;
-            background: #f7f7f7;
+            background: #f5f7fa;
+            white-space: nowrap;
         }
 
         .offer-value {
-            width: 28%;
-            font-size: 11px;
+            width: 24%;
+            font-size: 9px;
             font-weight: bold;
-            color: #666666;
+            color: #4f5a67;
         }
 
         .title-panel {
-            width: 54%;
+            width: 60%;
             text-align: center;
             font-weight: bold;
-            color: #243b7c;
-            font-size: 14px;
-            line-height: 1.15;
+            color: #223c63;
+            font-size: 12px;
+            line-height: 1.1;
             text-transform: uppercase;
+            letter-spacing: 0.35px;
+            background: #fbfcfe;
+            vertical-align: middle;
         }
 
         .section-band {
-            background: #e9e9e9;
-            color: #243b7c;
+            background: #eef2f7;
+            color: #243b5f;
             font-weight: bold;
             text-transform: uppercase;
-            font-size: 11px;
-            padding: 4px 8px;
+            font-size: 9px;
+            padding: 5px 8px;
             margin-top: 8px;
-            margin-bottom: 6px;
+            margin-bottom: 5px;
+            border-left: 3px solid #243b7c;
+            letter-spacing: 0.3px;
         }
 
         .client-info {
-            margin-bottom: 10px;
+            margin-bottom: 8px;
+            border: 1px solid #dde3eb;
         }
 
         .client-info td {
-            border-bottom: 1px solid #dcdcdc;
-            padding: 4px 6px;
-            font-size: 9px;
+            border: 1px solid #dde3eb;
+            padding: 5px 6px;
+            font-size: 8px;
+            vertical-align: middle;
         }
 
-        .client-label {
-            width: 14%;
-            font-weight: bold;
-        }
-
-        .client-value {
-            width: 36%;
-        }
-
+        .client-label,
         .client-label-right {
-            width: 14%;
+            width: 13%;
             font-weight: bold;
+            background: #fafbfd;
+            color: #2f3c4a;
+            white-space: nowrap;
         }
 
+        .client-value,
         .client-value-right {
-            width: 36%;
+            width: 37%;
+            color: #2c3138;
         }
 
         .intro-text {
-            font-size: 9px;
-            margin: 8px 0 10px 0;
+            font-size: 8.1px;
+            margin: 5px 0 7px 0;
+            color: #31363d;
         }
 
         .items-table {
-            margin-top: 4px;
+            margin-top: 3px;
+            table-layout: fixed;
+        }
+
+        .items-table thead {
+            display: table-header-group;
+        }
+
+        .items-table tr {
+            page-break-inside: avoid;
         }
 
         .items-table th {
-            background: #2a3f86;
+            background: #2b4a7f;
             color: #ffffff;
-            border: 1px solid #000000;
+            border: 1px solid #243b63;
             text-align: center;
             font-weight: bold;
-            font-size: 8px;
-            padding: 5px 4px;
+            font-size: 7.6px;
+            padding: 6px 4px;
+            line-height: 1.15;
+            vertical-align: middle;
         }
 
         .items-table td {
-            border: 1px solid #000000;
-            padding: 4px 5px;
-            font-size: 8.5px;
+            border: 1px solid #cfd5dd;
+            padding: 7px 6px;
+            font-size: 7.9px;
+            line-height: 1.22;
+            color: #20242a;
+            vertical-align: middle; /* ESTE ES EL ARREGLO CLAVE */
         }
 
         .group-row td {
-            background: #efefef;
+            background: #e9eef5;
             font-weight: bold;
-        }
-
-        .subgroup-row td {
-            background: #f7f7f7;
-            font-weight: bold;
+            color: #223b60;
+            padding-top: 5px;
+            padding-bottom: 5px;
+            vertical-align: middle;
         }
 
         .desc-strong {
             font-weight: bold;
+            color: #1f2e42;
+            display: inline-block;
+        }
+
+        .totals-row td {
+            background: #fbfcfe;
+            vertical-align: middle;
         }
 
         .totals-label {
             font-weight: bold;
             text-transform: uppercase;
+            white-space: nowrap;
+            color: #233b5f;
+            text-align: right;
+            padding-right: 10px;
         }
 
         .totals-value {
             font-weight: bold;
             text-align: right;
+            white-space: nowrap;
+            color: #111827;
+        }
+
+        .grand-total td {
+            background: #eef3f9;
+            font-size: 8.1px;
+            vertical-align: middle;
         }
 
         .notes-title {
             font-weight: bold;
-            font-size: 10px;
-            margin-top: 10px;
-            margin-bottom: 4px;
+            font-size: 8.8px;
+            margin-top: 8px;
+            margin-bottom: 3px;
             text-transform: uppercase;
+            color: #21395c;
         }
 
         .notes-list,
         .bullet-list {
-            margin: 0 0 8px 16px;
+            margin: 0 0 6px 14px;
             padding: 0;
+            font-size: 7.9px;
         }
 
         .notes-list li,
         .bullet-list li {
-            margin-bottom: 3px;
+            margin-bottom: 2px;
+            line-height: 1.22;
         }
 
         .subheading {
             font-weight: bold;
             text-transform: uppercase;
-            margin-top: 8px;
+            margin-top: 7px;
             margin-bottom: 2px;
+            font-size: 8px;
+            color: #233b5f;
         }
 
         .contacts-table {
-            margin-top: 6px;
-            margin-bottom: 10px;
+            margin-top: 5px;
+            margin-bottom: 8px;
+            table-layout: fixed;
         }
 
         .contacts-table th,
         .contacts-table td {
-            border: 1px solid #000000;
-            padding: 8px 6px;
+            border: 1px solid #cfd5dd;
+            padding: 6px 5px;
             text-align: center;
+            font-size: 7.8px;
+            vertical-align: middle;
         }
 
         .contacts-table th {
-            background: #efefef;
-            font-size: 10px;
+            background: #eef2f7;
+            font-size: 8.2px;
             font-weight: bold;
+            color: #233b5f;
         }
 
         .contacts-name {
             font-weight: bold;
-            font-size: 9px;
-            margin-bottom: 4px;
+            font-size: 8px;
+            margin-bottom: 3px;
+            color: #1c2d44;
         }
 
         .bank-table {
-            margin-top: 6px;
-            width: 78%;
+            margin-top: 5px;
+            width: 82%;
+            border: 1px solid #d8dee7;
         }
 
         .bank-table td {
-            padding: 2px 4px;
-            font-size: 9px;
+            padding: 4px 5px;
+            font-size: 7.9px;
+            border: 1px solid #d8dee7;
+            vertical-align: middle;
         }
 
         .bank-label {
             width: 34%;
+            font-weight: bold;
+            background: #fafbfd;
+            white-space: nowrap;
+            color: #2b3845;
         }
 
         .bank-sep {
             width: 3%;
             text-align: center;
+            font-weight: bold;
+            color: #556170;
         }
 
         .signature-wrap {
-            margin-top: 24px;
+            margin-top: 18px;
         }
 
         .signature-table {
             width: 100%;
+            table-layout: fixed;
         }
 
         .signature-table td {
             width: 50%;
-            padding: 0 10px;
+            padding: 0 8px;
             text-align: center;
             vertical-align: top;
+            font-size: 8px;
         }
 
         .signature-line {
-            border-top: 1px solid #000000;
-            margin-top: 45px;
-            margin-bottom: 6px;
+            border-top: 1px solid #606975;
+            margin-top: 38px;
+            margin-bottom: 5px;
         }
 
         .signature-img-dynamic {
-            height: 55px;
-            margin-bottom: -20px;
+            height: 48px;
+            margin-bottom: -16px;
         }
-
-        .small-muted {
-            font-size: 8px;
-            color: #444444;
-        }
-
-        .page-number:after { content: counter(page); }
-        .page-count:after { content: counter(pages); }
     </style>
 </head>
 <body>
@@ -314,7 +375,7 @@
     <!-- HEADER -->
     <div id="header_content">
         <div class="meta-top">
-            Código: VCF-LAB-FOR-001 | Fecha: 2025-03-05 | Versión: 06 | Aprobación: JL | Página <span class="page-number"></span> de <span class="page-count"></span>
+            Código: VCF-LAB-FOR-001 | Fecha: 2025-03-05 | Versión: 06 | Aprobación: JL | Página <pdf:pagenumber /> de <pdf:pagecount />
         </div>
 
         <table class="header-shell">
@@ -335,8 +396,8 @@
     <div id="footer_content">
         <table>
             <tr>
-                <td style="border-top: 1px solid #cfcfcf; padding-top: 4px; text-align: right;">
-                    Página <span class="page-number"></span> de <span class="page-count"></span>
+                <td class="footer-line text-right">
+                    Página <pdf:pagenumber /> de <pdf:pagecount />
                 </td>
             </tr>
         </table>
@@ -345,59 +406,56 @@
     <!-- TITULO -->
     <table class="main-title-box">
         <tr>
-            <td class="offer-label">OFERTA No.</td>
-            <td class="offer-value">{{ cotizacion.numero_oferta|default:"VCF-OTE-AÑO-XXX" }}</td>
+            <td class="offer-label">OFERTA N.°</td>
+            <td class="offer-value nowrap">{{ cotizacion.numero_oferta|default:"VCF-OTE-AÑO-XXX" }}</td>
             <td rowspan="2" class="title-panel">
-                OFERTA TÉCNICA-<br>
-                ECONÓMICA<br>
+                OFERTA TÉCNICA - ECONÓMICA<br>
                 LABORATORIO
             </td>
         </tr>
         <tr>
-            <td class="offer-label">Fecha:</td>
-            <td class="offer-value">{{ cotizacion.fecha_generacion|date:"d \d\e F \d\e Y" }}</td>
+            <td class="offer-label">FECHA</td>
+            <td class="offer-value nowrap">{{ cotizacion.fecha_generacion|date:"d \d\e F \d\e Y" }}</td>
         </tr>
     </table>
 
-    <!-- SECCION 1 -->
-    <div class="section-band">1. OFERTA ECONÓMICA</div>
+    <div class="section-band">1. Oferta económica</div>
 
     <table class="client-info">
         <tr>
-            <td class="client-label">Señor(es):</td>
+            <td class="client-label">Señor(es)</td>
             <td class="client-value">{{ cotizacion.cliente.razon_social|default:"-" }}</td>
-            <td class="client-label-right">Servicio:</td>
+            <td class="client-label-right">Servicio</td>
             <td class="client-value-right">{{ cotizacion.asunto_servicio|default:"Ensayos de Laboratorio" }}</td>
         </tr>
         <tr>
-            <td class="client-label">DNI/RUC:</td>
+            <td class="client-label">DNI / RUC</td>
             <td class="client-value">{{ cotizacion.cliente.ruc|default:"-" }}</td>
-            <td class="client-label-right">Atención:</td>
+            <td class="client-label-right">Atención</td>
             <td class="client-value-right">{{ cotizacion.persona_contacto|default:"-" }}</td>
         </tr>
         <tr>
-            <td class="client-label">Correo Electrónico:</td>
+            <td class="client-label">Correo</td>
             <td class="client-value">{{ cotizacion.correo_contacto|default:"-" }}</td>
-            <td class="client-label-right">Teléfono:</td>
+            <td class="client-label-right">Teléfono</td>
             <td class="client-value-right">{{ cotizacion.telefono_contacto|default:"-" }}</td>
         </tr>
     </table>
 
     <div class="intro-text">
-        Estimado cliente, mediante la presente se remite nuestra oferta económica por el servicio solicitado:
+        Estimado cliente, mediante la presente remitimos nuestra oferta económica por el servicio solicitado:
     </div>
 
-    <!-- TABLA DETALLE -->
     <table class="items-table">
         <thead>
             <tr>
                 <th style="width: 6%;">Ítem</th>
-                <th style="width: 40%;">Descripción</th>
-                <th style="width: 20%;">Norma de ensayo</th>
+                <th style="width: 37%;">Descripción</th>
+                <th style="width: 19%;">Norma de ensayo</th>
                 <th style="width: 8%;">Und.</th>
-                <th style="width: 8%;">Cantidad</th>
-                <th style="width: 9%;">P. Unitario</th>
-                <th style="width: 9%;">P. Parcial</th>
+                <th style="width: 8%;">Cant.</th>
+                <th style="width: 11%;">P. Unitario</th>
+                <th style="width: 11%;">P. Parcial</th>
             </tr>
         </thead>
         <tbody>
@@ -411,7 +469,7 @@
 
                 {% for detalle in grupo.detalles_items.all %}
                     <tr>
-                        <td class="text-center">{{ forloop.counter }},00</td>
+                        <td class="text-center">{{ forloop.counter }}</td>
                         <td>
                             <span class="desc-strong">{{ detalle.servicio.nombre|default:detalle.descripcion_especifica }}</span>
                             {% if detalle.descripcion_especifica and detalle.descripcion_especifica != detalle.servicio.nombre %}
@@ -427,113 +485,79 @@
                                 -
                             {% endif %}
                         </td>
-                        <td class="text-center">
+                        <td class="text-center nowrap">
                             {% if detalle.unidad_medida %}
                                 {{ detalle.unidad_medida }}
                             {% else %}
                                 Ensayo
                             {% endif %}
                         </td>
-                        <td class="text-center">{{ detalle.cantidad|floatformat:0|default:"01" }}</td>
-                        <td class="text-right">S/ {{ detalle.precio_unitario|floatformat:2 }}</td>
-                        <td class="text-right">S/ {{ detalle.total_detalle|floatformat:2 }}</td>
+                        <td class="text-center nowrap">{{ detalle.cantidad|floatformat:0|default:"01" }}</td>
+                        <td class="text-right nowrap">S/ {{ detalle.precio_unitario|floatformat:2 }}</td>
+                        <td class="text-right nowrap">S/ {{ detalle.total_detalle|floatformat:2 }}</td>
                     </tr>
                 {% endfor %}
             {% endfor %}
 
             {% if subtotal %}
-            <tr>
-                <td colspan="6" class="totals-label">COSTO DIRECTO SIN IGV</td>
-                <td class="totals-value">S/ {{ subtotal }}</td>
+            <tr class="totals-row">
+                <td colspan="6" class="totals-label">Costo directo sin IGV</td>
+                <td class="totals-value nowrap">S/ {{ subtotal }}</td>
             </tr>
-            <tr>
-                <td colspan="6" class="totals-label">I.G.V (18%)</td>
-                <td class="totals-value">S/ {{ igv }}</td>
+            <tr class="totals-row">
+                <td colspan="6" class="totals-label">IGV (18%)</td>
+                <td class="totals-value nowrap">S/ {{ igv }}</td>
             </tr>
-            <tr>
-                <td colspan="6" class="totals-label">COSTO TOTAL</td>
-                <td class="totals-value">S/ {{ total|default:cotizacion.monto_total }}</td>
+            <tr class="grand-total">
+                <td colspan="6" class="totals-label">Costo total</td>
+                <td class="totals-value nowrap">S/ {{ total|default:cotizacion.monto_total }}</td>
             </tr>
             {% else %}
-            <tr>
-                <td colspan="6" class="totals-label">COSTO TOTAL</td>
-                <td class="totals-value">S/ {{ cotizacion.monto_total|default:"0.00" }}</td>
+            <tr class="grand-total">
+                <td colspan="6" class="totals-label">Costo total</td>
+                <td class="totals-value nowrap">S/ {{ cotizacion.monto_total|default:"0.00" }}</td>
             </tr>
             {% endif %}
         </tbody>
     </table>
 
-    <div class="notes-title">NOTAS:</div>
+    <div class="notes-title">Notas</div>
     <ol class="notes-list">
-        <li>(*) Los métodos indicados, se encuentran acreditados por INACAL-DA.</li>
-        <li>El Laboratorio no emitirá opiniones ni interpretaciones referentes a los resultados de los ensayos.</li>
-        <li>Los métodos indicados están referidos a la versión indicada de la norma, de requerir que se use una versión anterior y/o versiones retiradas el solicitante deberá indicarlo expresamente.</li>
-        <li>Las desviaciones a los métodos para cualquier actividad de laboratorio serán documentadas y comunicadas al Cliente, la ejecución procederá bajo autorización del Cliente. Son desviaciones comunes: muestra insuficiente, muestras contaminadas, muestras inalteradas (fisuradas, secas, etc.), entre otros.</li>
+        <li>(*) Los métodos indicados se encuentran acreditados por INACAL-DA.</li>
+        <li>El laboratorio no emitirá opiniones ni interpretaciones referentes a los resultados de los ensayos.</li>
+        <li>Los métodos indicados están referidos a la versión indicada de la norma. Si se requiere una versión anterior o retirada, deberá indicarse expresamente.</li>
+        <li>Las desviaciones a los métodos para cualquier actividad de laboratorio serán documentadas y comunicadas al cliente.</li>
     </ol>
 
-    <!-- SECCION 2 -->
-    <div class="section-band">2. FORMAS DE PAGO y CONTRATACIÓN DEL SERVICIO</div>
+    <div class="section-band">2. Formas de pago y contratación del servicio</div>
     <ul class="bullet-list">
         <li>Forma de pago: {{ cotizacion.forma_pago|default:"por adelantado" }}.</li>
         <li>Plazo de validez de la oferta: {{ cotizacion.validez_oferta_dias|default:"30" }} días calendario.</li>
         <li>El comprobante del pago y de detracción (cuando aplique) deberá ser enviado al correo informes@grupovicaf.com.</li>
         <li>Como aceptación de la oferta, favor de remitir Orden de Servicio, Contrato o la presente oferta firmada.</li>
-        <li>Si realiza el pago en efectivo en otra localidad, se deberá incluir la comisión bancaria correspondiente que aplica el Banco de Crédito del Perú. De igual modo si realiza una transferencia interbancaria.</li>
-        <li>La facturación se realizará a la razón social que indique el cliente y en concordancia a los pagos realizados.</li>
+        <li>Si realiza el pago en efectivo en otra localidad, se deberá incluir la comisión bancaria correspondiente.</li>
+        <li>La facturación se realizará a la razón social que indique el cliente y en concordancia con los pagos realizados.</li>
     </ul>
 
-    <!-- SECCION 3 -->
-    <div class="section-band">3. DISPONIBILIDAD, PLAZO DE EJECUCIÓN DEL SERVICIO</div>
+    <div class="section-band">3. Disponibilidad y plazo de ejecución del servicio</div>
     <ul class="bullet-list">
-        <li>El plazo de ejecución de los ensayos dependerá del tipo de muestra, condiciones iniciales de humedad, cantidad de muestra utilizable y la disponibilidad operativa de laboratorio GRUPO VICAF SAC.</li>
-        <li>El plazo de ejecución del servicio iniciará al día siguiente de realizada la entrega de muestras, aceptación de la Oferta y realizado el pago de acuerdo con las condiciones establecidas.</li>
+        <li>El plazo de ejecución dependerá del tipo de muestra, condiciones iniciales, cantidad utilizable y disponibilidad operativa del laboratorio.</li>
+        <li>El plazo de ejecución iniciará al día siguiente de realizada la entrega de muestras, aceptación de la oferta y pago correspondiente.</li>
         <li>Plazo de entrega de resultados: {{ cotizacion.plazo_entrega_dias|default:"Según coordinación con el cliente" }}{% if cotizacion.plazo_entrega_dias %} días calendario{% endif %}.</li>
     </ul>
 
-    <!-- SECCION 4 -->
-    <div class="section-band">4. CONDICIONES Y DETALLES DEL SERVICIO</div>
+    <div class="section-band">4. Condiciones y detalles del servicio</div>
     <ul class="bullet-list">
-        <li>El muestreo y la entrega de los ítems de ensayo son responsabilidades del cliente. Los ítems de ensayo deberán ser entregados en el laboratorio GRUPO VICAF SAC., ubicado en Jr. Los Topacios 440. Referencia: Cerca al complejo Qhapaq Ñan.</li>
-        <li>El horario de recepción de las muestras es de lunes a viernes 8:00 – 13:00 / 15:00 – 18:00 y sábado de 8:00 – 13:00. La entrega – recepción de muestras deberá ser coordinada con los responsables del laboratorio.</li>
+        <li>El muestreo y la entrega de los ítems de ensayo son responsabilidad del cliente.</li>
+        <li>Los ítems deberán ser entregados en el laboratorio GRUPO VICAF SAC, ubicado en Jr. Los Topacios 440. Referencia: Cerca al complejo Qhapaq Ñan.</li>
+        <li>Horario de recepción de muestras: lunes a viernes de 8:00 – 13:00 / 15:00 – 18:00 y sábados de 8:00 – 13:00.</li>
     </ul>
 
-    <div class="subheading">ENSAYOS EN SUELOS, AGREGADOS, ROCAS Y AGUA</div>
-    <ul class="bullet-list">
-        <li>Para que las muestras conserven las condiciones reales en las que fue muestreado, EL CLIENTE deberá utilizar bolsas herméticas adecuadas para cubrir y proteger la muestra, mismas que deberán protegerse del sol.</li>
-        <li>El cliente deberá hacer llegar los datos de los ítems de ensayo en el formato: VCF-LAB-FOR-003 ORDEN DE ENSAYOS - SUELOS, AGREGADOS, ROCAS Y AGUA, de no contar con dicha información, no se dará inicio al servicio.</li>
-    </ul>
-
-    <div class="subheading">OTROS</div>
-    <ul class="bullet-list">
-        <li>Otros procesos y/o métodos no indicados deberán ser cotizados en forma independiente.</li>
-    </ul>
-
-    <!-- SECCION 5 -->
-    <div class="section-band">5. CONDICIONES DE IMPARCIALIDAD, CONFIDENCIALIDAD Y COMPETENCIA TÉCNICA</div>
-    <ul class="bullet-list">
-        <li>Grupo VICAF SAC, no cede ante presiones financieras, comerciales o de cualquier tipo que comprometan su imparcialidad frente a los resultados obtenidos.</li>
-        <li>Todo el personal de Grupo VICAF SAC, labora bajo políticas de imparcialidad y confidencialidad.</li>
-        <li>El consultor es responsable de la información obtenida durante la ejecución del servicio, en caso el cliente considere que se ha incumplido con el compromiso de confidencialidad e imparcialidad, tiene la potestad de denunciar este hecho ante las instancias legales que considere pertinentes.</li>
-        <li>El cliente puede presentar sus quejas en el formulario: https://forms.gle/JM6oAugvSwyGPAKZ8 o escribirnos al correo quejas.reportes@grupovicaf.com donde también podrá reportar incidentes que afecten al Sistema de Gestión Antisoborno.</li>
-        <li>El Laboratorio usará fotos del servicio como material para marketing, sin evidenciar resultados, ni nombre del cliente.</li>
-        <li>El Laboratorio informará al cliente, con antelación la información adicional que pretenda poner al alcance del público; excepto por la información que el cliente pone a disposición del público, o cuando lo acuerdan el laboratorio y el cliente, cualquier otra información se considera información del cliente y se considera confidencial.</li>
-        <li>Cuando el laboratorio sea requerido por ley o autorizado por las disposiciones contractuales, para revelar información confidencial, se notificará al cliente o a la persona interesada la información proporcionada, salvo que esté prohibido por ley.</li>
-        <li>La información acerca del cliente, obtenida de fuentes diferentes del cliente, se considera confidencial entre el cliente y el laboratorio.</li>
-        <li>Grupo VICAF SAC cuenta con la capacidad técnica para la realización de la consultoría. Frente a situaciones inesperadas, el servicio podrá ser subcontratado previa coordinación con el cliente.</li>
-        <li>El Informe Técnico final, será entregado al responsable designado por el cliente.</li>
-        <li>Se garantiza la imparcialidad y confidencialidad de los resultados proporcionados al cliente.</li>
-    </ul>
-
-    <!-- SECCION 6 -->
-    <div class="section-band">6. CONTACTOS AUTORIZADOS DEL LABORATORIO</div>
-    <ul class="bullet-list">
-        <li>Todas las coordinaciones referidas al servicio serán válidas solo si se realizan con los contactos autorizados:</li>
-    </ul>
-
+    <div class="section-band">5. Contactos autorizados del laboratorio</div>
     <table class="contacts-table">
         <tr>
-            <th colspan="2">COORDINACIONES TÉCNICAS</th>
-            <th>PAGOS Y FACTURACIÓN</th>
+            <th colspan="2">Coordinaciones técnicas</th>
+            <th>Pagos y facturación</th>
         </tr>
         <tr>
             <td>
@@ -557,8 +581,7 @@
         </tr>
     </table>
 
-    <!-- SECCION 7 -->
-    <div class="section-band">7. DATOS PARA CONTRATO - ORDEN DE SERVICIO - PAGOS</div>
+    <div class="section-band">6. Datos para contrato - orden de servicio - pagos</div>
 
     <table class="bank-table">
         <tr>
@@ -593,9 +616,8 @@
         </tr>
     </table>
 
-    <!-- FIRMAS -->
     <div class="signature-wrap">
-        <div style="margin-bottom: 10px;">Atentamente,</div>
+        <div style="margin-bottom: 8px;">Atentamente,</div>
 
         <table class="signature-table">
             <tr>
