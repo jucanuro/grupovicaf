@@ -640,12 +640,12 @@
                     data-command-toggle
                     aria-label="Abrir panel del calendario">
                 <i data-lucide="panel-top-open" class="w-4 h-4"></i>
-                <span class="command-header__trigger-label">Panel</span>
+                <span class="command-header__trigger-label text-sm">Panel</span>
             </button>
 
             <div class="flex items-center gap-2">
                 <a href="{% url 'actividades:gantt_dashboard' %}"
-                    class="command-header__action command-header__action--secondary px-3 flex items-center gap-2"
+                    class="command-header__action command-header__action--secondary px-3 flex items-center gap-2 text-sm"
                     aria-label="Ir al gantt"
                     title="Ir al gantt">
                         <i data-lucide="chart-no-axes-gantt" class="w-4 h-4"></i>
@@ -654,7 +654,7 @@
 
                 <button id="btnNuevaActividad"
                         type="button"
-                        class="command-header__action">
+                        class="command-header__action text-sm">
                     <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                     Nueva actividad
                 </button>
@@ -677,8 +677,8 @@
                             </div>
 
                             <div class="command-header__title-wrap">
-                                <p class="command-header__subtitle">Agenda Inteligente // VICAF PRO</p>
-                                <h1 class="command-header__title">
+                                <p class="command-header__subtitle text-xs">Agenda Inteligente // VICAF PRO</p>
+                                <h1 class="command-header__title text-sm">
                                     Calendario Operativo
                                 </h1>
                             </div>
@@ -695,7 +695,7 @@
                     <div class="flex items-center justify-start gap-3 flex-wrap">
                         <button id="btnHoy"
                                 type="button"
-                                class="command-header__action command-header__action--secondary"
+                                class="command-header__action command-header__action--secondary text-sm"
                                 data-command-primary-action>
                             <i data-lucide="calendar-check-2" class="w-3.5 h-3.5"></i>
                             Hoy
@@ -730,7 +730,7 @@
                     <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
                         <div>
                             <h3 class="text-sm font-black uppercase tracking-[0.2em] text-slate-800">Resumen</h3>
-                            <p class="text-[10px] text-slate-400 font-mono-tech uppercase tracking-[0.2em] mt-1">Indicadores generales</p>
+                            <p class="text-xs text-slate-400 font-mono-tech uppercase tracking-[0.2em] mt-1">Indicadores generales</p>
                         </div>
                         <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
                             <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
@@ -742,32 +742,32 @@
                             data-resumen-filtro="total"
                             data-resumen-titulo="Total de actividades"
                             class="resumenCard text-left rounded-2xl bg-slate-50 border border-slate-200 p-4 hover:shadow-md hover:-translate-y-0.5 transition">
-                            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Total</p>
-                            <p class="text-3xl font-black text-slate-900 mt-1">{{ resumen.total_actividades }}</p>
+                            <p class="text-xs font-black uppercase tracking-widest text-slate-400">Total</p>
+                            <p class="text-sm font-black text-slate-900 mt-1">{{ resumen.total_actividades }}</p>
                         </button>
 
                         <button type="button"
                             data-resumen-filtro="completadas"
                             data-resumen-titulo="Actividades completadas"
                             class="resumenCard text-left rounded-2xl bg-emerald-50 border border-emerald-100 p-4 hover:shadow-md hover:-translate-y-0.5 transition">
-                            <p class="text-[10px] font-black uppercase tracking-widest text-emerald-500">Completadas</p>
-                            <p class="text-3xl font-black text-emerald-600 mt-1">{{ resumen.completadas }}</p>
+                            <p class="text-xs font-black uppercase tracking-widest text-emerald-500">Completadas</p>
+                            <p class="text-sm font-black text-emerald-600 mt-1">{{ resumen.completadas }}</p>
                         </button>
 
                         <button type="button"
                             data-resumen-filtro="en_curso"
                             data-resumen-titulo="Actividades en curso"
                             class="resumenCard text-left rounded-2xl bg-amber-50 border border-amber-100 p-4 hover:shadow-md hover:-translate-y-0.5 transition">
-                            <p class="text-[10px] font-black uppercase tracking-widest text-amber-500">En curso</p>
-                            <p class="text-3xl font-black text-amber-600 mt-1">{{ resumen.en_curso }}</p>
+                            <p class="text-xs font-black uppercase tracking-widest text-amber-500">En curso</p>
+                            <p class="text-sm font-black text-amber-600 mt-1">{{ resumen.en_curso }}</p>
                         </button>
 
                         <button type="button"
                             data-resumen-filtro="vencidas"
                             data-resumen-titulo="Actividades vencidas"
                             class="resumenCard text-left rounded-2xl bg-rose-50 border border-rose-100 p-4 hover:shadow-md hover:-translate-y-0.5 transition">
-                            <p class="text-[10px] font-black uppercase tracking-widest text-rose-500">Vencidas</p>
-                            <p class="text-3xl font-black text-rose-600 mt-1">{{ resumen.vencidas }}</p>
+                            <p class="text-xs font-black uppercase tracking-widest text-rose-500">Vencidas</p>
+                            <p class="text-sm font-black text-rose-600 mt-1">{{ resumen.vencidas }}</p>
                         </button>
                     </div>
                 </div>
@@ -776,7 +776,7 @@
                     <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
                         <div>
                             <h3 class="text-sm font-black uppercase tracking-[0.2em] text-slate-800">Categorías</h3>
-                            <p class="text-[10px] text-slate-400 font-mono-tech uppercase tracking-[0.2em] mt-1">Filtros del calendario</p>
+                            <p class="text-xs text-slate-400 font-mono-tech uppercase tracking-[0.2em] mt-1">Filtros del calendario</p>
                         </div>
                         <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
                             <i data-lucide="filter" class="w-5 h-5"></i>
@@ -803,8 +803,8 @@
                 <div class="rounded-[2rem] bg-gradient-to-br from-slate-900 via-slate-800 to-blue-700 p-6 text-white shadow-xl">
                     <div class="flex items-start justify-between gap-4">
                         <div>
-                            <p class="text-[10px] font-black uppercase tracking-widest text-white/60">Automatización</p>
-                            <h3 class="text-xl font-black mt-2 leading-tight">Agenda centralizada para actividades manuales y automáticas</h3>
+                            <p class="text-xs font-black uppercase tracking-widest text-white/60">Automatización</p>
+                            <h3 class="text-sm font-black mt-2 leading-tight">Agenda centralizada para actividades manuales y automáticas</h3>
                         </div>
                         <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
                             <i data-lucide="sparkles" class="w-6 h-6"></i>
@@ -813,12 +813,12 @@
 
                     <div class="grid grid-cols-2 gap-3 mt-6">
                         <div class="rounded-2xl bg-white/10 p-4 border border-white/10">
-                            <p class="text-[10px] uppercase font-black tracking-widest text-white/60">Automáticas</p>
-                            <p class="text-3xl font-black mt-1">{{ resumen.automaticas }}</p>
+                            <p class="text-xs uppercase font-black tracking-widest text-white/60">Automáticas</p>
+                            <p class="text-sm font-black mt-1">{{ resumen.automaticas }}</p>
                         </div>
                         <div class="rounded-2xl bg-white/10 p-4 border border-white/10">
-                            <p class="text-[10px] uppercase font-black tracking-widest text-white/60">Manuales</p>
-                            <p class="text-3xl font-black mt-1">{{ resumen.manuales }}</p>
+                            <p class="text-xs uppercase font-black tracking-widest text-white/60">Manuales</p>
+                            <p class="text-sm font-black mt-1">{{ resumen.manuales }}</p>
                         </div>
                     </div>
                 </div>
@@ -829,8 +829,8 @@
             <div class="bg-white border border-slate-200 rounded-[2rem] shadow-sm overflow-hidden mt-6">
                 <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 px-3 py-3 border-b border-slate-100 bg-slate-50/80">
                     <div>
-                        <p class="text-[9px] font-mono-tech text-blue-600 uppercase tracking-[0.2em]">Visualización del calendario</p>
-                        <h2 class="text-lg font-black text-slate-900 tracking-tight">Panel de agenda</h2>
+                        <p class="text-xs font-mono-tech text-blue-600 uppercase tracking-[0.2em]">Visualización del calendario</p>
+                        <h2 class="text-sm font-black text-slate-900 tracking-tight">Panel de agenda</h2>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-3">
@@ -851,16 +851,36 @@
 </div>
 {% endblock %}
 {% block modals %}
-<div id="modalDetalle" class="hidden fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50 items-center justify-center p-4">
-    <div class="w-full max-w-3xl bg-white rounded-[2rem] shadow-2xl border border-slate-200 overflow-hidden">
-        <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200">
-            <div>
-                <h3 id="modalDetalleTitulo" class="text-xl font-black text-slate-900">Detalle de Evento</h3>
-                <p id="modalDetalleSubtitulo" class="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">Información operativa</p>
+<div id="modalDetalle" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-md z-50 items-center justify-center p-4">
+    <div class="relative w-full max-w-3xl bg-white rounded-[2rem] shadow-[0_30px_80px_rgba(15,23,42,0.28)] border border-slate-200 overflow-hidden">
+        
+        <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-200 to-transparent"></div>
+
+        <div class="flex items-start justify-between px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-slate-50/80">
+            <div class="min-w-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-sm">
+                        <i data-lucide="calendar-range" class="w-4 h-4"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h3 id="modalDetalleTitulo" class="text-sm font-black text-slate-900 tracking-tight truncate">
+                            Detalle de Evento
+                        </h3>
+                        <p id="modalDetalleSubtitulo" class="text-xs font-bold text-slate-400 uppercase tracking-[0.18em] mt-1">
+                            Información operativa
+                        </p>
+                    </div>
+                </div>
             </div>
-            <button id="cerrarModal" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black">×</button>
+
+            <button id="cerrarModal"
+                    type="button"
+                    class="shrink-0 w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 font-black transition-all duration-200 shadow-sm">
+                ×
+            </button>
         </div>
-        <div id="modalContent" class="p-6"></div>
+
+        <div id="modalContent" class="p-6 bg-white text-sm"></div>
     </div>
 </div>
 
@@ -875,8 +895,8 @@
             <div class="shrink-0 px-6 py-5 border-b border-slate-200 bg-white">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 id="formTitle" class="text-xl font-black text-slate-900">Nueva Actividad</h3>
-                        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+                        <h3 id="formTitle" class="text-sm font-black text-slate-900">Nueva Actividad</h3>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">
                             Agenda operativa
                         </p>
                     </div>
@@ -904,8 +924,8 @@
                                     onclick="switchActividadTab('general')">
                                 <span class="actividad-tab-step">01</span>
                                 <span class="actividad-tab-text">
-                                    <strong>General</strong>
-                                    <small>Datos base</small>
+                                    <strong class="text-sm">General</strong>
+                                    <small class="text-xs">Datos base</small>
                                 </span>
                             </button>
 
@@ -915,8 +935,8 @@
                                     onclick="switchActividadTab('config')">
                                 <span class="actividad-tab-step">02</span>
                                 <span class="actividad-tab-text">
-                                    <strong>Configuración</strong>
-                                    <small>Opciones y relación</small>
+                                    <strong class="text-sm">Configuración</strong>
+                                    <small class="text-xs">Opciones y relación</small>
                                 </span>
                             </button>
 
@@ -926,8 +946,8 @@
                                     onclick="switchActividadTab('equipo')">
                                 <span class="actividad-tab-step">03</span>
                                 <span class="actividad-tab-text">
-                                    <strong>Equipo</strong>
-                                    <small>Participantes y alertas</small>
+                                    <strong class="text-sm">Equipo</strong>
+                                    <small class="text-xs">Participantes y alertas</small>
                                 </span>
                             </button>
                         </div>
@@ -936,18 +956,18 @@
                     <!-- TAB 1 -->
                     <div id="actividad-tab-panel-general" class="actividad-tab-panel active">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="md:col-span-2">
-                                <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Título</label>
+                            <div>
+                                <label class="block text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Título</label>
                                 <input id="titulo" type="text" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" required>
                             </div>
 
-                            <div class="md:col-span-2">
-                                <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Descripción</label>
+                            <div>
+                                <label class="block text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Descripción</label>
                                 <textarea id="descripcion" rows="2" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"></textarea>
                             </div>
 
                             <div>
-                                <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Clase</label>
+                                <label class="block text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Clase</label>
                                 <select id="clase" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                                     {% for value, label in clases_actividad %}
                                     <option value="{{ value }}">{{ label }}</option>
@@ -956,7 +976,7 @@
                             </div>
 
                             <div>
-                                <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Estado</label>
+                                <label class="block text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Estado</label>
                                 <select id="estado" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                                     {% for value, label in estados_actividad %}
                                     <option value="{{ value }}">{{ label }}</option>
@@ -965,7 +985,7 @@
                             </div>
 
                             <div>
-                                <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Prioridad</label>
+                                <label class="block text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Prioridad</label>
                                 <select id="prioridad" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                                     {% for value, label in prioridades_actividad %}
                                     <option value="{{ value }}">{{ label }}</option>
@@ -974,7 +994,7 @@
                             </div>
 
                             <div>
-                                <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Categoría</label>
+                                <label class="block text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Categoría</label>
                                 <div class="flex gap-2">
                                     <select id="categoria_id" class="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                                         <option value="">-- Seleccionar --</option>
@@ -995,12 +1015,12 @@
                             </div>
 
                             <div>
-                                <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Inicio</label>
+                                <label class="block text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Inicio</label>
                                 <input id="fecha_inicio" type="datetime-local" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                             </div>
 
                             <div>
-                                <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Fin</label>
+                                <label class="block text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Fin</label>
                                 <input id="fecha_fin" type="datetime-local" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                             </div>
 
@@ -1017,43 +1037,77 @@
                     <!-- TAB 2 -->
                     <div id="actividad-tab-panel-config" class="actividad-tab-panel">
                         <div class="space-y-6">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                
+                                <!-- Cliente -->
                                 <div>
-                                    <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Cliente</label>
-                                    <select id="cliente_id" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                                        <option value="">-- Seleccionar --</option>
+                                    <label class="block text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
+                                        Cliente registrado
+                                    </label>
+                                    <select id="cliente_id"
+                                            class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                                        <option value="">-- Seleccionar cliente existente --</option>
                                         {% for cliente in clientes %}
                                         <option value="{{ cliente.id }}">{{ cliente.razon_social }}</option>
                                         {% endfor %}
                                     </select>
+                                    <p class="mt-2 text-xs font-semibold text-slate-400">
+                                        Si no existe, usa el campo manual.
+                                    </p>
                                 </div>
 
+                                <!-- Cliente manual -->
                                 <div>
-                                    <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Proyecto</label>
-                                    <select id="proyecto_id" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                                    <label class="block text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
+                                        Cliente manual
+                                    </label>
+                                    <input id="cliente_nombre_manual"
+                                        type="text"
+                                        class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                        placeholder="Ej. Minera Los Andes SAC">
+                                </div>
+
+                                <!-- Proyecto -->
+                                <div>
+                                    <label class="block text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
+                                        Proyecto
+                                        <span id="proyectoRequiredMark" class="hidden text-rose-500">*</span>
+                                    </label>
+                                    <select id="proyecto_id"
+                                            class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                                         <option value="">-- Seleccionar --</option>
                                         {% for proyecto in proyectos %}
-                                        <option value="{{ proyecto.id }}">{{ proyecto.codigo_proyecto }} - {{ proyecto.nombre_proyecto }}</option>
+                                        <option value="{{ proyecto.id }}">
+                                            {{ proyecto.codigo_proyecto }} - {{ proyecto.nombre_proyecto }}
+                                        </option>
                                         {% endfor %}
                                     </select>
+                                    <p id="proyectoHelpText" class="mt-2 text-xs font-semibold text-slate-400">
+                                        Opcional para reuniones. Obligatorio en ensayos.
+                                    </p>
+                                </div>
+
+                                <!-- Resto igual -->
+                                <div>
+                                    <label class="block text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Ubicación</label>
+                                    <input id="ubicacion" type="text"
+                                        class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                                 </div>
 
                                 <div>
-                                    <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Ubicación</label>
-                                    <input id="ubicacion" type="text" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                                    <label class="block text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Enlace</label>
+                                    <input id="enlace_externo" type="url"
+                                        class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                                 </div>
 
-                                <div>
-                                    <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Enlace</label>
-                                    <input id="enlace_externo" type="url" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                                </div>
-
-                                <div class="md:col-span-2">
-                                    <label class="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Observaciones</label>
-                                    <textarea id="observaciones" rows="2" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"></textarea>
+                                <div class="md:col-span-3">
+                                    <label class="block text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Observaciones</label>
+                                    <textarea id="observaciones" rows="2"
+                                            class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"></textarea>
                                 </div>
                             </div>
 
+                            <!-- Checkboxes -->
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <label class="flex items-center gap-3 rounded-2xl bg-slate-50 border border-slate-200 p-4">
                                     <input id="todo_el_dia" type="checkbox" class="w-4 h-4">
@@ -1070,26 +1124,12 @@
                                     <span class="text-sm font-bold text-slate-700">Visible</span>
                                 </label>
                             </div>
-
-                            <div class="flex justify-between gap-3 hidden">
-                                <button type="button"
-                                        onclick="switchActividadTab('general')"
-                                        class="px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 text-sm font-black uppercase tracking-wider hover:bg-slate-200">
-                                    Volver
-                                </button>
-
-                                <button type="button"
-                                        onclick="switchActividadTab('equipo')"
-                                        class="px-5 py-3 rounded-2xl bg-slate-900 text-white text-sm font-black uppercase tracking-wider hover:bg-blue-600">
-                                    Continuar
-                                </button>
-                            </div>
                         </div>
                     </div>
 
                     <!-- TAB 3 -->
                     <div id="actividad-tab-panel-equipo" class="actividad-tab-panel">
-                        <div class="space-y-6">
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
                             <div class="rounded-[2rem] border border-slate-200 p-5">
                                 <div class="flex items-center justify-between mb-4">
                                     <h4 class="text-sm font-black uppercase tracking-[0.2em] text-slate-700">Participantes</h4>
@@ -1106,7 +1146,7 @@
                                 <div id="recordatoriosContainer" class="space-y-3"></div>
                             </div>
 
-                            <div class="flex justify-start hidden">
+                            <div class="xl:col-span-2 flex justify-start hidden">
                                 <button type="button"
                                         onclick="switchActividadTab('config')"
                                         class="px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 text-sm font-black uppercase tracking-wider hover:bg-slate-200">
@@ -1118,7 +1158,7 @@
 
                     <!-- FOOTER -->
                     <div class="actividad-sticky-footer pt-4">
-                        <div class="flex items-center justify-between border-t border-slate-200 pt-4 bg-white">
+                        <div class="flex items-center justify-between border-t border-slate-200 pt-4 bg-white mb-2">
                             <button type="button" id="btnEliminarActividad" class="hidden px-5 py-3 rounded-2xl bg-rose-600 text-white text-sm font-black uppercase tracking-wider hover:bg-rose-700">
                                 Eliminar
                             </button>
@@ -1333,6 +1373,68 @@
         });
     }
 
+    function switchActividadTab(tabName) {
+        document.querySelectorAll('.actividad-tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        document.querySelectorAll('.actividad-tab-panel').forEach(panel => {
+            panel.classList.remove('active');
+        });
+
+        const activeBtn = document.querySelector(`[data-actividad-tab="${tabName}"]`);
+        const activePanel = document.getElementById(`actividad-tab-panel-${tabName}`);
+
+        if (activeBtn) activeBtn.classList.add('active');
+        if (activePanel) activePanel.classList.add('active');
+
+        const modalBody = document.getElementById('modalFormularioBody');
+        if (modalBody) modalBody.scrollTop = 0;
+
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    }
+
+    function toggleProyectoSegunClase() {
+        const clase = document.getElementById('clase')?.value || '';
+        const proyectoSelect = document.getElementById('proyecto_id');
+        const proyectoRequiredMark = document.getElementById('proyectoRequiredMark');
+        const proyectoHelpText = document.getElementById('proyectoHelpText');
+
+        if (!proyectoSelect) return;
+
+        const esEnsayo = clase === 'ENSAYO';
+        proyectoSelect.required = esEnsayo;
+
+        if (proyectoRequiredMark) {
+            proyectoRequiredMark.classList.toggle('hidden', !esEnsayo);
+        }
+
+        if (proyectoHelpText) {
+            proyectoHelpText.textContent = esEnsayo
+                ? 'Obligatorio cuando la actividad es un ensayo.'
+                : 'Opcional para reuniones, llamadas, visitas y actividades generales.';
+        }
+    }
+
+    function syncClienteFields() {
+        const clienteIdInput = document.getElementById('cliente_id');
+        const clienteManualInput = document.getElementById('cliente_nombre_manual');
+
+        if (!clienteIdInput || !clienteManualInput) return;
+
+        if (clienteIdInput.value) {
+            clienteManualInput.disabled = true;
+            clienteManualInput.classList.add('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+            clienteManualInput.placeholder = 'Cliente tomado del selector';
+        } else {
+            clienteManualInput.disabled = false;
+            clienteManualInput.classList.remove('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+            clienteManualInput.placeholder = 'Ej. Cliente nuevo sin registro';
+        }
+    }
+
     function abrirModalDetalleUI() {
         if (!modalDetalle) return;
         modalDetalle.classList.remove('hidden');
@@ -1358,6 +1460,8 @@
         if (modalBody) modalBody.scrollTop = 0;
 
         centrarDialogoEnViewport('modalFormularioDialog', 'modalFormularioBody');
+        toggleProyectoSegunClase();
+        syncClienteFields();
     }
 
     function cerrarModalFormulario() {
@@ -1371,6 +1475,7 @@
         const actividadId = document.getElementById('actividad_id');
         const formTitle = document.getElementById('formTitle');
         const modalBody = document.getElementById('modalFormularioBody');
+        const clienteManualInput = document.getElementById('cliente_nombre_manual');
 
         if (actividadId) actividadId.value = '';
         if (formTitle) formTitle.textContent = 'Nueva Actividad';
@@ -1378,7 +1483,11 @@
         if (recordatoriosContainer) recordatoriosContainer.innerHTML = '';
         if (btnEliminarActividad) btnEliminarActividad.classList.add('hidden');
         if (modalBody) modalBody.scrollTop = 0;
+        if (clienteManualInput) clienteManualInput.value = '';
 
+        switchActividadTab('general');
+        toggleProyectoSegunClase();
+        syncClienteFields();
         unlockBodyScrollIfNoModalVisible();
     }
 
@@ -1453,6 +1562,9 @@
         if (formTitle) formTitle.textContent = 'Nueva Actividad';
         if (fechaInicio) fechaInicio.value = toDatetimeLocalValue(startStr);
         if (fechaFin) fechaFin.value = toDatetimeLocalValue(endStr || startStr);
+
+        toggleProyectoSegunClase();
+        syncClienteFields();
     }
 
     function renderEnsayoDetalle(event) {
@@ -1583,6 +1695,7 @@
         setValue('fecha_fin', toDatetimeLocalValue(data.fecha_fin));
         setValue('categoria_id', data.categoria_id);
         setValue('cliente_id', data.cliente_id);
+        setValue('cliente_nombre_manual', data.cliente_nombre_manual || '');
         setValue('proyecto_id', data.proyecto_id);
         setValue('ubicacion', data.ubicacion);
         setValue('enlace_externo', data.enlace_externo);
@@ -1609,6 +1722,9 @@
 
         const modalBody = document.getElementById('modalFormularioBody');
         if (modalBody) modalBody.scrollTop = 0;
+
+        toggleProyectoSegunClase();
+        syncClienteFields();
     }
 
     async function guardarActividad(event) {
@@ -1616,9 +1732,25 @@
 
         const fechaInicioValue = document.getElementById('fecha_inicio')?.value;
         const fechaFinValue = document.getElementById('fecha_fin')?.value;
+        const claseValue = document.getElementById('clase')?.value || 'OTRO';
+        const clienteIdValue = document.getElementById('cliente_id')?.value || null;
+        const clienteManualValue = document.getElementById('cliente_nombre_manual')?.value?.trim() || '';
+        const proyectoIdValue = document.getElementById('proyecto_id')?.value || null;
 
         if (!fechaInicioValue || !fechaFinValue) {
             alert('Debes ingresar fecha de inicio y fin.');
+            return;
+        }
+
+        if (!clienteIdValue && !clienteManualValue) {
+            alert('Debes seleccionar un cliente o escribir un nombre de cliente.');
+            switchActividadTab('config');
+            return;
+        }
+
+        if (claseValue === 'ENSAYO' && !proyectoIdValue) {
+            alert('Para una actividad de tipo ensayo debes seleccionar un proyecto.');
+            switchActividadTab('config');
             return;
         }
 
@@ -1626,14 +1758,15 @@
             id: document.getElementById('actividad_id')?.value || null,
             titulo: document.getElementById('titulo')?.value || '',
             descripcion: document.getElementById('descripcion')?.value || '',
-            clase: document.getElementById('clase')?.value || 'OTRO',
+            clase: claseValue,
             estado: document.getElementById('estado')?.value || 'PROGRAMADA',
             prioridad: document.getElementById('prioridad')?.value || 'MEDIA',
             fecha_inicio: new Date(fechaInicioValue).toISOString(),
             fecha_fin: new Date(fechaFinValue).toISOString(),
             categoria_id: document.getElementById('categoria_id')?.value || null,
-            cliente_id: document.getElementById('cliente_id')?.value || null,
-            proyecto_id: document.getElementById('proyecto_id')?.value || null,
+            cliente_id: clienteIdValue,
+            cliente_nombre_manual: clienteManualValue,
+            proyecto_id: proyectoIdValue,
             ubicacion: document.getElementById('ubicacion')?.value || '',
             enlace_externo: document.getElementById('enlace_externo')?.value || '',
             observaciones: document.getElementById('observaciones')?.value || '',
@@ -2178,6 +2311,7 @@
         if (calendar) calendar.refetchEvents();
     }
 
+    window.switchActividadTab = switchActividadTab;
     window.verDetalle = verDetalle;
     window.editarActividad = editarActividad;
     window.cerrarModalResumen = cerrarModalResumen;
@@ -2242,35 +2376,23 @@
         });
     });
 
+    const claseSelect = document.getElementById('clase');
+    if (claseSelect) {
+        claseSelect.addEventListener('change', toggleProyectoSegunClase);
+    }
+
+    const clienteIdInput = document.getElementById('cliente_id');
+    if (clienteIdInput) {
+        clienteIdInput.addEventListener('change', syncClienteFields);
+    }
+
     if (window.lucide) {
         window.lucide.createIcons();
     }
 
     initAsideToggle();
     initCalendar();
-</script>
-<script>
-    function switchActividadTab(tabName) {
-        document.querySelectorAll('.actividad-tab-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-
-        document.querySelectorAll('.actividad-tab-panel').forEach(panel => {
-            panel.classList.remove('active');
-        });
-
-        const activeBtn = document.querySelector(`[data-actividad-tab="${tabName}"]`);
-        const activePanel = document.getElementById(`actividad-tab-panel-${tabName}`);
-
-        if (activeBtn) activeBtn.classList.add('active');
-        if (activePanel) activePanel.classList.add('active');
-
-        const modalBody = document.getElementById('modalFormularioBody');
-        if (modalBody) modalBody.scrollTop = 0;
-
-        if (window.lucide) {
-            lucide.createIcons();
-        }
-    }
+    toggleProyectoSegunClase();
+    syncClienteFields();
 </script>
 {% endblock %}

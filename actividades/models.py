@@ -122,6 +122,13 @@ class CalendarioActividad(models.Model):
         verbose_name="Cliente"
     )
 
+    cliente_nombre_manual = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Cliente manual"
+    )
+
     proyecto = models.ForeignKey(
         Proyecto,
         on_delete=models.SET_NULL,

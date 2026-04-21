@@ -139,7 +139,6 @@ def calendario_dashboard(request):
     }
     return render(request, 'actividades/calendario.html', context)
 
-
 @login_required
 @require_GET
 def calendario_eventos_json(request):
@@ -209,6 +208,12 @@ def calendario_eventos_json(request):
             for p in actividad.participantes.all()
         ]
 
+        cliente_nombre = ''
+        if actividad.cliente:
+            cliente_nombre = actividad.cliente.razon_social
+        else:
+            cliente_nombre = actividad.cliente_nombre_manual or ''
+
         eventos.append({
             'id': f'actividad-{actividad.id}',
             'title': actividad.titulo,
@@ -225,7 +230,7 @@ def calendario_eventos_json(request):
                 'prioridad': actividad.prioridad,
                 'descripcion': actividad.descripcion or '',
                 'ubicacion': actividad.ubicacion or '',
-                'cliente': actividad.cliente.razon_social if actividad.cliente else '',
+                'cliente': cliente_nombre,
                 'proyecto': actividad.proyecto.nombre_proyecto if actividad.proyecto else '',
                 'proyecto_codigo': actividad.proyecto.codigo_proyecto if actividad.proyecto else '',
                 'es_automatica': actividad.es_automatica,
@@ -349,6 +354,7 @@ def calendario_eventos_json(request):
 
     return JsonResponse(eventos, safe=False)
 
+
 @login_required
 @require_GET
 def calendario_actividad_detalle_json(request, pk):
@@ -378,6 +384,7 @@ def calendario_actividad_detalle_json(request, pk):
         'enlace_externo': actividad.enlace_externo or '',
         'observaciones': actividad.observaciones or '',
         'cliente_id': actividad.cliente_id,
+        'cliente_nombre_manual': actividad.cliente_nombre_manual or '',
         'proyecto_id': actividad.proyecto_id,
         'recepcion_id': actividad.recepcion_id,
         'solicitud_ensayo_id': actividad.solicitud_ensayo_id,
@@ -405,7 +412,6 @@ def calendario_actividad_detalle_json(request, pk):
         ]
     }
     return JsonResponse(data)
-
 
 @login_required
 @require_POST
@@ -458,9 +464,39 @@ def calendario_actividad_guardar_json(request):
         if not fecha_inicio or not fecha_fin:
             return JsonResponse({'success': False, 'error': 'Fechas inválidas.'}, status=400)
 
+        cliente_id = payload.get('cliente_id') or None
+        cliente_nombre_manual = (payload.get('cliente_nombre_manual') or '').strip()
+        proyecto_id = payload.get('proyecto_id') or None
+        clase = payload.get('clase') or 'OTRO'
+
+        if not cliente_id and not cliente_nombre_manual:
+            return JsonResponse({
+                'success': False,
+                'error': 'Debes seleccionar un cliente o ingresar un nombre de cliente.'
+            }, status=400)
+
+        if len(cliente_nombre_manual) > 255:
+            return JsonResponse({
+                'success': False,
+                'error': 'El nombre del cliente no puede exceder 255 caracteres.'
+            }, status=400)
+
+        if re.search(r'[<>]', cliente_nombre_manual):
+            logger.warning(f"Intento de XSS en cliente_nombre_manual por usuario {request.user.username}")
+            return JsonResponse({
+                'success': False,
+                'error': 'Caracteres no permitidos detectados en el nombre del cliente.'
+            }, status=400)
+
+        if clase == 'ENSAYO' and not proyecto_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'El proyecto es obligatorio para actividades de tipo ensayo.'
+            }, status=400)
+
         actividad.titulo = titulo
         actividad.descripcion = descripcion
-        actividad.clase = payload.get('clase') or 'OTRO'
+        actividad.clase = clase
         actividad.estado = payload.get('estado') or 'PROGRAMADA'
         actividad.prioridad = payload.get('prioridad') or 'MEDIA'
         actividad.fecha_inicio = fecha_inicio
@@ -474,8 +510,9 @@ def calendario_actividad_guardar_json(request):
         actividad.actualizado_por = request.user
 
         actividad.categoria_id = payload.get('categoria_id') or None
-        actividad.cliente_id = payload.get('cliente_id') or None
-        actividad.proyecto_id = payload.get('proyecto_id') or None
+        actividad.cliente_id = cliente_id
+        actividad.cliente_nombre_manual = '' if cliente_id else cliente_nombre_manual
+        actividad.proyecto_id = proyecto_id
 
         actividad.save()
 
@@ -533,7 +570,6 @@ def calendario_actividad_guardar_json(request):
     except Exception as e:
         logger.error(f"Error interno en calendario_actividad_guardar_json por usuario {request.user.username}: {str(e)}")
         return JsonResponse({'success': False, 'error': 'Error interno del servidor.'}, status=500)
-
 
 @login_required
 @require_POST
