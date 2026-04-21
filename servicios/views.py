@@ -65,7 +65,7 @@ def lista_servicios(request):
             Q(codigo_facturacion__icontains=query)
         )
 
-    paginator = Paginator(servicios_list, 7) 
+    paginator = Paginator(servicios_list, 11) 
     
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -771,7 +771,6 @@ def crear_editar_cotizacion(request, pk=None):
 crear_cotizacion = crear_editar_cotizacion
 editar_cotizacion = crear_editar_cotizacion
 
-
 @login_required
 def eliminar_cotizacion(request, pk):
     """ Permite eliminar una cotización. """
@@ -839,7 +838,6 @@ def header_footer_callback(canvas, doc):
     page_text = f"Página {page_num}"
     
     canvas.drawString(doc.width + doc.leftMargin - 1.0 * cm, 1.0 * cm, page_text)
-
 
 def _build_condiciones_pdf_data(cotizacion):
     secciones_pdf = []
@@ -1533,7 +1531,6 @@ def obtener_detalle_plantilla_json(request, pk):
         'condiciones': condiciones_list,
     })
         
-
 def _parse_json_request_body(request):
     """
     Intenta leer JSON del body.
@@ -1625,7 +1622,6 @@ def _obtener_condiciones_desde_snapshot(cotizacion):
         })
 
     return resultado
-
 
 def _obtener_condiciones_desde_catalogo():
     secciones = CatalogoCondicionSeccion.objects.filter(activo=True).order_by('orden')
@@ -1719,7 +1715,6 @@ def _crear_item_snapshot_recursivo(seccion_snapshot, item_data, parent_snapshot=
 
     return snapshot_item
 
-
 @login_required
 def condiciones_cotizacion_json(request, pk):
     """
@@ -1759,7 +1754,6 @@ def condiciones_cotizacion_json(request, pk):
             'success': False,
             'error': f'No se pudo cargar la configuración de condiciones: {str(e)}'
         }, status=500)
-
 
 @login_required
 @require_POST
@@ -1844,7 +1838,6 @@ def guardar_condiciones_cotizacion_json(request, pk):
             'error': f'No se pudieron guardar las condiciones: {str(e)}'
         }, status=500)
 
-
 @login_required
 def resumen_condiciones_cotizacion_json(request, pk):
     """
@@ -1904,7 +1897,6 @@ def _obtener_condiciones_desde_snapshot_plantilla(plantilla):
 
     return resultado
 
-
 def _serializar_snapshot_item_plantilla(item):
     children = item.children.all().order_by('orden', 'id')
 
@@ -1925,7 +1917,6 @@ def _serializar_snapshot_item_plantilla(item):
         'fue_editado': item.fue_editado,
         'children': [_serializar_snapshot_item_plantilla(child) for child in children],
     }
-
 
 def _crear_item_snapshot_recursivo_plantilla(seccion_snapshot, item_data, parent_snapshot=None):
     catalogo_item = None
@@ -1967,7 +1958,6 @@ def _crear_item_snapshot_recursivo_plantilla(seccion_snapshot, item_data, parent
         )
 
     return snapshot_item
-
 
 def _guardar_snapshot_condiciones_plantilla(plantilla, secciones_data):
     if not isinstance(secciones_data, list):
@@ -2030,7 +2020,6 @@ def condiciones_plantilla_json(request, pk):
             'success': False,
             'error': f'No se pudo cargar la configuración de condiciones: {str(e)}'
         }, status=500)
-
 
 @login_required
 @require_POST
@@ -2096,7 +2085,6 @@ def guardar_condiciones_plantilla_json(request, pk):
             'success': False,
             'error': f'No se pudieron guardar las condiciones: {str(e)}'
         }, status=500)
-
 
 @login_required
 def resumen_condiciones_plantilla_json(request, pk):

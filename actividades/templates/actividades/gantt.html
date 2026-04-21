@@ -548,10 +548,10 @@
 {% endblock %}
 
 {% block content %}
-<div class="p-8 bg-slate-50 min-h-screen">
+<div class="px-4 bg-slate-50 min-h-screen">
     <div class="mb-8">
-        <h1 class="text-3xl font-black text-slate-900 tracking-tighter">Gantt Operacional</h1>
-        <p class="text-slate-500 font-medium">Control de avance por días, responsable y cumplimiento operativo</p>
+        <h1 class="text-xl font-black text-slate-900 tracking-tighter">Gantt Operacional</h1>
+        <p class="text-slate-500 text-xs font-medium">Control de avance por días, responsable y cumplimiento operativo</p>
     </div>
 
     <div class="gantt-main-card">
@@ -636,397 +636,397 @@
 </div>
 
 <script>
-let currentTab = 'calendario';
-let allDataCache = null;
-let activeTooltipTarget = null;
-let activeTooltipData = null;
-let scrollRepositionRaf = null;
+    let currentTab = 'calendario';
+    let allDataCache = null;
+    let activeTooltipTarget = null;
+    let activeTooltipData = null;
+    let scrollRepositionRaf = null;
 
-function getTooltipEl() {
-    return document.getElementById('customTooltip');
-}
-
-function ensureTooltipInBody() {
-    const tooltip = getTooltipEl();
-    if (tooltip && tooltip.parentElement !== document.body) {
-        document.body.appendChild(tooltip);
+    function getTooltipEl() {
+        return document.getElementById('customTooltip');
     }
-}
 
-function closeTooltip() {
-    const tooltip = getTooltipEl();
-    if (!tooltip) return;
+    function ensureTooltipInBody() {
+        const tooltip = getTooltipEl();
+        if (tooltip && tooltip.parentElement !== document.body) {
+            document.body.appendChild(tooltip);
+        }
+    }
 
-    tooltip.classList.remove('is-visible', 'tooltip-above', 'tooltip-below');
-    tooltip.style.display = 'none';
+    function closeTooltip() {
+        const tooltip = getTooltipEl();
+        if (!tooltip) return;
 
-    activeTooltipTarget = null;
-    activeTooltipData = null;
-}
+        tooltip.classList.remove('is-visible', 'tooltip-above', 'tooltip-below');
+        tooltip.style.display = 'none';
 
-function getSafeDate(dateStr) {
-    return new Date(`${dateStr}T00:00:00`);
-}
+        activeTooltipTarget = null;
+        activeTooltipData = null;
+    }
 
-function escapeHtml(text) {
-    return String(text ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-}
+    function getSafeDate(dateStr) {
+        return new Date(`${dateStr}T00:00:00`);
+    }
 
-function positionTooltip(targetEl) {
-    const tooltip = getTooltipEl();
-    if (!tooltip || !targetEl) return;
+    function escapeHtml(text) {
+        return String(text ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
 
-    const rect = targetEl.getBoundingClientRect();
+    function positionTooltip(targetEl) {
+        const tooltip = getTooltipEl();
+        if (!tooltip || !targetEl) return;
 
-    if (rect.width === 0 && rect.height === 0) {
+        const rect = targetEl.getBoundingClientRect();
+
+        if (rect.width === 0 && rect.height === 0) {
+            closeTooltip();
+            return;
+        }
+
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const spacing = 14;
+        const sidePadding = 12;
+        const topPadding = 8;
+
+        tooltip.style.left = '0px';
+        tooltip.style.top = '0px';
+        tooltip.style.display = 'block';
+
+        const tooltipRect = tooltip.getBoundingClientRect();
+
+        let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+        left = Math.max(sidePadding, Math.min(left, viewportWidth - tooltipRect.width - sidePadding));
+
+        const spaceAbove = rect.top - topPadding;
+        const spaceBelow = viewportHeight - rect.bottom - topPadding;
+
+        const shouldShowAbove = spaceAbove >= (tooltipRect.height + spacing) || spaceAbove > spaceBelow;
+
+        let top;
+        if (shouldShowAbove) {
+            top = rect.top - tooltipRect.height - spacing;
+            top = Math.max(topPadding, top);
+            tooltip.classList.remove('tooltip-below');
+            tooltip.classList.add('tooltip-above');
+        } else {
+            top = rect.bottom + spacing;
+            top = Math.min(viewportHeight - tooltipRect.height - topPadding, top);
+            top = Math.max(topPadding, top);
+            tooltip.classList.remove('tooltip-above');
+            tooltip.classList.add('tooltip-below');
+        }
+
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
+    }
+
+    function populateTooltip(act) {
+        const badgeTipo = document.getElementById('ttTipo');
+        const badgeVencido = document.getElementById('ttVencido');
+
+        document.getElementById('ttName').innerText = act.name || 'Actividad';
+        document.getElementById('ttSolicitud').innerText = act.codigo_solicitud || '—';
+        document.getElementById('ttMuestra').innerText = act.muestra || '—';
+        document.getElementById('ttServicio').innerText = act.servicio || '—';
+        document.getElementById('ttStart').innerText = act.start || '—';
+        document.getElementById('ttEnd').innerText = act.end || '—';
+        document.getElementById('ttEstado').innerText = (act.estado || 'PROGRAMADA').toUpperCase();
+        document.getElementById('ttClase').innerText = (act.clase || 'OTRO').toUpperCase();
+        document.getElementById('ttCliente').innerText = act.cliente || 'Sin cliente';
+        document.getElementById('ttResponsable').innerText = act.responsable || 'Sin asignar';
+        document.getElementById('ttDuracion').innerText = `${act.duracion_total_dias || 0} días`;
+        document.getElementById('ttTranscurridos').innerText = `${act.dias_transcurridos || 0} días`;
+        document.getElementById('ttRestantes').innerText = `${act.dias_restantes || 0} días`;
+        document.getElementById('ttProgress').innerText = `${act.progreso_temporal ?? 0}%`;
+
+        badgeTipo.innerText = act.tipo === 'ensayo' ? 'ENSAYO' : 'ACTIVIDAD';
+        badgeTipo.className = `tt-badge ${act.tipo === 'ensayo' ? 'ensayo' : ''}`;
+        badgeVencido.style.display = act.esta_vencido ? 'inline-block' : 'none';
+    }
+
+    function showTooltip(event, act) {
+        const tooltip = getTooltipEl();
+        if (!tooltip) return;
+
+        ensureTooltipInBody();
+        populateTooltip(act);
+
+        activeTooltipTarget = event.currentTarget;
+        activeTooltipData = act;
+
+        tooltip.style.display = 'block';
+        tooltip.classList.remove('tooltip-above', 'tooltip-below', 'is-visible');
+
+        positionTooltip(activeTooltipTarget);
+
+        requestAnimationFrame(() => {
+            tooltip.classList.add('is-visible');
+        });
+
+        event.stopPropagation();
+    }
+
+    function repositionTooltipIfNeeded() {
+        const tooltip = getTooltipEl();
+        if (!tooltip || tooltip.style.display === 'none' || !activeTooltipTarget) return;
+        positionTooltip(activeTooltipTarget);
+    }
+
+    function requestTooltipReposition() {
+        if (scrollRepositionRaf) {
+            cancelAnimationFrame(scrollRepositionRaf);
+        }
+
+        scrollRepositionRaf = requestAnimationFrame(() => {
+            repositionTooltipIfNeeded();
+            scrollRepositionRaf = null;
+        });
+    }
+
+    function switchTab(tab) {
+        currentTab = tab;
         closeTooltip();
-        return;
+
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        const activeTabButton = document.querySelector(`.tab-button[data-tab="${tab}"]`);
+        if (activeTabButton) {
+            activeTabButton.classList.add('active');
+        }
+
+        const categoriaSelect = document.getElementById('filtroCategoria');
+        if (categoriaSelect) {
+            categoriaSelect.style.display = tab === 'calendario' ? 'block' : 'none';
+        }
+
+        updateEstadoOptions();
+        loadGantt();
     }
 
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const spacing = 14;
-    const sidePadding = 12;
-    const topPadding = 8;
+    function updateEstadoOptions() {
+        const estadoSelect = document.getElementById('filtroEstado');
+        if (!estadoSelect) return;
 
-    tooltip.style.left = '0px';
-    tooltip.style.top = '0px';
-    tooltip.style.display = 'block';
-
-    const tooltipRect = tooltip.getBoundingClientRect();
-
-    let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
-    left = Math.max(sidePadding, Math.min(left, viewportWidth - tooltipRect.width - sidePadding));
-
-    const spaceAbove = rect.top - topPadding;
-    const spaceBelow = viewportHeight - rect.bottom - topPadding;
-
-    const shouldShowAbove = spaceAbove >= (tooltipRect.height + spacing) || spaceAbove > spaceBelow;
-
-    let top;
-    if (shouldShowAbove) {
-        top = rect.top - tooltipRect.height - spacing;
-        top = Math.max(topPadding, top);
-        tooltip.classList.remove('tooltip-below');
-        tooltip.classList.add('tooltip-above');
-    } else {
-        top = rect.bottom + spacing;
-        top = Math.min(viewportHeight - tooltipRect.height - topPadding, top);
-        top = Math.max(topPadding, top);
-        tooltip.classList.remove('tooltip-above');
-        tooltip.classList.add('tooltip-below');
+        if (currentTab === 'calendario') {
+            estadoSelect.innerHTML = `
+                <option value="">⚡ Todos los estados</option>
+                <option value="PROGRAMADA">Programada</option>
+                <option value="EN_CURSO">En curso</option>
+                <option value="COMPLETADA">Completada</option>
+                <option value="CANCELADA">Cancelada</option>
+                <option value="REPROGRAMADA">Reprogramada</option>
+            `;
+        } else {
+            estadoSelect.innerHTML = `
+                <option value="">⚡ Todos los estados</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="proceso">En proceso</option>
+                <option value="finalizado">Finalizado</option>
+            `;
+        }
     }
 
-    tooltip.style.left = `${left}px`;
-    tooltip.style.top = `${top}px`;
-}
-
-function populateTooltip(act) {
-    const badgeTipo = document.getElementById('ttTipo');
-    const badgeVencido = document.getElementById('ttVencido');
-
-    document.getElementById('ttName').innerText = act.name || 'Actividad';
-    document.getElementById('ttSolicitud').innerText = act.codigo_solicitud || '—';
-    document.getElementById('ttMuestra').innerText = act.muestra || '—';
-    document.getElementById('ttServicio').innerText = act.servicio || '—';
-    document.getElementById('ttStart').innerText = act.start || '—';
-    document.getElementById('ttEnd').innerText = act.end || '—';
-    document.getElementById('ttEstado').innerText = (act.estado || 'PROGRAMADA').toUpperCase();
-    document.getElementById('ttClase').innerText = (act.clase || 'OTRO').toUpperCase();
-    document.getElementById('ttCliente').innerText = act.cliente || 'Sin cliente';
-    document.getElementById('ttResponsable').innerText = act.responsable || 'Sin asignar';
-    document.getElementById('ttDuracion').innerText = `${act.duracion_total_dias || 0} días`;
-    document.getElementById('ttTranscurridos').innerText = `${act.dias_transcurridos || 0} días`;
-    document.getElementById('ttRestantes').innerText = `${act.dias_restantes || 0} días`;
-    document.getElementById('ttProgress').innerText = `${act.progreso_temporal ?? 0}%`;
-
-    badgeTipo.innerText = act.tipo === 'ensayo' ? 'ENSAYO' : 'ACTIVIDAD';
-    badgeTipo.className = `tt-badge ${act.tipo === 'ensayo' ? 'ensayo' : ''}`;
-    badgeVencido.style.display = act.esta_vencido ? 'inline-block' : 'none';
-}
-
-function showTooltip(event, act) {
-    const tooltip = getTooltipEl();
-    if (!tooltip) return;
-
-    ensureTooltipInBody();
-    populateTooltip(act);
-
-    activeTooltipTarget = event.currentTarget;
-    activeTooltipData = act;
-
-    tooltip.style.display = 'block';
-    tooltip.classList.remove('tooltip-above', 'tooltip-below', 'is-visible');
-
-    positionTooltip(activeTooltipTarget);
-
-    requestAnimationFrame(() => {
-        tooltip.classList.add('is-visible');
-    });
-
-    event.stopPropagation();
-}
-
-function repositionTooltipIfNeeded() {
-    const tooltip = getTooltipEl();
-    if (!tooltip || tooltip.style.display === 'none' || !activeTooltipTarget) return;
-    positionTooltip(activeTooltipTarget);
-}
-
-function requestTooltipReposition() {
-    if (scrollRepositionRaf) {
-        cancelAnimationFrame(scrollRepositionRaf);
+    function renderNoData(message) {
+        const container = document.getElementById('ganttContent');
+        container.innerHTML = `<div class="p-20 text-center text-slate-400 font-medium">${escapeHtml(message)}</div>`;
     }
 
-    scrollRepositionRaf = requestAnimationFrame(() => {
-        repositionTooltipIfNeeded();
-        scrollRepositionRaf = null;
-    });
-}
+    function buildHeader(minTs, totalDias, saltos) {
+        let headerHtml = '<div class="gantt-header-dates">';
 
-function switchTab(tab) {
-    currentTab = tab;
-    closeTooltip();
+        for (let i = 0; i < totalDias; i += saltos) {
+            const d = new Date(minTs + (i * 24 * 60 * 60 * 1000));
+            headerHtml += `
+                <div class="header-day" style="flex: ${saltos}">
+                    <span>${d.toLocaleDateString('es-PE', { month: 'short' })}</span>
+                    ${d.getDate()}
+                </div>
+            `;
+        }
 
-    document.querySelectorAll('.tab-button').forEach(btn => {
-        btn.classList.remove('active');
-    });
-
-    const activeTabButton = document.querySelector(`.tab-button[data-tab="${tab}"]`);
-    if (activeTabButton) {
-        activeTabButton.classList.add('active');
+        headerHtml += '</div>';
+        return headerHtml;
     }
 
-    const categoriaSelect = document.getElementById('filtroCategoria');
-    if (categoriaSelect) {
-        categoriaSelect.style.display = tab === 'calendario' ? 'block' : 'none';
-    }
+    function buildLabelMeta(act, diasInfo) {
+        if (act.tipo === 'ensayo') {
+            const muestra = act.muestra || 'Sin muestra';
+            const servicio = act.servicio || 'Sin servicio';
 
-    updateEstadoOptions();
-    loadGantt();
-}
-
-function updateEstadoOptions() {
-    const estadoSelect = document.getElementById('filtroEstado');
-    if (!estadoSelect) return;
-
-    if (currentTab === 'calendario') {
-        estadoSelect.innerHTML = `
-            <option value="">⚡ Todos los estados</option>
-            <option value="PROGRAMADA">Programada</option>
-            <option value="EN_CURSO">En curso</option>
-            <option value="COMPLETADA">Completada</option>
-            <option value="CANCELADA">Cancelada</option>
-            <option value="REPROGRAMADA">Reprogramada</option>
-        `;
-    } else {
-        estadoSelect.innerHTML = `
-            <option value="">⚡ Todos los estados</option>
-            <option value="pendiente">Pendiente</option>
-            <option value="proceso">En proceso</option>
-            <option value="finalizado">Finalizado</option>
-        `;
-    }
-}
-
-function renderNoData(message) {
-    const container = document.getElementById('ganttContent');
-    container.innerHTML = `<div class="p-20 text-center text-slate-400 font-medium">${escapeHtml(message)}</div>`;
-}
-
-function buildHeader(minTs, totalDias, saltos) {
-    let headerHtml = '<div class="gantt-header-dates">';
-
-    for (let i = 0; i < totalDias; i += saltos) {
-        const d = new Date(minTs + (i * 24 * 60 * 60 * 1000));
-        headerHtml += `
-            <div class="header-day" style="flex: ${saltos}">
-                <span>${d.toLocaleDateString('es-PE', { month: 'short' })}</span>
-                ${d.getDate()}
-            </div>
-        `;
-    }
-
-    headerHtml += '</div>';
-    return headerHtml;
-}
-
-function buildLabelMeta(act, diasInfo) {
-    if (act.tipo === 'ensayo') {
-        const muestra = act.muestra || 'Sin muestra';
-        const servicio = act.servicio || 'Sin servicio';
+            return `
+                <div class="label-meta">
+                    <span class="label-user">👤 ${escapeHtml(act.responsable || 'Sin asignar')}</span>
+                    <span class="label-chip">🧪 ${escapeHtml(muestra)} · ${escapeHtml(servicio)}</span>
+                    <span class="label-days">${escapeHtml(diasInfo)}</span>
+                </div>
+            `;
+        }
 
         return `
             <div class="label-meta">
                 <span class="label-user">👤 ${escapeHtml(act.responsable || 'Sin asignar')}</span>
-                <span class="label-chip">🧪 ${escapeHtml(muestra)} · ${escapeHtml(servicio)}</span>
                 <span class="label-days">${escapeHtml(diasInfo)}</span>
             </div>
         `;
     }
 
-    return `
-        <div class="label-meta">
-            <span class="label-user">👤 ${escapeHtml(act.responsable || 'Sin asignar')}</span>
-            <span class="label-days">${escapeHtml(diasInfo)}</span>
-        </div>
-    `;
-}
+    function buildLabelSubtext(act) {
+        if (act.tipo === 'ensayo') {
+            const solicitud = act.codigo_solicitud || '';
+            const cliente = act.cliente || '';
+            return `<span class="label-subtext">${escapeHtml(solicitud)}${cliente ? ' · ' + escapeHtml(cliente) : ''}</span>`;
+        }
 
-function buildLabelSubtext(act) {
-    if (act.tipo === 'ensayo') {
-        const solicitud = act.codigo_solicitud || '';
         const cliente = act.cliente || '';
-        return `<span class="label-subtext">${escapeHtml(solicitud)}${cliente ? ' · ' + escapeHtml(cliente) : ''}</span>`;
+        const proyecto = act.proyecto || '';
+        return `<span class="label-subtext">${escapeHtml(cliente)}${proyecto ? ' · ' + escapeHtml(proyecto) : ''}</span>`;
     }
 
-    const cliente = act.cliente || '';
-    const proyecto = act.proyecto || '';
-    return `<span class="label-subtext">${escapeHtml(cliente)}${proyecto ? ' · ' + escapeHtml(proyecto) : ''}</span>`;
-}
+    function buildRows(filteredData, minTs, duration, totalDias, saltos) {
+        let bodyHtml = '<div class="gantt-body">';
 
-function buildRows(filteredData, minTs, duration, totalDias, saltos) {
-    let bodyHtml = '<div class="gantt-body">';
+        filteredData.forEach((act, index) => {
+            const actStart = getSafeDate(act.start).getTime();
+            const actEnd = getSafeDate(act.end).getTime();
 
-    filteredData.forEach((act, index) => {
-        const actStart = getSafeDate(act.start).getTime();
-        const actEnd = getSafeDate(act.end).getTime();
+            const left = ((actStart - minTs) / duration) * 100;
+            const width = Math.max(((actEnd - actStart) / duration) * 100, 2.5);
+            const progress = Math.max(0, Math.min(Number(act.progreso_temporal || 0), 100));
 
-        const left = ((actStart - minTs) / duration) * 100;
-        const width = Math.max(((actEnd - actStart) / duration) * 100, 2.5);
-        const progress = Math.max(0, Math.min(Number(act.progreso_temporal || 0), 100));
+            const tipoIcon = act.tipo === 'ensayo' ? '🧪' : '📋';
+            const tipoClass = act.tipo === 'ensayo' ? 'tipo-ensayo' : '';
+            const bgColor = act.color || '#3b82f6';
+            const diasTranscurridos = act.dias_transcurridos || 0;
+            const duracionTotal = act.duracion_total_dias || 0;
+            const diasInfo = `${diasTranscurridos}/${duracionTotal} días`;
 
-        const tipoIcon = act.tipo === 'ensayo' ? '🧪' : '📋';
-        const tipoClass = act.tipo === 'ensayo' ? 'tipo-ensayo' : '';
-        const bgColor = act.color || '#3b82f6';
-        const diasTranscurridos = act.dias_transcurridos || 0;
-        const duracionTotal = act.duracion_total_dias || 0;
-        const diasInfo = `${diasTranscurridos}/${duracionTotal} días`;
-
-        bodyHtml += `
-            <div class="gantt-row">
-                <div class="gantt-label">
-                    <span class="label-icon">${tipoIcon}</span>
-                    <div class="label-content">
-                        <span class="label-text">${escapeHtml(act.name)}</span>
-                        ${buildLabelSubtext(act)}
-                        ${buildLabelMeta(act, diasInfo)}
+            bodyHtml += `
+                <div class="gantt-row">
+                    <div class="gantt-label">
+                        <span class="label-icon">${tipoIcon}</span>
+                        <div class="label-content">
+                            <span class="label-text">${escapeHtml(act.name)}</span>
+                            ${buildLabelSubtext(act)}
+                            ${buildLabelMeta(act, diasInfo)}
+                        </div>
                     </div>
-                </div>
 
-                <div class="gantt-bars-area" style="background-size: ${(saltos / totalDias) * 100}% 100%">
-                    <div class="gantt-bar ${tipoClass}"
-                         data-index="${index}"
-                         style="left: ${left}%; width: ${width}%; background: ${bgColor};">
-                        <div class="gantt-bar-progress" style="width: ${progress}%"></div>
-                        <div class="gantt-bar-content">
-                            <span class="gantt-bar-title">${escapeHtml(act.name)}</span>
-                            <span class="gantt-bar-percent">${progress}%</span>
+                    <div class="gantt-bars-area" style="background-size: ${(saltos / totalDias) * 100}% 100%">
+                        <div class="gantt-bar ${tipoClass}"
+                            data-index="${index}"
+                            style="left: ${left}%; width: ${width}%; background: ${bgColor};">
+                            <div class="gantt-bar-progress" style="width: ${progress}%"></div>
+                            <div class="gantt-bar-content">
+                                <span class="gantt-bar-title">${escapeHtml(act.name)}</span>
+                                <span class="gantt-bar-percent">${progress}%</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        `;
-    });
-
-    bodyHtml += '</div>';
-    return bodyHtml;
-}
-
-function attachBarEvents(filteredData) {
-    document.querySelectorAll('.gantt-bar').forEach(bar => {
-        bar.addEventListener('click', (event) => {
-            const index = Number(bar.dataset.index);
-            const act = filteredData[index];
-            if (act) {
-                showTooltip(event, act);
-            }
+            `;
         });
-    });
-}
 
-async function loadGantt() {
-    closeTooltip();
-
-    const container = document.getElementById('ganttContent');
-    container.innerHTML = '<div class="p-20 text-center text-slate-400 italic font-medium">Cargando cronograma...</div>';
-
-    const params = new URLSearchParams({
-        proyecto: document.getElementById('filtroProyecto')?.value || '',
-        categoria: currentTab === 'calendario' ? (document.getElementById('filtroCategoria')?.value || '') : '',
-        estado: document.getElementById('filtroEstado')?.value || '',
-        responsable: document.getElementById('filtroResponsable')?.value || '',
-        ensayos: 'true'
-    });
-
-    try {
-        const response = await fetch(`{% url 'actividades:gantt_actividades_json' %}?${params.toString()}`);
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-
-        const data = await response.json();
-        allDataCache = data;
-
-        const filteredData = data.filter(item =>
-            item.tipo === (currentTab === 'calendario' ? 'actividad' : 'ensayo')
-        );
-
-        if (!filteredData.length) {
-            renderNoData(
-                currentTab === 'calendario'
-                    ? 'Sin actividades registradas con los filtros actuales.'
-                    : 'Sin ensayos registrados con los filtros actuales.'
-            );
-            return;
-        }
-
-        const times = filteredData.flatMap(item => [
-            getSafeDate(item.start).getTime(),
-            getSafeDate(item.end).getTime()
-        ]);
-
-        const minTs = Math.min(...times) - (24 * 60 * 60 * 1000);
-        const maxTs = Math.max(...times) + (24 * 60 * 60 * 1000);
-        const duration = Math.max(maxTs - minTs, 24 * 60 * 60 * 1000);
-        const totalDias = Math.max(Math.ceil(duration / (24 * 60 * 60 * 1000)), 1);
-        const saltos = Math.max(1, Math.ceil(totalDias / 14));
-
-        const headerHtml = buildHeader(minTs, totalDias, saltos);
-        const bodyHtml = buildRows(filteredData, minTs, duration, totalDias, saltos);
-
-        container.innerHTML = headerHtml + bodyHtml;
-        attachBarEvents(filteredData);
-    } catch (error) {
-        container.innerHTML = '<div class="p-20 text-center text-red-500 font-bold">Error al cargar el cronograma.</div>';
-        console.error('Error cargando gantt:', error);
+        bodyHtml += '</div>';
+        return bodyHtml;
     }
-}
 
-document.addEventListener('click', (e) => {
-    if (!e.target.closest('.vpro-tooltip') && !e.target.closest('.gantt-bar')) {
+    function attachBarEvents(filteredData) {
+        document.querySelectorAll('.gantt-bar').forEach(bar => {
+            bar.addEventListener('click', (event) => {
+                const index = Number(bar.dataset.index);
+                const act = filteredData[index];
+                if (act) {
+                    showTooltip(event, act);
+                }
+            });
+        });
+    }
+
+    async function loadGantt() {
         closeTooltip();
+
+        const container = document.getElementById('ganttContent');
+        container.innerHTML = '<div class="p-20 text-center text-slate-400 italic font-medium">Cargando cronograma...</div>';
+
+        const params = new URLSearchParams({
+            proyecto: document.getElementById('filtroProyecto')?.value || '',
+            categoria: currentTab === 'calendario' ? (document.getElementById('filtroCategoria')?.value || '') : '',
+            estado: document.getElementById('filtroEstado')?.value || '',
+            responsable: document.getElementById('filtroResponsable')?.value || '',
+            ensayos: 'true'
+        });
+
+        try {
+            const response = await fetch(`{% url 'actividades:gantt_actividades_json' %}?${params.toString()}`);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            allDataCache = data;
+
+            const filteredData = data.filter(item =>
+                item.tipo === (currentTab === 'calendario' ? 'actividad' : 'ensayo')
+            );
+
+            if (!filteredData.length) {
+                renderNoData(
+                    currentTab === 'calendario'
+                        ? 'Sin actividades registradas con los filtros actuales.'
+                        : 'Sin ensayos registrados con los filtros actuales.'
+                );
+                return;
+            }
+
+            const times = filteredData.flatMap(item => [
+                getSafeDate(item.start).getTime(),
+                getSafeDate(item.end).getTime()
+            ]);
+
+            const minTs = Math.min(...times) - (24 * 60 * 60 * 1000);
+            const maxTs = Math.max(...times) + (24 * 60 * 60 * 1000);
+            const duration = Math.max(maxTs - minTs, 24 * 60 * 60 * 1000);
+            const totalDias = Math.max(Math.ceil(duration / (24 * 60 * 60 * 1000)), 1);
+            const saltos = Math.max(1, Math.ceil(totalDias / 14));
+
+            const headerHtml = buildHeader(minTs, totalDias, saltos);
+            const bodyHtml = buildRows(filteredData, minTs, duration, totalDias, saltos);
+
+            container.innerHTML = headerHtml + bodyHtml;
+            attachBarEvents(filteredData);
+        } catch (error) {
+            container.innerHTML = '<div class="p-20 text-center text-red-500 font-bold">Error al cargar el cronograma.</div>';
+            console.error('Error cargando gantt:', error);
+        }
     }
-});
 
-document.addEventListener('scroll', () => {
-    requestTooltipReposition();
-}, true);
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.vpro-tooltip') && !e.target.closest('.gantt-bar')) {
+            closeTooltip();
+        }
+    });
 
-window.addEventListener('resize', () => {
-    requestTooltipReposition();
-});
+    document.addEventListener('scroll', () => {
+        requestTooltipReposition();
+    }, true);
 
-document.addEventListener('DOMContentLoaded', () => {
-    ensureTooltipInBody();
-    updateEstadoOptions();
-    loadGantt();
-});
+    window.addEventListener('resize', () => {
+        requestTooltipReposition();
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        ensureTooltipInBody();
+        updateEstadoOptions();
+        loadGantt();
+    });
 </script>
 {% endblock %}

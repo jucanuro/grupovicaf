@@ -32,7 +32,7 @@ def lista_clientes(request):
             Q(correo_contacto__icontains=query)
         ).distinct()
 
-    paginator = Paginator(clientes, 7) 
+    paginator = Paginator(clientes, 9) 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -49,11 +49,9 @@ def buscar_clientes_api(request):
     try:
         query = request.GET.get('q', '').strip()
 
-        # Validaciones de seguridad
         if len(query) > 100:
             return JsonResponse({'error': 'La consulta no puede exceder 100 caracteres.'}, status=400)
         
-        # Validar caracteres peligrosos
         import re
         if re.search(r'[<>]', query):
             logger.warning(f"Intento de XSS en buscar_clientes_api por usuario {request.user.username}")

@@ -19,105 +19,105 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
-    :root {
-        --z-sidebar: 20;
-        --z-header: 30;
-        --z-search: 40;
-        --z-dropdown: 50;
-        --z-sticky: 60;
-        --z-overlay: 900;
-        --z-modal: 1000;
-        --z-toast: 1100;
-    }
-
-    html,
-    body {
-        height: 100%;
-    }
-
-    html.modal-open,
-    body.modal-open {
-        overflow: hidden !important;
-    }
-
-    .app-shell {
-        height: 100dvh;
-        min-height: 100dvh;
-        overflow: hidden;
-    }
-
-    .app-main-scroll {
-        min-height: 0;
-        overflow-y: auto;
-        overflow-x: hidden;
-        overscroll-behavior: contain;
-        -webkit-overflow-scrolling: touch;
-        scroll-behavior: smooth;
-    }
-
-    .app-main-scroll::-webkit-scrollbar {
-        width: 10px;
-    }
-
-    .app-main-scroll::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    .app-main-scroll::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 9999px;
-        border: 2px solid transparent;
-        background-clip: padding-box;
-    }
-
-    .app-main-scroll::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
-        background-clip: padding-box;
-    }
-
-    .app-main-scroll {
-        scrollbar-width: thin;
-        scrollbar-color: #cbd5e1 transparent;
-    }
-
-    .app-modal-root {
-        position: fixed;
-        inset: 0;
-        z-index: var(--z-modal);
-    }
-
-    .app-modal-overlay {
-        position: absolute;
-        inset: 0;
-        background: rgba(2, 6, 23, 0.7);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-    }
-
-    .app-modal-stage {
-        position: relative;
-        z-index: 1;
-        width: 100vw;
-        height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 1rem;
-    }
-
-    @media (min-width: 768px) {
-        .app-modal-stage {
-            padding: 1.5rem;
+        :root {
+            --z-sidebar: 20;
+            --z-header: 30;
+            --z-search: 40;
+            --z-dropdown: 50;
+            --z-sticky: 60;
+            --z-overlay: 900;
+            --z-modal: 1000;
+            --z-toast: 1100;
         }
-    }
 
-    .app-modal-panel {
-        position: relative;
-        width: 100%;
-        max-height: 88vh;
-        overflow: hidden;
-    }
-</style>
+        html,
+        body {
+            height: 100%;
+        }
+
+        html.modal-open,
+        body.modal-open {
+            overflow: hidden !important;
+        }
+
+        .app-shell {
+            height: 100dvh;
+            min-height: 100dvh;
+            overflow: hidden;
+        }
+
+        .app-main-scroll {
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+        }
+
+        .app-main-scroll::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .app-main-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .app-main-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+
+        .app-main-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+            background-clip: padding-box;
+        }
+
+        .app-main-scroll {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 transparent;
+        }
+
+        .app-modal-root {
+            position: fixed;
+            inset: 0;
+            z-index: var(--z-modal);
+        }
+
+        .app-modal-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .app-modal-stage {
+            position: relative;
+            z-index: 1;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .app-modal-stage {
+                padding: 1.5rem;
+            }
+        }
+
+        .app-modal-panel {
+            position: relative;
+            width: 100%;
+            max-height: 88vh;
+            overflow: hidden;
+        }
+    </style>
 
     <script>
         tailwind.config = {
@@ -157,6 +157,400 @@
         }
     </script>
 
+    <style>
+        .command-header {
+            position: relative;
+            z-index: 80;
+            margin-top: -0.35rem;
+            margin-bottom: 0.9rem;
+        }
+
+        /* Barra mínima visible */
+        .command-header__toolbar {
+            position: absolute;
+            top: -2.15rem;
+            left: 0;
+            right: 0;
+            z-index: 95;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            pointer-events: none;
+        }
+
+        .command-header__toolbar > * {
+            pointer-events: auto;
+        }
+
+        /* Botón izquierdo: Panel */
+        .command-header__trigger {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.55rem;
+            height: 3rem;
+            padding: 0 1rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(226, 232, 240, 0.95);
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(14px);
+            box-shadow:
+                0 1px 2px rgba(15, 23, 42, 0.05),
+                0 10px 24px rgba(15, 23, 42, 0.08);
+            color: #0f172a;
+            transition: all 0.25s ease;
+            white-space: nowrap;
+        }
+
+        .command-header__trigger:hover {
+            transform: translateY(-1px);
+            border-color: rgba(59, 130, 246, 0.25);
+            box-shadow:
+                0 1px 2px rgba(15, 23, 42, 0.05),
+                0 14px 30px rgba(37, 99, 235, 0.10);
+        }
+
+        .command-header.is-open .command-header__trigger {
+            background: #0f172a;
+            color: white;
+            border-color: #0f172a;
+            box-shadow:
+                0 1px 2px rgba(15, 23, 42, 0.05),
+                0 14px 30px rgba(15, 23, 42, 0.16);
+        }
+
+        .command-header__trigger-label {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        /* Botón derecho reutilizable */
+        .command-header__action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.55rem;
+            min-height: 3rem;
+            padding: 0 1.1rem;
+            border-radius: 1rem;
+            border: 1px solid transparent;
+            background: rgb(15 23 42);
+            color: white;
+            font-size: 0.76rem;
+            font-weight: 800;
+            line-height: 1;
+            white-space: nowrap;
+            transition: all 0.22s ease;
+            box-shadow:
+                0 1px 2px rgba(15, 23, 42, 0.05),
+                0 10px 24px rgba(15, 23, 42, 0.12);
+        }
+
+        .command-header__action:hover {
+            background: rgb(37 99 235);
+            box-shadow:
+                0 1px 2px rgba(15, 23, 42, 0.05),
+                0 14px 28px rgba(37, 99, 235, 0.18);
+        }
+
+        /* Variante secundaria */
+        .command-header__action--secondary {
+            background: rgba(255, 255, 255, 0.98);
+            color: rgb(51 65 85);
+            border-color: rgba(226, 232, 240, 0.95);
+            box-shadow:
+                0 1px 2px rgba(15, 23, 42, 0.05),
+                0 10px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        .command-header__action--secondary:hover {
+            background: rgb(248 250 252);
+            color: rgb(15 23 42);
+            border-color: rgba(203, 213, 225, 1);
+            box-shadow:
+                0 1px 2px rgba(15, 23, 42, 0.05),
+                0 12px 24px rgba(15, 23, 42, 0.10);
+        }
+
+        /* Fondo click-away sin tapar la tabla */
+        .command-header__backdrop {
+            position: fixed;
+            inset: 0;
+            background: transparent;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: all 0.2s ease;
+            z-index: 90;
+        }
+
+        .command-header.is-open .command-header__backdrop {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        /* Panel overlay dinámico */
+        .command-header__panel {
+            position: absolute;
+            top: -0.2rem;
+            left: 0;
+            width: fit-content;
+            max-width: min(100%, 1180px);
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(-8px) scale(0.985);
+            transition:
+                opacity 0.24s ease,
+                visibility 0.24s ease,
+                transform 0.24s ease;
+        }
+
+        .command-header.is-open .command-header__panel {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: translateY(0) scale(1);
+        }
+
+        .command-header__card {
+            position: relative;
+            display: inline-block;
+            width: fit-content;
+            max-width: min(100vw - 2.5rem, 1180px);
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(226, 232, 240, 0.95);
+            border-radius: 1.25rem;
+            box-shadow:
+                0 10px 30px rgba(15, 23, 42, 0.08),
+                0 18px 40px rgba(15, 23, 42, 0.10);
+            overflow: hidden;
+        }
+
+        .command-header__glow {
+            position: absolute;
+            inset: 0 auto auto 0;
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, rgba(59,130,246,0.00) 70%);
+            pointer-events: none;
+            filter: blur(8px);
+        }
+
+        .command-header__close {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.35rem;
+            height: 2.35rem;
+            border-radius: 0.85rem;
+            border: 1px solid rgb(226 232 240);
+            background: white;
+            color: rgb(71 85 105);
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .command-header__close:hover {
+            background: rgb(248 250 252);
+            color: rgb(15 23 42);
+        }
+
+        .command-header__title-wrap {
+            min-width: 0;
+        }
+
+        .command-header__title {
+            font-size: 1.125rem;
+            font-weight: 800;
+            color: rgb(15 23 42);
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+            margin: 0;
+        }
+
+        .command-header__subtitle {
+            margin-top: 0.35rem;
+            font-size: 9px;
+            color: rgb(37 99 235);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            white-space: nowrap;
+        }
+
+        .command-header__search {
+            background: rgb(241 245 249);
+            display: flex;
+            align-items: center;
+            padding: 0.82rem 1rem;
+            width: clamp(300px, 38vw, 700px);
+            max-width: 100%;
+            border-radius: 1rem;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .command-header__search:focus-within {
+            border-color: rgb(59 130 246);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08);
+        }
+
+        .command-header__search input,
+        .command-header__search select {
+            background: transparent;
+            border: none;
+            outline: none;
+            width: 100%;
+        }
+
+        .command-header__filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            max-width: 100%;
+        }
+
+        .command-header__chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            min-height: 2.5rem;
+            padding: 0 0.9rem;
+            border-radius: 0.9rem;
+            background: rgb(248 250 252);
+            border: 1px solid rgb(226 232 240);
+            color: rgb(51 65 85);
+            font-size: 0.75rem;
+            font-weight: 700;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .command-header__chip:hover {
+            border-color: rgb(191 219 254);
+            background: white;
+        }
+
+        .command-header__meta-box {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            padding: 0.75rem 1rem;
+            border-radius: 1rem;
+            border: 1px solid rgb(226 232 240);
+            background: rgb(248 250 252);
+            max-width: 100%;
+        }
+
+        .command-header__meta-label {
+            font-size: 8px;
+            font-weight: 900;
+            color: rgb(148 163 184);
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+        }
+
+        .command-header__meta-value {
+            font-size: 0.78rem;
+            font-weight: 800;
+            color: rgb(37 99 235);
+            line-height: 1.1;
+            word-break: break-word;
+        }
+
+        @media (max-width: 1024px) {
+            .command-header__panel {
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .command-header__card {
+                display: block;
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .command-header__search {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .command-header {
+                margin-top: -0.15rem;
+                margin-bottom: 0.75rem;
+            }
+
+            .command-header__toolbar {
+                top: -1.6rem;
+                gap: 0.75rem;
+            }
+
+            .command-header__trigger {
+                height: 2.7rem;
+                padding: 0 0.85rem;
+                border-radius: 0.9rem;
+            }
+
+            .command-header__trigger-label {
+                display: none;
+            }
+
+            .command-header__action {
+                min-height: 2.7rem;
+                padding: 0 0.9rem;
+                border-radius: 0.9rem;
+                font-size: 0.72rem;
+            }
+
+            .command-header__panel {
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .command-header__card {
+                width: 100%;
+                max-width: 100%;
+                border-radius: 1rem;
+            }
+
+            .command-header__title {
+                font-size: 1rem;
+            }
+
+            .command-header__subtitle {
+                letter-spacing: 0.16em;
+                white-space: normal;
+            }
+
+            .command-header__search {
+                width: 100%;
+            }
+
+            .command-header__meta-box {
+                width: 100%;
+            }
+
+            .command-header__filters {
+                gap: 0.6rem;
+            }
+
+            .command-header__chip {
+                min-height: 2.35rem;
+                padding: 0 0.8rem;
+                font-size: 0.72rem;
+            }
+        }
+    </style>
     {% block extra_css %}{% endblock %}
 </head>
 
@@ -178,7 +572,6 @@
 
     {% include 'buscador.html' %}
     {% block modals %}{% endblock %}
-
     <script src="https://unpkg.com/lucide@latest" defer></script>
     <script src="{% static 'js/vicafbase.js' %}"></script>
     {% block extra_scripts %}{% endblock %}

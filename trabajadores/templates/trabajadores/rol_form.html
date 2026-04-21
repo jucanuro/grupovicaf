@@ -12,17 +12,55 @@
 <div class="bg-vicaf-engine"></div>
 
 <div class="max-w-2xl mx-auto p-4 relative z-10 space-y-6">
-    <header class="flex items-center justify-between">
-        <div class="flex items-center gap-4">
-            <a href="{% url 'trabajadores:lista_roles' %}" class="w-10 h-10 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm">
-                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+    <div class="command-header" data-command-header>
+        <div class="command-header__backdrop" data-command-backdrop></div>
+
+        <div class="command-header__toolbar">
+            <button type="button"
+                    class="command-header__trigger"
+                    data-command-toggle
+                    aria-label="Abrir panel del rol">
+                <i data-lucide="panel-top-open" class="w-4 h-4"></i>
+                <span class="command-header__trigger-label">Panel</span>
+            </button>
+
+            <a href="{% url 'trabajadores:lista_roles' %}"
+            class="command-header__action command-header__action--secondary">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                Volver
             </a>
-            <div>
-                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">{{ titulo_pagina }}</h1>
-                <p class="text-[10px] font-mono text-blue-600 uppercase tracking-widest">Configuración de Estructura Organizacional</p>
+        </div>
+
+        <div class="command-header__panel" data-command-panel>
+            <div class="command-header__card relative px-5 py-4 sm:px-6 sm:py-4">
+                <div class="command-header__glow"></div>
+
+                <div class="relative flex items-start justify-between gap-4">
+                    <div class="flex items-center gap-4 min-w-0">
+                        <div class="w-11 h-11 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-md flex-shrink-0">
+                            <i data-lucide="briefcase-business" class="w-5 h-5"></i>
+                        </div>
+
+                        <div class="command-header__title-wrap">
+                            <h1 class="command-header__title truncate">
+                                {{ titulo_pagina }}
+                            </h1>
+                            <p class="command-header__subtitle truncate">
+                                Configuración de Estructura Organizacional
+                            </p>
+                        </div>
+                    </div>
+
+                    <button type="button"
+                            class="command-header__close"
+                            data-command-close
+                            aria-label="Cerrar panel">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
             </div>
         </div>
-    </header>
+    </div>
 
     <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         <div class="p-8">

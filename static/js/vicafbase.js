@@ -315,6 +315,70 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    window.initCommandHeaders = function initCommandHeaders() {
+        const headers = document.querySelectorAll('[data-command-header]');
+
+        headers.forEach(header => {
+            if (header.dataset.commandReady === 'true') return;
+            header.dataset.commandReady = 'true';
+
+            const toggle = header.querySelector('[data-command-toggle]');
+            const closeBtn = header.querySelector('[data-command-close]');
+            const backdrop = header.querySelector('[data-command-backdrop]');
+            const panelEl = header.querySelector('[data-command-panel]');
+            const primaryAction = header.querySelector('[data-command-primary-action]');
+
+            const openPanel = () => {
+                document.querySelectorAll('[data-command-header].is-open').forEach(other => {
+                    if (other !== header) other.classList.remove('is-open');
+                });
+
+                header.classList.add('is-open');
+                queueRefreshIcons();
+            };
+
+            const closePanel = () => {
+                header.classList.remove('is-open');
+            };
+
+            if (toggle) {
+                toggle.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('toggle clickeado');
+
+                    if (header.classList.contains('is-open')) {
+                        closePanel();
+                    } else {
+                        openPanel();
+                    }
+                });
+            }
+
+            if (closeBtn) {
+                closeBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    closePanel();
+                });
+            }
+
+            if (backdrop) {
+                backdrop.addEventListener('click', closePanel);
+            }
+
+            if (panelEl) {
+                panelEl.addEventListener('click', (e) => e.stopPropagation());
+            }
+
+            if (primaryAction) {
+                primaryAction.addEventListener('click', () => {
+                    closePanel();
+                });
+            }
+        });
+    };
+
     function updateCounter(visibleCount) {
         if (!startCounter) return;
         startCounter.textContent = `${visibleCount} módulo${visibleCount === 1 ? '' : 's'}`;
@@ -455,6 +519,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeStartMenu();
             }
         }
+
+        document.querySelectorAll('[data-command-header].is-open').forEach(header => {
+            const toggle = header.querySelector('[data-command-toggle]');
+            const panelEl = header.querySelector('[data-command-panel]');
+
+            const clickedInsideToggle = toggle?.contains(e.target);
+            const clickedInsidePanel = panelEl?.contains(e.target);
+
+            if (!clickedInsideToggle && !clickedInsidePanel) {
+                header.classList.remove('is-open');
+            }
+        });
     });
 
     document.addEventListener('keydown', (e) => {
@@ -467,7 +543,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (palette && !palette.classList.contains('hidden')) {
                 closeCmdFunc();
             }
+
             closeStartMenu();
+
+            document.querySelectorAll('[data-command-header].is-open').forEach(header => {
+                header.classList.remove('is-open');
+            });
         }
     });
 
@@ -485,6 +566,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bindMobileMenu();
     bindCommandPalette();
     bindStartMenu();
+    initCommandHeaders();
 
     filterStartMenu('');
     refreshIcons();

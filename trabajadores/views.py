@@ -190,7 +190,7 @@ def lista_trabajadores(request):
             Q(user__email__icontains=query)
         ).distinct()
 
-    paginator = Paginator(trabajadores, 7)
+    paginator = Paginator(trabajadores, 9)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
