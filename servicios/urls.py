@@ -30,10 +30,18 @@ urlpatterns = [
     path('cotizaciones/<int:pk>/pdf/', views.generar_pdf_cotizacion, name='ver_pdf_cotizacion'),
     path('cotizaciones/<int:pk>/aprobar/', views.aprobar_cotizacion, name='aprobar_cotizacion'),
 
+    path('cotizaciones/<int:pk>/condiciones/json/', views.condiciones_cotizacion_json, name='condiciones_cotizacion_json'),
+    path('cotizaciones/<int:pk>/condiciones/guardar/', views.guardar_condiciones_cotizacion_json, name='guardar_condiciones_cotizacion_json'),
+    path('cotizaciones/<int:pk>/condiciones/resumen/', views.resumen_condiciones_cotizacion_json, name='resumen_condiciones_cotizacion_json'),
+
     path('plantillas/', views.lista_plantillas, name='lista_plantillas'),
     path('plantillas/crear/', views.crear_editar_plantilla, name='crear_plantilla'),
     path('plantillas/editar/<int:pk>/', views.crear_editar_plantilla, name='editar_plantilla'),
     path('plantillas/api/detalle-json/<int:pk>/', views.obtener_detalle_plantilla_json, name='obtener_detalle_plantilla_json'),
+
+    path('plantillas/<int:pk>/condiciones/json/', views.condiciones_plantilla_json, name='condiciones_plantilla_json'),
+    path('plantillas/<int:pk>/condiciones/guardar/', views.guardar_condiciones_plantilla_json, name='guardar_condiciones_plantilla_json'),
+    path('plantillas/<int:pk>/condiciones/resumen/', views.resumen_condiciones_plantilla_json, name='resumen_condiciones_plantilla_json'),
 
     path('api/plantilla/<int:pk>/', views.obtener_detalle_plantilla_json, name='api_plantilla_detalle'),
     path('api/ver/<int:pk>/', views.obtener_detalle_servicio_api, name='obtener_detalle_servicio_api'),

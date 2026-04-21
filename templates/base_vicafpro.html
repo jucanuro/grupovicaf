@@ -5,11 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Vicaf - Enterprise Experience V6{% endblock %}</title>
-    
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
+
     <link rel="stylesheet" href="{% static 'css/vicafstyle.css' %}">
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -18,15 +18,113 @@
 
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <style>
+    :root {
+        --z-sidebar: 20;
+        --z-header: 30;
+        --z-search: 40;
+        --z-dropdown: 50;
+        --z-sticky: 60;
+        --z-overlay: 900;
+        --z-modal: 1000;
+        --z-toast: 1100;
+    }
+
+    html,
+    body {
+        height: 100%;
+    }
+
+    html.modal-open,
+    body.modal-open {
+        overflow: hidden !important;
+    }
+
+    .app-shell {
+        height: 100dvh;
+        min-height: 100dvh;
+        overflow: hidden;
+    }
+
+    .app-main-scroll {
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+    }
+
+    .app-main-scroll::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    .app-main-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .app-main-scroll::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 9999px;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+    }
+
+    .app-main-scroll::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+        background-clip: padding-box;
+    }
+
+    .app-main-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 transparent;
+    }
+
+    .app-modal-root {
+        position: fixed;
+        inset: 0;
+        z-index: var(--z-modal);
+    }
+
+    .app-modal-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.7);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+
+    .app-modal-stage {
+        position: relative;
+        z-index: 1;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    @media (min-width: 768px) {
+        .app-modal-stage {
+            padding: 1.5rem;
+        }
+    }
+
+    .app-modal-panel {
+        position: relative;
+        width: 100%;
+        max-height: 88vh;
+        overflow: hidden;
+    }
+</style>
 
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        'sans': ['"Plus Jakarta Sans"', 'sans-serif'],
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
                     },
                     colors: {
                         brand: {
@@ -41,9 +139,9 @@
                         background: '#f8fafc',
                     },
                     boxShadow: {
-                        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+                        glass: '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
                         'glow-blue': '0 0 20px -5px rgba(37, 99, 235, 0.4)',
-                        'floating': '0 12px 24px -6px rgba(0, 0, 0, 0.08)',
+                        floating: '0 12px 24px -6px rgba(0, 0, 0, 0.08)',
                     },
                     animation: {
                         'fade-in-up': 'fadeInUp 0.5s ease-out forwards',
@@ -62,21 +160,20 @@
     {% block extra_css %}{% endblock %}
 </head>
 
-<body class="flex h-screen overflow-hidden antialiased selection:bg-brand-600 selection:text-white">
+<body class="antialiased selection:bg-brand-600 selection:text-white bg-slate-50">
+    <div class="app-shell flex w-full">
+        {% include 'header.html' %}
 
-    {% include 'header.html' %}
+        <div class="flex-1 min-w-0 min-h-0 flex flex-col relative">
+            {% include 'cabecera_base.html' %}
 
-    <div class="flex-1 flex flex-col h-screen overflow-hidden relative transition-all duration-300 min-w-0">
-        
-        {% include 'cabecera_base.html' %}
+            <main class="app-main-scroll flex-1 px-4 py-4 lg:px-4 lg:py-6 animate-fade-in-up">
+                {% block content %}
+                {% endblock content %}
+            </main>
 
-        <main class="flex-1 overflow-y-auto px-4 py-4 lg:px-4 lg:py-6 scroll-smooth animate-fade-in-up">
-            {% block content %}
-                
-            {% endblock content %}
-        </main>
-
-        {% include 'footer.html' %}
+            {% include 'footer.html' %}
+        </div>
     </div>
 
     {% include 'buscador.html' %}

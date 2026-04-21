@@ -12,6 +12,8 @@ from django.core.validators import FileExtensionValidator, MinValueValidator
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
+
+
 TASA_IGV_PORCENTAJE = Decimal('0.18') 
 
 class Norma(models.Model):
@@ -81,66 +83,87 @@ class Servicio(models.Model):
 
 class Cotizacion(models.Model):
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='cotizaciones', verbose_name="Cliente")
-    trabajador_responsable = models.ForeignKey(TrabajadorProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='cotizaciones_emitidas', verbose_name="Responsable de la Oferta")
-    
+    trabajador_responsable = models.ForeignKey(
+        TrabajadorProfile,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='cotizaciones_emitidas',
+        verbose_name="Responsable de la Oferta"
+    )
+
     numero_oferta = models.CharField(max_length=50, unique=True, blank=True, null=True, verbose_name="Número de Oferta")
     fecha_generacion = models.DateField(default=timezone.now, verbose_name="Fecha de Generación")
-    
+
     es_plantilla = models.BooleanField(default=False, verbose_name="¿Es una Plantilla?")
     nombre_plantilla = models.CharField(max_length=150, blank=True, null=True, verbose_name="Nombre identificador de la Plantilla")
-    
+
     servicio_general = models.ForeignKey(
         'CategoriaServicio',
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         verbose_name="Categoría General"
     )
     asunto_servicio = models.CharField(max_length=255, verbose_name="Asunto del Servicio")
     proyecto_asociado = models.CharField(max_length=255, blank=True, null=True, verbose_name="Proyecto del Cliente")
-    
+
     persona_contacto = models.CharField(max_length=200, verbose_name="Persona de Contacto")
     correo_contacto = models.EmailField(verbose_name="Correo de Contacto")
     telefono_contacto = models.CharField(max_length=20, verbose_name="Teléfono de Contacto")
-    
+
     ESTADO_CHOICES = [
         ('Pendiente', 'Pendiente de Revisión'),
         ('Enviada', 'Enviada al Cliente'),
         ('Aceptada', 'Aceptada'),
         ('Rechazada', 'Rechazada'),
-        ('Anulada', 'Anulada')
+        ('Anulada', 'Anulada'),
     ]
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='Pendiente', verbose_name="Estado")
-    
+
     plazo_entrega_dias = models.IntegerField(default=30, verbose_name="Plazo de Entrega (Días)")
-    
+
     FORMA_PAGO_CHOICES = [
         ('Contado', 'Al Contado'),
         ('15_dias', 'A 15 días'),
         ('30_dias', 'A 30 días'),
         ('60_dias', 'A 60 días'),
-        ('Personalizado', 'Personalizado')
+        ('Personalizado', 'Personalizado'),
     ]
     forma_pago = models.CharField(max_length=20, choices=FORMA_PAGO_CHOICES, default='Contado', verbose_name="Forma de Pago")
     validez_oferta_dias = models.IntegerField(default=30, validators=[MinValueValidator(1)], verbose_name="Validez de la Oferta (Días)")
-    
+
     tasa_igv = models.DecimalField(max_digits=5, decimal_places=3, default=0.18)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
     impuesto_igv = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
     monto_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
-    
+
     observaciones_condiciones = models.TextField(blank=True, null=True, verbose_name="Observaciones Adicionales")
-    
+
+    # NUEVO
+    contenido_condiciones_configurado = models.BooleanField(
+        default=False,
+        verbose_name="¿Se configuró el contenido dinámico?"
+    )
+    contenido_condiciones_bloqueado = models.BooleanField(
+        default=False,
+        verbose_name="¿Contenido bloqueado para edición?"
+    )
+    contenido_condiciones_fecha_bloqueo = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name="Fecha de bloqueo del contenido"
+    )
+
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
 
     @property
     def detalles_cotizacion(self):
-        from .models import CotizacionDetalle 
+        from .models import CotizacionDetalle
         return CotizacionDetalle.objects.filter(grupo__cotizacion=self)
 
     def calcular_totales(self):
-        """Suma el total de todos los detalles asociados."""
         total_neto = self.detalles_cotizacion.aggregate(
             sum_total=models.Sum('total_detalle')
         )['sum_total'] or Decimal('0.00')
@@ -149,18 +172,35 @@ class Cotizacion(models.Model):
         self.impuesto_igv = self.subtotal * self.tasa_igv
         self.monto_total = self.subtotal + self.impuesto_igv
 
+    def puede_editar_contenido_condiciones(self):
+        return not self.contenido_condiciones_bloqueado and self.estado not in ('Aceptada', 'Anulada')
+
+    def bloquear_contenido_condiciones(self):
+        self.contenido_condiciones_bloqueado = True
+        self.contenido_condiciones_fecha_bloqueo = timezone.now()
+        self.save(update_fields=[
+            'contenido_condiciones_bloqueado',
+            'contenido_condiciones_fecha_bloqueo',
+            'fecha_actualizacion',
+        ])
+
     def save(self, *args, **kwargs):
         if self.es_plantilla:
-            self.estado = 'Plantilla'
-            self.numero_oferta = None 
+            self.numero_oferta = None
             if not self.nombre_plantilla:
                 self.nombre_plantilla = f"Modelo: {self.asunto_servicio}"
-        
+
         super().save(*args, **kwargs)
-        
+
         self.calcular_totales()
-        
-        super().save(update_fields=['subtotal', 'impuesto_igv', 'monto_total', 'estado', 'numero_oferta', 'nombre_plantilla'])
+
+        super().save(update_fields=[
+            'subtotal',
+            'impuesto_igv',
+            'monto_total',
+            'numero_oferta',
+            'nombre_plantilla',
+        ])
 
     def __str__(self):
         if self.es_plantilla:
@@ -310,3 +350,344 @@ class PlantillaDetalle(models.Model):
         plantilla = self.grupo.plantilla
         super().delete(*args, **kwargs)
         plantilla.calcular_totales()
+        
+class CatalogoCondicionSeccion(models.Model):
+    TIPO_CHOICES = [
+        ('notas', 'Notas'),
+        ('lista', 'Lista'),
+    ]
+
+    codigo = models.CharField(max_length=50, unique=True, verbose_name="Código interno")
+    titulo = models.CharField(max_length=255, verbose_name="Título de la sección")
+    tipo = models.CharField(
+        max_length=20,
+        choices=TIPO_CHOICES,
+        default='lista',
+        verbose_name="Tipo de presentación"
+    )
+    orden = models.PositiveIntegerField(default=1, verbose_name="Orden")
+    activo = models.BooleanField(default=True, verbose_name="Activo")
+    es_obligatoria = models.BooleanField(
+        default=False,
+        verbose_name="¿La sección siempre debe mostrarse?"
+    )
+
+    class Meta:
+        verbose_name = "Catálogo - Sección de Condición"
+        verbose_name_plural = "Catálogo - Secciones de Condiciones"
+        ordering = ['orden', 'id']
+
+    def __str__(self):
+        return f"{self.orden}. {self.titulo}"
+
+
+class CatalogoCondicionItem(models.Model):
+    TIPO_NODO_CHOICES = [
+        ('grupo', 'Grupo / Padre'),
+        ('item', 'Ítem / Viñeta'),
+    ]
+
+    seccion = models.ForeignKey(
+        CatalogoCondicionSeccion,
+        on_delete=models.CASCADE,
+        related_name='items',
+        verbose_name="Sección"
+    )
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        related_name='children',
+        blank=True,
+        null=True,
+        verbose_name="Padre"
+    )
+
+    tipo_nodo = models.CharField(
+        max_length=20,
+        choices=TIPO_NODO_CHOICES,
+        default='item',
+        verbose_name="Tipo de nodo"
+    )
+    titulo = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Título corto"
+    )
+    texto = models.TextField(verbose_name="Texto base")
+    orden = models.PositiveIntegerField(default=1, verbose_name="Orden")
+    nivel = models.PositiveSmallIntegerField(default=0, verbose_name="Nivel jerárquico")
+
+    activo = models.BooleanField(default=True, verbose_name="Activo")
+    seleccionado_por_defecto = models.BooleanField(
+        default=False,
+        verbose_name="Seleccionado por defecto"
+    )
+    editable_en_cotizacion = models.BooleanField(
+        default=True,
+        verbose_name="¿Editable en cotización?"
+    )
+    es_obligatorio = models.BooleanField(
+        default=False,
+        verbose_name="¿Siempre debe incluirse?"
+    )
+
+    class Meta:
+        verbose_name = "Catálogo - Ítem de Condición"
+        verbose_name_plural = "Catálogo - Ítems de Condiciones"
+        ordering = ['seccion__orden', 'orden', 'id']
+        indexes = [
+            models.Index(fields=['seccion', 'orden']),
+            models.Index(fields=['parent', 'orden']),
+            models.Index(fields=['activo']),
+        ]
+
+    def clean(self):
+        if self.parent and self.parent.seccion_id != self.seccion_id:
+            raise ValidationError("El padre debe pertenecer a la misma sección.")
+        if self.parent and self.parent_id == self.id:
+            raise ValidationError("Un ítem no puede ser padre de sí mismo.")
+
+    def __str__(self):
+        base = self.titulo or self.texto[:70]
+        return f"{self.seccion.titulo} - {base}"
+
+
+class CotizacionCondicionSeccion(models.Model):
+    cotizacion = models.ForeignKey(
+        Cotizacion,
+        on_delete=models.CASCADE,
+        related_name='condiciones_secciones',
+        verbose_name="Cotización"
+    )
+    catalogo_seccion = models.ForeignKey(
+        CatalogoCondicionSeccion,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='snapshots',
+        verbose_name="Sección de catálogo origen"
+    )
+
+    codigo = models.CharField(max_length=50, verbose_name="Código congelado")
+    titulo = models.CharField(max_length=255, verbose_name="Título congelado")
+    tipo = models.CharField(max_length=20, default='lista', verbose_name="Tipo congelado")
+    orden = models.PositiveIntegerField(default=1, verbose_name="Orden")
+
+    seleccionada = models.BooleanField(default=False, verbose_name="Seleccionada")
+
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Cotización - Sección de Condición"
+        verbose_name_plural = "Cotización - Secciones de Condiciones"
+        ordering = ['orden', 'id']
+        unique_together = [('cotizacion', 'codigo')]
+        indexes = [
+            models.Index(fields=['cotizacion', 'orden']),
+            models.Index(fields=['cotizacion', 'codigo']),
+        ]
+
+    def __str__(self):
+        return f"{self.cotizacion} - {self.titulo}"
+
+
+class CotizacionCondicionItem(models.Model):
+    seccion = models.ForeignKey(
+        CotizacionCondicionSeccion,
+        on_delete=models.CASCADE,
+        related_name='items',
+        verbose_name="Sección de cotización"
+    )
+    catalogo_item = models.ForeignKey(
+        CatalogoCondicionItem,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='snapshots',
+        verbose_name="Ítem de catálogo origen"
+    )
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        related_name='children',
+        blank=True,
+        null=True,
+        verbose_name="Padre"
+    )
+
+    tipo_nodo = models.CharField(
+        max_length=20,
+        choices=CatalogoCondicionItem.TIPO_NODO_CHOICES,
+        default='item',
+        verbose_name="Tipo de nodo"
+    )
+    titulo = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Título congelado"
+    )
+
+    texto_base = models.TextField(verbose_name="Texto base copiado del catálogo")
+    texto_final = models.TextField(verbose_name="Texto final de la cotización")
+
+    orden = models.PositiveIntegerField(default=1, verbose_name="Orden")
+    nivel = models.PositiveSmallIntegerField(default=0, verbose_name="Nivel jerárquico")
+
+    seleccionado = models.BooleanField(default=False, verbose_name="Seleccionado")
+    es_obligatorio = models.BooleanField(default=False, verbose_name="Obligatorio")
+    editable_en_cotizacion = models.BooleanField(default=True, verbose_name="Editable en cotización")
+    fue_editado = models.BooleanField(default=False, verbose_name="¿Fue editado respecto al base?")
+
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Cotización - Ítem de Condición"
+        verbose_name_plural = "Cotización - Ítems de Condiciones"
+        ordering = ['seccion__orden', 'orden', 'id']
+        indexes = [
+            models.Index(fields=['seccion', 'orden']),
+            models.Index(fields=['parent', 'orden']),
+            models.Index(fields=['seleccionado']),
+        ]
+
+    def clean(self):
+        if self.parent and self.parent.seccion_id != self.seccion_id:
+            raise ValidationError("El padre debe pertenecer a la misma sección de cotización.")
+        if self.parent and self.parent_id == self.id:
+            raise ValidationError("Un ítem no puede ser padre de sí mismo.")
+
+    def save(self, *args, **kwargs):
+        if not self.texto_final:
+            self.texto_final = self.texto_base
+
+        self.fue_editado = (self.texto_base or '').strip() != (self.texto_final or '').strip()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        base = self.titulo or self.texto_final[:70]
+        return f"{self.seccion.titulo} - {base}"
+
+
+class PlantillaCondicionSeccion(models.Model):
+    plantilla = models.ForeignKey(
+        PlantillaCotizacion,
+        on_delete=models.CASCADE,
+        related_name='condiciones_secciones',
+        verbose_name="Plantilla"
+    )
+    catalogo_seccion = models.ForeignKey(
+        CatalogoCondicionSeccion,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='snapshots_plantilla',
+        verbose_name="Sección de catálogo origen"
+    )
+
+    codigo = models.CharField(max_length=50, verbose_name="Código congelado")
+    titulo = models.CharField(max_length=255, verbose_name="Título congelado")
+    tipo = models.CharField(max_length=20, default='lista', verbose_name="Tipo congelado")
+    orden = models.PositiveIntegerField(default=1, verbose_name="Orden")
+
+    seleccionada = models.BooleanField(default=False, verbose_name="Seleccionada")
+
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Plantilla - Sección de Condición"
+        verbose_name_plural = "Plantilla - Secciones de Condiciones"
+        ordering = ['orden', 'id']
+        unique_together = [('plantilla', 'codigo')]
+        indexes = [
+            models.Index(fields=['plantilla', 'orden']),
+            models.Index(fields=['plantilla', 'codigo']),
+        ]
+
+    def __str__(self):
+        return f"{self.plantilla} - {self.titulo}"
+
+
+class PlantillaCondicionItem(models.Model):
+    seccion = models.ForeignKey(
+        PlantillaCondicionSeccion,
+        on_delete=models.CASCADE,
+        related_name='items',
+        verbose_name="Sección de plantilla"
+    )
+    catalogo_item = models.ForeignKey(
+        CatalogoCondicionItem,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='snapshots_plantilla',
+        verbose_name="Ítem de catálogo origen"
+    )
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        related_name='children',
+        blank=True,
+        null=True,
+        verbose_name="Padre"
+    )
+
+    tipo_nodo = models.CharField(
+        max_length=20,
+        choices=CatalogoCondicionItem.TIPO_NODO_CHOICES,
+        default='item',
+        verbose_name="Tipo de nodo"
+    )
+    titulo = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Título congelado"
+    )
+
+    texto_base = models.TextField(verbose_name="Texto base copiado del catálogo")
+    texto_final = models.TextField(verbose_name="Texto final de la plantilla")
+
+    orden = models.PositiveIntegerField(default=1, verbose_name="Orden")
+    nivel = models.PositiveSmallIntegerField(default=0, verbose_name="Nivel jerárquico")
+
+    seleccionado = models.BooleanField(default=False, verbose_name="Seleccionado")
+    es_obligatorio = models.BooleanField(default=False, verbose_name="Obligatorio")
+    editable_en_cotizacion = models.BooleanField(default=True, verbose_name="Editable")
+    fue_editado = models.BooleanField(default=False, verbose_name="¿Fue editado respecto al base?")
+
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Plantilla - Ítem de Condición"
+        verbose_name_plural = "Plantilla - Ítems de Condiciones"
+        ordering = ['seccion__orden', 'orden', 'id']
+        indexes = [
+            models.Index(fields=['seccion', 'orden']),
+            models.Index(fields=['parent', 'orden']),
+            models.Index(fields=['seleccionado']),
+        ]
+
+    def clean(self):
+        if self.parent and self.parent.seccion_id != self.seccion_id:
+            raise ValidationError("El padre debe pertenecer a la misma sección de plantilla.")
+        if self.parent and self.parent_id == self.id:
+            raise ValidationError("Un ítem no puede ser padre de sí mismo.")
+
+    def save(self, *args, **kwargs):
+        if not self.texto_final:
+            self.texto_final = self.texto_base
+        self.fue_editado = (self.texto_base or '').strip() != (self.texto_final or '').strip()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        base = self.titulo or self.texto_final[:70]
+        return f"{self.seccion.titulo} - {base}"
+    
+    
+

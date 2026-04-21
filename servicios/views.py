@@ -32,16 +32,25 @@ from proyectos.models import Proyecto
 from trabajadores.models import TrabajadorProfile
 from clientes.models import Cliente
 from .models import (
-    Servicio, 
-    Norma, 
-    Metodo, 
-    Cotizacion, 
-    CotizacionDetalle, 
-    Voucher, 
+    Servicio,
+    Norma,
+    Metodo,
+    Cotizacion,
+    CotizacionDetalle,
+    Voucher,
     CategoriaServicio,
-    Subcategoria, CotizacionGrupo, PlantillaCotizacion, PlantillaGrupo, PlantillaDetalle
+    Subcategoria,
+    CotizacionGrupo,
+    PlantillaCotizacion,
+    PlantillaGrupo,
+    PlantillaDetalle,
+    CatalogoCondicionSeccion,
+    CatalogoCondicionItem,
+    CotizacionCondicionSeccion,
+    CotizacionCondicionItem,
+    PlantillaCondicionSeccion,
+    PlantillaCondicionItem,
 )
-
 
 @login_required
 def lista_servicios(request):
@@ -427,6 +436,49 @@ def lista_cotizaciones(request):
     }
     return render(request, 'servicios/cotizacion_list.html', context)
 
+def _guardar_snapshot_condiciones_cotizacion(cotizacion, secciones_data):
+    if not isinstance(secciones_data, list):
+        return
+
+    cotizacion.condiciones_secciones.all().delete()
+
+    total_items = 0
+
+    for seccion_data in secciones_data:
+        catalogo_seccion = None
+        catalogo_seccion_id = seccion_data.get('catalogo_seccion_id')
+
+        if catalogo_seccion_id:
+            catalogo_seccion = CatalogoCondicionSeccion.objects.filter(pk=catalogo_seccion_id).first()
+
+        seccion_snapshot = CotizacionCondicionSeccion.objects.create(
+            cotizacion=cotizacion,
+            catalogo_seccion=catalogo_seccion,
+            codigo=seccion_data.get('codigo') or (catalogo_seccion.codigo if catalogo_seccion else ''),
+            titulo=seccion_data.get('titulo') or (catalogo_seccion.titulo if catalogo_seccion else ''),
+            tipo=seccion_data.get('tipo') or (catalogo_seccion.tipo if catalogo_seccion else 'lista'),
+            orden=seccion_data.get('orden') or (catalogo_seccion.orden if catalogo_seccion else 1),
+            seleccionada=bool(seccion_data.get('seleccionada', True)),
+        )
+
+        root_items = seccion_data.get('items', []) or []
+        for item_data in root_items:
+            _crear_item_snapshot_recursivo(
+                seccion_snapshot=seccion_snapshot,
+                item_data=item_data,
+                parent_snapshot=None
+            )
+
+    total_items = CotizacionCondicionItem.objects.filter(
+        seccion__cotizacion=cotizacion
+    ).count()
+
+    cotizacion.contenido_condiciones_configurado = total_items > 0
+    cotizacion.save(update_fields=[
+        'contenido_condiciones_configurado',
+        'fecha_actualizacion',
+    ])
+
 @login_required
 def crear_editar_cotizacion(request, pk=None):
     cotizacion = None
@@ -435,7 +487,13 @@ def crear_editar_cotizacion(request, pk=None):
     es_clonacion = request.GET.get('clon') == '1'
 
     if is_editing:
-        cotizacion = get_object_or_404(Cotizacion, pk=pk)
+        cotizacion = get_object_or_404(
+            Cotizacion.objects.prefetch_related(
+                'grupos__detalles_items__servicio',
+                'condiciones_secciones__items__children'
+            ),
+            pk=pk
+        )
         if cotizacion.estado == 'Aceptada':
             messages.error(request, 'Esta cotización ya está aprobada y no se puede editar.')
             return redirect('servicios:lista_cotizaciones')
@@ -448,15 +506,24 @@ def crear_editar_cotizacion(request, pk=None):
                     raise ValueError("El campo Cliente es obligatorio.")
 
                 cliente = Cliente.objects.get(pk=cliente_id)
-                detalles_data_json = request.POST.get('detalles_json')
 
+                detalles_data_json = request.POST.get('detalles_json')
                 if not detalles_data_json:
                     raise ValueError("El JSON de detalles está vacío.")
 
                 detalles_data = json.loads(detalles_data_json)
-
                 if not detalles_data:
                     raise ValueError("La cotización debe tener al menos un servicio.")
+
+                condiciones_data_json = request.POST.get('condiciones_json', '').strip()
+                condiciones_data = []
+                if condiciones_data_json:
+                    try:
+                        condiciones_data = json.loads(condiciones_data_json)
+                        if not isinstance(condiciones_data, list):
+                            condiciones_data = []
+                    except json.JSONDecodeError:
+                        raise ValueError("El contenido de condiciones tiene un formato inválido.")
 
                 if not is_editing:
                     cotizacion = Cotizacion(cliente=cliente)
@@ -474,14 +541,14 @@ def crear_editar_cotizacion(request, pk=None):
                         cotizacion.trabajador_responsable = None
                 elif is_editing and not trabajador_id_post:
                     cotizacion.trabajador_responsable = None
-                
+
                 cotizacion.cliente = cliente
                 cotizacion.asunto_servicio = request.POST.get('asunto_servicio')
                 cotizacion.proyecto_asociado = request.POST.get('proyecto_asociado')
                 cotizacion.persona_contacto = request.POST.get('persona_contacto')
                 cotizacion.correo_contacto = request.POST.get('correo_contacto')
                 cotizacion.telefono_contacto = request.POST.get('telefono_contacto')
-                
+
                 cotizacion.es_plantilla = request.POST.get('es_plantilla') == 'on'
                 cotizacion.nombre_plantilla = request.POST.get('nombre_plantilla') if cotizacion.es_plantilla else None
 
@@ -491,20 +558,21 @@ def crear_editar_cotizacion(request, pk=None):
                         cotizacion.fecha_generacion = date.fromisoformat(fecha_generacion_str)
                     except ValueError:
                         pass
-                
+
                 if not cotizacion.fecha_generacion:
                     cotizacion.fecha_generacion = date.today()
-                
-                if cotizacion.es_plantilla:
-                    cotizacion.estado = 'Plantilla'
-                else:
-                    cotizacion.estado = request.POST.get('estado', cotizacion.estado if is_editing else 'Pendiente')
-                
-                cotizacion.aprobada_por_cliente = request.POST.get('aprobada_por_cliente') == 'on'
+
+                if not cotizacion.es_plantilla:
+                    cotizacion.estado = request.POST.get(
+                        'estado',
+                        cotizacion.estado if is_editing else 'Pendiente'
+                    )
 
                 servicio_general_pk = request.POST.get('servicio_general')
                 if servicio_general_pk:
                     cotizacion.servicio_general = CategoriaServicio.objects.get(pk=servicio_general_pk)
+                else:
+                    cotizacion.servicio_general = None
 
                 fp_seleccionada = request.POST.get('forma_pago')
                 if fp_seleccionada == 'Personalizado':
@@ -531,17 +599,17 @@ def crear_editar_cotizacion(request, pk=None):
                     max_result = Cotizacion.objects.filter(
                         numero_oferta__startswith=f'{prefix}-{year_part}-'
                     ).aggregate(Max('numero_oferta'))
-                    
+
                     last_num_oferta = max_result.get('numero_oferta__max')
                     next_order_num = 1
                     if last_num_oferta:
                         try:
                             next_order_num = int(last_num_oferta.split('-')[-1]) + 1
-                        except (IndexError, ValueError): 
+                        except (IndexError, ValueError):
                             next_order_num = 1
                     cotizacion.numero_oferta = f'{prefix}-{year_part}-{str(next_order_num).zfill(3)}'
                 elif cotizacion.es_plantilla:
-                    cotizacion.numero_oferta = None 
+                    cotizacion.numero_oferta = None
 
                 cotizacion.save()
 
@@ -556,6 +624,7 @@ def crear_editar_cotizacion(request, pk=None):
 
                 for index, item in enumerate(detalles_data):
                     tipo_fila = item.get('tipo_fila')
+
                     if tipo_fila in ['categoria', 'subcategoria']:
                         grupo_actual = CotizacionGrupo.objects.create(
                             cotizacion=cotizacion,
@@ -565,16 +634,20 @@ def crear_editar_cotizacion(request, pk=None):
                         continue
 
                     servicio_id = item.get('servicio_id')
-                    if not servicio_id: continue
-                    
+                    if not servicio_id:
+                        continue
+
                     servicio = Servicio.objects.get(pk=int(servicio_id))
+
                     partes_desc = []
-                    cat_nom = item.get('categoria_nom', '') 
-                    subcat_nom = item.get('subcategoria_nom', '') 
-                    
-                    if cat_nom: partes_desc.append(cat_nom.upper())
-                    if subcat_nom: partes_desc.append(subcat_nom)
-                    
+                    cat_nom = item.get('categoria_nom', '')
+                    subcat_nom = item.get('subcategoria_nom', '')
+
+                    if cat_nom:
+                        partes_desc.append(cat_nom.upper())
+                    if subcat_nom:
+                        partes_desc.append(subcat_nom)
+
                     desc_generada = f"{' - '.join(partes_desc)}: {servicio.nombre}" if partes_desc else servicio.nombre
                     desc_final = item.get('descripcion_especifica') or desc_generada
 
@@ -583,7 +656,7 @@ def crear_editar_cotizacion(request, pk=None):
                     if norma_id and str(norma_id).isdigit():
                         n = Norma.objects.filter(pk=norma_id).first()
                         norma_txt = n.codigo if n else ""
-                    
+
                     metodo_txt = ""
                     metodo_id = item.get('metodo_id')
                     if metodo_id and str(metodo_id).isdigit():
@@ -604,6 +677,18 @@ def crear_editar_cotizacion(request, pk=None):
                 cotizacion.calcular_totales()
                 cotizacion.save()
 
+                if condiciones_data:
+                    _guardar_snapshot_condiciones_cotizacion(cotizacion, condiciones_data)
+                elif is_editing and cotizacion.condiciones_secciones.exists():
+                    pass
+                else:
+                    cotizacion.condiciones_secciones.all().delete()
+                    cotizacion.contenido_condiciones_configurado = False
+                    cotizacion.save(update_fields=[
+                        'contenido_condiciones_configurado',
+                        'fecha_actualizacion',
+                    ])
+
                 identificador = cotizacion.nombre_plantilla if cotizacion.es_plantilla else cotizacion.numero_oferta
                 messages.success(request, f"¡Cotización/Plantilla {identificador} procesada con éxito! ✅")
                 return redirect('servicios:lista_cotizaciones')
@@ -611,7 +696,13 @@ def crear_editar_cotizacion(request, pk=None):
         except Exception as e:
             error = f'Error al procesar: {str(e)}'
             if is_editing and pk:
-                cotizacion = get_object_or_404(Cotizacion, pk=pk)
+                cotizacion = get_object_or_404(
+                    Cotizacion.objects.prefetch_related(
+                        'grupos__detalles_items__servicio',
+                        'condiciones_secciones__items__children'
+                    ),
+                    pk=pk
+                )
 
     clientes = Cliente.objects.all().order_by('razon_social')
     servicios_queryset = Servicio.objects.all().select_related('norma', 'metodo')
@@ -623,39 +714,56 @@ def crear_editar_cotizacion(request, pk=None):
     servicios_list = []
     for s in servicios_queryset:
         servicios_list.append({
-            'pk': s.pk, 'nombre': s.nombre, 'unidad_base': s.unidad_base,
-            'precio_base': str(s.precio_base), 
+            'pk': s.pk,
+            'nombre': s.nombre,
+            'unidad_base': s.unidad_base,
+            'precio_base': str(s.precio_base),
             'norma_codigo': s.norma.codigo if s.norma else 'N/A',
             'metodo_codigo': s.metodo.codigo if s.metodo else 'N/A',
+            'norma_pk': s.norma.pk if s.norma else None,
+            'metodo_pk': s.metodo.pk if s.metodo else None,
         })
 
     detalles_list = []
     if cotizacion:
         for grupo in cotizacion.grupos.all().order_by('orden'):
             if grupo.nombre_grupo != "ENSAYOS DE LABORATORIO":
-                detalles_list.append({'tipo_fila': 'categoria', 'descripcion_especifica': grupo.nombre_grupo})
+                detalles_list.append({
+                    'tipo_fila': 'categoria',
+                    'descripcion_especifica': grupo.nombre_grupo
+                })
             for detalle in grupo.detalles_items.all():
                 detalles_list.append({
-                    'tipo_fila': 'servicio', 'servicio_id': detalle.servicio.pk,
+                    'tipo_fila': 'servicio',
+                    'servicio_id': detalle.servicio.pk,
                     'descripcion_especifica': detalle.descripcion_especifica,
-                    'norma_manual': detalle.norma_manual, 'metodo_manual': detalle.metodo_manual,
-                    'unidad_medida': detalle.unidad_medida, 'cantidad': str(detalle.cantidad),
-                    'precio_unitario': str(detalle.precio_unitario), 'total_detalle': str(detalle.total_detalle)
+                    'norma_manual': detalle.norma_manual,
+                    'metodo_manual': detalle.metodo_manual,
+                    'unidad_medida': detalle.unidad_medida,
+                    'cantidad': str(detalle.cantidad),
+                    'precio_unitario': str(detalle.precio_unitario),
+                    'total_detalle': str(detalle.total_detalle)
                 })
-    
+
+    if cotizacion and cotizacion.condiciones_secciones.exists():
+        condiciones_list = _obtener_condiciones_desde_snapshot(cotizacion)
+    else:
+        condiciones_list = _obtener_condiciones_desde_catalogo()
+
     context = {
         'cotizacion': cotizacion,
         'clientes': clientes,
         'servicios': servicios_queryset,
-        'servicio_grupos': categorias_principales, 
-        'subcategorias': subcategorias_list,        
+        'servicio_grupos': categorias_principales,
+        'subcategorias': subcategorias_list,
         'servicios_con_detalles_json': json.dumps(servicios_list),
-        'detalles_cotizacion_json': json.dumps(detalles_list), 
+        'detalles_cotizacion_json': json.dumps(detalles_list),
+        'condiciones_cotizacion_json': json.dumps(condiciones_list),
         'error': error,
         'estados_choices': Cotizacion.ESTADO_CHOICES,
         'forma_pago_choices': Cotizacion.FORMA_PAGO_CHOICES,
         'trabajadores': trabajadores,
-        'es_clonacion': es_clonacion, 
+        'es_clonacion': es_clonacion,
         'plantillas': plantillas,
     }
     return render(request, 'servicios/cotizaciones_form.html', context)
@@ -732,54 +840,178 @@ def header_footer_callback(canvas, doc):
     
     canvas.drawString(doc.width + doc.leftMargin - 1.0 * cm, 1.0 * cm, page_text)
 
+
+def _build_condiciones_pdf_data(cotizacion):
+    secciones_pdf = []
+
+    secciones = cotizacion.condiciones_secciones.prefetch_related(
+        'items__children__children'
+    ).all().order_by('orden', 'id')
+
+    def build_selected_node(item):
+        children_qs = item.children.all().order_by('orden', 'id')
+        children_blocks = []
+
+        for child in children_qs:
+            child_block = build_selected_node(child)
+            if child_block:
+                children_blocks.append(child_block)
+
+        has_self = bool(item.seleccionado and (item.texto_final or item.titulo))
+        has_children = bool(children_blocks)
+
+        if not has_self and not has_children:
+            return None
+
+        return {
+            'titulo': item.titulo or '',
+            'texto': item.texto_final or '',
+            'children': children_blocks,
+        }
+
+    def flatten_blocks_for_pdf(block):
+        rows = []
+
+        if block['texto']:
+            rows.append({
+                'titulo': block['titulo'],
+                'texto': block['texto'],
+                'children': []
+            })
+
+        for child in block['children']:
+            child_rows = flatten_blocks_for_pdf(child)
+            rows.extend(child_rows)
+
+        return rows
+
+    for seccion in secciones:
+        root_items = seccion.items.filter(parent__isnull=True).order_by('orden', 'id')
+
+        bloques = []
+        for item in root_items:
+            node = build_selected_node(item)
+            if node:
+                bloques.extend(flatten_blocks_for_pdf(node))
+
+        if not bloques:
+            continue
+
+        secciones_pdf.append({
+            'codigo': seccion.codigo,
+            'titulo': seccion.titulo,
+            'tipo': seccion.tipo,
+            'items': bloques,
+        })
+
+    return secciones_pdf
+
+
+@login_required
 def generar_pdf_cotizacion(request, pk):
     cotizacion = get_object_or_404(
-        Cotizacion.objects.prefetch_related('grupos__detalles_items__servicio')
-                          .select_related('cliente', 'trabajador_responsable'),
+        Cotizacion.objects.prefetch_related(
+            'grupos__detalles_items__servicio__norma',
+            'condiciones_secciones__items__children'
+        ).select_related(
+            'cliente',
+            'trabajador_responsable',
+            'servicio_general'
+        ),
         pk=pk
     )
-    
+
     jefe_laboratorio = cotizacion.trabajador_responsable
     if not jefe_laboratorio:
         try:
             jefe_laboratorio = TrabajadorProfile.objects.select_related('user').get(user__username='raquel')
         except (TrabajadorProfile.DoesNotExist, TrabajadorProfile.MultipleObjectsReturned):
             jefe_laboratorio = None
-    
+
     tasa_igv_decimal = cotizacion.tasa_igv if cotizacion.tasa_igv is not None else Decimal('0.18')
     subtotal = cotizacion.subtotal if cotizacion.subtotal is not None else Decimal('0.00')
     igv_amount = cotizacion.impuesto_igv if cotizacion.impuesto_igv is not None else (subtotal * tasa_igv_decimal)
     monto_total = cotizacion.monto_total if cotizacion.monto_total is not None else (subtotal + igv_amount)
-    
     igv_porcentaje = int(tasa_igv_decimal * 100)
+
+    grupos_qs = cotizacion.grupos.all().order_by('orden', 'id')
+    grupos_visibles = [g for g in grupos_qs if g.nombre_grupo != "ENSAYOS DE LABORATORIO"]
+
+    if not grupos_visibles:
+        grupos_visibles = list(grupos_qs)
+
+    def serializar_items_pdf(items_queryset):
+        items_pdf = []
+
+        for item in items_queryset.order_by('orden', 'id'):
+            if item.seleccionado and (item.texto_final or '').strip():
+                items_pdf.append({
+                    'texto': item.texto_final.strip()
+                })
+
+            children = item.children.all().order_by('orden', 'id')
+            for child in children:
+                if child.seleccionado and (child.texto_final or '').strip():
+                    items_pdf.append({
+                        'texto': child.texto_final.strip()
+                    })
+
+        return items_pdf
+
+    secciones_condiciones_pdf = []
+
+    if cotizacion.condiciones_secciones.exists():
+        for seccion in cotizacion.condiciones_secciones.all().order_by('orden', 'id'):
+            root_items = seccion.items.filter(parent__isnull=True)
+            items_pdf = serializar_items_pdf(root_items)
+
+            if items_pdf:
+                secciones_condiciones_pdf.append({
+                    'codigo': seccion.codigo,
+                    'titulo': seccion.titulo,
+                    'items': items_pdf
+                })
+
+    firma_aprobacion = None
+    if jefe_laboratorio:
+        posibles_campos = ['firma', 'firma_digital', 'imagen_firma']
+        for campo in posibles_campos:
+            archivo = getattr(jefe_laboratorio, campo, None)
+            if archivo:
+                try:
+                    firma_aprobacion = request.build_absolute_uri(archivo.url)
+                    break
+                except Exception:
+                    firma_aprobacion = None
 
     context = {
         'cotizacion': cotizacion,
-        'grupos': cotizacion.grupos.all().order_by('orden'),
+        'grupos': grupos_visibles,
         'subtotal_final': subtotal,
         'igv_monto_final': igv_amount,
         'monto_total_final': monto_total,
-        'igv_porcentaje': igv_porcentaje, 
+        'igv_porcentaje': igv_porcentaje,
         'jefe_laboratorio': jefe_laboratorio,
+        'secciones_condiciones_pdf': secciones_condiciones_pdf,
+        'firma_aprobacion': firma_aprobacion,
     }
 
     template = get_template('servicios/cotizacion_pdf.html')
     html = template.render(context)
-    
-    response = HttpResponse(content_type='application/pdf')
 
+    response = HttpResponse(content_type='application/pdf')
     nombre_archivo = f"{cotizacion.numero_oferta}.pdf" if cotizacion.numero_oferta else f"Cotizacion_{pk}.pdf"
-    response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"' 
+    response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
 
     pisa_status = pisa.CreatePDF(
-        html,                   
-        dest=response,          
-        link_callback=link_callback 
+        html,
+        dest=response,
+        link_callback=link_callback
     )
 
     if pisa_status.err:
         return HttpResponse('Tuvimos errores al generar el PDF.', status=500)
-    
+
     return response
 
 @login_required
@@ -1054,7 +1286,13 @@ def crear_editar_plantilla(request, pk=None):
     is_editing = pk is not None
 
     if is_editing:
-        plantilla = get_object_or_404(PlantillaCotizacion, pk=pk)
+        plantilla = get_object_or_404(
+            PlantillaCotizacion.objects.prefetch_related(
+                'grupos__detalles_items__servicio',
+                'condiciones_secciones__items__children'
+            ),
+            pk=pk
+        )
     else:
         plantilla = PlantillaCotizacion(activo=True)
 
@@ -1067,23 +1305,45 @@ def crear_editar_plantilla(request, pk=None):
 
                 detalles_data = json.loads(detalles_data_json)
 
-                if is_editing:
-                    plantilla = get_object_or_404(PlantillaCotizacion, pk=pk)
-                else:
-                    plantilla = PlantillaCotizacion() 
+                condiciones_data_json = request.POST.get('condiciones_json', '').strip()
+                condiciones_data = []
+                if condiciones_data_json:
+                    try:
+                        condiciones_data = json.loads(condiciones_data_json)
+                        if not isinstance(condiciones_data, list):
+                            condiciones_data = []
+                    except json.JSONDecodeError:
+                        raise ValueError("El contenido de condiciones tiene un formato inválido.")
 
-                plantilla.nombre_plantilla = request.POST.get('nombre') 
+                if is_editing:
+                    plantilla = get_object_or_404(
+                        PlantillaCotizacion.objects.prefetch_related(
+                            'grupos__detalles_items__servicio',
+                            'condiciones_secciones__items__children'
+                        ),
+                        pk=pk
+                    )
+                else:
+                    plantilla = PlantillaCotizacion()
+
+                plantilla.nombre_plantilla = request.POST.get('nombre')
                 
                 servicio_general_pk = request.POST.get('servicio_general')
                 if servicio_general_pk:
                     plantilla.servicio_general = CategoriaServicio.objects.get(pk=servicio_general_pk)
+                else:
+                    plantilla.servicio_general = None
 
                 plantilla.asunto_referencial = request.POST.get('asunto_servicio') or "COTIZACIÓN DE SERVICIOS"
-                plantilla.plazo_entrega_defecto = int(request.POST.get('tiempo_entrega') or 30)
+
+                try:
+                    plantilla.plazo_entrega_defecto = int(request.POST.get('tiempo_entrega') or 30)
+                except (TypeError, ValueError):
+                    plantilla.plazo_entrega_defecto = 30
+
                 plantilla.forma_pago_defecto = request.POST.get('forma_pago') or 'Contado'
-                
                 plantilla.activo = request.POST.get('activo') == 'True'
-                
+
                 plantilla.save()
 
                 if is_editing:
@@ -1097,6 +1357,7 @@ def crear_editar_plantilla(request, pk=None):
 
                 for index, item in enumerate(detalles_data):
                     tipo_fila = item.get('tipo_fila')
+
                     if tipo_fila in ['categoria', 'subcategoria']:
                         grupo_actual = PlantillaGrupo.objects.create(
                             plantilla=plantilla,
@@ -1106,15 +1367,15 @@ def crear_editar_plantilla(request, pk=None):
                         continue
 
                     servicio_id = item.get('servicio_id')
-                    if not servicio_id: 
+                    if not servicio_id:
                         continue
-                    
+
                     servicio = Servicio.objects.get(pk=int(servicio_id))
-                    
+
                     PlantillaDetalle.objects.create(
                         grupo=grupo_actual,
                         servicio=servicio,
-                        norma_manual=item.get('norma_nombre', ''), 
+                        norma_manual=item.get('norma_nombre', ''),
                         descripcion_especifica=item.get('descripcion_especifica') or servicio.nombre,
                         unidad_medida=item.get('unidad_medida') or servicio.unidad_base,
                         cantidad=Decimal(str(item.get('cantidad', '1')).replace(',', '.')),
@@ -1122,12 +1383,25 @@ def crear_editar_plantilla(request, pk=None):
                     )
 
                 plantilla.calcular_totales()
+
+                if condiciones_data:
+                    _guardar_snapshot_condiciones_plantilla(plantilla, condiciones_data)
+                else:
+                    plantilla.condiciones_secciones.all().delete()
+
                 messages.success(request, f"Plantilla '{plantilla.nombre_plantilla}' guardada.")
                 return redirect('servicios:lista_plantillas')
 
         except Exception as e:
             error = f'Error: {str(e)}'
-            print(f"DEBUG ERROR: {error}") 
+            if is_editing and pk:
+                plantilla = get_object_or_404(
+                    PlantillaCotizacion.objects.prefetch_related(
+                        'grupos__detalles_items__servicio',
+                        'condiciones_secciones__items__children'
+                    ),
+                    pk=pk
+                )
 
     servicios_data = []
     for s in Servicio.objects.all().select_related('norma', 'metodo'):
@@ -1141,40 +1415,7 @@ def crear_editar_plantilla(request, pk=None):
         })
 
     detalles_list = []
-    if is_editing or request.method == 'POST':
-        for grupo in plantilla.grupos.all().order_by('orden'):
-            if grupo.nombre_grupo != "ENSAYOS DE LABORATORIO":
-                detalles_list.append({'tipo_fila': 'categoria', 'descripcion_especifica': grupo.nombre_grupo})
-            for detalle in grupo.detalles_items.all():
-                detalles_list.append({
-                    'tipo_fila': 'servicio', 
-                    'servicio_id': detalle.servicio.pk,
-                    'descripcion_especifica': detalle.descripcion_especifica,
-                    'norma_nombre': detalle.norma_manual,
-                    'unidad_medida': detalle.unidad_medida, 
-                    'cantidad': str(detalle.cantidad),
-                    'precio_unitario': str(detalle.precio_unitario)
-                })
-
-    context = {
-        'plantilla': plantilla,
-        'servicios_con_detalles_json': json.dumps(servicios_data), 
-        'servicio_grupos': CategoriaServicio.objects.all(),
-        'subcategorias': Subcategoria.objects.all(),
-        'detalles_cotizacion_json': json.dumps(detalles_list),
-        'error': error,
-    }
-    return render(request, 'servicios/plantilla_form.html', context)
-
-from django.http import JsonResponse
-
-@login_required
-def obtener_detalle_plantilla_json(request, pk):
-    try:
-        plantilla = get_object_or_404(PlantillaCotizacion, pk=pk)
-
-        detalles_list = []
-
+    if plantilla and (is_editing or request.method == 'POST'):
         for grupo in plantilla.grupos.all().order_by('orden'):
             if grupo.nombre_grupo != "ENSAYOS DE LABORATORIO":
                 detalles_list.append({
@@ -1187,20 +1428,672 @@ def obtener_detalle_plantilla_json(request, pk):
                     'tipo_fila': 'servicio',
                     'servicio_id': detalle.servicio.pk,
                     'descripcion_especifica': detalle.descripcion_especifica,
-                    'norma_manual': detalle.norma_manual,
-                    'metodo_manual': '',
+                    'norma_nombre': detalle.norma_manual,
                     'unidad_medida': detalle.unidad_medida,
                     'cantidad': str(detalle.cantidad),
-                    'precio_unitario': str(detalle.precio_unitario),
+                    'precio_unitario': str(detalle.precio_unitario)
                 })
+
+    if plantilla and plantilla.pk and plantilla.condiciones_secciones.exists():
+        condiciones_list = _obtener_condiciones_desde_snapshot_plantilla(plantilla)
+    else:
+        condiciones_list = _obtener_condiciones_desde_catalogo()
+
+    context = {
+        'plantilla': plantilla,
+        'servicios_con_detalles_json': json.dumps(servicios_data),
+        'servicio_grupos': CategoriaServicio.objects.all(),
+        'subcategorias': Subcategoria.objects.all(),
+        'detalles_cotizacion_json': json.dumps(detalles_list),
+        'condiciones_plantilla_json': json.dumps(condiciones_list),
+        'error': error,
+    }
+    return render(request, 'servicios/plantilla_form.html', context)
+
+@login_required
+def obtener_detalle_plantilla_json(request, pk):
+    plantilla = get_object_or_404(
+        PlantillaCotizacion.objects.prefetch_related(
+            'grupos__detalles_items__servicio',
+            'condiciones_secciones__items__children'
+        ).select_related('servicio_general'),
+        pk=pk
+    )
+
+    detalles_list = []
+    for grupo in plantilla.grupos.all().order_by('orden'):
+        if grupo.nombre_grupo != "ENSAYOS DE LABORATORIO":
+            detalles_list.append({
+                'tipo_fila': 'categoria',
+                'descripcion_especifica': grupo.nombre_grupo
+            })
+
+        for detalle in grupo.detalles_items.all():
+            detalles_list.append({
+                'tipo_fila': 'servicio',
+                'servicio_id': detalle.servicio.pk,
+                'descripcion_especifica': detalle.descripcion_especifica,
+                'norma_nombre': detalle.norma_manual,
+                'unidad_medida': detalle.unidad_medida,
+                'cantidad': str(detalle.cantidad),
+                'precio_unitario': str(detalle.precio_unitario)
+            })
+
+    if plantilla.condiciones_secciones.exists():
+        condiciones_list = _obtener_condiciones_desde_snapshot_plantilla(plantilla)
+    else:
+        condiciones_list = _obtener_condiciones_desde_catalogo()
+
+    return JsonResponse({
+        'success': True,
+        'plantilla': {
+            'id': plantilla.id,
+            'nombre_plantilla': plantilla.nombre_plantilla,
+            'asunto_referencial': plantilla.asunto_referencial,
+            'forma_pago_defecto': plantilla.forma_pago_defecto,
+            'plazo_entrega_defecto': plantilla.plazo_entrega_defecto,
+            'servicio_general_id': plantilla.servicio_general_id,
+        },
+        'detalles': detalles_list,
+        'condiciones': condiciones_list,
+    })
+        
+
+def _parse_json_request_body(request):
+    """
+    Intenta leer JSON del body.
+    Si no existe, intenta leerlo desde request.POST['payload'].
+    """
+    try:
+        if request.body:
+            return json.loads(request.body.decode('utf-8'))
+    except Exception:
+        pass
+
+    payload = request.POST.get('payload')
+    if payload:
+        try:
+            return json.loads(payload)
+        except Exception:
+            pass
+
+    return {}
+
+def _serializar_catalogo_item(item):
+    """
+    Serializa un ítem del catálogo con sus hijos.
+    """
+    children = item.children.filter(activo=True).order_by('orden', 'id')
+
+    return {
+        'id': item.id,
+        'catalogo_item_id': item.id,
+        'parent_id': item.parent_id,
+        'tipo_nodo': item.tipo_nodo,
+        'titulo': item.titulo or '',
+        'texto': item.texto or '',
+        'texto_base': item.texto or '',
+        'texto_final': item.texto or '',
+        'orden': item.orden,
+        'nivel': item.nivel,
+        'seleccionado': item.seleccionado_por_defecto or item.es_obligatorio,
+        'es_obligatorio': item.es_obligatorio,
+        'editable_en_cotizacion': item.editable_en_cotizacion,
+        'fue_editado': False,
+        'children': [_serializar_catalogo_item(child) for child in children],
+    }
+
+def _serializar_snapshot_item(item):
+    """
+    Serializa un ítem snapshot con sus hijos.
+    """
+    children = item.children.all().order_by('orden', 'id')
+
+    return {
+        'id': item.id,
+        'catalogo_item_id': item.catalogo_item_id,
+        'parent_id': item.parent_id,
+        'tipo_nodo': item.tipo_nodo,
+        'titulo': item.titulo or '',
+        'texto': item.texto_final or '',
+        'texto_base': item.texto_base or '',
+        'texto_final': item.texto_final or '',
+        'orden': item.orden,
+        'nivel': item.nivel,
+        'seleccionado': item.seleccionado,
+        'es_obligatorio': item.es_obligatorio,
+        'editable_en_cotizacion': item.editable_en_cotizacion,
+        'fue_editado': item.fue_editado,
+        'children': [_serializar_snapshot_item(child) for child in children],
+    }
+
+
+def _obtener_condiciones_desde_snapshot(cotizacion):
+    """
+    Devuelve la estructura de condiciones desde el snapshot guardado
+    de la cotización.
+    """
+    secciones = cotizacion.condiciones_secciones.all().order_by('orden', 'id')
+    resultado = []
+
+    for seccion in secciones:
+        root_items = seccion.items.filter(parent__isnull=True).order_by('orden', 'id')
+        resultado.append({
+            'id': seccion.id,
+            'catalogo_seccion_id': seccion.catalogo_seccion_id,
+            'codigo': seccion.codigo,
+            'titulo': seccion.titulo,
+            'tipo': seccion.tipo,
+            'orden': seccion.orden,
+            'seleccionada': seccion.seleccionada,
+            'items': [_serializar_snapshot_item(item) for item in root_items],
+        })
+
+    return resultado
+
+
+def _obtener_condiciones_desde_catalogo():
+    secciones = CatalogoCondicionSeccion.objects.filter(activo=True).order_by('orden')
+
+    resultado = []
+
+    for seccion in secciones:
+        items_root = CatalogoCondicionItem.objects.filter(
+            seccion=seccion,
+            parent__isnull=True,
+            activo=True
+        ).order_by('orden')
+
+        def build_item(item):
+            children = CatalogoCondicionItem.objects.filter(
+                parent=item,
+                activo=True
+            ).order_by('orden')
+
+            return {
+                "id": item.id,
+                "titulo": item.titulo,
+                "texto_base": item.texto,
+                "texto_final": item.texto,
+                "seleccionado": item.seleccionado_por_defecto,
+                "editable_en_cotizacion": item.editable_en_cotizacion,
+                "es_obligatorio": item.es_obligatorio,
+                "tipo_nodo": item.tipo_nodo,
+                "children": [build_item(c) for c in children]
+            }
+
+        resultado.append({
+            "catalogo_seccion_id": seccion.id,
+            "codigo": seccion.codigo,
+            "titulo": seccion.titulo,
+            "tipo": seccion.tipo,
+            "orden": seccion.orden,
+            "seleccionada": True,
+            "items": [build_item(i) for i in items_root]
+        })
+
+    return resultado
+
+def _crear_item_snapshot_recursivo(seccion_snapshot, item_data, parent_snapshot=None):
+    """
+    Crea un ítem snapshot y sus hijos de forma recursiva.
+    """
+    catalogo_item = None
+    catalogo_item_id = item_data.get('catalogo_item_id')
+
+    if catalogo_item_id:
+        catalogo_item = CatalogoCondicionItem.objects.filter(pk=catalogo_item_id).first()
+
+    texto_base = item_data.get('texto_base')
+    texto_final = item_data.get('texto_final')
+
+    if not texto_base and catalogo_item:
+        texto_base = catalogo_item.texto
+
+    if not texto_final:
+        texto_final = texto_base or item_data.get('texto') or ''
+
+    snapshot_item = CotizacionCondicionItem.objects.create(
+        seccion=seccion_snapshot,
+        catalogo_item=catalogo_item,
+        parent=parent_snapshot,
+        tipo_nodo=item_data.get('tipo_nodo') or (catalogo_item.tipo_nodo if catalogo_item else 'item'),
+        titulo=item_data.get('titulo') or (catalogo_item.titulo if catalogo_item else ''),
+        texto_base=texto_base or '',
+        texto_final=texto_final or '',
+        orden=item_data.get('orden') or (catalogo_item.orden if catalogo_item else 1),
+        nivel=item_data.get('nivel') if item_data.get('nivel') is not None else (catalogo_item.nivel if catalogo_item else 0),
+        seleccionado=bool(item_data.get('seleccionado', False)),
+        es_obligatorio=bool(
+            item_data.get('es_obligatorio', False) or
+            (catalogo_item.es_obligatorio if catalogo_item else False)
+        ),
+        editable_en_cotizacion=bool(
+            item_data.get('editable_en_cotizacion', True) if item_data.get('editable_en_cotizacion') is not None
+            else (catalogo_item.editable_en_cotizacion if catalogo_item else True)
+        ),
+    )
+
+    children = item_data.get('children', []) or []
+    for child in children:
+        _crear_item_snapshot_recursivo(
+            seccion_snapshot=seccion_snapshot,
+            item_data=child,
+            parent_snapshot=snapshot_item
+        )
+
+    return snapshot_item
+
+
+@login_required
+def condiciones_cotizacion_json(request, pk):
+    """
+    Devuelve el catálogo de condiciones para el modal.
+    Si la cotización ya tiene snapshot, devuelve lo guardado.
+    Si no tiene snapshot, devuelve el catálogo por defecto.
+    """
+    try:
+        cotizacion = get_object_or_404(
+            Cotizacion.objects.prefetch_related(
+                'condiciones_secciones__items__children'
+            ),
+            pk=pk
+        )
+
+        tiene_snapshot = cotizacion.condiciones_secciones.exists()
+
+        if tiene_snapshot:
+            secciones = _obtener_condiciones_desde_snapshot(cotizacion)
+        else:
+            secciones = _obtener_condiciones_desde_catalogo()
 
         return JsonResponse({
             'success': True,
-            'detalles': detalles_list
+            'cotizacion_id': cotizacion.id,
+            'numero_oferta': cotizacion.numero_oferta,
+            'contenido_condiciones_configurado': cotizacion.contenido_condiciones_configurado,
+            'contenido_condiciones_bloqueado': cotizacion.contenido_condiciones_bloqueado,
+            'puede_editar': cotizacion.puede_editar_contenido_condiciones(),
+            'usa_snapshot': tiene_snapshot,
+            'secciones': secciones,
         })
 
     except Exception as e:
+        logger.error(f"Error en condiciones_cotizacion_json para cotización {pk}: {str(e)}", exc_info=True)
         return JsonResponse({
             'success': False,
-            'error': str(e)
+            'error': f'No se pudo cargar la configuración de condiciones: {str(e)}'
+        }, status=500)
+
+
+@login_required
+@require_POST
+@transaction.atomic
+def guardar_condiciones_cotizacion_json(request, pk):
+    """
+    Guarda el snapshot de condiciones seleccionado para la cotización.
+    Reemplaza completamente el snapshot anterior si existe.
+    """
+    try:
+        cotizacion = get_object_or_404(Cotizacion, pk=pk)
+
+        if not cotizacion.puede_editar_contenido_condiciones():
+            return JsonResponse({
+                'success': False,
+                'error': 'La cotización no permite editar el contenido de condiciones.'
+            }, status=403)
+
+        payload = _parse_json_request_body(request)
+        secciones_data = payload.get('secciones', [])
+
+        if not isinstance(secciones_data, list):
+            return JsonResponse({
+                'success': False,
+                'error': 'El formato de secciones es inválido.'
+            }, status=400)
+
+        # Limpieza del snapshot anterior
+        cotizacion.condiciones_secciones.all().delete()
+
+        total_secciones = 0
+        total_items = 0
+
+        for seccion_data in secciones_data:
+            catalogo_seccion = None
+            catalogo_seccion_id = seccion_data.get('catalogo_seccion_id')
+
+            if catalogo_seccion_id:
+                catalogo_seccion = CatalogoCondicionSeccion.objects.filter(pk=catalogo_seccion_id).first()
+
+            seccion_snapshot = CotizacionCondicionSeccion.objects.create(
+                cotizacion=cotizacion,
+                catalogo_seccion=catalogo_seccion,
+                codigo=seccion_data.get('codigo') or (catalogo_seccion.codigo if catalogo_seccion else ''),
+                titulo=seccion_data.get('titulo') or (catalogo_seccion.titulo if catalogo_seccion else ''),
+                tipo=seccion_data.get('tipo') or (catalogo_seccion.tipo if catalogo_seccion else 'lista'),
+                orden=seccion_data.get('orden') or (catalogo_seccion.orden if catalogo_seccion else 1),
+                seleccionada=bool(seccion_data.get('seleccionada', True)),
+            )
+            total_secciones += 1
+
+            root_items = seccion_data.get('items', []) or []
+            for item_data in root_items:
+                _crear_item_snapshot_recursivo(
+                    seccion_snapshot=seccion_snapshot,
+                    item_data=item_data,
+                    parent_snapshot=None
+                )
+
+        total_items = CotizacionCondicionItem.objects.filter(
+            seccion__cotizacion=cotizacion
+        ).count()
+
+        cotizacion.contenido_condiciones_configurado = True
+        cotizacion.save(update_fields=[
+            'contenido_condiciones_configurado',
+            'fecha_actualizacion',
+        ])
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Las condiciones de la cotización fueron guardadas correctamente.',
+            'cotizacion_id': cotizacion.id,
+            'total_secciones': total_secciones,
+            'total_items': total_items,
         })
+
+    except Exception as e:
+        logger.error(f"Error en guardar_condiciones_cotizacion_json para cotización {pk}: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': f'No se pudieron guardar las condiciones: {str(e)}'
+        }, status=500)
+
+
+@login_required
+def resumen_condiciones_cotizacion_json(request, pk):
+    """
+    Devuelve un resumen por sección para mostrar en la UI.
+    """
+    try:
+        cotizacion = get_object_or_404(
+            Cotizacion.objects.prefetch_related('condiciones_secciones__items'),
+            pk=pk
+        )
+
+        resumen = []
+        for seccion in cotizacion.condiciones_secciones.all().order_by('orden', 'id'):
+            items_seleccionados = seccion.items.filter(seleccionado=True, tipo_nodo='item').count()
+            grupos = seccion.items.filter(tipo_nodo='grupo').count()
+
+            resumen.append({
+                'codigo': seccion.codigo,
+                'titulo': seccion.titulo,
+                'tipo': seccion.tipo,
+                'seleccionada': seccion.seleccionada,
+                'items_seleccionados': items_seleccionados,
+                'grupos': grupos,
+            })
+
+        return JsonResponse({
+            'success': True,
+            'cotizacion_id': cotizacion.id,
+            'configurado': cotizacion.contenido_condiciones_configurado,
+            'bloqueado': cotizacion.contenido_condiciones_bloqueado,
+            'resumen': resumen,
+        })
+
+    except Exception as e:
+        logger.error(f"Error en resumen_condiciones_cotizacion_json para cotización {pk}: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': f'No se pudo obtener el resumen: {str(e)}'
+        }, status=500)
+        
+def _obtener_condiciones_desde_snapshot_plantilla(plantilla):
+    secciones = plantilla.condiciones_secciones.all().order_by('orden', 'id')
+    resultado = []
+
+    for seccion in secciones:
+        items_root = seccion.items.filter(parent__isnull=True).order_by('orden', 'id')
+        resultado.append({
+            'id': seccion.id,
+            'catalogo_seccion_id': seccion.catalogo_seccion_id,
+            'codigo': seccion.codigo,
+            'titulo': seccion.titulo,
+            'tipo': seccion.tipo,
+            'orden': seccion.orden,
+            'seleccionada': seccion.seleccionada,
+            'items': [_serializar_snapshot_item_plantilla(item) for item in items_root],
+        })
+
+    return resultado
+
+
+def _serializar_snapshot_item_plantilla(item):
+    children = item.children.all().order_by('orden', 'id')
+
+    return {
+        'id': item.id,
+        'catalogo_item_id': item.catalogo_item_id,
+        'parent_id': item.parent_id,
+        'tipo_nodo': item.tipo_nodo,
+        'titulo': item.titulo or '',
+        'texto': item.texto_final or '',
+        'texto_base': item.texto_base or '',
+        'texto_final': item.texto_final or '',
+        'orden': item.orden,
+        'nivel': item.nivel,
+        'seleccionado': item.seleccionado,
+        'es_obligatorio': item.es_obligatorio,
+        'editable_en_cotizacion': item.editable_en_cotizacion,
+        'fue_editado': item.fue_editado,
+        'children': [_serializar_snapshot_item_plantilla(child) for child in children],
+    }
+
+
+def _crear_item_snapshot_recursivo_plantilla(seccion_snapshot, item_data, parent_snapshot=None):
+    catalogo_item = None
+    catalogo_item_id = item_data.get('catalogo_item_id')
+
+    if catalogo_item_id:
+        catalogo_item = CatalogoCondicionItem.objects.filter(pk=catalogo_item_id).first()
+
+    texto_base = item_data.get('texto_base') or (catalogo_item.texto if catalogo_item else '')
+    texto_final = item_data.get('texto_final') or texto_base
+
+    snapshot_item = PlantillaCondicionItem.objects.create(
+        seccion=seccion_snapshot,
+        catalogo_item=catalogo_item,
+        parent=parent_snapshot,
+        tipo_nodo=item_data.get('tipo_nodo') or (catalogo_item.tipo_nodo if catalogo_item else 'item'),
+        titulo=item_data.get('titulo') or (catalogo_item.titulo if catalogo_item else ''),
+        texto_base=texto_base or '',
+        texto_final=texto_final or '',
+        orden=item_data.get('orden') or (catalogo_item.orden if catalogo_item else 1),
+        nivel=item_data.get('nivel') if item_data.get('nivel') is not None else (catalogo_item.nivel if catalogo_item else 0),
+        seleccionado=bool(item_data.get('seleccionado', False)),
+        es_obligatorio=bool(
+            item_data.get('es_obligatorio', False) or
+            (catalogo_item.es_obligatorio if catalogo_item else False)
+        ),
+        editable_en_cotizacion=bool(
+            item_data.get('editable_en_cotizacion', True) if item_data.get('editable_en_cotizacion') is not None
+            else (catalogo_item.editable_en_cotizacion if catalogo_item else True)
+        ),
+    )
+
+    children = item_data.get('children', []) or []
+    for child in children:
+        _crear_item_snapshot_recursivo_plantilla(
+            seccion_snapshot=seccion_snapshot,
+            item_data=child,
+            parent_snapshot=snapshot_item
+        )
+
+    return snapshot_item
+
+
+def _guardar_snapshot_condiciones_plantilla(plantilla, secciones_data):
+    if not isinstance(secciones_data, list):
+        return
+
+    plantilla.condiciones_secciones.all().delete()
+
+    for seccion_data in secciones_data:
+        catalogo_seccion = None
+        catalogo_seccion_id = seccion_data.get('catalogo_seccion_id')
+
+        if catalogo_seccion_id:
+            catalogo_seccion = CatalogoCondicionSeccion.objects.filter(pk=catalogo_seccion_id).first()
+
+        seccion_snapshot = PlantillaCondicionSeccion.objects.create(
+            plantilla=plantilla,
+            catalogo_seccion=catalogo_seccion,
+            codigo=seccion_data.get('codigo') or (catalogo_seccion.codigo if catalogo_seccion else ''),
+            titulo=seccion_data.get('titulo') or (catalogo_seccion.titulo if catalogo_seccion else ''),
+            tipo=seccion_data.get('tipo') or (catalogo_seccion.tipo if catalogo_seccion else 'lista'),
+            orden=seccion_data.get('orden') or (catalogo_seccion.orden if catalogo_seccion else 1),
+            seleccionada=bool(seccion_data.get('seleccionada', False)),
+        )
+
+        root_items = seccion_data.get('items', []) or []
+        for item_data in root_items:
+            _crear_item_snapshot_recursivo_plantilla(
+                seccion_snapshot=seccion_snapshot,
+                item_data=item_data,
+                parent_snapshot=None
+            )
+
+@login_required
+def condiciones_plantilla_json(request, pk):
+    try:
+        plantilla = get_object_or_404(
+            PlantillaCotizacion.objects.prefetch_related(
+                'condiciones_secciones__items__children'
+            ),
+            pk=pk
+        )
+
+        tiene_snapshot = plantilla.condiciones_secciones.exists()
+
+        if tiene_snapshot:
+            secciones = _obtener_condiciones_desde_snapshot_plantilla(plantilla)
+        else:
+            secciones = _obtener_condiciones_desde_catalogo()
+
+        return JsonResponse({
+            'success': True,
+            'plantilla_id': plantilla.id,
+            'nombre_plantilla': plantilla.nombre_plantilla,
+            'usa_snapshot': tiene_snapshot,
+            'secciones': secciones,
+        })
+    except Exception as e:
+        logger.error(f"Error en condiciones_plantilla_json para plantilla {pk}: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': f'No se pudo cargar la configuración de condiciones: {str(e)}'
+        }, status=500)
+
+
+@login_required
+@require_POST
+@transaction.atomic
+def guardar_condiciones_plantilla_json(request, pk):
+    try:
+        plantilla = get_object_or_404(PlantillaCotizacion, pk=pk)
+
+        payload = _parse_json_request_body(request)
+        secciones_data = payload.get('secciones', [])
+
+        if not isinstance(secciones_data, list):
+            return JsonResponse({
+                'success': False,
+                'error': 'El formato de secciones es inválido.'
+            }, status=400)
+
+        plantilla.condiciones_secciones.all().delete()
+
+        total_secciones = 0
+        total_items = 0
+
+        for seccion_data in secciones_data:
+            catalogo_seccion = None
+            catalogo_seccion_id = seccion_data.get('catalogo_seccion_id')
+
+            if catalogo_seccion_id:
+                catalogo_seccion = CatalogoCondicionSeccion.objects.filter(pk=catalogo_seccion_id).first()
+
+            seccion_snapshot = PlantillaCondicionSeccion.objects.create(
+                plantilla=plantilla,
+                catalogo_seccion=catalogo_seccion,
+                codigo=seccion_data.get('codigo') or (catalogo_seccion.codigo if catalogo_seccion else ''),
+                titulo=seccion_data.get('titulo') or (catalogo_seccion.titulo if catalogo_seccion else ''),
+                tipo=seccion_data.get('tipo') or (catalogo_seccion.tipo if catalogo_seccion else 'lista'),
+                orden=seccion_data.get('orden') or (catalogo_seccion.orden if catalogo_seccion else 1),
+                seleccionada=bool(seccion_data.get('seleccionada', False)),
+            )
+            total_secciones += 1
+
+            for item_data in seccion_data.get('items', []) or []:
+                _crear_item_snapshot_recursivo_plantilla(
+                    seccion_snapshot=seccion_snapshot,
+                    item_data=item_data,
+                    parent_snapshot=None
+                )
+
+        total_items = PlantillaCondicionItem.objects.filter(
+            seccion__plantilla=plantilla
+        ).count()
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Las condiciones de la plantilla fueron guardadas correctamente.',
+            'plantilla_id': plantilla.id,
+            'total_secciones': total_secciones,
+            'total_items': total_items,
+        })
+
+    except Exception as e:
+        logger.error(f"Error en guardar_condiciones_plantilla_json para plantilla {pk}: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': f'No se pudieron guardar las condiciones: {str(e)}'
+        }, status=500)
+
+
+@login_required
+def resumen_condiciones_plantilla_json(request, pk):
+    try:
+        plantilla = get_object_or_404(
+            PlantillaCotizacion.objects.prefetch_related('condiciones_secciones__items'),
+            pk=pk
+        )
+
+        resumen = []
+        for seccion in plantilla.condiciones_secciones.all().order_by('orden', 'id'):
+            items_seleccionados = seccion.items.filter(seleccionado=True, tipo_nodo='item').count()
+            grupos = seccion.items.filter(tipo_nodo='grupo').count()
+
+            resumen.append({
+                'codigo': seccion.codigo,
+                'titulo': seccion.titulo,
+                'tipo': seccion.tipo,
+                'seleccionada': seccion.seleccionada,
+                'items_seleccionados': items_seleccionados,
+                'grupos': grupos,
+            })
+
+        return JsonResponse({
+            'success': True,
+            'plantilla_id': plantilla.id,
+            'resumen': resumen,
+        })
+
+    except Exception as e:
+        logger.error(f"Error en resumen_condiciones_plantilla_json para plantilla {pk}: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': f'No se pudo obtener el resumen: {str(e)}'
+        }, status=500)

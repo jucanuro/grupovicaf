@@ -1,44 +1,4 @@
 (function () {
-    function handlePlantillaChange(select) {
-        const plantillaId = select.value;
-        if (!plantillaId) return;
-
-        const baseUrl = window.CotizacionConfig?.urlPlantillaBase || '/servicios/api/plantilla/';
-
-        fetch(`${baseUrl}${plantillaId}/`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const detalles = data.detalles;
-                    window.detallesCotizacion = detalles;
-
-                    const inputJson = document.getElementById('detalles_json');
-                    if (inputJson) {
-                        inputJson.value = JSON.stringify(detalles);
-                    }
-
-                    if (typeof window.applyPlantillaDetalles === 'function') {
-                        window.applyPlantillaDetalles(detalles);
-                    } else if (typeof renderTablaDetalles === 'function') {
-                        renderTablaDetalles(detalles);
-                    } else if (typeof renderTable === 'function') {
-                        renderTable();
-                    }
-                } else {
-                    alert("Error cargando plantilla");
-                }
-            })
-            .catch(error => {
-                console.error(error);
-                alert("Error en la petición");
-            });
-    }
-
-    function cargarPlantillaAjax(plantillaId) {
-        const selectTemporal = { value: plantillaId };
-        handlePlantillaChange(selectTemporal);
-    }
-
     function seleccionarModo(modo) {
         const btnVacio = document.getElementById('btn-modo-vacio');
         const btnPlantilla = document.getElementById('btn-modo-plantilla');
@@ -59,7 +19,8 @@
         if (!modal) return;
 
         modal.classList.remove('hidden');
-        document.body.classList.add('overflow-hidden');
+        document.documentElement.classList.add('modal-open');
+        document.body.classList.add('modal-open');
     }
 
     function cerrarModalPlantillas() {
@@ -67,7 +28,8 @@
         if (!modal) return;
 
         modal.classList.add('hidden');
-        document.body.classList.remove('overflow-hidden');
+        document.documentElement.classList.remove('modal-open');
+        document.body.classList.remove('modal-open');
     }
 
     function actualizarTextoPlantilla() {
@@ -85,7 +47,7 @@
         }
     }
 
-    function confirmarCargaPlantilla() {
+    async function confirmarCargaPlantilla() {
         const select = document.getElementById('select-plantilla-modal');
         if (!select) return;
 
@@ -99,34 +61,45 @@
             return;
         }
 
-        // Mostrar mensaje de carga
         const btnCargar = document.querySelector('button[onclick="confirmarCargaPlantilla()"]');
+
         if (btnCargar) {
             btnCargar.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Cargando...';
             btnCargar.disabled = true;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
-        seleccionarModo('plantilla');
-        cerrarModalPlantillas();
-        cargarPlantillaAjax(select.value);
+        try {
+            seleccionarModo('plantilla');
 
-        // Restaurar botón después de un breve delay
-        setTimeout(() => {
-            if (btnCargar) {
-                btnCargar.innerHTML = '<i data-lucide="download" class="w-4 h-4"></i> Cargar plantilla';
-                btnCargar.disabled = false;
-                if (typeof lucide !== 'undefined') lucide.createIcons();
+            if (typeof window.cargarPlantillaAjax === 'function') {
+                await window.cargarPlantillaAjax(select.value);
             }
-        }, 1000);
+
+            cerrarModalPlantillas();
+        } catch (error) {
+            console.error(error);
+            alert('Error al cargar plantilla');
+        } finally {
+            setTimeout(() => {
+                if (btnCargar) {
+                    btnCargar.innerHTML = '<i data-lucide="download" class="w-4 h-4"></i> Cargar plantilla';
+                    btnCargar.disabled = false;
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }
+            }, 300);
+        }
     }
 
     document.addEventListener('DOMContentLoaded', function () {
         const selectPlantillaModal = document.getElementById('select-plantilla-modal');
+
         if (selectPlantillaModal) {
             selectPlantillaModal.addEventListener('change', function (e) {
                 if (e.target.value) {
                     seleccionarModo('plantilla');
                 }
+                actualizarTextoPlantilla();
             });
         }
 
@@ -141,8 +114,6 @@
         }
     });
 
-    window.handlePlantillaChange = handlePlantillaChange;
-    window.cargarPlantillaAjax = cargarPlantillaAjax;
     window.seleccionarModo = seleccionarModo;
     window.abrirModalPlantillas = abrirModalPlantillas;
     window.cerrarModalPlantillas = cerrarModalPlantillas;

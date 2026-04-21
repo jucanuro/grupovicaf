@@ -3,181 +3,508 @@
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/cotizacion-config.css' %}">
+    <style>
+        .cot-tab-btn{
+            display:flex;
+            align-items:center;
+            gap:.9rem;
+            width:100%;
+            padding:.95rem 1rem;
+            border:1px solid #e2e8f0;
+            border-radius:1rem;
+            background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
+            transition:all .25s ease;
+            text-align:left;
+        }
+
+        .cot-tab-btn:hover{
+            border-color:#6ee7b7;
+            box-shadow:0 8px 24px rgba(16,185,129,.10);
+            transform:translateY(-1px);
+        }
+
+        .cot-tab-btn.active{
+            background:linear-gradient(135deg,#ecfdf5 0%,#ffffff 100%);
+            border-color:#10b981;
+            box-shadow:0 10px 28px rgba(16,185,129,.12);
+        }
+
+        .cot-tab-step{
+            width:2rem;
+            height:2rem;
+            min-width:2rem;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            border-radius:.8rem;
+            background:#0f172a;
+            color:white;
+            font-size:.72rem;
+            font-weight:900;
+            letter-spacing:.08em;
+        }
+
+        .cot-tab-btn.active .cot-tab-step{
+            background:#059669;
+        }
+
+        .cot-tab-text{
+            display:flex;
+            flex-direction:column;
+            line-height:1.1;
+        }
+
+        .cot-tab-text strong{
+            font-size:.78rem;
+            font-weight:900;
+            text-transform:uppercase;
+            color:#0f172a;
+            letter-spacing:.08em;
+        }
+
+        .cot-tab-text small{
+            font-size:.68rem;
+            font-weight:700;
+            color:#64748b;
+            margin-top:.2rem;
+            text-transform:uppercase;
+            letter-spacing:.08em;
+        }
+
+        .cot-tab-panel{
+            display:none;
+        }
+
+        .cot-tab-panel.active{
+            display:block;
+        }
+
+        .cot-tab-panel-enter{
+            animation:cotTabFade .22s ease;
+        }
+
+        @keyframes cotTabFade{
+            from{opacity:0; transform:translateY(6px);}
+            to{opacity:1; transform:translateY(0);}
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
 <div class="bg-vicaf-engine"></div>
-<div class="max-w-full mx-auto p-4 relative z-10 space-y-6">
-    
-    <header class="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4">
-        <div class="flex items-center gap-4">
+<div class="max-w-full mx-auto p-4 relative z-10 space-y-6 min-h-screen overflow-y-auto">
+
+    <header class="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-start gap-4 sm:items-center">
             <div class="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center text-white shadow-md">
                 <i data-lucide="layout-template" class="w-5 h-5"></i>
             </div>
             <div>
                 <h1 class="text-xl font-extrabold text-slate-900 tracking-tight leading-none uppercase">
-                    {% if form.instance.pk %}Editar Plantilla{% else %}Nueva Plantilla Maestro{% endif %}
+                    {% if plantilla.pk %}Editar Plantilla Maestro{% else %}Nueva Plantilla Maestro{% endif %}
                 </h1>
-                <p class="text-[9px] font-mono-tech text-emerald-600 mt-1 uppercase tracking-[0.2em]">VICAF PRO V2.0 // Biblioteca de Modelos</p>
+                <p class="text-[9px] font-mono text-emerald-600 mt-1 uppercase tracking-[0.2em]">
+                    VICAF PRO V2.0 // Biblioteca de Modelos
+                </p>
             </div>
         </div>
-        <a href="{% url 'servicios:lista_plantillas' %}" class="w-full sm:w-auto bg-white text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
-            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> VOLVER A LIBRERÍA
-        </a>
+
+        <div class="flex flex-col gap-2 w-full sm:w-auto sm:flex-row sm:items-center sm:justify-end">
+            <a href="{% url 'servicios:lista_plantillas' %}"
+               class="w-full sm:w-auto bg-white text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2 shadow-sm">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-slate-400"></i>
+                VOLVER A LIBRERÍA
+            </a>
+        </div>
     </header>
+
+    {% if error %}
+    <div class="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-semibold">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <button type="button"
+                    class="cot-tab-btn active"
+                    data-tab="general"
+                    onclick="switchPlantillaTab('general')">
+                <span class="cot-tab-step">01</span>
+                <span class="cot-tab-text">
+                    <strong>General</strong>
+                    <small>Datos base</small>
+                </span>
+            </button>
+
+            <button type="button"
+                    class="cot-tab-btn"
+                    data-tab="servicios"
+                    onclick="switchPlantillaTab('servicios')">
+                <span class="cot-tab-step">02</span>
+                <span class="cot-tab-text">
+                    <strong>Servicios</strong>
+                    <small>Estructura maestra</small>
+                </span>
+            </button>
+
+            <button type="button"
+                    class="cot-tab-btn"
+                    data-tab="condiciones"
+                    onclick="switchPlantillaTab('condiciones')">
+                <span class="cot-tab-step">03</span>
+                <span class="cot-tab-text">
+                    <strong>Condiciones</strong>
+                    <small>Textos y resumen</small>
+                </span>
+            </button>
+        </div>
+    </div>
 
     <form method="post" id="plantilla-form">
         {% csrf_token %}
-        
-        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm mb-6 p-8">
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
-                <div class="md:col-span-5">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombre de Plantilla</label>
-                    <input type="text" name="nombre" id="id_nombre" required 
-                        class="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" 
-                        value="{{ plantilla.nombre_plantilla|default:'' }}">
+
+        <div id="tab-panel-general" class="cot-tab-panel active cot-tab-panel-enter">
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm mb-6 transition-all duration-300 relative">
+                <div class="flex items-center justify-between px-8 py-4 bg-slate-50/50 border-b border-slate-100 rounded-t-2xl">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="file-stack" class="w-4 h-4 text-emerald-500"></i>
+                        <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Identificación de la plantilla</h3>
+                    </div>
                 </div>
 
-                <div class="md:col-span-4">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Categoría General</label>
-                    <select name="servicio_general" id="id_servicio_general" required class="vicaf-search-select">
-                        <option value="">SELECCIONAR...</option>
-                        {% for grupo in servicio_grupos %}
-                            <option value="{{ grupo.pk }}" 
-                                {% if plantilla.servicio_general_id == grupo.pk %}selected{% endif %}>
-                                {{ grupo.nombre|upper }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
+                <div class="p-8">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                        <div class="md:col-span-5">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombre de Plantilla</label>
+                            <input type="text" name="nombre" id="id_nombre" required
+                                class="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                                value="{{ plantilla.nombre_plantilla|default:'' }}">
+                        </div>
 
-                <div class="md:col-span-3">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Estado</label>
-                    <select name="activo" id="id_activo" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
-                        <option value="True" {% if plantilla.activo %}selected{% endif %}>ACTIVO</option>
-                        <option value="False" {% if not plantilla.activo and plantilla.pk %}selected{% endif %}>BORRADOR</option>
-                    </select>
+                        <div class="md:col-span-4">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Categoría General</label>
+                            <select name="servicio_general" id="id_servicio_general" class="vicaf-search-select">
+                                <option value="">SELECCIONAR...</option>
+                                {% for grupo in servicio_grupos %}
+                                    <option value="{{ grupo.pk }}" {% if plantilla.servicio_general_id == grupo.pk %}selected{% endif %}>
+                                        {{ grupo.nombre|upper }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="md:col-span-3">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Estado</label>
+                            <select name="activo" id="id_activo" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
+                                <option value="True" {% if plantilla.activo %}selected{% endif %}>ACTIVO</option>
+                                <option value="False" {% if not plantilla.activo and plantilla.pk %}selected{% endif %}>BORRADOR</option>
+                            </select>
+                        </div>
+
+                        <div class="md:col-span-5">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Asunto referencial</label>
+                            <input type="text" name="asunto_servicio" id="id_asunto_servicio"
+                                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                                value="{{ plantilla.asunto_referencial|default:'COTIZACIÓN DE SERVICIOS' }}">
+                        </div>
+
+                        <div class="md:col-span-3">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tiempo de Entrega</label>
+                            <input type="number" name="tiempo_entrega" id="id_tiempo_entrega"
+                                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700"
+                                value="{{ plantilla.plazo_entrega_defecto|default:30 }}">
+                        </div>
+
+                        <div class="md:col-span-4">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Forma de Pago</label>
+                            <select name="forma_pago" id="id_forma_pago" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
+                                <option value="Contado" {% if plantilla.forma_pago_defecto == 'Contado' %}selected{% endif %}>CONTADO</option>
+                                <option value="15_dias" {% if plantilla.forma_pago_defecto == '15_dias' %}selected{% endif %}>15 DÍAS</option>
+                                <option value="30_dias" {% if plantilla.forma_pago_defecto == '30_dias' %}selected{% endif %}>30 DÍAS</option>
+                                <option value="60_dias" {% if plantilla.forma_pago_defecto == '60_dias' %}selected{% endif %}>60 DÍAS</option>
+                                <option value="Personalizado" {% if plantilla.forma_pago_defecto == 'Personalizado' %}selected{% endif %}>PERSONALIZADO</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 flex justify-end">
+                        <button type="button"
+                                onclick="switchPlantillaTab('servicios')"
+                                class="bg-slate-900 hover:bg-emerald-600 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg transition-all flex items-center gap-3">
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            Continuar a servicios
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm mb-6">
-            <div onclick="toggleRegistroPanel()" class="flex items-center justify-between px-6 py-4 bg-slate-50 cursor-pointer border-b border-slate-100 rounded-t-2xl">
-                <h3 class="text-[11px] font-black text-slate-500 uppercase tracking-widest">Buscador de Ensayos Maestro</h3>
-                <i id="icon-registro" data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform duration-300"></i>
-            </div>
-
-            <div id="content-registro" class="p-6">
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 bg-slate-50/50 p-6 rounded-2xl border border-dashed border-slate-200">
-                    <div class="md:col-span-6">
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Categoría</label>
-                        <select id="reg_categoria" class="w-full text-[10px] font-bold">
-                            <option value="">-- SELECCIONAR --</option>
-                            {% for cat in servicio_grupos %}<option value="{{ cat.nombre }}">{{ cat.nombre }}</option>{% endfor %}
-                        </select>
-                    </div>
-                    <div class="md:col-span-6">
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sub-Categoría</label>
-                        <select id="reg_subcategoria" class="w-full text-[10px] font-bold">
-                            <option value="">-- SELECCIONAR --</option>
-                            {% for sub in subcategorias %}<option value="{{ sub.nombre }}">{{ sub.nombre }}</option>{% endfor %}
-                        </select>
-                    </div>
-                    <div class="md:col-span-4 relative">
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Buscar Servicio (Ensayo)</label>
-                        <select id="reg_servicio" class="vicaf-search-select"></select>
-                    </div>
-                    <div class="md:col-span-4">
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Referencia Norma/Método</label>
-                        <div class="flex gap-2">
-                            <div id="reg_norma_txt" class="flex-1 text-[10px] p-2.5 bg-white border border-slate-200 rounded-lg text-slate-400 italic">Norma</div>
-                            <div id="reg_metodo_txt" class="flex-1 text-[10px] p-2.5 bg-white border border-slate-200 rounded-lg text-slate-400 italic">Método</div>
-                        </div>
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cant. Sugerida</label>
-                        <input type="number" id="reg_cantidad" value="1" class="w-full px-4 py-2.5 text-xs font-bold">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">P. Sugerido (S/)</label>
-                        <input type="number" step="0.01" id="reg_precio" class="w-full px-4 py-2.5 text-xs font-bold text-blue-600">
+        <div id="tab-panel-servicios" class="cot-tab-panel">
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 mb-6">
+                <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="list-plus" class="w-4 h-4 text-emerald-500"></i>
+                        <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Detalle maestro de servicios</h3>
                     </div>
                 </div>
 
-                <div class="flex justify-end mt-4">
-                    <button type="button" onclick="addItem()" class="bg-slate-900 hover:bg-emerald-600 text-white font-black py-3 px-8 rounded-xl text-[11px] uppercase tracking-widest shadow-lg transition-all flex items-center gap-3">
-                        <i data-lucide="plus-circle" class="w-4 h-4"></i> Agregar a la Estructura
+                <div class="bg-white border border-slate-200 rounded-2xl shadow-sm mb-4 relative">
+                    <div onclick="toggleRegistroPanel()" class="flex items-center justify-between px-6 py-3 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors border-b border-slate-100 rounded-t-2xl">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="search-code" class="w-4 h-4 text-emerald-500"></i>
+                            <h3 class="text-[11px] font-black text-slate-500 uppercase tracking-widest">Panel de selección de servicios</h3>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase">Configurar servicio</span>
+                            <i id="icon-registro" data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform duration-300"></i>
+                        </div>
+                    </div>
+
+                    <div id="content-registro" class="p-6 transition-all duration-300 relative z-50">
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-4 bg-slate-50/50 p-6 rounded-2xl border border-dashed border-slate-200">
+
+                            <div class="md:col-span-6">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cabecera de Grupo (Categoría)</label>
+                                <select id="reg_categoria" class="w-full text-[10px] border-slate-200 rounded-lg bg-white h-[38px] font-bold text-slate-700">
+                                    <option value="">-- SELECCIONAR CATEGORÍA --</option>
+                                    {% for cat in servicio_grupos %}
+                                        <option value="{{ cat.nombre }}">{{ cat.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="md:col-span-6">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sub-Categoría</label>
+                                <select id="reg_subcategoria" class="w-full text-[10px] border-slate-200 rounded-lg bg-white h-[38px] font-bold text-slate-700">
+                                    <option value="">-- SELECCIONAR SUB-CATEGORÍA --</option>
+                                    {% for sub in subcategorias %}
+                                        <option value="{{ sub.nombre }}">{{ sub.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="md:col-span-4 relative">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Buscar Servicio (Ensayo)</label>
+                                <select id="reg_servicio" class="vicaf-search-select"></select>
+                            </div>
+
+                            <div class="md:col-span-4">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Referencia Norma/Método</label>
+                                <div class="flex gap-2">
+                                    <div id="reg_norma_txt" class="flex-1 text-[10px] p-2.5 bg-white border border-slate-200 rounded-lg text-slate-400 italic">Norma</div>
+                                    <div id="reg_metodo_txt" class="flex-1 text-[10px] p-2.5 bg-white border border-slate-200 rounded-lg text-slate-400 italic">Método</div>
+                                </div>
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cant. Sugerida</label>
+                                <input type="number" id="reg_cantidad" value="1" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">P. Sugerido (S/)</label>
+                                <input type="number" step="0.01" id="reg_precio" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-emerald-600">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end mb-8">
+                    <button type="button" onclick="addItem()" class="group bg-slate-900 hover:bg-emerald-600 text-white font-black py-3 px-8 rounded-xl text-[11px] uppercase tracking-widest shadow-lg transition-all flex items-center gap-3">
+                        <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-300 group-hover:text-white"></i>
+                        Agregar ítem al detalle
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto overflow-y-auto max-h-[400px] min-h-[200px] scrollbar-thin scrollbar-thumb-slate-200">
+                    <table class="w-full border-collapse">
+                        <thead class="sticky top-0 z-10 bg-white">
+                            <tr class="text-[10px] text-slate-400 uppercase tracking-widest font-black shadow-[0_1px_0_0_rgba(226,232,240,1)]">
+                                <th class="pb-4 pt-2 pl-4 text-left w-12 bg-white">#</th>
+                                <th class="pb-4 pt-2 text-left bg-white">Descripción del Ensayo</th>
+                                <th class="pb-4 pt-2 text-center bg-white">Norma/Método</th>
+                                <th class="pb-4 pt-2 text-center w-20 bg-white">Cant.</th>
+                                <th class="pb-4 pt-2 text-center w-20 bg-white">Und.</th>
+                                <th class="pb-4 pt-2 text-right w-28 bg-white">P. Unitario</th>
+                                <th class="pb-4 pt-2 text-right w-28 pr-4 bg-white">P. Parcial</th>
+                                <th class="pb-4 pt-2 text-center w-12 bg-white"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="cotizacion-detalles" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+
+                <div class="mt-8 flex flex-col sm:flex-row justify-between gap-3">
+                    <button type="button"
+                            onclick="switchPlantillaTab('general')"
+                            class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-sm transition-all flex items-center justify-center gap-3">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        Volver a general
+                    </button>
+
+                    <button type="button"
+                            onclick="switchPlantillaTab('condiciones')"
+                            class="bg-slate-900 hover:bg-emerald-600 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg transition-all flex items-center justify-center gap-3">
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        Continuar a condiciones
                     </button>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
-            <div class="overflow-x-auto min-h-[200px]">
-                <table class="w-full border-collapse">
-                    <thead>
-                        <tr class="text-[10px] text-slate-400 uppercase tracking-widest font-black border-b border-slate-100">
-                            <th class="pb-4 text-left w-12">#</th>
-                            <th class="pb-4 text-left">Descripción</th>
-                            <th class="pb-4 text-center">Norma/Método</th>
-                            <th class="pb-4 text-center w-20">Cant.</th>
-                            <th class="pb-4 text-center w-20">Und.</th>
-                            <th class="pb-4 text-right w-28">P. Sugerido</th>
-                            <th class="pb-4 text-right w-28 pr-4">P. Parcial</th>
-                            <th class="pb-4 text-center w-12"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="cotizacion-detalles" class="divide-y divide-slate-100"></tbody>
-                </table>
-            </div>
-
-            <div class="mt-8 grid md:grid-cols-12 gap-6 pt-6 border-t border-slate-100 items-center">
-                <div class="md:col-span-7">
-                    <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                        <p class="text-[10px] text-emerald-700 font-bold uppercase mb-1">Nota de Plantilla Maestro:</p>
-                        <p class="text-[10px] text-slate-500 leading-relaxed italic">Este modelo sirve de base. Los precios y cantidades finales se definen al generar la Cotización real.</p>
+        <div id="tab-panel-condiciones" class="cot-tab-panel">
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 mb-6">
+                <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="file-cog" class="w-4 h-4 text-emerald-500"></i>
+                        <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Condiciones y resumen de plantilla</h3>
                     </div>
                 </div>
-                <div class="md:col-span-5 space-y-2 bg-slate-50 p-6 rounded-2xl">
-                    <div class="flex justify-between items-center text-xs">
-                        <span class="text-slate-500 font-bold uppercase">Subtotal Referencial</span>
-                        <span class="text-slate-700 font-mono-tech font-bold" id="subtotal_cotizacion">0.00</span>
+
+                <div class="mt-2 flex flex-col md:grid md:grid-cols-12 gap-6 pt-2">
+                    <div class="md:col-span-7">
+                        <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                            <p class="text-[10px] text-emerald-700 font-bold uppercase mb-1">Nota de Plantilla Maestro:</p>
+                            <p class="text-[10px] text-slate-500 leading-relaxed italic">
+                                Este modelo sirve de base. Los precios, cantidades y ajustes finales se definen al generar la cotización real.
+                            </p>
+                        </div>
                     </div>
-                    <div id="igv_container" class="hidden"> <span id="igv_cotizacion">0.00</span> </div>
-                    
-                    <div class="pt-3 border-t border-slate-200 flex justify-between items-center">
-                        <span class="text-emerald-600 font-black text-[11px] uppercase">Total Referencial S/</span>
-                        <span class="text-emerald-600 font-mono-tech font-black text-xl" id="total_final_cotizacion">0.00</span>
+
+                    <div class="md:col-span-5 space-y-3 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-slate-500 font-bold uppercase tracking-tighter">Subtotal Referencial</span>
+                            <span class="text-slate-700 font-mono-tech font-bold" id="subtotal_cotizacion">0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-slate-500 font-bold uppercase tracking-tighter">IGV (18%)</span>
+                            <span class="text-slate-700 font-mono-tech font-bold" id="igv_cotizacion">0.00</span>
+                        </div>
+                        <div class="pt-3 border-t border-slate-200 flex justify-between items-center">
+                            <span class="text-emerald-600 font-black text-[11px] uppercase tracking-tighter">Monto Total S/</span>
+                            <span class="text-emerald-600 font-mono-tech font-black text-xl" id="total_final_cotizacion">0.00</span>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="mt-8 flex justify-end">
-                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl transition-all flex items-center gap-3">
-                    <i data-lucide="save" class="w-5 h-5"></i> Guardar Plantilla Maestra
-                </button>
+                <div class="mt-8 grid grid-cols-1 gap-6">
+                    <div class="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-cyan-50 shadow-sm overflow-hidden">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-5 border-b border-emerald-100">
+                            <div class="flex items-start gap-4">
+                                <div class="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg">
+                                    <i data-lucide="file-check-2" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-sm font-extrabold text-slate-900 uppercase tracking-wide">
+                                        Contenido editable de la plantilla
+                                    </h3>
+                                    <p class="text-xs text-slate-500 font-medium mt-1">
+                                        Configura qué notas, condiciones y textos quedarán como base para futuras cotizaciones.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span id="condiciones-status-badge"
+                                      class="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-wider">
+                                    Sin configurar
+                                </span>
+
+                                <button type="button"
+                                        onclick="abrirModalCondicionesCotizacion()"
+                                        class="px-5 py-3 rounded-xl bg-emerald-600 text-white text-[11px] font-black uppercase shadow-sm hover:bg-emerald-700 transition-all flex items-center gap-2">
+                                    <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+                                    Configurar textos
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="px-6 py-5">
+                            <div id="condiciones-resumen-box" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-500">
+                                    Aún no se ha configurado el contenido dinámico.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex flex-col sm:flex-row justify-between gap-3">
+                    <button type="button"
+                            onclick="switchPlantillaTab('servicios')"
+                            class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-sm transition-all flex items-center justify-center gap-3">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        Volver a servicios
+                    </button>
+
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-3">
+                        <i data-lucide="save" class="w-5 h-5"></i>
+                        Guardar plantilla maestra
+                    </button>
+                </div>
             </div>
         </div>
 
         <input type="hidden" name="detalles_json" id="detalles_json">
+        <input type="hidden" name="condiciones_json" id="condiciones_json">
     </form>
 </div>
+{% endblock %}
 
-{% include 'servicios/modals/all_modals.html' %}
+{% block modals %}
+    {% include 'servicios/modals/all_modals.html' %}
+{% endblock %}
 
+{% block extra_scripts %}
 <script id="all-services-data" type="application/json">{{ servicios_con_detalles_json|safe }}</script>
+
 <script id="servicio-grupos-data" type="application/json">
-    [{% for g in servicio_grupos %}{"pk":"{{g.pk}}","nombre":"{{g.nombre}}"}{% if not forloop.last %},{% endif %}{% endfor %}]
+    [{% for g in servicio_grupos %}{"pk":"{{ g.pk }}","nombre":"{{ g.nombre }}"}{% if not forloop.last %},{% endif %}{% endfor %}]
 </script>
+
 <script id="initial-detalles-json" type="application/json">
     {% if detalles_cotizacion_json %}{{ detalles_cotizacion_json|safe }}{% else %}[]{% endif %}
+</script>
+
+<script id="initial-condiciones-json" type="application/json">
+    {% if condiciones_plantilla_json %}{{ condiciones_plantilla_json|safe }}{% else %}[]{% endif %}
 </script>
 
 <script>
     window.CotizacionConfig = {
         urlCrearCategoria: "{% url 'servicios:crear_categoria_ajax' %}",
-        urlCrearSubcategoria: "{% url 'servicios:crear_subcategoria_ajax' %}"
+        urlCrearSubcategoria: "{% url 'servicios:crear_subcategoria_ajax' %}",
+        plantillaId: {% if plantilla.pk %}{{ plantilla.pk }}{% else %}null{% endif %},
+        condicionesJsonUrl: {% if plantilla.pk %}"{% url 'servicios:condiciones_plantilla_json' plantilla.pk %}"{% else %}null{% endif %},
+        condicionesGuardarUrl: {% if plantilla.pk %}"{% url 'servicios:guardar_condiciones_plantilla_json' plantilla.pk %}"{% else %}null{% endif %},
+        condicionesResumenUrl: {% if plantilla.pk %}"{% url 'servicios:resumen_condiciones_plantilla_json' plantilla.pk %}"{% else %}null{% endif %}
     };
+
+    function switchPlantillaTab(tabName) {
+        document.querySelectorAll('.cot-tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        document.querySelectorAll('.cot-tab-panel').forEach(panel => {
+            panel.classList.remove('active', 'cot-tab-panel-enter');
+        });
+
+        const activeBtn = document.querySelector(`.cot-tab-btn[data-tab="${tabName}"]`);
+        const activePanel = document.getElementById(`tab-panel-${tabName}`);
+
+        if (activeBtn) activeBtn.classList.add('active');
+        if (activePanel) activePanel.classList.add('active', 'cot-tab-panel-enter');
+
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
 </script>
 
 <script src="https://unpkg.com/lucide@latest"></script>

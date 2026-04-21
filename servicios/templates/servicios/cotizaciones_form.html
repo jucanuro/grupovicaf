@@ -93,8 +93,7 @@
 {% block content %}
 
 <div class="bg-vicaf-engine"></div>
-<div class="max-w-full mx-auto p-4 relative z-10 space-y-6">
-    
+<div class="max-w-full mx-auto p-4 relative z-10 space-y-6  min-h-screen overflow-y-auto">
     <header class="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-start gap-4 sm:items-center">
             <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-md">
@@ -233,7 +232,6 @@
         </div>
     </div>
 
-    <!-- NAV TABS -->
     <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-3">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <button type="button"
@@ -274,7 +272,6 @@
     <form method="post" id="cotizacion-form">
         {% csrf_token %}
 
-        <!-- TAB 1 -->
         <div id="tab-panel-cliente" class="cot-tab-panel active cot-tab-panel-enter">
             <div class="bg-white border border-slate-200 rounded-2xl shadow-sm mb-6 transition-all duration-300 relative">
                 <div onclick="toggleHeaderSection()" class="flex items-center justify-between px-8 py-4 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors border-b border-slate-100 rounded-t-2xl">
@@ -403,7 +400,6 @@
             </div>
         </div>
 
-        <!-- TAB 2 -->
         <div id="tab-panel-servicios" class="cot-tab-panel">
             <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 mb-6">
                 <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-3">
@@ -539,7 +535,6 @@
             </div>
         </div>
 
-        <!-- TAB 3 -->
         <div id="tab-panel-resumen" class="cot-tab-panel">
             <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 mb-6">
                 <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-3">
@@ -597,6 +592,48 @@
                     </div>
                 </div>
 
+                <div class="mt-8 grid grid-cols-1 gap-6">
+                    <div class="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-cyan-50 shadow-sm overflow-hidden">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-5 border-b border-emerald-100">
+                            <div class="flex items-start gap-4">
+                                <div class="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg">
+                                    <i data-lucide="file-check-2" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-sm font-extrabold text-slate-900 uppercase tracking-wide">
+                                        Contenido editable de la oferta
+                                    </h3>
+                                    <p class="text-xs text-slate-500 font-medium mt-1">
+                                        Selecciona qué notas, condiciones y textos se incluirán en esta cotización.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span id="condiciones-status-badge"
+                                      class="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-wider">
+                                    Sin configurar
+                                </span>
+
+                                <button type="button"
+                                        onclick="abrirModalCondicionesCotizacion()"
+                                        class="px-5 py-3 rounded-xl bg-emerald-600 text-white text-[11px] font-black uppercase shadow-sm hover:bg-emerald-700 transition-all flex items-center gap-2">
+                                    <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+                                    Configurar condiciones
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="px-6 py-5">
+                            <div id="condiciones-resumen-box" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-500">
+                                    Aún no se ha configurado el contenido dinámico.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="mt-8 flex flex-col sm:flex-row justify-between gap-3">
                     <button type="button"
                             onclick="switchCotizacionTab('servicios')"
@@ -614,11 +651,12 @@
 
         <input type="hidden" name="detalles_json" id="detalles_json">
         <input type="hidden" name="monto_total" id="id_monto_total">
+        <input type="hidden" name="condiciones_json" id="condiciones_json">
     </form>
 </div>
-
-{% include 'servicios/modals/all_modals.html' %}
-
+{% block modals %}
+    {% include 'servicios/modals/all_modals.html' %}
+{% endblock %}
 <script id="all-services-data" type="application/json">{{ servicios_con_detalles_json|safe }}</script>
 <script id="servicio-grupos-data" type="application/json">
     [{% for g in servicio_grupos %}{"pk":"{{g.pk}}","nombre":"{{g.nombre}}"}{% if not forloop.last %},{% endif %}{% endfor %}]
@@ -629,6 +667,9 @@
 <script id="subcategorias-data" type="application/json">
     [{% for s in subcategorias %}{"pk":"{{s.pk}}","nombre":"{{s.nombre}}"}{% if not forloop.last %},{% endif %}{% endfor %}]
 </script>
+<script id="initial-condiciones-json" type="application/json">
+    {% if condiciones_cotizacion_json %}{{ condiciones_cotizacion_json|safe }}{% else %}[] {% endif %}
+</script>
 
 <script src="https://unpkg.com/lucide@latest"></script>
 <script>
@@ -636,7 +677,8 @@
         urlCrearCliente: "{% url 'clientes:crear_cliente_ajax' %}",
         urlCrearCategoria: "{% url 'servicios:crear_categoria_ajax' %}",
         urlCrearSubcategoria: "{% url 'servicios:crear_subcategoria_ajax' %}",
-        urlPlantillaBase: "/servicios/api/plantilla/"
+        urlPlantillaBase: "/servicios/api/plantilla/",
+        csrfToken: "{{ csrf_token }}"
     };
 
     function switchCotizacionTab(tabName) {
