@@ -906,6 +906,35 @@ def _build_condiciones_pdf_data(cotizacion):
 
     return secciones_pdf
 
+def reemplazar_tokens_condicion(texto, cotizacion):
+    if not texto:
+        return ''
+
+    forma_pago_raw = getattr(cotizacion, 'forma_pago', '') or ''
+    validez_oferta = getattr(cotizacion, 'validez_oferta_dias', '') or ''
+    tiempo_entrega = getattr(cotizacion, 'plazo_entrega_dias', '') or ''
+
+    forma_pago_map = {
+        'Contado': 'Al contado',
+        '15_dias': 'A 15 días',
+        '30_dias': 'A 30 días',
+        '60_dias': 'A 60 días',
+        'Personalizado': 'Personalizado',
+    }
+
+    forma_pago = forma_pago_map.get(forma_pago_raw, forma_pago_raw)
+
+    reemplazos = {
+        '[[FORMA_PAGO]]': str(forma_pago),
+        '[[VALIDEZ_OFERTA]]': str(validez_oferta),
+        '[[TIEMPO_ENTREGA]]': str(tiempo_entrega),
+    }
+
+    texto_final = texto
+    for token, valor in reemplazos.items():
+        texto_final = texto_final.replace(token, valor)
+
+    return texto_final
 
 @login_required
 def generar_pdf_cotizacion(request, pk):
@@ -946,14 +975,20 @@ def generar_pdf_cotizacion(request, pk):
         for item in items_queryset.order_by('orden', 'id'):
             if item.seleccionado and (item.texto_final or '').strip():
                 items_pdf.append({
-                    'texto': item.texto_final.strip()
+                    'texto': reemplazar_tokens_condicion(
+                        item.texto_final.strip(),
+                        cotizacion
+                    )
                 })
 
             children = item.children.all().order_by('orden', 'id')
             for child in children:
                 if child.seleccionado and (child.texto_final or '').strip():
                     items_pdf.append({
-                        'texto': child.texto_final.strip()
+                        'texto': reemplazar_tokens_condicion(
+                            child.texto_final.strip(),
+                            cotizacion
+                        )
                     })
 
         return items_pdf
