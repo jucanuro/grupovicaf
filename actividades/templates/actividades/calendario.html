@@ -643,12 +643,22 @@
                 <span class="command-header__trigger-label">Panel</span>
             </button>
 
-            <button id="btnNuevaActividad"
-                    type="button"
-                    class="command-header__action">
-                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                Nueva actividad
-            </button>
+            <div class="flex items-center gap-2">
+                <a href="{% url 'actividades:gantt_dashboard' %}"
+                    class="command-header__action command-header__action--secondary px-3 flex items-center gap-2"
+                    aria-label="Ir al gantt"
+                    title="Ir al gantt">
+                        <i data-lucide="chart-no-axes-gantt" class="w-4 h-4"></i>
+                        <span>Gantt</span>
+                    </a>
+
+                <button id="btnNuevaActividad"
+                        type="button"
+                        class="command-header__action">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    Nueva actividad
+                </button>
+            </div>
         </div>
 
         <!-- Overlay -->
@@ -1947,7 +1957,7 @@
 
         if (!asideWrapper || !calendarAside || !toggleAsideBtn) return;
 
-        let isExpanded = false;
+        let isExpanded = true;
 
         function updateToggleIcon(iconName) {
             const icon = toggleAsideBtn.querySelector('i');
@@ -2022,10 +2032,16 @@
 
     function buildActividadContent(arg) {
         const title = escapeHtml(arg.event.title || '');
+        const eventColor =
+            arg.event.backgroundColor ||
+            arg.event.borderColor ||
+            arg.event.extendedProps?.color ||
+            arg.event.extendedProps?.color_visual ||
+            '#2563eb';
 
         return {
             html: `
-                <div class="fc-actividad-chip">
+                <div class="fc-actividad-chip" style="background:${eventColor};">
                     <span class="fc-actividad-dot"></span>
                     <span class="fc-actividad-title">${title}</span>
                 </div>
@@ -2046,6 +2062,12 @@
             dayMaxEvents: true,
             firstDay: 1,
             headerToolbar: false,
+
+            slotMinTime: '08:00:00',
+            slotMaxTime: '20:00:00',
+            scrollTime: '08:00:00',
+            allDaySlot: false,
+
             events: function(fetchInfo, successCallback, failureCallback) {
                 const params = new URLSearchParams({
                     start: fetchInfo.startStr,
@@ -2106,7 +2128,16 @@
                         `${arg.event.extendedProps?.codigo_solicitud || ''} | ${arg.event.extendedProps?.muestra || ''} | ${arg.event.extendedProps?.servicio || ''}`
                     );
                 } else {
+                    const eventColor =
+                        arg.event.backgroundColor ||
+                        arg.event.borderColor ||
+                        arg.event.extendedProps?.color ||
+                        arg.event.extendedProps?.color_visual ||
+                        '#2563eb';
+
                     arg.el.classList.add('fc-actividad-standard');
+                    arg.el.style.backgroundColor = eventColor;
+                    arg.el.style.borderColor = eventColor;
                 }
             },
             eventTimeFormat: {
