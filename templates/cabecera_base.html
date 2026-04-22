@@ -1,5 +1,5 @@
-<div class="sticky top-0 z-40 w-full">
-    <header class="relative h-24 flex items-center justify-between px-8 bg-white z-30" 
+<div class="sticky top-0 z-40 w-full overflow-visible">
+    <header class="relative h-24 flex items-center justify-between px-8 bg-white z-30 overflow-visible" 
             style="clip-path: polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%);">
         
         <button id="mobile-menu-btn" class="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">
@@ -17,6 +17,35 @@
             </div>
         </div>
 
+        <div class="hidden xl:flex items-center gap-2 mr-4">
+            <a href="{% url 'servicios:lista_cotizaciones' %}"
+               class="group relative flex items-center justify-center w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100 hover:scale-[1.03] transition-all shadow-sm"
+               aria-label="Cotizaciones">
+                <i data-lucide="file-signature" class="w-5 h-5"></i>
+                <span class="pointer-events-none absolute bottom-[calc(100%+2px)] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1 text-[10px] font-bold text-white opacity-0 translate-y-1 shadow-xl transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0 z-[200]">
+                    Cotizaciones
+                </span>
+            </a>
+
+            <a href="{% url 'proyectos:lista_recepciones' %}"
+               class="group relative flex items-center justify-center w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 hover:scale-[1.03] transition-all shadow-sm"
+               aria-label="Muestras">
+                <i data-lucide="flask-conical" class="w-5 h-5"></i>
+                <span class="pointer-events-none absolute bottom-[calc(100%+2px)] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1 text-[10px] font-bold text-white opacity-0 translate-y-1 shadow-xl transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0 z-[200]">
+                    Muestras
+                </span>
+            </a>
+
+            <a href="{% url 'proyectos:lista_solicitudes' %}"
+               class="group relative flex items-center justify-center w-11 h-11 rounded-2xl bg-fuchsia-50 text-fuchsia-600 border border-fuchsia-100 hover:bg-fuchsia-100 hover:scale-[1.03] transition-all shadow-sm"
+               aria-label="Ensayos">
+                <i data-lucide="clipboard-check" class="w-5 h-5"></i>
+                <span class="pointer-events-none absolute bottom-[calc(100%+2px)] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1 text-[10px] font-bold text-white opacity-0 translate-y-1 shadow-xl transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0 z-[200]">
+                    Ensayos
+                </span>
+            </a>
+        </div>
+
         <div class="flex-1 max-w-lg mx-6 lg:mx-12 group relative">
             <div class="relative transition-all duration-300 transform group-hover:-translate-y-0.5" id="search-trigger">
                 <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none z-20">
@@ -31,6 +60,35 @@
                     <span class="bg-white/90 text-slate-400 text-[10px] font-black px-2 py-1 rounded-lg border border-slate-200 shadow-sm">⌘ K</span>
                 </div>
             </div>
+        </div>
+
+        <div class="hidden xl:flex items-center gap-2 ml-4">
+            <a href="{% url 'actividades:calendario_dashboard' %}"
+               class="group relative flex items-center justify-center w-11 h-11 rounded-2xl bg-orange-50 text-orange-600 border border-orange-100 hover:bg-orange-100 hover:scale-[1.03] transition-all shadow-sm"
+               aria-label="Calendario">
+                <i data-lucide="calendar-days" class="w-5 h-5"></i>
+                <span class="pointer-events-none absolute bottom-[calc(100%+2px)] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1 text-[10px] font-bold text-white opacity-0 translate-y-1 shadow-xl transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0 z-[200]">
+                    Calendario
+                </span>
+            </a>
+
+            <a href="{% url 'actividades:gantt_dashboard' %}"
+               class="group relative flex items-center justify-center w-11 h-11 rounded-2xl bg-pink-50 text-pink-600 border border-pink-100 hover:bg-pink-100 hover:scale-[1.03] transition-all shadow-sm"
+               aria-label="Gantt">
+                <i data-lucide="chart-no-axes-gantt" class="w-5 h-5"></i>
+                <span class="pointer-events-none absolute bottom-[calc(100%+2px)] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1 text-[10px] font-bold text-white opacity-0 translate-y-1 shadow-xl transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0 z-[200]">
+                    Gantt
+                </span>
+            </a>
+
+            <a href="{% url 'dashboard' %}"
+               class="group relative flex items-center justify-center w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 hover:scale-[1.03] transition-all shadow-sm"
+               aria-label="Dashboard">
+                <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                <span class="pointer-events-none absolute bottom-[calc(100%+2px)] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1 text-[10px] font-bold text-white opacity-0 translate-y-1 shadow-xl transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0 z-[200]">
+                    Dashboard
+                </span>
+            </a>
         </div>
 
         <div class="flex items-center gap-4">
