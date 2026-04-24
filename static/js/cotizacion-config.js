@@ -654,6 +654,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function normalizeCondicionSeccion(seccion) {
+        const items = Array.isArray(seccion?.items)
+            ? seccion.items.map(normalizeCondicionItem)
+            : [];
+
+        const yaEstaConfigurado = !!window.CondicionesCotizacionState?.configurado;
+
         return {
             id: seccion?.id ?? null,
             catalogo_seccion_id: seccion?.catalogo_seccion_id ?? null,
@@ -661,8 +667,8 @@ document.addEventListener('DOMContentLoaded', () => {
             titulo: seccion?.titulo || '',
             tipo: seccion?.tipo || 'lista',
             orden: seccion?.orden ?? 0,
-            seleccionada: !!seccion?.seleccionada,
-            items: Array.isArray(seccion?.items) ? seccion.items.map(normalizeCondicionItem) : []
+            seleccionada: yaEstaConfigurado ? !!seccion?.seleccionada : false,
+            items: items
         };
     }
 
@@ -936,7 +942,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const isOpen = !!state.sectionUIState[sectionIndex];
             const selectedCount = countSelectedItems(seccion.items || []);
             const totalItems = countAllRenderableItems(seccion.items || []);
-            const sectionSelectedClass = seccion.seleccionada
+            const sectionIsSelected = selectedCount > 0;
+
+            seccion.seleccionada = sectionIsSelected;
+
+            const sectionSelectedClass = sectionIsSelected
                 ? 'border-emerald-300 bg-emerald-50/40'
                 : 'border-slate-200 bg-white';
 
@@ -946,7 +956,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="flex items-center gap-4 min-w-0">
                             <input type="checkbox"
                                 class="w-5 h-5 rounded-md border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                                ${seccion.seleccionada ? 'checked' : ''}
+                                ${sectionIsSelected ? 'checked' : ''}
                                 ${state.puedeEditar ? '' : 'disabled'}
                                 onchange="toggleSeccionCondicion(${sectionIndex}, this.checked)">
 
@@ -1080,9 +1090,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.abrirModalCondicionesCotizacion = async () => {
-        const modal = document.getElementById('modalCondicionesCotizacion');
-        if (!modal) return;
-
         if (!window.CondicionesCotizacionState.secciones.length) {
             await initializeCondicionesState();
         }
@@ -1105,16 +1112,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.CondicionesCotizacionState.draftSecciones.map(() => false);
         }
 
-        modal.classList.remove('hidden');
-        modal.classList.add('block');
-
-        document.documentElement.classList.add('modal-open');
-        document.body.classList.add('modal-open');
-
-        const wrap = document.getElementById('modalCondicionesBodyWrap');
-        if (wrap) wrap.scrollTop = 0;
-
         renderCondicionesModal();
+        syncCondicionesInput();
+        actualizarResumenCondicionesLocal();
     };
 
     window.cerrarModalCondicionesCotizacion = () => {
@@ -1150,6 +1150,19 @@ document.addEventListener('DOMContentLoaded', () => {
         renderCondicionesModal();
     };
 
+    function commitCondicionesDraft() {
+        syncSeccionSeleccionState();
+
+        window.CondicionesCotizacionState.secciones =
+            deepClone(window.CondicionesCotizacionState.draftSecciones || []);
+
+        window.CondicionesCotizacionState.configurado =
+            hasAnySelection(window.CondicionesCotizacionState.secciones);
+
+        syncCondicionesInput();
+        actualizarResumenCondicionesLocal();
+    }
+
     window.toggleSeccionCondicion = (sectionIndex, checked) => {
         const seccion = window.CondicionesCotizacionState.draftSecciones[sectionIndex];
         if (!seccion) return;
@@ -1157,8 +1170,10 @@ document.addEventListener('DOMContentLoaded', () => {
         seccion.seleccionada = checked;
         (seccion.items || []).forEach(item => marcarItemRecursivo(item, checked));
 
+        commitCondicionesDraft();
         renderCondicionesModal();
     };
+
 
     window.toggleItemCondicion = (path, checked) => {
         const item = getItemByPath(path);
@@ -1170,7 +1185,15 @@ document.addEventListener('DOMContentLoaded', () => {
             marcarItemRecursivo(child, checked);
         });
 
-        syncSeccionSeleccionState();
+        const sectionIndex = path[0];
+        const seccion = window.CondicionesCotizacionState.draftSecciones[sectionIndex];
+
+        if (seccion) {
+            const totalSeleccionados = countSelectedItems(seccion.items || []);
+            seccion.seleccionada = totalSeleccionados > 0;
+        }
+
+        commitCondicionesDraft();
         renderCondicionesModal();
     };
 
@@ -1180,6 +1203,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         item.texto_final = value;
         item.fue_editado = (item.texto_base || '').trim() !== (value || '').trim();
+
+        commitCondicionesDraft();
     };
 
     window.autoResizeCondicionTextarea = autoResizeCondicionTextarea;
@@ -1189,8 +1214,10 @@ document.addEventListener('DOMContentLoaded', () => {
             seccion.seleccionada = true;
             (seccion.items || []).forEach(item => marcarItemRecursivo(item, true));
         });
+
+        commitCondicionesDraft();
         renderCondicionesModal();
-    };
+    };;
 
     window.limpiarTodoCondiciones = () => {
         window.CondicionesCotizacionState.draftSecciones.forEach(seccion => {
@@ -1198,6 +1225,7 @@ document.addEventListener('DOMContentLoaded', () => {
             (seccion.items || []).forEach(item => marcarItemRecursivo(item, false));
         });
 
+        commitCondicionesDraft();
         renderCondicionesModal();
     };
 
@@ -1216,7 +1244,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     document.getElementById('cotizacion-form')?.addEventListener('submit', () => {
-        syncCondicionesInput();
+        commitCondicionesDraft();
     });
 
     document.addEventListener('keydown', function (event) {
@@ -1226,5 +1254,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.renderTable();
-    initializeCondicionesState();
+
+    initializeCondicionesState().then(() => {
+        renderCondicionesModal();
+        syncCondicionesInput();
+        actualizarResumenCondicionesLocal();
+    });
 });
