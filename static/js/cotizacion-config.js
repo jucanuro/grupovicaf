@@ -1163,6 +1163,15 @@ document.addEventListener('DOMContentLoaded', () => {
         actualizarResumenCondicionesLocal();
     }
 
+    function refreshCondicionesBuilder() {
+        syncSeccionSeleccionState();
+        syncCondicionesInput();
+        actualizarResumenCondicionesLocal();
+
+        if (typeof renderSidebar === 'function') renderSidebar();
+        if (typeof renderEditor === 'function') renderEditor();
+    }
+
     window.toggleSeccionCondicion = (sectionIndex, checked) => {
         const seccion = window.CondicionesCotizacionState.draftSecciones[sectionIndex];
         if (!seccion) return;
@@ -1171,7 +1180,7 @@ document.addEventListener('DOMContentLoaded', () => {
         (seccion.items || []).forEach(item => marcarItemRecursivo(item, checked));
 
         commitCondicionesDraft();
-        renderCondicionesModal();
+        refreshCondicionesBuilder();
     };
 
 
@@ -1180,21 +1189,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!item) return;
 
         item.seleccionado = checked;
-
-        (item.children || []).forEach(child => {
-            marcarItemRecursivo(child, checked);
-        });
-
-        const sectionIndex = path[0];
-        const seccion = window.CondicionesCotizacionState.draftSecciones[sectionIndex];
-
-        if (seccion) {
-            const totalSeleccionados = countSelectedItems(seccion.items || []);
-            seccion.seleccionada = totalSeleccionados > 0;
-        }
+        (item.children || []).forEach(child => marcarItemRecursivo(child, checked));
 
         commitCondicionesDraft();
-        renderCondicionesModal();
+        refreshCondicionesBuilder();
     };
 
     window.editarTextoCondicion = (path, value) => {
@@ -1216,8 +1214,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         commitCondicionesDraft();
-        renderCondicionesModal();
-    };;
+        refreshCondicionesBuilder();
+    };
 
     window.limpiarTodoCondiciones = () => {
         window.CondicionesCotizacionState.draftSecciones.forEach(seccion => {
@@ -1226,7 +1224,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         commitCondicionesDraft();
-        renderCondicionesModal();
+        refreshCondicionesBuilder();
     };
 
     window.aplicarCondicionesAlFormulario = () => {
@@ -1253,11 +1251,122 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    let currentSectionIndex = null;
+
+    function renderSidebar() {
+        const container = document.getElementById('condiciones-sidebar-list');
+        if (!container) return;
+
+        const secciones = window.CondicionesCotizacionState.draftSecciones || [];
+
+        if (currentSectionIndex === null && secciones.length) {
+            currentSectionIndex = 0;
+        }
+
+        container.innerHTML = '';
+
+        secciones.forEach((sec, index) => {
+            const selectedCount = countSelectedItems(sec.items || []);
+            const totalCount = countAllRenderableItems(sec.items || []);
+            const isActive = currentSectionIndex === index;
+            const isSelected = selectedCount > 0;
+
+            const div = document.createElement('div');
+            div.className = `
+                cursor-pointer px-4 py-3 rounded-xl border text-xs font-bold transition-all
+                ${isActive ? 'bg-slate-900 border-slate-900 text-white shadow-lg' :
+                    isSelected ? 'bg-emerald-50 border-emerald-300 text-emerald-700' :
+                    'bg-white border-slate-200 text-slate-600 hover:border-blue-300'}
+            `;
+
+            div.innerHTML = `
+                <div class="flex items-center justify-between gap-3">
+                    <span class="truncate">${escapeHtml(sec.titulo || 'Sin título')}</span>
+                    <span class="text-[10px] shrink-0">${selectedCount}/${totalCount}</span>
+                </div>
+            `;
+
+            div.onclick = () => {
+                currentSectionIndex = index;
+                renderSidebar();
+                renderEditor();
+            };
+
+            container.appendChild(div);
+        });
+    }
+    
+    function renderEditor() {
+        const secciones = window.CondicionesCotizacionState.draftSecciones || [];
+        const sec = secciones[currentSectionIndex];
+
+        const title = document.getElementById('editor-title');
+        const badge = document.getElementById('editor-badge');
+        const body = document.getElementById('condiciones-editor-body');
+
+        if (!title || !badge || !body) return;
+
+        if (!sec) {
+            title.innerText = 'Selecciona una sección';
+            badge.innerText = '0 seleccionados';
+            body.innerHTML = `<div class="text-xs text-slate-400 font-semibold">No hay contenido disponible</div>`;
+            return;
+        }
+
+        const selectedCount = countSelectedItems(sec.items || []);
+        const totalCount = countAllRenderableItems(sec.items || []);
+        const allChecked = totalCount > 0 && selectedCount === totalCount;
+
+        sec.seleccionada = selectedCount > 0;
+
+        title.innerText = sec.titulo || 'Sin título';
+        badge.innerText = `${selectedCount} de ${totalCount} seleccionados`;
+
+        body.innerHTML = `
+            <div class="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 flex items-center justify-between gap-4">
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox"
+                        ${allChecked ? 'checked' : ''}
+                        onchange="toggleSeccionCondicion(${currentSectionIndex}, this.checked)"
+                        class="w-5 h-5 rounded-md border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                    <span class="text-xs font-black text-slate-700 uppercase tracking-wider">
+                        Seleccionar toda la sección
+                    </span>
+                </label>
+
+                <span class="text-[10px] font-black text-slate-500 uppercase">
+                    ${selectedCount}/${totalCount}
+                </span>
+            </div>
+
+            ${(sec.items || []).map((item, idx) => {
+                const path = `${currentSectionIndex}-${idx}`;
+                const checked = item.seleccionado ? 'checked' : '';
+
+                return `
+                    <div class="p-4 rounded-xl border ${item.seleccionado ? 'border-emerald-300 bg-emerald-50/60' : 'border-slate-200 bg-white'}">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox"
+                                ${checked}
+                                onchange="toggleItemCondicion('${path}', this.checked)"
+                                class="mt-1 w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+
+                            <textarea
+                                class="w-full text-xs border-0 focus:ring-0 resize-none bg-transparent font-semibold text-slate-700"
+                                rows="2"
+                                oninput="editarTextoCondicion('${path}', this.value)"
+                            >${escapeTextarea(item.texto_final || '')}</textarea>
+                        </label>
+                    </div>
+                `;
+            }).join('')}
+        `;
+    }
+
     window.renderTable();
 
     initializeCondicionesState().then(() => {
-        renderCondicionesModal();
-        syncCondicionesInput();
-        actualizarResumenCondicionesLocal();
+        currentSectionIndex = 0;
+        refreshCondicionesBuilder();
     });
 });

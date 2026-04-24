@@ -908,12 +908,51 @@
                         </div>
                     </div>
 
-                    <div class="p-6 bg-white">
-                        <div id="condiciones-modal-body" class="space-y-4">
-                            <div class="rounded-2xl border border-slate-200 bg-white px-5 py-6 text-sm font-semibold text-slate-500">
-                                Cargando condiciones...
+                    <div class="grid grid-cols-1 xl:grid-cols-12 min-h-[480px]">
+
+                        <!-- 🧭 LADO IZQUIERDO (SECCIONES) -->
+                        <div class="xl:col-span-4 border-r border-slate-100 bg-slate-50/60 p-4 space-y-3"
+                            id="condiciones-sidebar">
+
+                            <!-- se llena dinámicamente -->
+                            <div class="text-xs font-bold text-slate-400 uppercase tracking-widest px-2 mb-2">
+                                Secciones
                             </div>
+
+                            <div id="condiciones-sidebar-list" class="space-y-2">
+                                <!-- JS render -->
+                            </div>
+
                         </div>
+
+                        <!-- ✍️ LADO DERECHO (EDITOR) -->
+                        <div class="xl:col-span-8 bg-white p-6">
+
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <h4 id="editor-title"
+                                        class="text-sm font-extrabold text-slate-800 uppercase tracking-wide">
+                                        Selecciona una sección
+                                    </h4>
+                                    <p class="text-xs text-slate-500 font-medium mt-1">
+                                        Edita los textos y activa los que quieras incluir
+                                    </p>
+                                </div>
+
+                                <span id="editor-badge"
+                                    class="px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-[10px] font-black uppercase">
+                                    0 seleccionados
+                                </span>
+                            </div>
+
+                            <div id="condiciones-editor-body" class="space-y-4">
+                                <div class="text-xs text-slate-400 font-semibold">
+                                    No hay contenido seleccionado
+                                </div>
+                            </div>
+
+                        </div>
+
                     </div>
                 </div>
 
