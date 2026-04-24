@@ -544,13 +544,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (Array.isArray(data.condiciones)) {
                 const normalizadas = data.condiciones.map(normalizeCondicionSeccion);
 
-                window.CondicionesCotizacionState.secciones = deepClone(normalizadas);
                 window.CondicionesCotizacionState.draftSecciones = deepClone(normalizadas);
-                window.CondicionesCotizacionState.sectionUIState = normalizadas.map(() => false);
-                window.CondicionesCotizacionState.configurado = hasAnySelection(normalizadas);
 
-                syncCondicionesInput();
-                actualizarResumenCondicionesLocal();
+                syncSeccionSeleccionState();
+
+                window.CondicionesCotizacionState.secciones =
+                    deepClone(window.CondicionesCotizacionState.draftSecciones);
+
+                window.CondicionesCotizacionState.sectionUIState =
+                    normalizadas.map(() => false);
+
+                window.CondicionesCotizacionState.configurado =
+                    hasAnySelection(window.CondicionesCotizacionState.secciones);
+
+                currentSectionIndex = 0;
+
+                refreshCondicionesBuilder();
             }
 
             if (data.plantilla) {
@@ -590,16 +599,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.applyPlantillaCondiciones = (condiciones = []) => {
         if (!Array.isArray(condiciones)) return;
-
         const normalizadas = condiciones.map(normalizeCondicionSeccion);
-
-        window.CondicionesCotizacionState.secciones = deepClone(normalizadas);
         window.CondicionesCotizacionState.draftSecciones = deepClone(normalizadas);
-        window.CondicionesCotizacionState.sectionUIState = normalizadas.map(() => false);
-        window.CondicionesCotizacionState.configurado = hasAnySelection(normalizadas);
-
-        syncCondicionesInput();
-        actualizarResumenCondicionesLocal();
+        syncSeccionSeleccionState();
+        window.CondicionesCotizacionState.secciones =
+            deepClone(window.CondicionesCotizacionState.draftSecciones);
+        window.CondicionesCotizacionState.sectionUIState =
+            normalizadas.map(() => false);
+        window.CondicionesCotizacionState.configurado =
+            hasAnySelection(window.CondicionesCotizacionState.secciones);
+        currentSectionIndex = 0;
+        refreshCondicionesBuilder();
     };
 
     window.seleccionarModo = (modo) => {
