@@ -7,123 +7,228 @@
     <style>
         @page {
             size: A4;
-            /* REDUCIMOS EL MARGEN SUPERIOR DE 5CM A 3.8CM PARA QUE EMPIECE MÁS ARRIBA */
-            margin: 3.8cm 1.5cm 2.5cm 1.5cm; 
+            /* Reducimos el margen superior de la página para que el cuerpo suba */
+            margin: 1.1cm 1.1cm 2.0cm 1.1cm;
 
             @frame header_frame {
                 -pdf-frame-content: header_content;
-                top: 0.5cm; /* SUBIMOS EL FRAME DE LA CABECERA CASI AL BORDE */
-                left: 1.5cm;
-                width: 18cm;
-                height: 3.5cm;
+                top: 0.4cm; /* Pegamos el frame más al borde superior */
+                left: 1.1cm;
+                width: 18.8cm;
+                height: 2.5cm; /* Altura más ajustada para el encabezado */
             }
 
             @frame footer_frame {
                 -pdf-frame-content: footer_content;
-                bottom: 0.8cm;
-                left: 1.5cm;
-                width: 18cm;
-                height: 1.5cm;
+                bottom: 0.45cm;
+                left: 1.1cm;
+                width: 18.8cm;
+                height: 0.8cm;
             }
         }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 8.3px;
+            color: #1a1a1a;
+            line-height: 1.25;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        /* Estilos de la Cabecera */
+        #header_content table, #header_content td { border: none; }
         
-        #header_content table { border: none; margin-bottom: 0; }
-        #header_content td { border: none; vertical-align: middle; }
-        
-        body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #000; line-height: 1.3; }
-        .font-bold { font-weight: bold; }
-        .text-right { text-align: right; }
-        .text-center { text-align: center; }
-        .corporate-blue { color: #004D99; }
-        
-        table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-        td, th { vertical-align: top; }
-        
-        #header_content { font-size: 8px; text-align: right; color: #000; }
-        #footer_content { font-size: 8px; text-align: center; color: #000; }
-        
-        .logo-img { width: 160px; height: auto; } /* Reducido ligeramente para ganar espacio */
-        .company-box { border: 1px solid #000; padding: 6px; font-size: 8.5px; }
-        
-        .title-box { border: 1px solid #000; padding: 5px; margin-bottom: 8px; background-color: #f8f9fa; }
-        .title-text { font-weight: bold; font-size: 13px; color: #004D99; text-align: center; text-transform: uppercase; }
-        
-        .data-table td { border: 1px solid #000; padding: 3px 5px; }
-        .bg-gray { background-color: #f0f0f0; font-weight: bold; width: 18%; }
-        
-        .items-table th { background-color: #004D99; color: #ffffff; border: 1px solid #000; text-align: center; font-weight: bold; font-size: 8px; padding: 4px; }
-        .items-table td { border: 1px solid #000; padding: 4px; font-size: 8.5px; }
-        
-        .section-header { background-color: #e6f2ff; font-weight: bold; padding: 3px 5px; border: 1px solid #000; text-transform: uppercase; margin-top: 5px; font-size: 9px; }
-        
-        .signature-container { margin-top: 25px; }
-        .signature-box { border: 1px solid #000; height: 80px; text-align: center; vertical-align: bottom; padding-bottom: 5px; }
-        
-        .page-number:after { content: counter(page); }
-        .page-count:after { content: counter(pages); }
+        .meta-top {
+            font-size: 6.8px;
+            text-align: right;
+            color: #5d6470;
+            margin-bottom: 1px; /* Espacio mínimo */
+            letter-spacing: 0.1px;
+        }
+
+        .header-shell {
+            border-bottom: 1px solid #d7dde6;
+            padding-bottom: 2px;
+        }
+
+        .logo-img {
+            width: 165px;
+            height: auto;
+        }
+
+        .header-contact {
+            text-align: right;
+            font-size: 8px;
+            line-height: 1.2;
+            color: #243b7c;
+            font-weight: bold;
+        }
+
+        /* Título Principal Compacto */
+        .main-title-box {
+            border: 1px solid #cfd6df;
+            margin-top: 0px; /* Pegado al inicio del cuerpo */
+            margin-bottom: 6px;
+        }
+
+        .main-title-box td {
+            border: 1px solid #d9dfe8;
+            padding: 5px 8px;
+            vertical-align: middle;
+        }
+
+        .offer-label {
+            width: 16%;
+            font-size: 8.5px;
+            font-weight: bold;
+            color: #243b7c;
+            background: #f5f7fa;
+        }
+
+        .offer-value {
+            width: 24%;
+            font-size: 8.5px;
+            font-weight: bold;
+            color: #4f5a67;
+        }
+
+        .title-panel {
+            width: 60%;
+            text-align: center;
+            font-weight: bold;
+            color: #223c63;
+            font-size: 11px;
+            text-transform: uppercase;
+            background: #fbfcfe;
+        }
+
+        /* Resto de estilos funcionales */
+        .section-band {
+            background: #eef2f7;
+            color: #243b5f;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 8.5px;
+            padding: 4px 8px;
+            margin-top: 6px;
+            margin-bottom: 4px;
+            border-left: 3px solid #243b7c;
+        }
+
+        .data-table {
+            margin-bottom: 6px;
+            border: 1px solid #dde3eb;
+        }
+
+        .data-table td {
+            border: 1px solid #dde3eb;
+            padding: 4px 6px;
+            font-size: 8px;
+        }
+
+        .bg-gray {
+            font-weight: bold;
+            background: #fafbfd;
+            color: #2f3c4a;
+        }
+
+        .items-table th {
+            background: #2b4a7f;
+            color: #ffffff;
+            border: 1px solid #243b63;
+            text-align: center;
+            font-size: 7.5px;
+            padding: 5px 4px;
+        }
+
+        .items-table td {
+            border: 1px solid #cfd5dd;
+            padding: 5px 6px;
+            font-size: 7.8px;
+        }
+
+        .signature-wrap {
+            margin-top: 15px;
+        }
+
+        .signature-box {
+            border: 1px solid #cfd5dd;
+            height: 60px;
+            background: #fbfcfe;
+        }
     </style>
 </head>
 <body>
 
     <div id="header_content">
-        <div style="text-align: right; font-size: 7.5px; margin-bottom: 3px;">
-            Código: VCF-LAB-FOR-022 | Fecha: 02/02/2023 | Versión: 01 | Página <span class="page-number"></span> de <span class="page-count"></span>
+        <div class="meta-top">
+            Código: VCF-LAB-FOR-022 | Fecha: 02/02/2023 | Versión: 01 | Página <pdf:pagenumber /> de <pdf:pagecount />
         </div>
-        
-        <table>
+
+        <table class="header-shell">
             <tr>
-                <td style="width: 40%; text-align: center;">
-                    <img src="{% static 'img/LogoF.png' %}" class="logo-img" alt="Logo">
+                <td style="width: 55%; text-align: left;">
+                    <img src="{% static 'img/LogoF.png' %}" class="logo-img" alt="Grupo Vicaf SAC">
                 </td>
-                <td style="width: 60%;">
-                    <div class="company-box" style="text-align: left;">
-                        <strong>Razón Social:</strong> Grupo Vicaf SAC<br>
-                        <strong>RUC:</strong> 20609464632<br>
-                        <strong>Dirección:</strong> JR. LOS TOPACIOS 440 - CAJAMARCA<br>
-                        <strong>Email:</strong> informes@grupovicaf.com | <strong>Tel:</strong> 960 713 555
-                    </div>
+                <td style="width: 45%;" class="header-contact">
+                    +51 941 573 750<br>
+                    informes@grupovicaf.com<br>
+                    GRUPO VICAF SAC
                 </td>
             </tr>
         </table>
     </div>
 
     <div id="footer_content">
-        <div style="border-top: 1px solid #000; width: 100%; margin-bottom: 3px;"></div>
-        JR. LOS TOPACIOS 440 - CAJAMARCA | informes@grupovicaf.com | +51 941 573 750<br>
-        <strong>SISTEMA DE GESTIÓN DE LABORATORIO - VICAFPRO LAB</strong>
-    </div>
-
-    <div class="title-box">
-        <div class="title-text">CARGO DE RECEPCIÓN DE MUESTRAS</div>
-        <table style="width: 100%; border: none; margin: 0;">
+        <table style="border-top: 1px solid #d9dee7;">
             <tr>
-                <td style="border: none; font-weight: bold; font-size: 9px;">REGISTRO No. {{ recepcion.id|stringformat:"05d" }}</td>
-                <td style="border: none; text-align: right; font-weight: bold; font-size: 9px;">Fecha: {{ recepcion.fecha_recepcion|date:"d \d\e F \d\e Y" }}</td>
+                <td style="font-size: 7px; color: #5d6470; text-align: right; padding-top: 4px;">
+                    SISTEMA DE GESTIÓN DE LABORATORIO - VICAFPRO LAB | Página <pdf:pagenumber /> de <pdf:pagecount />
+                </td>
             </tr>
         </table>
     </div>
 
-    <div class="section-header">1. Información General</div>
+    <table class="main-title-box">
+        <tr>
+            <td class="offer-label">REGISTRO N.°</td>
+            <td class="offer-value">{{ recepcion.id|stringformat:"05d" }}</td>
+            <td rowspan="2" class="title-panel">
+                CARGO DE RECEPCIÓN<br>
+                DE MUESTRAS
+            </td>
+        </tr>
+        <tr>
+            <td class="offer-label">FECHA</td>
+            <td class="offer-value">{{ recepcion.fecha_recepcion|date:"d \d\e F \d\e Y" }}</td>
+        </tr>
+    </table>
+
+    <div class="section-band">1. Información General</div>
     <table class="data-table">
         <tr>
-            <td class="bg-gray">CLIENTE:</td>
+            <td class="bg-gray" style="width: 15%;">CLIENTE</td>
             <td colspan="3">{{ cliente.razon_social|default:cliente }}</td>
         </tr>
         <tr>
-            <td class="bg-gray">PROYECTO:</td>
-            <td>{{ proyecto.nombre_proyecto|default:"S/P" }}</td>
-            <td class="bg-gray">CÓDIGO PROY:</td>
-            <td>{{ proyecto.codigo_proyecto|default:"-" }}</td>
+            <td class="bg-gray">PROYECTO</td>
+            <td style="width: 35%;">{{ proyecto.nombre_proyecto|default:"S/P" }}</td>
+            <td class="bg-gray" style="width: 15%;">CÓDIGO PROY.</td>
+            <td style="width: 35%;">{{ proyecto.codigo_proyecto|default:"-" }}</td>
         </tr>
         <tr>
-            <td class="bg-gray">PROCEDENCIA:</td>
+            <td class="bg-gray">PROCEDENCIA</td>
             <td>{{ recepcion.procedencia|upper }}</td>
-            <td class="bg-gray">HORA INGRESO:</td>
+            <td class="bg-gray">HORA INGRESO</td>
             <td>{{ recepcion.fecha_recepcion|date:"H:i" }} hrs</td>
         </tr>
     </table>
 
-    <div class="section-header">2. Detalle de Muestras Recibidas</div>
+    <div class="section-band">2. Detalle de Muestras Recibidas</div>
     <table class="items-table">
         <thead>
             <tr>
@@ -139,48 +244,48 @@
         <tbody>
             {% for muestra in muestras %}
             <tr>
-                <td class="text-center">{{ forloop.counter }}</td>
-                <td class="text-center font-bold corporate-blue">{{ muestra.codigo_laboratorio }}</td>
+                <td style="text-align: center;">{{ forloop.counter }}</td>
+                <td style="text-align: center; color: #243b7c; font-weight: bold;">{{ muestra.codigo_laboratorio }}</td>
                 <td>
-                    <strong>{{ muestra.tipo_muestra.nombre }}</strong><br>
-                    <span style="font-size: 7.5px; color: #444;">{{ muestra.descripcion|default:"-" }}</span>
+                    <strong>{{ muestra.tipo_muestra.nombre }}</strong>
+                    {% if muestra.descripcion %}<br><span style="font-size: 7px; color: #555;">{{ muestra.descripcion }}</span>{% endif %}
                 </td>
-                <td class="text-center">{{ muestra.cantidad }}</td>
-                <td class="text-center">{{ muestra.unidad }}</td>
-                <td class="text-center">{{ muestra.masa_aprox|default:"-" }}</td>
-                <td style="font-size: 7.5px;">{{ muestra.observaciones|default:"-" }}</td>
+                <td style="text-align: center;">{{ muestra.cantidad }}</td>
+                <td style="text-align: center;">{{ muestra.unidad }}</td>
+                <td style="text-align: center;">{{ muestra.masa_aprox|default:"-" }}</td>
+                <td style="font-size: 7px;">{{ muestra.observaciones|default:"-" }}</td>
             </tr>
             {% empty %}
-            <tr>
-                <td colspan="7" class="text-center">No se registraron muestras.</td>
-            </tr>
+            <tr><td colspan="7" style="text-align: center;">No se registraron muestras.</td></tr>
             {% endfor %}
         </tbody>
     </table>
 
-    <div class="section-header">3. Conformidad de Recepción</div>
-    <table class="signature-container" style="border: none;">
-        <tr>
-            <td style="width: 48%; border: none;">
-                <div class="signature-box"></div>
-                <div class="text-center font-bold" style="margin-top: 5px;">
-                    {{ recepcion.responsable_cliente|default:"Firma del Cliente"|upper }}<br>
-                    <span style="font-size: 7px; font-weight: normal;">ENTREGUÉ CONFORME (CLIENTE)</span>
-                </div>
-            </td>
-            <td style="width: 4%; border: none;"></td>
-            <td style="width: 48%; border: none;">
-                <div class="signature-box"></div>
-                <div class="text-center font-bold" style="margin-top: 5px;">
-                    {{ user.get_full_name|default:user.username|upper }}<br>
-                    <span style="font-size: 7px; font-weight: normal;">RECIBÍ CONFORME (VICAFPRO LAB)</span>
-                </div>
-            </td>
-        </tr>
-    </table>
+    <div class="section-band">3. Conformidad de Recepción</div>
+    
+    <div class="signature-wrap">
+        <table style="width: 100%;">
+            <tr>
+                <td style="width: 48%; text-align: center;">
+                    <div class="signature-box"></div>
+                    <div style="border-top: 1px solid #606975; margin-top: 4px;"></div>
+                    <strong>{{ recepcion.responsable_cliente|default:"Firma del Cliente"|upper }}</strong><br>
+                    ENTREGUÉ CONFORME (CLIENTE)
+                </td>
+                <td style="width: 4%;"></td>
+                <td style="width: 48%; text-align: center;">
+                    <div class="signature-box"></div>
+                    <div style="border-top: 1px solid #606975; margin-top: 4px;"></div>
+                    <strong>{{ user.get_full_name|default:user.username|upper }}</strong><br>
+                    RECIBÍ CONFORME (VICAFPRO LAB)
+                </td>
+            </tr>
+        </table>
+    </div>
 
-    <div style="margin-top: 15px; font-size: 7.5px; color: #333;">
-        <strong>Responsable de Registro en Sistema:</strong> {{ recepcion.responsable_recepcion.get_full_name }} | <strong>Impreso:</strong> {% now "d/m/Y H:i" %}
+    <div style="margin-top: 12px; font-size: 7px; color: #5d6470;">
+        <strong>Responsable de Registro:</strong> {{ recepcion.responsable_recepcion.get_full_name }} | 
+        <strong>Impreso:</strong> {% now "d/m/Y H:i" %}
     </div>
 
 </body>
