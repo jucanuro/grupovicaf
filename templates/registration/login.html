@@ -203,7 +203,7 @@
 
                 <form method="post" class="space-y-5">
                     {% csrf_token %}
-                    
+                    <input type="hidden" name="next" value="{{ request.GET.next }}">
                     <div class="input-container">
                         <label class="label-premium">Usuario</label>
                         <input type="text" name="username" class="input-premium" placeholder="Nombre de usuario" required>

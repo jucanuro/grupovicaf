@@ -1,4 +1,7 @@
 from django.urls import path
+
+from . import views
+
 from .views import (
     lista_trabajadores,
     buscar_trabajadores_api,
@@ -30,4 +33,10 @@ urlpatterns = [
     path('roles/crear/', crear_rol, name='crear_rol'),
     path('roles/editar/<int:pk>/', editar_rol, name='editar_rol'),
     path('roles/eliminar/<int:pk>/', eliminar_rol, name='eliminar_rol'),
+    
+    path('roles/<int:pk>/permisos/', views.editar_permisos_rol, name='editar_permisos_rol'),
+    path('permisos/', views.lista_permisos, name='lista_permisos'),
+    path('permisos/crear/', views.crear_permiso, name='crear_permiso'),
+    path('permisos/<int:pk>/editar/', views.editar_permiso, name='editar_permiso'),
+    path('permisos/<int:pk>/eliminar/', views.eliminar_permiso, name='eliminar_permiso'),
 ]

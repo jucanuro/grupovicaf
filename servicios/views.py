@@ -1,7 +1,7 @@
 import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.template.loader import get_template
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
@@ -22,14 +22,27 @@ from xhtml2pdf import pisa
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.contrib.messages.views import SuccessMessageMixin
+from django.contrib.auth.mixins import LoginRequiredMixin
 from reportlab.lib.units import cm
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph
 
 logger = logging.getLogger(__name__)
 
+
+class PermisoModuloMixin:
+    permiso_requerido_codigo = None
+
+    def dispatch(self, request, *args, **kwargs):
+        if self.permiso_requerido_codigo and not trabajador_tiene_permiso(request.user, self.permiso_requerido_codigo):
+            return HttpResponseForbidden("No tienes permiso para acceder a este módulo.")
+        return super().dispatch(request, *args, **kwargs)
+
+
+
 from proyectos.models import Proyecto
 from trabajadores.models import TrabajadorProfile
+from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso
 from clientes.models import Cliente
 from .models import (
     Servicio,
@@ -53,6 +66,7 @@ from .models import (
 )
 
 @login_required
+@permiso_requerido('servicios.ver')
 def lista_servicios(request):
     """ Muestra una lista de todos los servicios maestros con paginación y búsqueda. """
     query = request.GET.get('q')
@@ -81,6 +95,7 @@ def lista_servicios(request):
     return render(request, 'servicios/servicios_list.html', context)
 
 @login_required
+@permiso_requerido('servicios.ver')
 def obtener_detalle_servicio_api(request, pk):
     """
     Devuelve los detalles técnicos del servicio. 
@@ -154,6 +169,13 @@ def _procesar_guardado_servicio(request, servicio=None):
 
 @login_required
 def crear_editar_servicio(request, pk=None):
+    if pk:
+        if not trabajador_tiene_permiso(request.user, 'servicios.editar'):
+            return HttpResponseForbidden("No tienes permiso para editar servicios.")
+    else:
+        if not trabajador_tiene_permiso(request.user, 'servicios.crear'):
+            return HttpResponseForbidden("No tienes permiso para crear servicios.")
+
     servicio = None
     error = None
     
@@ -174,6 +196,7 @@ def crear_editar_servicio(request, pk=None):
     return render(request, 'servicios/servicios_form.html', context)
 
 @login_required
+@permiso_requerido('servicios.eliminar')
 def eliminar_servicio(request, pk):
     servicio = get_object_or_404(Servicio, pk=pk)
     if request.method == 'POST':
@@ -190,7 +213,7 @@ from django.http import JsonResponse
 from .models import Norma, Metodo
 
 @login_required
-@login_required
+@permiso_requerido('servicios.crear')
 def crear_norma_ajax(request):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Método no permitido.'})
@@ -236,7 +259,7 @@ def crear_norma_ajax(request):
         return JsonResponse({'success': False, 'error': 'Error interno del servidor.'})
 
 @login_required
-@login_required
+@permiso_requerido('servicios.crear')
 def crear_metodo_ajax(request):
     if request.method == 'POST':
         try:
@@ -280,38 +303,44 @@ def crear_metodo_ajax(request):
             return JsonResponse({'success': False, 'error': 'Error interno del servidor.'})
     return JsonResponse({'success': False, 'error': 'Método no permitido.'})
     
-class NormaListView(ListView):
+class NormaListView(LoginRequiredMixin, PermisoModuloMixin, ListView):
+    permiso_requerido_codigo = 'servicios.ver'
     model = Norma
     template_name = 'servicios/norma_list.html'
     context_object_name = 'normas'
 
-class NormaCreateView(SuccessMessageMixin, CreateView):
+class NormaCreateView(LoginRequiredMixin, PermisoModuloMixin, SuccessMessageMixin, CreateView):
+    permiso_requerido_codigo = 'servicios.crear'
     model = Norma
     fields = ['codigo', 'nombre', 'descripcion']
     template_name = 'servicios/norma_form.html'
     success_url = reverse_lazy('servicios:norma_list')
     success_message = "La norma técnica fue creada con éxito."
 
-class NormaUpdateView(SuccessMessageMixin, UpdateView):
+class NormaUpdateView(LoginRequiredMixin, PermisoModuloMixin, SuccessMessageMixin, UpdateView):
+    permiso_requerido_codigo = 'servicios.editar'
     model = Norma
     fields = ['codigo', 'nombre', 'descripcion']
     template_name = 'servicios/norma_form.html'
     success_url = reverse_lazy('servicios:norma_list')
     success_message = "La norma técnica fue actualizada con éxito."
 
-class MetodoListView(ListView):
+class MetodoListView(LoginRequiredMixin, PermisoModuloMixin, ListView):
+    permiso_requerido_codigo = 'servicios.ver'
     model = Metodo
     template_name = 'servicios/metodo_list.html'
     context_object_name = 'metodos'
 
-class MetodoCreateView(SuccessMessageMixin, CreateView):
+class MetodoCreateView(LoginRequiredMixin, PermisoModuloMixin, SuccessMessageMixin, CreateView):
+    permiso_requerido_codigo = 'servicios.crear'
     model = Metodo
     fields = ['codigo', 'nombre', 'descripcion']
     template_name = 'servicios/metodo_form.html'
     success_url = reverse_lazy('servicios:metodo_list')
     success_message = "El método de ensayo fue creado con éxito."
 
-class MetodoUpdateView(SuccessMessageMixin, UpdateView):
+class MetodoUpdateView(LoginRequiredMixin, PermisoModuloMixin, SuccessMessageMixin, UpdateView):
+    permiso_requerido_codigo = 'servicios.editar'
     model = Metodo
     fields = ['codigo', 'nombre', 'descripcion']
     template_name = 'servicios/metodo_form.html'
@@ -320,17 +349,14 @@ class MetodoUpdateView(SuccessMessageMixin, UpdateView):
     
 @require_POST
 @login_required
-@require_POST
-@login_required
+@permiso_requerido('servicios.crear')
 def crear_categoria_ajax(request):
     try:
         nombre = request.POST.get('nombre', '').strip()
 
-        # Validaciones de seguridad
         if not nombre or len(nombre) < 2 or len(nombre) > 100:
             return JsonResponse({'status': 'error', 'message': 'Nombre debe tener entre 2 y 100 caracteres.'}, status=400)
         
-        # Validar caracteres peligrosos
         import re
         if re.search(r'[<>]', nombre):
             logger.warning(f"Intento de XSS en crear_categoria_ajax por usuario {request.user.username}")
@@ -339,7 +365,6 @@ def crear_categoria_ajax(request):
         # get_or_create evita errores si la categoría ya existe
         categoria, created = CategoriaServicio.objects.get_or_create(nombre=nombre)
         
-        # Log de seguridad
         if created:
             logger.info(f"Categoría creada exitosamente: {nombre} por usuario {request.user.username}")
         else:
@@ -357,15 +382,14 @@ def crear_categoria_ajax(request):
 
 @require_POST
 @login_required
+@permiso_requerido('servicios.crear')
 def crear_subcategoria_ajax(request):
     try:
         nombre = request.POST.get('nombre', '').strip()
 
-        # Validaciones de seguridad
         if not nombre or len(nombre) < 2 or len(nombre) > 100:
             return JsonResponse({'status': 'error', 'message': 'Nombre debe tener entre 2 y 100 caracteres.'}, status=400)
         
-        # Validar caracteres peligrosos
         import re
         if re.search(r'[<>]', nombre):
             logger.warning(f"Intento de XSS en crear_subcategoria_ajax por usuario {request.user.username}")
@@ -373,7 +397,6 @@ def crear_subcategoria_ajax(request):
 
         subcategoria, created = Subcategoria.objects.get_or_create(nombre=nombre)
         
-        # Log de seguridad
         if created:
             logger.info(f"Subcategoría creada exitosamente: {nombre} por usuario {request.user.username}")
         else:
@@ -390,26 +413,20 @@ def crear_subcategoria_ajax(request):
         return JsonResponse({'status': 'error', 'message': 'Error interno del servidor.'}, status=400)
     
 @login_required
+@permiso_requerido('cotizaciones.ver')
 def lista_cotizaciones(request):
     query = request.GET.get('q')
-    estado_filtro = request.GET.get('estado') 
-    fecha_inicio = request.GET.get('fecha_inicio') 
+    estado_filtro = request.GET.get('estado')
+    fecha_inicio = request.GET.get('fecha_inicio')
     fecha_fin = request.GET.get('fecha_fin')
-    
+
     cotizaciones_list = Cotizacion.objects.select_related('cliente')\
                                           .filter(es_plantilla=False)\
                                           .order_by('-fecha_creacion')
-    
-    if not request.user.is_superuser:
-        try:
-            cliente_asociado = Cliente.objects.get(usuario=request.user) 
-            cotizaciones_list = cotizaciones_list.filter(cliente=cliente_asociado)
-        except Cliente.DoesNotExist:
-            pass
 
     if query:
         cotizaciones_list = cotizaciones_list.filter(
-            Q(numero_oferta__icontains=query) | 
+            Q(numero_oferta__icontains=query) |
             Q(cliente__razon_social__icontains=query) |
             Q(asunto_servicio__icontains=query)
         )
@@ -418,22 +435,26 @@ def lista_cotizaciones(request):
         cotizaciones_list = cotizaciones_list.filter(estado=estado_filtro)
 
     if fecha_inicio and fecha_fin:
-        cotizaciones_list = cotizaciones_list.filter(fecha_generacion__range=[fecha_inicio, fecha_fin])
+        cotizaciones_list = cotizaciones_list.filter(
+            fecha_generacion__range=[fecha_inicio, fecha_fin]
+        )
 
     paginator = Paginator(cotizaciones_list, 9)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     get_params = request.GET.copy()
+
     if 'page' in get_params:
         del get_params['page']
 
     context = {
         'cotizaciones': page_obj,
         'query': query,
-        'estados_disponibles': Cotizacion.ESTADO_CHOICES, # ESTA LÍNEA ES VITAL
+        'estados_disponibles': Cotizacion.ESTADO_CHOICES,
         'get_params': get_params.urlencode(),
     }
+
     return render(request, 'servicios/cotizacion_list.html', context)
 
 def _guardar_snapshot_condiciones_cotizacion(cotizacion, secciones_data):
@@ -481,6 +502,13 @@ def _guardar_snapshot_condiciones_cotizacion(cotizacion, secciones_data):
 
 @login_required
 def crear_editar_cotizacion(request, pk=None):
+    if pk:
+        if not trabajador_tiene_permiso(request.user, 'cotizaciones.editar'):
+            return HttpResponseForbidden("No tienes permiso para editar cotizaciones.")
+    else:
+        if not trabajador_tiene_permiso(request.user, 'cotizaciones.crear'):
+            return HttpResponseForbidden("No tienes permiso para crear cotizaciones.")
+
     cotizacion = None
     error = None
     is_editing = pk is not None
@@ -772,6 +800,7 @@ crear_cotizacion = crear_editar_cotizacion
 editar_cotizacion = crear_editar_cotizacion
 
 @login_required
+@permiso_requerido('cotizaciones.eliminar')
 def eliminar_cotizacion(request, pk):
     """ Permite eliminar una cotización. """
     cotizacion = get_object_or_404(Cotizacion, pk=pk)
@@ -935,6 +964,7 @@ def reemplazar_tokens_condicion(texto, cotizacion):
     return texto_final
 
 @login_required
+@permiso_requerido('cotizaciones.ver')
 def generar_pdf_cotizacion(request, pk):
     cotizacion = get_object_or_404(
         Cotizacion.objects.prefetch_related(
@@ -1170,7 +1200,7 @@ def aprobar_cotizacion(request, pk):
     return render(request, 'servicios/aprobar_cotizacion.html', {'cotizacion': cotizacion})
 
 @login_required
-@login_required
+@permiso_requerido('servicios.ver')
 def buscar_servicios_api(request):
     """
     API para la búsqueda de servicios que devuelve una respuesta JSON (autocompletado).
@@ -1178,11 +1208,9 @@ def buscar_servicios_api(request):
     try:
         query = request.GET.get('q', '').strip()
 
-        # Validaciones de seguridad
         if len(query) > 100:
             return JsonResponse({'error': 'La consulta no puede exceder 100 caracteres.'}, status=400)
         
-        # Validar caracteres peligrosos
         import re
         if re.search(r'[<>]', query):
             logger.warning(f"Intento de XSS en buscar_servicios_api por usuario {request.user.username}")
@@ -1203,7 +1231,6 @@ def buscar_servicios_api(request):
                     'precio_base': str(servicio.precio_base),
                 })
         
-        # Log de seguridad para consultas potencialmente sospechosas
         if len(query) > 50:
             logger.info(f"Consulta larga en buscar_servicios_api por usuario {request.user.username}: {query[:50]}...")
         
@@ -1213,17 +1240,16 @@ def buscar_servicios_api(request):
         return JsonResponse({'error': 'Error interno del servidor.'}, status=500)
 
 @login_required
+@permiso_requerido('cotizaciones.ver')
 def buscar_cotizaciones_api(request):
     """ Endpoint API para la búsqueda dinámica de cotizaciones. """
     
     try:
         query = request.GET.get('q', '').strip()
 
-        # Validaciones de seguridad
         if len(query) > 100:
             return JsonResponse({'error': 'La consulta no puede exceder 100 caracteres.'}, status=400)
         
-        # Validar caracteres peligrosos
         import re
         if re.search(r'[<>]', query):
             logger.warning(f"Intento de XSS en buscar_cotizaciones_api por usuario {request.user.username}")
@@ -1252,7 +1278,6 @@ def buscar_cotizaciones_api(request):
                     'estado_display': cotizacion.get_estado_display(), 
                 })
 
-        # Log de seguridad para consultas potencialmente sospechosas
         if len(query) > 50:
             logger.info(f"Consulta larga en buscar_cotizaciones_api por usuario {request.user.username}: {query[:50]}...")
         
@@ -1262,6 +1287,7 @@ def buscar_cotizaciones_api(request):
         return JsonResponse({'error': 'Error interno del servidor.'}, status=500)
 
 @login_required
+@permiso_requerido('administracion.ver')
 def administracion_view(request):
     estados_disponibles = Cotizacion.ESTADO_CHOICES
 
@@ -1292,6 +1318,7 @@ def administracion_view(request):
     return render(request, 'administracion.html', context)
 
 @login_required
+@permiso_requerido('cotizaciones.ver')
 def lista_plantillas(request):
     query = request.GET.get('q')
     plantillas_list = PlantillaCotizacion.objects.select_related('servicio_general')\
@@ -1314,6 +1341,13 @@ def lista_plantillas(request):
 
 @login_required
 def crear_editar_plantilla(request, pk=None):
+    if pk:
+        if not trabajador_tiene_permiso(request.user, 'cotizaciones.editar'):
+            return HttpResponseForbidden("No tienes permiso para editar plantillas de cotización.")
+    else:
+        if not trabajador_tiene_permiso(request.user, 'cotizaciones.crear'):
+            return HttpResponseForbidden("No tienes permiso para crear plantillas de cotización.")
+
     plantilla = None
     error = None
     is_editing = pk is not None
@@ -1484,6 +1518,7 @@ def crear_editar_plantilla(request, pk=None):
     return render(request, 'servicios/plantilla_form.html', context)
 
 @login_required
+@permiso_requerido('cotizaciones.ver')
 def obtener_detalle_plantilla_json(request, pk):
     plantilla = get_object_or_404(
         PlantillaCotizacion.objects.prefetch_related(
@@ -1716,6 +1751,7 @@ def _crear_item_snapshot_recursivo(seccion_snapshot, item_data, parent_snapshot=
     return snapshot_item
 
 @login_required
+@permiso_requerido('cotizaciones.ver')
 def condiciones_cotizacion_json(request, pk):
     """
     Devuelve el catálogo de condiciones para el modal.
@@ -1839,6 +1875,7 @@ def guardar_condiciones_cotizacion_json(request, pk):
         }, status=500)
 
 @login_required
+@permiso_requerido('cotizaciones.ver')
 def resumen_condiciones_cotizacion_json(request, pk):
     """
     Devuelve un resumen por sección para mostrar en la UI.
@@ -1991,6 +2028,7 @@ def _guardar_snapshot_condiciones_plantilla(plantilla, secciones_data):
             )
 
 @login_required
+@permiso_requerido('cotizaciones.ver')
 def condiciones_plantilla_json(request, pk):
     try:
         plantilla = get_object_or_404(
@@ -2087,6 +2125,7 @@ def guardar_condiciones_plantilla_json(request, pk):
         }, status=500)
 
 @login_required
+@permiso_requerido('cotizaciones.ver')
 def resumen_condiciones_plantilla_json(request, pk):
     try:
         plantilla = get_object_or_404(

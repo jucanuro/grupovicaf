@@ -1,0 +1,367 @@
+{% extends 'base_vicafpro.html' %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 px-6 py-8">
+    <div class="max-w-full mx-auto">
+
+        <div class="mb-8">
+            <a href="{% url 'trabajadores:lista_permisos' %}"
+               class="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-indigo-600 transition-all mb-5">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                Volver a permisos
+            </a>
+
+            <p class="text-xs font-black uppercase tracking-[0.25em] text-indigo-500 mb-2">
+                Seguridad
+            </p>
+
+            <h1 class="text-3xl font-black text-slate-900 tracking-tight">
+                {{ titulo_pagina }}
+            </h1>
+
+            <p class="text-sm text-slate-500 mt-2">
+                Selecciona un módulo, agrega acciones faltantes o quita acciones asignadas.
+            </p>
+        </div>
+
+        <form method="post" class="bg-white rounded-[2rem] border border-slate-200 shadow-xl shadow-slate-200/50 p-8 space-y-6">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 md:grid-cols-1 gap-6">
+                <div class="space-y-2">
+                    <label class="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                        <i data-lucide="layout-grid" class="w-4 h-4 text-indigo-500"></i>
+                        Módulo
+                    </label>
+
+                    <div class="relative group">
+                        <select name="modulo_sistema"
+                                required
+                                class="appearance-none w-full h-14 rounded-2xl border border-slate-200 bg-slate-50/80 px-5 pr-12 text-sm font-bold text-slate-700 shadow-sm outline-none transition-all duration-200 hover:bg-white hover:border-indigo-200 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100">
+                            <option value="">Seleccionar módulo</option>
+                            {% for modulo in modulos %}
+                                <option value="{{ modulo.id }}"
+                                    {% if permiso and permiso.modulo_sistema_id == modulo.id %}selected{% endif %}>
+                                    {{ modulo.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+
+                        <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400 group-focus-within:text-indigo-500">
+                            <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="resumen-acciones-modulo"
+                 class="hidden grid grid-cols-1 xl:grid-cols-2 gap-5">
+
+                <div class="p-5 rounded-2xl bg-emerald-50 border border-emerald-100">
+                    <div class="flex items-center justify-between gap-3 mb-4">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i>
+                            <p class="text-xs font-black uppercase tracking-wider text-emerald-700">
+                                Acciones asignadas
+                            </p>
+                        </div>
+
+                        <span id="contador-asignadas"
+                              class="px-2.5 py-1 rounded-full bg-white border border-emerald-200 text-[10px] font-black text-emerald-700">
+                            0
+                        </span>
+                    </div>
+
+                    <p class="text-[11px] text-emerald-700/70 font-bold mb-3">
+                        Click en una acción asignada para quitarla.
+                    </p>
+
+                    <div id="acciones-asignadas" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-amber-50 border border-amber-100">
+                    <div class="flex items-center justify-between gap-3 mb-4">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="alert-circle" class="w-4 h-4 text-amber-600"></i>
+                            <p class="text-xs font-black uppercase tracking-wider text-amber-700">
+                                Acciones faltantes
+                            </p>
+                        </div>
+
+                        <span id="contador-faltantes"
+                              class="px-2.5 py-1 rounded-full bg-white border border-amber-200 text-[10px] font-black text-amber-700">
+                            0
+                        </span>
+                    </div>
+
+                    <p class="text-[11px] text-amber-700/70 font-bold mb-3">
+                        Click en una acción faltante para agregarla.
+                    </p>
+
+                    <div id="acciones-faltantes" class="flex flex-wrap gap-2"></div>
+                </div>
+            </div>
+
+            <div id="acciones-hidden-inputs"></div>
+
+            {% if permiso %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200">
+                    <p class="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">
+                        Permiso de referencia
+                    </p>
+                    <code class="text-sm font-black text-indigo-600">
+                        {{ permiso.codigo }}
+                    </code>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200">
+                    <p class="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">
+                        Módulo actual
+                    </p>
+                    <p class="text-sm font-black text-slate-800">
+                        {{ permiso.modulo_sistema.nombre }}
+                    </p>
+                </div>
+            </div>
+            {% else %}
+            <div class="p-5 rounded-2xl bg-indigo-50 border border-indigo-100">
+                <p class="text-sm font-bold text-indigo-700">
+                    Ejemplo: al agregar “Crear” al módulo “Clientes”, se generará automáticamente:
+                    <span class="font-black">clientes.crear</span>
+                </p>
+            </div>
+            {% endif %}
+
+            <div>
+                <label class="block text-xs font-black uppercase tracking-wider text-slate-400 mb-2">
+                    Descripción general
+                </label>
+
+                <textarea name="descripcion"
+                          rows="4"
+                          placeholder="Describe para qué sirven estos permisos..."
+                          class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all">{{ permiso.descripcion|default:'' }}</textarea>
+            </div>
+
+            <label class="flex items-center justify-between gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-200 cursor-pointer">
+                <div>
+                    <p class="font-black text-slate-800">Permisos activos</p>
+                    <p class="text-xs text-slate-400 mt-1">
+                        Los nuevos permisos se crearán activos si esta opción está marcada.
+                    </p>
+                </div>
+
+                <input type="checkbox"
+                       name="activo"
+                       value="1"
+                       {% if permiso.activo or not permiso %}checked{% endif %}
+                       class="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+            </label>
+
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <a href="{% url 'trabajadores:lista_permisos' %}"
+                   class="px-5 py-3 rounded-2xl bg-slate-100 text-slate-600 text-sm font-bold hover:bg-slate-200 transition-all">
+                    Cancelar
+                </a>
+
+                <button type="submit"
+                        class="px-6 py-3 rounded-2xl bg-indigo-600 text-white text-sm font-black shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all">
+                    Guardar cambios
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const data = {{ acciones_por_modulo_json|default:"{}"|safe }};
+
+    const moduloSelect = document.querySelector('select[name="modulo_sistema"]');
+
+    const resumen = document.getElementById('resumen-acciones-modulo');
+    const asignadasBox = document.getElementById('acciones-asignadas');
+    const faltantesBox = document.getElementById('acciones-faltantes');
+    const contadorAsignadas = document.getElementById('contador-asignadas');
+    const contadorFaltantes = document.getElementById('contador-faltantes');
+    const hiddenInputs = document.getElementById('acciones-hidden-inputs');
+
+    let asignadasOriginales = [];
+    let asignadasActuales = [];
+    let faltantesActuales = [];
+
+    const normalizarAccion = (accion) => {
+        if (typeof accion === 'string') {
+            return {
+                id: accion,
+                nombre: accion
+            };
+        }
+
+        return accion;
+    };
+
+    const existeEnLista = (lista, accion) => {
+        return lista.some(item => String(item.id) === String(accion.id));
+    };
+
+    const ordenarPorNombre = (lista) => {
+        return lista.sort((a, b) => String(a.nombre).localeCompare(String(b.nombre)));
+    };
+
+    const obtenerCreadas = () => {
+        return asignadasActuales.filter(accion => !existeEnLista(asignadasOriginales, accion));
+    };
+
+    const obtenerEliminadas = () => {
+        return asignadasOriginales.filter(accion => !existeEnLista(asignadasActuales, accion));
+    };
+
+    const crearBadge = (accion, tipo) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.dataset.id = accion.id;
+        btn.dataset.nombre = accion.nombre;
+
+        if (tipo === 'asignada-original') {
+            btn.className = 'px-3 py-1.5 rounded-xl border text-[11px] font-black bg-white border-emerald-200 text-emerald-700 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 transition-all';
+            btn.innerHTML = `${accion.nombre} <span class="ml-1 opacity-60">×</span>`;
+        }
+
+        if (tipo === 'asignada-nueva') {
+            btn.className = 'px-3 py-1.5 rounded-xl border text-[11px] font-black bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 transition-all';
+            btn.innerHTML = `${accion.nombre} <span class="ml-1 opacity-80">nuevo ×</span>`;
+        }
+
+        if (tipo === 'faltante') {
+            btn.className = 'px-3 py-1.5 rounded-xl border text-[11px] font-black bg-white border-amber-200 text-amber-700 hover:bg-amber-100 transition-all';
+            btn.innerHTML = `+ ${accion.nombre}`;
+        }
+
+        if (tipo === 'faltante-eliminada') {
+            btn.className = 'px-3 py-1.5 rounded-xl border text-[11px] font-black bg-rose-50 border-rose-200 text-rose-600 hover:bg-white hover:border-amber-200 hover:text-amber-700 transition-all';
+            btn.innerHTML = `Deshacer quitar: ${accion.nombre}`;
+        }
+
+        return btn;
+    };
+
+    const pasarAFaltantes = (accion) => {
+        asignadasActuales = asignadasActuales.filter(item => String(item.id) !== String(accion.id));
+
+        if (!existeEnLista(faltantesActuales, accion)) {
+            faltantesActuales.push(accion);
+        }
+
+        faltantesActuales = ordenarPorNombre(faltantesActuales);
+        renderListas();
+    };
+
+    const pasarAAsignadas = (accion) => {
+        faltantesActuales = faltantesActuales.filter(item => String(item.id) !== String(accion.id));
+
+        if (!existeEnLista(asignadasActuales, accion)) {
+            asignadasActuales.push(accion);
+        }
+
+        asignadasActuales = ordenarPorNombre(asignadasActuales);
+        renderListas();
+    };
+
+    const renderHiddenInputs = () => {
+        hiddenInputs.innerHTML = '';
+
+        obtenerCreadas().forEach(accion => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'acciones_a_crear[]';
+            input.value = accion.id;
+            hiddenInputs.appendChild(input);
+        });
+
+        obtenerEliminadas().forEach(accion => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'acciones_a_eliminar[]';
+            input.value = accion.id;
+            hiddenInputs.appendChild(input);
+        });
+    };
+
+    const renderListas = () => {
+        asignadasBox.innerHTML = '';
+        faltantesBox.innerHTML = '';
+
+        asignadasActuales.forEach(accion => {
+            const esNueva = !existeEnLista(asignadasOriginales, accion);
+            const badge = crearBadge(
+                accion,
+                esNueva ? 'asignada-nueva' : 'asignada-original'
+            );
+
+            badge.addEventListener('click', () => pasarAFaltantes(accion));
+            asignadasBox.appendChild(badge);
+        });
+
+        faltantesActuales.forEach(accion => {
+            const fueEliminada = existeEnLista(asignadasOriginales, accion);
+            const badge = crearBadge(
+                accion,
+                fueEliminada ? 'faltante-eliminada' : 'faltante'
+            );
+
+            badge.addEventListener('click', () => pasarAAsignadas(accion));
+            faltantesBox.appendChild(badge);
+        });
+
+        if (!asignadasActuales.length) {
+            asignadasBox.innerHTML = '<span class="text-xs font-bold text-slate-400">Aún no tiene acciones asignadas.</span>';
+        }
+
+        if (!faltantesActuales.length) {
+            faltantesBox.innerHTML = '<span class="text-xs font-bold text-emerald-600">Este módulo ya tiene todas las acciones registradas.</span>';
+        }
+
+        contadorAsignadas.textContent = asignadasActuales.length;
+        contadorFaltantes.textContent = faltantesActuales.length;
+
+        renderHiddenInputs();
+
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    };
+
+    const cargarModulo = () => {
+        const moduloId = moduloSelect.value;
+
+        hiddenInputs.innerHTML = '';
+        asignadasOriginales = [];
+        asignadasActuales = [];
+        faltantesActuales = [];
+
+        if (!moduloId || !data[moduloId]) {
+            resumen.classList.add('hidden');
+            return;
+        }
+
+        asignadasOriginales = (data[moduloId].asignadas || []).map(normalizarAccion);
+        asignadasActuales = [...asignadasOriginales];
+
+        faltantesActuales = (data[moduloId].faltantes || []).map(normalizarAccion);
+
+        asignadasOriginales = ordenarPorNombre(asignadasOriginales);
+        asignadasActuales = ordenarPorNombre(asignadasActuales);
+        faltantesActuales = ordenarPorNombre(faltantesActuales);
+
+        resumen.classList.remove('hidden');
+        renderListas();
+    };
+
+    moduloSelect.addEventListener('change', cargarModulo);
+    cargarModulo();
+});
+</script>
+{% endblock %}

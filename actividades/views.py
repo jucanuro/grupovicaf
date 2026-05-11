@@ -8,12 +8,12 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from django.utils.text import slugify
 from django.views.decorators.http import require_GET, require_POST
 
 from clientes.models import Cliente
 from proyectos.models import Proyecto, RecepcionMuestra, SolicitudEnsayo, InformeFinal, DetalleSolicitudEnsayo
 from trabajadores.models import TrabajadorProfile
+from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso
 
 from .models import (
     CalendarioActividad,
@@ -81,6 +81,7 @@ def obtener_responsable_actividad(actividad):
         }
 
     primer_participante = actividad.participantes.select_related('trabajador__user').first()
+
     if primer_participante:
         return {
             'id': primer_participante.trabajador_id,
@@ -111,6 +112,7 @@ def obtener_responsable_ensayo(ensayo):
 
 
 @login_required
+@permiso_requerido('calendario.ver')
 def calendario_dashboard(request):
     categorias = CalendarioCategoria.objects.filter(activo=True).order_by('nombre')
     trabajadores = TrabajadorProfile.objects.all().order_by('user__username')
@@ -137,9 +139,12 @@ def calendario_dashboard(request):
         'estados_actividad': CalendarioActividad.ESTADO_ACTIVIDAD,
         'prioridades_actividad': CalendarioActividad.PRIORIDAD,
     }
+
     return render(request, 'actividades/calendario.html', context)
 
+
 @login_required
+@permiso_requerido('calendario.ver')
 @require_GET
 def calendario_eventos_json(request):
     start = request.GET.get('start')
@@ -209,6 +214,7 @@ def calendario_eventos_json(request):
         ]
 
         cliente_nombre = ''
+
         if actividad.cliente:
             cliente_nombre = actividad.cliente.razon_social
         else:
@@ -294,6 +300,7 @@ def calendario_eventos_json(request):
 
     for detalle in detalles_ensayo:
         solicitud = detalle.solicitud
+
         if not solicitud or not solicitud.fecha_solicitud:
             continue
 
@@ -301,6 +308,7 @@ def calendario_eventos_json(request):
         fecha_entrega = detalle.fecha_entrega_programada or fecha_registro
 
         cliente_nombre = ''
+
         if solicitud.cotizacion and solicitud.cotizacion.cliente:
             cliente_nombre = solicitud.cotizacion.cliente.razon_social
 
@@ -317,6 +325,7 @@ def calendario_eventos_json(request):
         color = colores_ensayos.get(estado_val, '#94a3b8')
 
         titulo_evento = f'{muestra_codigo} · {servicio_nombre}'
+
         if len(titulo_evento) > 60:
             titulo_evento = titulo_evento[:57] + '...'
 
@@ -356,12 +365,21 @@ def calendario_eventos_json(request):
 
 
 @login_required
+@permiso_requerido('calendario.ver')
 @require_GET
 def calendario_actividad_detalle_json(request, pk):
     actividad = get_object_or_404(
         CalendarioActividad.objects.select_related(
-            'categoria', 'cliente', 'proyecto', 'recepcion', 'solicitud_ensayo', 'informe_final'
-        ).prefetch_related('participantes__trabajador', 'recordatorios'),
+            'categoria',
+            'cliente',
+            'proyecto',
+            'recepcion',
+            'solicitud_ensayo',
+            'informe_final'
+        ).prefetch_related(
+            'participantes__trabajador',
+            'recordatorios'
+        ),
         pk=pk
     )
 
@@ -411,7 +429,9 @@ def calendario_actividad_detalle_json(request, pk):
             for r in actividad.recordatorios.all()
         ]
     }
+
     return JsonResponse(data)
+
 
 @login_required
 @require_POST
@@ -421,15 +441,31 @@ def calendario_actividad_guardar_json(request):
         actividad_id = payload.get('id')
 
         if actividad_id:
+            if not trabajador_tiene_permiso(request.user, 'calendario.editar'):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'No tienes permiso para editar actividades.'
+                }, status=403)
+        else:
+            if not trabajador_tiene_permiso(request.user, 'calendario.crear'):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'No tienes permiso para crear actividades.'
+                }, status=403)
+
+        if actividad_id:
             try:
                 actividad_id = int(actividad_id)
+
                 if actividad_id <= 0:
                     raise ValueError
+
             except (ValueError, TypeError):
                 return JsonResponse({'success': False, 'error': 'ID de actividad inválido.'}, status=400)
 
         if actividad_id:
             actividad = get_object_or_404(CalendarioActividad, pk=actividad_id)
+
             if actividad.es_automatica and not actividad.permite_edicion_manual:
                 return JsonResponse({
                     'success': False,
@@ -443,6 +479,7 @@ def calendario_actividad_guardar_json(request):
             )
 
         titulo = (payload.get('titulo') or '').strip()
+
         if not titulo or len(titulo) < 2 or len(titulo) > 200:
             return JsonResponse({'success': False, 'error': 'El título debe tener entre 2 y 200 caracteres.'}, status=400)
 
@@ -451,6 +488,7 @@ def calendario_actividad_guardar_json(request):
             return JsonResponse({'success': False, 'error': 'Caracteres no permitidos detectados en el título.'}, status=400)
 
         descripcion = (payload.get('descripcion') or '').strip()
+
         if len(descripcion) > 1000:
             return JsonResponse({'success': False, 'error': 'La descripción no puede exceder 1000 caracteres.'}, status=400)
 
@@ -523,10 +561,13 @@ def calendario_actividad_guardar_json(request):
         actividad.recordatorios.all().delete()
 
         participantes_bulk = []
+
         for p in participantes:
             trabajador_id = p.get('trabajador_id')
+
             if not trabajador_id:
                 continue
+
             participantes_bulk.append(
                 CalendarioParticipante(
                     actividad=actividad,
@@ -541,10 +582,13 @@ def calendario_actividad_guardar_json(request):
             CalendarioParticipante.objects.bulk_create(participantes_bulk)
 
         recordatorios_bulk = []
+
         for r in recordatorios:
             minutos_antes = r.get('minutos_antes')
+
             if minutos_antes in [None, '']:
                 continue
+
             recordatorios_bulk.append(
                 CalendarioRecordatorio(
                     actividad=actividad,
@@ -567,18 +611,23 @@ def calendario_actividad_guardar_json(request):
     except ValueError as e:
         logger.warning(f"Error de validación en calendario_actividad_guardar_json por usuario {request.user.username}: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
     except Exception as e:
         logger.error(f"Error interno en calendario_actividad_guardar_json por usuario {request.user.username}: {str(e)}")
         return JsonResponse({'success': False, 'error': 'Error interno del servidor.'}, status=500)
 
+
 @login_required
+@permiso_requerido('calendario.eliminar')
 @require_POST
 def calendario_actividad_eliminar_json(request, pk):
     try:
         try:
             pk = int(pk)
+
             if pk <= 0:
                 raise ValueError
+
         except (ValueError, TypeError):
             return JsonResponse({'success': False, 'error': 'ID de actividad inválido.'}, status=400)
 
@@ -596,12 +645,14 @@ def calendario_actividad_eliminar_json(request, pk):
         logger.info(f"Actividad eliminada: {titulo} (ID: {pk}) por usuario {request.user.username}")
 
         return JsonResponse({'success': True, 'message': 'Actividad eliminada correctamente.'})
+
     except Exception as e:
         logger.error(f"Error al eliminar actividad {pk} por usuario {request.user.username}: {str(e)}")
         return JsonResponse({'success': False, 'error': 'Error interno del servidor.'}, status=500)
 
 
 @login_required
+@permiso_requerido('calendario.crear')
 @require_POST
 def calendario_categoria_crear_json(request):
     try:
@@ -667,13 +718,16 @@ def calendario_categoria_crear_json(request):
 
 
 @login_required
+@permiso_requerido('calendario.editar')
 @require_POST
 def calendario_actividad_reprogramar_json(request, pk):
     try:
         try:
             pk = int(pk)
+
             if pk <= 0:
                 raise ValueError
+
         except (ValueError, TypeError):
             return JsonResponse({
                 'success': False,
@@ -720,6 +774,7 @@ def calendario_actividad_reprogramar_json(request, pk):
 
 
 @login_required
+@permiso_requerido('gantt.ver')
 def gantt_dashboard(request):
     proyectos = Proyecto.objects.all().order_by('-fecha_inicio')
     categorias = CalendarioCategoria.objects.filter(activo=True).order_by('nombre')
@@ -730,10 +785,12 @@ def gantt_dashboard(request):
         'categorias': categorias,
         'trabajadores': trabajadores,
     }
+
     return render(request, 'actividades/gantt.html', context)
 
 
 @login_required
+@permiso_requerido('gantt.ver')
 @require_GET
 def gantt_actividades_json(request):
     proyecto_id = request.GET.get('proyecto')
@@ -751,6 +808,7 @@ def gantt_actividades_json(request):
 
     if proyecto_id:
         proyecto_obj = Proyecto.objects.filter(pk=proyecto_id).select_related('cotizacion').first()
+
         if proyecto_obj and proyecto_obj.cotizacion_id:
             cotizacion_id_proyecto = proyecto_obj.cotizacion_id
 
@@ -836,8 +894,10 @@ def gantt_actividades_json(request):
 
         if estado:
             estado_lower = estado.lower()
+
             if estado_lower in ['pendiente', 'proceso', 'finalizado']:
                 detalles_ensayo = detalles_ensayo.filter(solicitud__estado=estado_lower)
+
             elif estado.upper() in ['PROGRAMADA', 'EN_CURSO', 'COMPLETADA', 'CANCELADA', 'REPROGRAMADA', 'VENCIDA']:
                 detalles_ensayo = detalles_ensayo.none()
 
@@ -862,11 +922,12 @@ def gantt_actividades_json(request):
             color = colores_ensayos.get(estado_val, '#94a3b8')
 
             cliente_nombre = ''
+
             if solicitud and solicitud.cotizacion and solicitud.cotizacion.cliente:
                 cliente_nombre = solicitud.cotizacion.cliente.razon_social
 
             muestra_codigo = detalle.muestra.codigo_laboratorio if detalle.muestra else 'Sin muestra'
-            servicio_nombre = ''
+
             if detalle.servicio_cotizado and detalle.servicio_cotizado.servicio:
                 servicio_nombre = detalle.servicio_cotizado.servicio.nombre
             else:
@@ -907,4 +968,5 @@ def gantt_actividades_json(request):
             })
 
     data.sort(key=lambda x: (x['start'], x['name']))
+
     return JsonResponse(data, safe=False)

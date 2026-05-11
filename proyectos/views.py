@@ -1,30 +1,50 @@
 from django.views.generic import ListView
+from django.contrib.auth.mixins import LoginRequiredMixin
 from datetime import datetime
 import json
 import io
 import logging
-from django.db import IntegrityError
-from django.http import JsonResponse
-from django.template.loader import render_to_string
-from weasyprint import HTML
-from django.http import HttpResponse
-from django.template.loader import get_template
+import re
+from urllib.parse import quote
+from decimal import Decimal, InvalidOperation
+
+from django.db import IntegrityError, transaction
+from django.db.models import Q, Max, Exists, OuterRef
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, Http404, FileResponse
+from django.template.loader import render_to_string, get_template
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
-from django.db.models import Q, Max
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.utils import timezone
-from decimal import Decimal, InvalidOperation
-from .utils import enviar_whatsapp_pdf
 from django.views.decorators.http import require_POST
-from django.db.models import Exists, OuterRef
-from .models import Proyecto, TipoMuestra, RecepcionMuestra, MuestraDetalle,UnidadMedida, SolicitudEnsayo, DetalleSolicitudEnsayo, IncidenciaSolicitud, InformeFinal
-from servicios.models import Servicio, CotizacionDetalle, CategoriaServicio, Subcategoria, CotizacionGrupo,Cotizacion
+
+from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso
+from .utils import enviar_whatsapp_pdf
+
+from .models import (
+    Proyecto,
+    TipoMuestra,
+    RecepcionMuestra,
+    MuestraDetalle,
+    UnidadMedida,
+    SolicitudEnsayo,
+    DetalleSolicitudEnsayo,
+    IncidenciaSolicitud,
+    InformeFinal,
+)
+
+from servicios.models import (
+    Servicio,
+    CotizacionDetalle,
+    CategoriaServicio,
+    Subcategoria,
+    CotizacionGrupo,
+    Cotizacion,
+)
+
 from trabajadores.models import TrabajadorProfile
-import re
-from urllib.parse import quote
+from weasyprint import HTML
 
 
 logger = logging.getLogger(__name__)
@@ -33,37 +53,49 @@ logger = logging.getLogger(__name__)
 def get_date_or_none(date_string):
     return date_string if date_string and date_string.strip() else None
 
+
 def generar_correlativo_lote():
-    anio = datetime.datetime.now().year
+    anio = timezone.now().year
     ultimo = RecepcionMuestraLote.objects.filter(numero_registro__icontains=f"-{anio}-").order_by('-id').first()
     numero = 1
+
     if ultimo:
         try:
             numero = int(ultimo.numero_registro.split('-')[-1]) + 1
-        except (ValueError, IndexError): pass
+        except (ValueError, IndexError):
+            pass
+
     return f"REC-{anio}-{numero:04d}"
+
 
 def generar_codigo_vicaf(servicio_obj):
     prefijo = "X"
+
     if servicio_obj.subcategoria:
         prefijo = servicio_obj.subcategoria.nombre[0].upper()
-    
-    anio = datetime.datetime.now().year
+
+    anio = timezone.now().year
     ultimo = MuestraItem.objects.filter(codigo_vicaf__startswith=f"{prefijo}-{anio}").order_by('-id').first()
     numero = 1
+
     if ultimo:
         try:
             numero = int(ultimo.codigo_vicaf.split('-')[-1]) + 1
-        except (ValueError, IndexError): pass
+        except (ValueError, IndexError):
+            pass
+
     return f"{prefijo}-{anio}-{numero:03d}"
 
+
 @login_required
+@permiso_requerido('proyectos.ver')
 def lista_proyectos_pendientes(request):
     proyectos_qs = Proyecto.objects.select_related('cliente', 'cotizacion').filter(
         ~Q(estado__in=['FINALIZADO', 'CANCELADO'])
     )
 
     search_query = request.GET.get('search', '')
+
     if search_query:
         proyectos_qs = proyectos_qs.filter(
             Q(nombre_proyecto__icontains=search_query) |
@@ -111,45 +143,38 @@ def lista_proyectos_pendientes(request):
         'search_query': search_query,
         'titulo_lista': 'Panel de Control de Proyectos',
     }
+
     return render(request, 'proyectos/lista_proyectos_pendientes.html', context)
+
 
 @require_POST
 @login_required
+@permiso_requerido('muestras.crear')
 def crear_tipo_muestra_ajax(request):
     try:
         nombre = request.POST.get('nombre', '').strip()
-        sigla = request.POST.get('sigla', '').upper().strip() 
-        
-        if not nombre or len(nombre) < 2 or len(nombre) > 100:
-            return JsonResponse({
-                'status': 'error', 
-                'message': 'Nombre debe tener entre 2 y 100 caracteres.'
-            }, status=400)
-        
-        if not sigla or len(sigla) < 1 or len(sigla) > 10:
-            return JsonResponse({
-                'status': 'error', 
-                'message': 'Sigla debe tener entre 1 y 10 caracteres.'
-            }, status=400)
+        sigla = request.POST.get('sigla', '').upper().strip()
 
-        import re
+        if not nombre or len(nombre) < 2 or len(nombre) > 100:
+            return JsonResponse({'status': 'error', 'message': 'Nombre debe tener entre 2 y 100 caracteres.'}, status=400)
+
+        if not sigla or len(sigla) < 1 or len(sigla) > 10:
+            return JsonResponse({'status': 'error', 'message': 'Sigla debe tener entre 1 y 10 caracteres.'}, status=400)
+
         if re.search(r'[<>]', nombre) or re.search(r'[<>]', sigla):
             logger.warning(f"Intento de XSS en crear_tipo_muestra_ajax por usuario {request.user.username}")
-            return JsonResponse({
-                'status': 'error', 
-                'message': 'Caracteres no permitidos detectados.'
-            }, status=400)
-        
+            return JsonResponse({'status': 'error', 'message': 'Caracteres no permitidos detectados.'}, status=400)
+
         tipo, created = TipoMuestra.objects.get_or_create(
-            sigla=sigla, 
+            sigla=sigla,
             defaults={'nombre': nombre}
         )
-        
+
         if created:
             logger.info(f"Tipo de muestra creado exitosamente: {nombre} ({sigla}) por usuario {request.user.username}")
         else:
             logger.info(f"Tipo de muestra existente utilizado: {nombre} ({sigla}) por usuario {request.user.username}")
-        
+
         return JsonResponse({
             'status': 'success',
             'id': tipo.pk,
@@ -157,25 +182,32 @@ def crear_tipo_muestra_ajax(request):
             'sigla': tipo.sigla,
             'nuevo': created
         })
+
     except IntegrityError:
-        return JsonResponse({
-            'status': 'error', 
-            'message': f'La sigla "{sigla}" ya está registrada con otro nombre.'
-        }, status=400)
+        return JsonResponse({'status': 'error', 'message': f'La sigla "{sigla}" ya está registrada con otro nombre.'}, status=400)
+
     except Exception as e:
         logger.error(f"Error al crear tipo de muestra por usuario {request.user.username}: {str(e)}")
-        return JsonResponse({
-            'status': 'error', 
-            'message': 'Error interno del servidor.'
-        }, status=500)
-    
+        return JsonResponse({'status': 'error', 'message': 'Error interno del servidor.'}, status=500)
+
+
+@login_required
 def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
+    if pk:
+        if not trabajador_tiene_permiso(request.user, 'muestras.editar'):
+            return HttpResponseForbidden("No tienes permiso para editar recepciones de muestras.")
+    else:
+        if not trabajador_tiene_permiso(request.user, 'muestras.crear'):
+            return HttpResponseForbidden("No tienes permiso para registrar recepciones de muestras.")
+
     if pk and not proyecto_id:
         recepcion_temp = get_object_or_404(RecepcionMuestra, pk=pk)
         proyecto_obj = Proyecto.objects.filter(cotizacion=recepcion_temp.cotizacion).first()
+
         if not proyecto_obj:
             messages.error(request, 'No se encontró el proyecto asociado a esta recepción.')
             return redirect('proyectos:lista_proyectos_pendientes')
+
         proyecto_id = proyecto_obj.id
 
     if not proyecto_id:
@@ -189,6 +221,7 @@ def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
 
     recepcion = None
     is_editing = pk is not None
+
     if is_editing:
         recepcion = get_object_or_404(RecepcionMuestra, pk=pk, cotizacion=proyecto.cotizacion)
 
@@ -223,6 +256,7 @@ def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
                 observaciones_list = request.POST.getlist('observaciones[]')
 
                 muestras_a_crear = []
+
                 for i in range(len(tipos_ids)):
                     if tipos_ids[i]:
                         try:
@@ -236,29 +270,33 @@ def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
                             masa_val = Decimal('0.00')
 
                         unidad_medida_id = None
+
                         if i < len(unidades_ids) and unidades_ids[i]:
                             unidad_medida_id = unidades_ids[i]
 
                         muestra = MuestraDetalle(
                             recepcion=recepcion,
                             tipo_muestra_id=tipos_ids[i],
-                            nro_item=recepcion.muestras.count() + i + 1,  # Continuar numeración
+                            nro_item=recepcion.muestras.count() + i + 1,
                             descripcion=descripciones[i][:255] if i < len(descripciones) else '',
                             masa_aprox=masa_val,
                             cantidad=cant_val,
                             unidad_medida_id=unidad_medida_id,
                             observaciones=observaciones_list[i] if i < len(observaciones_list) else ''
                         )
+
                         muestras_a_crear.append(muestra)
 
                 for m in muestras_a_crear:
                     m.save()
 
                 action_text = "agregadas" if is_editing else "registradas"
+
                 messages.success(
                     request,
                     f"¡Éxito! {len(muestras_a_crear)} muestras {action_text} a la recepción #{recepcion.id}."
                 )
+
                 return redirect('proyectos:lista_muestras_recepcion', recepcion_id=recepcion.id)
 
         except Exception as e:
@@ -266,16 +304,19 @@ def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
             messages.error(request, f"Ocurrió un error al guardar: {str(e)}")
 
     tipos_qs = TipoMuestra.objects.all().order_by('nombre')
+
     tipos_muestra_json = json.dumps([
         {'id': t.id, 'nombre': t.nombre, 'prefijo': t.sigla} for t in tipos_qs
     ])
 
     unidades_qs = UnidadMedida.objects.filter(activo=True).order_by('codigo')
+
     unidades_medida_json = json.dumps([
         {'id': u.id, 'codigo': u.codigo, 'nombre': u.nombre} for u in unidades_qs
     ])
 
     muestras_existentes = []
+
     if recepcion:
         for muestra in recepcion.muestras.select_related('tipo_muestra', 'unidad_medida').all():
             muestras_existentes.append({
@@ -291,7 +332,7 @@ def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
 
     context = {
         'proyecto': proyecto,
-        'recepcion': recepcion,  # Pasar la recepción si existe
+        'recepcion': recepcion,
         'fecha_hoy': timezone.now().strftime('%Y-%m-%d'),
         'hora_ahora': timezone.now().strftime('%H:%M'),
         'tipos_muestra_json': tipos_muestra_json,
@@ -299,8 +340,12 @@ def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
         'muestras_existentes_json': json.dumps(muestras_existentes),
         'is_editing': is_editing,
     }
+
     return render(request, 'proyectos/recepcion_form.html', context)
 
+
+@login_required
+@permiso_requerido('muestras.ver')
 def lista_muestras_recepcion(request, recepcion_id):
     recepcion = get_object_or_404(
         RecepcionMuestra.objects.select_related('cotizacion__cliente', 'responsable_recepcion'),
@@ -333,27 +378,38 @@ def lista_muestras_recepcion(request, recepcion_id):
         'telefono_whatsapp': telefono_whatsapp,
     })
 
-class RecepcionMuestraListView(ListView):
+
+class RecepcionMuestraListView(LoginRequiredMixin, ListView):
     model = RecepcionMuestra
     template_name = 'proyectos/lista_general_recepciones.html'
     context_object_name = 'recepciones'
-    paginate_by = 20 
+    paginate_by = 20
+
+    def dispatch(self, request, *args, **kwargs):
+        if not trabajador_tiene_permiso(request.user, 'muestras.ver'):
+            return HttpResponseForbidden("No tienes permiso para ver recepciones de muestras.")
+        return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
         queryset = RecepcionMuestra.objects.select_related(
-            'cotizacion__cliente', 
+            'cotizacion__cliente',
             'responsable_recepcion'
         ).prefetch_related('muestras').order_by('-fecha_recepcion')
 
         query = self.request.GET.get('q')
+
         if query:
             queryset = queryset.filter(
                 Q(cotizacion__cliente__nombre__icontains=query) |
                 Q(id__icontains=query) |
                 Q(procedencia__icontains=query)
             )
+
         return queryset
-    
+
+
+@login_required
+@permiso_requerido('muestras.ver')
 def generar_pdf_recepcion(request, recepcion_id):
     recepcion = get_object_or_404(
         RecepcionMuestra.objects.select_related(
@@ -389,13 +445,8 @@ def limpiar_numero_whatsapp(numero: str) -> str:
     return re.sub(r"\D", "", numero)
 
 
-def limpiar_numero_whatsapp(numero: str) -> str:
-    if not numero:
-        return ""
-    return re.sub(r"\D", "", numero)
-
-
 @login_required
+@permiso_requerido('muestras.ver')
 def generar_y_enviar_whatsapp(request, recepcion_id):
     try:
         recepcion = get_object_or_404(
@@ -407,10 +458,7 @@ def generar_y_enviar_whatsapp(request, recepcion_id):
         )
 
         if request.method != 'POST':
-            return JsonResponse({
-                'ok': False,
-                'message': 'Método no permitido.'
-            }, status=405)
+            return JsonResponse({'ok': False, 'message': 'Método no permitido.'}, status=405)
 
         if hasattr(recepcion, 'cotizacion') and recepcion.cotizacion:
             cliente = recepcion.cotizacion.cliente
@@ -420,20 +468,14 @@ def generar_y_enviar_whatsapp(request, recepcion_id):
         telefono_manual = request.POST.get('telefono', '').strip()
 
         if len(telefono_manual) > 20:
-            return JsonResponse({
-                'ok': False,
-                'message': 'Número de teléfono no puede exceder 20 caracteres.'
-            }, status=400)
+            return JsonResponse({'ok': False, 'message': 'Número de teléfono no puede exceder 20 caracteres.'}, status=400)
 
-        import re
         if re.search(r'[<>]', telefono_manual):
             logger.warning(f"Intento de XSS en generar_y_enviar_whatsapp por usuario {request.user.username}")
-            return JsonResponse({
-                'ok': False,
-                'message': 'Caracteres no permitidos detectados.'
-            }, status=400)
+            return JsonResponse({'ok': False, 'message': 'Caracteres no permitidos detectados.'}, status=400)
 
         telefono_cliente = ""
+
         if cliente:
             telefono_cliente = (
                 getattr(cliente, 'telefono', '') or
@@ -445,16 +487,10 @@ def generar_y_enviar_whatsapp(request, recepcion_id):
         telefono_destino = limpiar_numero_whatsapp(telefono_manual or telefono_cliente)
 
         if not telefono_destino:
-            return JsonResponse({
-                'ok': False,
-                'message': 'No se encontró un número válido de WhatsApp.'
-            }, status=400)
+            return JsonResponse({'ok': False, 'message': 'No se encontró un número válido de WhatsApp.'}, status=400)
 
         if len(telefono_destino) < 9:
-            return JsonResponse({
-                'ok': False,
-                'message': 'Número de teléfono inválido.'
-            }, status=400)
+            return JsonResponse({'ok': False, 'message': 'Número de teléfono inválido.'}, status=400)
 
         pdf_url = request.build_absolute_uri(
             f"/proyectos/recepcion/{recepcion.id}/pdf/"
@@ -473,37 +509,38 @@ def generar_y_enviar_whatsapp(request, recepcion_id):
             'ok': True,
             'whatsapp_url': whatsapp_url
         })
+
     except Exception as e:
         logger.error(f"Error al generar WhatsApp para recepción {recepcion_id} por usuario {request.user.username}: {str(e)}")
-        return JsonResponse({
-            'ok': False,
-            'message': 'Error interno del servidor.'
-        }, status=500)
-    
+        return JsonResponse({'ok': False, 'message': 'Error interno del servidor.'}, status=500)
+
+
 @login_required
+@permiso_requerido('ensayos.ver')
 def api_obtener_detalles_cotizacion(request, cotizacion_id):
     try:
         try:
             cotizacion_id = int(cotizacion_id)
+
             if cotizacion_id <= 0:
                 raise ValueError
+
         except (ValueError, TypeError):
             return JsonResponse({'error': 'ID de cotización inválido.'}, status=400)
 
         cotizacion = get_object_or_404(Cotizacion, pk=cotizacion_id)
 
-        # Recepción activa de la cotización
         recepcion = RecepcionMuestra.objects.filter(
             cotizacion=cotizacion
         ).order_by('-id').first()
 
         solicitud_existente = None
+
         if recepcion:
             solicitud_existente = SolicitudEnsayo.objects.filter(
                 recepcion=recepcion
             ).select_related('cotizacion', 'recepcion').first()
 
-        # 1) Detalles ya asignados en ESTA solicitud
         detalles_asignados = []
         servicios_registrados_ids = set()
 
@@ -530,7 +567,6 @@ def api_obtener_detalles_cotizacion(request, cotizacion_id):
                     'fecha_entrega': d.fecha_entrega_programada.strftime('%Y-%m-%d') if d.fecha_entrega_programada else '',
                 })
 
-        # 2) Servicios pendientes de ESTA cotización, excluyendo los ya registrados
         detalles_cotizacion = CotizacionDetalle.objects.filter(
             grupo__cotizacion=cotizacion
         ).exclude(
@@ -538,6 +574,7 @@ def api_obtener_detalles_cotizacion(request, cotizacion_id):
         ).select_related('servicio').order_by('id')
 
         servicios_pendientes = []
+
         for item in detalles_cotizacion:
             norma = item.norma_manual or (item.servicio.norma if item.servicio else "")
             metodo = item.metodo_manual or (item.servicio.metodo if item.servicio else "")
@@ -550,7 +587,6 @@ def api_obtener_detalles_cotizacion(request, cotizacion_id):
                 'metodo': str(metodo),
             })
 
-        # 3) Muestras disponibles para esa cotización
         muestras = list(
             MuestraDetalle.objects.filter(
                 recepcion__cotizacion=cotizacion
@@ -577,9 +613,17 @@ def api_obtener_detalles_cotizacion(request, cotizacion_id):
         )
         return JsonResponse({'error': 'Error interno del servidor.'}, status=500)
 
+
 @transaction.atomic
 @login_required
 def gestionar_solicitud_ensayo(request, pk=None):
+    if pk:
+        if not trabajador_tiene_permiso(request.user, 'ensayos.editar'):
+            return HttpResponseForbidden("No tienes permiso para editar solicitudes de ensayo.")
+    else:
+        if not trabajador_tiene_permiso(request.user, 'ensayos.crear'):
+            return HttpResponseForbidden("No tienes permiso para crear solicitudes de ensayo.")
+
     solicitud = get_object_or_404(SolicitudEnsayo, pk=pk) if pk else None
 
     if request.method == 'POST':
@@ -645,6 +689,7 @@ def gestionar_solicitud_ensayo(request, pk=None):
 
                     last_num_sol = max_result.get('codigo_solicitud__max')
                     next_order_num = 1
+
                     if last_num_sol:
                         try:
                             next_order_num = int(last_num_sol.split('-')[-1]) + 1
@@ -727,6 +772,7 @@ def gestionar_solicitud_ensayo(request, pk=None):
                         continue
 
                     cot_det = serv_map.get(s_id)
+
                     if not cot_det:
                         omitidas += 1
                         continue
@@ -752,6 +798,7 @@ def gestionar_solicitud_ensayo(request, pk=None):
                             fecha_entrega_programada=fecha_entrega_det_obj
                         )
                     )
+
                     servicios_ya_guardados.add(s_id_int)
 
                 if ensayos_list:
@@ -768,8 +815,10 @@ def gestionar_solicitud_ensayo(request, pk=None):
                 )
 
                 incidencias_list = []
+
                 for j in range(len(inc_detalles)):
                     texto = inc_detalles[j].strip() if j < len(inc_detalles) and inc_detalles[j] else ""
+
                     if not texto:
                         continue
 
@@ -783,6 +832,7 @@ def gestionar_solicitud_ensayo(request, pk=None):
                         fecha_ocurrencia = timezone.now()
 
                     key_inc = (texto, representante_cliente)
+
                     if key_inc in incidencias_existentes:
                         continue
 
@@ -824,11 +874,13 @@ def gestionar_solicitud_ensayo(request, pk=None):
 
     if proyecto_id and not solicitud:
         proyecto = Proyecto.objects.filter(pk=proyecto_id).select_related('cotizacion').first()
+
         if proyecto and proyecto.cotizacion:
             cotizacion_preseleccionada = proyecto.cotizacion
 
     if request.method == 'GET' and not solicitud:
         cotizacion_id = request.GET.get('cotizacion')
+
         if cotizacion_id:
             recepcion_existente = RecepcionMuestra.objects.filter(
                 cotizacion_id=cotizacion_id
@@ -865,12 +917,14 @@ def gestionar_solicitud_ensayo(request, pk=None):
         ).order_by('-id').first()
 
         solicitud_existente = None
+
         if recepcion:
             solicitud_existente = SolicitudEnsayo.objects.filter(
                 recepcion=recepcion
             ).first()
 
         servicios_registrados = 0
+
         if solicitud_existente:
             servicios_registrados = solicitud_existente.detalles.values(
                 'servicio_cotizado_id'
@@ -927,13 +981,18 @@ def gestionar_solicitud_ensayo(request, pk=None):
         'servicios_items': servicios_items,
         'dias_plazo': dias_plazo,
     }
+
     return render(request, 'proyectos/ensayos_form.html', context)
 
+
 @require_POST
+@login_required
+@permiso_requerido('ensayos.editar')
 def cambiar_estado_solicitud(request, pk, nuevo_estado):
     solicitud = get_object_or_404(SolicitudEnsayo, pk=pk)
 
     estados_validos = ['pendiente', 'proceso', 'finalizado']
+
     if nuevo_estado not in estados_validos:
         messages.error(request, "Estado no válido.")
         return redirect('proyectos:lista_solicitudes')
@@ -951,39 +1010,46 @@ def cambiar_estado_solicitud(request, pk, nuevo_estado):
         return redirect('proyectos:gestionar_informe', solicitud_id=solicitud.pk)
 
     messages.success(request, f"La solicitud {solicitud.codigo_solicitud} cambió a estado {nuevo_estado.upper()}.")
+
     return redirect('proyectos:lista_solicitudes')
 
+
+@login_required
+@permiso_requerido('ensayos.ver')
 def lista_solicitudes(request):
     solicitudes = SolicitudEnsayo.objects.prefetch_related('detalles').select_related(
-        'cotizacion__cliente', 
+        'cotizacion__cliente',
         'elaborado_por'
     ).all().order_by('-fecha_solicitud', '-id')
-    
+
     q = request.GET.get('q', '').strip()
+
     if q:
         solicitudes = solicitudes.filter(
-            Q(codigo_solicitud__icontains=q) | 
+            Q(codigo_solicitud__icontains=q) |
             Q(cotizacion__cliente__razon_social__icontains=q) |
             Q(cotizacion__numero_oferta__icontains=q)
         ).distinct()
-        
+
     return render(request, 'proyectos/ensayos_list.html', {
         'solicitudes': solicitudes,
         'q': q
     })
-    
+
+
+@login_required
+@permiso_requerido('ensayos.ver')
 def generar_pdf_ensayo(request, solicitud_id):
     solicitud = get_object_or_404(
-        SolicitudEnsayo.objects.select_related('cotizacion__cliente'), 
+        SolicitudEnsayo.objects.select_related('cotizacion__cliente'),
         id=solicitud_id
     )
-    
-    from .models import Proyecto 
+
     proyecto = Proyecto.objects.filter(cotizacion=solicitud.cotizacion).first()
 
     detalles = solicitud.detalles.select_related(
-        'muestra', 
-        'tecnico_asignado__user'  
+        'muestra',
+        'tecnico_asignado__user'
     ).all()
 
     context = {
@@ -994,38 +1060,48 @@ def generar_pdf_ensayo(request, solicitud_id):
     }
 
     html_string = render_to_string('proyectos/ensayos_pdf.html', context)
-    
+
     html = HTML(string=html_string, base_url=request.build_absolute_uri())
     pdf_file = html.write_pdf()
 
     response = HttpResponse(pdf_file, content_type='application/pdf')
     filename = f"Solicitud_Ensayo_{solicitud.id}.pdf"
     response['Content-Disposition'] = f'inline; filename="{filename}"'
-    
+
     return response
 
+
+@login_required
+@permiso_requerido('informes.ver')
 def lista_informes_finales(request):
     informes = InformeFinal.objects.all().order_by('-fecha_emision')
+
     return render(request, 'proyectos/informes_list.html', {
         'informes': informes
     })
 
+
+@login_required
 def gestionar_informe_final(request, solicitud_id=None):
+    if request.method == 'GET':
+        if not trabajador_tiene_permiso(request.user, 'informes.ver'):
+            return HttpResponseForbidden("No tienes permiso para ver informes.")
+
     solicitud = None
     informe = None
-    
+
     status_filter = request.GET.get('status')
     query = request.GET.get('q')
 
     pendientes = SolicitudEnsayo.objects.filter(
-        estado='finalizado', 
+        estado='finalizado',
         informe_final__isnull=True
     ).select_related('cotizacion__cliente')
 
     if solicitud_id:
         solicitud = get_object_or_404(SolicitudEnsayo, id=solicitud_id)
         informe = InformeFinal.objects.filter(solicitud=solicitud).first()
-    
+
     trabajadores = TrabajadorProfile.objects.all()
 
     if request.method == 'POST':
@@ -1040,33 +1116,43 @@ def gestionar_informe_final(request, solicitud_id=None):
         solicitud_actual = get_object_or_404(SolicitudEnsayo, id=sid)
         informe_actual = InformeFinal.objects.filter(solicitud=solicitud_actual).first()
 
+        if informe_actual:
+            if not trabajador_tiene_permiso(request.user, 'informes.editar'):
+                return HttpResponseForbidden("No tienes permiso para editar informes.")
+        else:
+            if not trabajador_tiene_permiso(request.user, 'informes.crear'):
+                return HttpResponseForbidden("No tienes permiso para crear informes.")
+
         try:
             if informe_actual:
                 informe_actual.responsable_firma_id = responsable_id
+
                 if archivo:
                     informe_actual.archivo_pdf = archivo
-                    informe_actual.save() 
-                    informe_actual.estampar_qr_en_pdf() 
+                    informe_actual.save()
+                    informe_actual.estampar_qr_en_pdf()
                 else:
                     informe_actual.save()
+
                 messages.success(request, f"Informe {informe_actual.codigo_informe} actualizado.")
             else:
                 if not archivo:
                     messages.error(request, "El archivo PDF es obligatorio para nuevos informes.")
                     return render(request, 'proyectos/informes_form.html', locals())
-                
+
                 nuevo = InformeFinal.objects.create(
                     solicitud=solicitud_actual,
                     archivo_pdf=archivo,
                     responsable_firma_id=responsable_id
                 )
+
                 nuevo.estampar_qr_en_pdf()
                 messages.success(request, f"Informe {nuevo.codigo_informe} generado con éxito.")
 
             return redirect('proyectos:lista_informes')
 
         except Exception as e:
-            print(f"DEBUG ERROR: {e}") 
+            print(f"DEBUG ERROR: {e}")
             messages.error(request, f"Error al procesar el informe: {e}")
 
     return render(request, 'proyectos/informes_form.html', {
@@ -1074,13 +1160,16 @@ def gestionar_informe_final(request, solicitud_id=None):
         'informe': informe,
         'pendientes': pendientes,
         'trabajadores': trabajadores,
-        'status_filter': status_filter, 
-        'query': query                  
+        'status_filter': status_filter,
+        'query': query
     })
-  
+
+
+@login_required
+@permiso_requerido('informes.ver')
 def descargar_pdf_informe(request, informe_id):
     informe = get_object_or_404(InformeFinal, id=informe_id)
-    
+
     if not informe.archivo_pdf:
         raise Http404("El archivo no está disponible.")
 
@@ -1088,19 +1177,15 @@ def descargar_pdf_informe(request, informe_id):
     informe.save(update_fields=['descargas_count'])
 
     return FileResponse(
-        informe.archivo_pdf.open(), 
-        as_attachment=True, 
+        informe.archivo_pdf.open(),
+        as_attachment=True,
         filename=f"Informe_{informe.codigo_informe}.pdf"
     )
 
+
 def validar_informe_publico(request, slug_validacion):
     informe = get_object_or_404(InformeFinal, slug_validacion=slug_validacion)
-    
+
     return render(request, 'proyectos/validar_publico.html', {
         'informe': informe
     })
-
-
-
-
-

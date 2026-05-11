@@ -1,0 +1,119 @@
+{% extends 'base_vicafpro.html' %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 px-6 py-8">
+    <div class="max-w-full mx-auto">
+
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+            <div>
+                <p class="text-xs font-black uppercase tracking-[0.25em] text-indigo-500 mb-2">
+                    Seguridad del sistema
+                </p>
+                <h1 class="text-3xl font-black text-slate-900 tracking-tight">
+                    Permisos del Sistema
+                </h1>
+                <p class="text-sm text-slate-500 mt-2">
+                    Gestiona los permisos disponibles para asignarlos a los roles.
+                </p>
+            </div>
+
+            <a href="{% url 'trabajadores:crear_permiso' %}"
+               class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-indigo-600 text-white text-sm font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                Nuevo permiso
+            </a>
+        </div>
+
+        <form method="get" class="mb-6">
+            <div class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 h-14 shadow-sm">
+                <i data-lucide="search" class="w-5 h-5 text-slate-400"></i>
+                <input type="text"
+                       name="q"
+                       value="{{ query }}"
+                       placeholder="Buscar por código, módulo o nombre..."
+                       class="w-full bg-transparent outline-none text-sm text-slate-700 placeholder:text-slate-400">
+            </div>
+        </form>
+
+        <div class="bg-white rounded-[2rem] border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-400">Módulo</th>
+                            <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-400">Permiso</th>
+                            <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-400">Código</th>
+                            <th class="px-6 py-4 text-center text-xs font-black uppercase tracking-wider text-slate-400">Estado</th>
+                            <th class="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-slate-400">Acciones</th>
+                        </tr>
+                    </thead>
+
+                    <tbody class="divide-y divide-slate-100">
+                        {% for permiso in permisos %}
+                        <tr class="hover:bg-slate-50 transition-all">
+                            <td class="px-6 py-4">
+                                <span class="inline-flex px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-xs font-bold">
+                                    {{ permiso.modulo_sistema.nombre }}
+                                </span>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <p class="font-bold text-slate-800">{{ permiso.nombre }}</p>
+                                {% if permiso.descripcion %}
+                                <p class="text-xs text-slate-400 mt-1">{{ permiso.descripcion }}</p>
+                                {% endif %}
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <code class="px-3 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-semibold">
+                                    {{ permiso.nombre }}
+                                </code>
+                            </td>
+
+                            <td class="px-6 py-4 text-center">
+                                {% if permiso.activo %}
+                                    <span class="inline-flex px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold">
+                                        Activo
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex px-3 py-1 rounded-full bg-rose-50 text-rose-600 text-xs font-bold">
+                                        Inactivo
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <div class="flex justify-end gap-2">
+                                    <a href="{% url 'trabajadores:editar_permiso' permiso.pk %}"
+                                       class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 flex items-center justify-center transition-all">
+                                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                                    </a>
+
+                                    <a href="{% url 'trabajadores:eliminar_permiso' permiso.pk %}"
+                                       class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-all">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-16 text-center">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                                        <i data-lucide="shield-x" class="w-7 h-7 text-slate-400"></i>
+                                    </div>
+                                    <h3 class="font-black text-slate-700">No hay permisos registrados</h3>
+                                    <p class="text-sm text-slate-400 mt-1">Crea tu primer permiso para empezar.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

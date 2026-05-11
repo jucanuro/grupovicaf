@@ -1,7 +1,7 @@
 <div class="sticky top-0 z-40 w-full overflow-visible">
-    <header class="relative h-24 flex items-center justify-between px-8 bg-white z-30 overflow-visible" 
+    <header class="relative h-24 flex items-center justify-between px-8 bg-white z-30 overflow-visible"
             style="clip-path: polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%);">
-        
+
         <button id="mobile-menu-btn" class="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">
             <i data-lucide="menu" class="w-6 h-6"></i>
         </button>
@@ -18,6 +18,7 @@
         </div>
 
         <div class="hidden xl:flex items-center gap-2 mr-4">
+            {% if puede_ver_cotizaciones %}
             <a href="{% url 'servicios:lista_cotizaciones' %}"
                class="group relative flex items-center justify-center w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100 hover:scale-[1.03] transition-all shadow-sm"
                aria-label="Cotizaciones">
@@ -26,7 +27,9 @@
                     Cotizaciones
                 </span>
             </a>
+            {% endif %}
 
+            {% if puede_ver_muestras %}
             <a href="{% url 'proyectos:lista_recepciones' %}"
                class="group relative flex items-center justify-center w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 hover:scale-[1.03] transition-all shadow-sm"
                aria-label="Muestras">
@@ -35,7 +38,9 @@
                     Muestras
                 </span>
             </a>
+            {% endif %}
 
+            {% if puede_ver_ensayos %}
             <a href="{% url 'proyectos:lista_solicitudes' %}"
                class="group relative flex items-center justify-center w-11 h-11 rounded-2xl bg-fuchsia-50 text-fuchsia-600 border border-fuchsia-100 hover:bg-fuchsia-100 hover:scale-[1.03] transition-all shadow-sm"
                aria-label="Ensayos">
@@ -44,6 +49,7 @@
                     Ensayos
                 </span>
             </a>
+            {% endif %}
         </div>
 
         <div class="flex-1 max-w-lg mx-6 lg:mx-12 group relative">
@@ -51,11 +57,11 @@
                 <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none z-20">
                     <i data-lucide="search" class="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors"></i>
                 </div>
-                
+
                 <input type="text" readonly
                     class="w-full bg-slate-100/60 border-none text-slate-600 text-sm block pl-12 pr-16 py-3 rounded-xl cursor-text placeholder:text-slate-400 focus:ring-0 transition-all hover:bg-slate-200/50"
                     placeholder="Buscar Cotización, Cliente...">
-                
+
                 <div class="absolute inset-y-0 right-5 flex items-center pointer-events-none z-20">
                     <span class="bg-white/90 text-slate-400 text-[10px] font-black px-2 py-1 rounded-lg border border-slate-200 shadow-sm">⌘ K</span>
                 </div>
@@ -63,6 +69,7 @@
         </div>
 
         <div class="hidden xl:flex items-center gap-2 ml-4">
+            {% if puede_ver_calendario %}
             <a href="{% url 'actividades:calendario_dashboard' %}"
                class="group relative flex items-center justify-center w-11 h-11 rounded-2xl bg-orange-50 text-orange-600 border border-orange-100 hover:bg-orange-100 hover:scale-[1.03] transition-all shadow-sm"
                aria-label="Calendario">
@@ -71,7 +78,9 @@
                     Calendario
                 </span>
             </a>
+            {% endif %}
 
+            {% if puede_ver_gantt %}
             <a href="{% url 'actividades:gantt_dashboard' %}"
                class="group relative flex items-center justify-center w-11 h-11 rounded-2xl bg-pink-50 text-pink-600 border border-pink-100 hover:bg-pink-100 hover:scale-[1.03] transition-all shadow-sm"
                aria-label="Gantt">
@@ -80,7 +89,9 @@
                     Gantt
                 </span>
             </a>
+            {% endif %}
 
+            {% if puede_ver_dashboard %}
             <a href="{% url 'dashboard' %}"
                class="group relative flex items-center justify-center w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 hover:scale-[1.03] transition-all shadow-sm"
                aria-label="Dashboard">
@@ -89,6 +100,7 @@
                     Dashboard
                 </span>
             </a>
+            {% endif %}
         </div>
 
         <div class="flex items-center gap-4">
@@ -99,19 +111,32 @@
 
             <div class="flex items-center gap-3 pl-4 border-l border-slate-100 cursor-pointer group">
                 <div class="text-right hidden xl:block">
-                    <p class="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors leading-none">Administrador</p>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-1">Super Usuario</p>
+                    <p class="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors leading-none">
+                        {{ request.user.get_full_name|default:request.user.username }}
+                    </p>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-1">
+                        {% if request.user.is_superuser %}
+                            Super Usuario
+                        {% elif request.user.is_staff %}
+                            Administrador
+                        {% else %}
+                            Usuario del sistema
+                        {% endif %}
+                    </p>
                 </div>
+
                 <div class="w-10 h-10 rounded-2xl bg-slate-100 p-[2px] group-hover:bg-blue-600 transition-colors shadow-sm">
                     <div class="w-full h-full rounded-[14px] bg-white flex items-center justify-center overflow-hidden">
-                        <img src="https://ui-avatars.com/api/?name=Admin+Vicaf&background=f8fafc&color=64748b" alt="Admin" class="w-full h-full object-cover">
+                        <img src="https://ui-avatars.com/api/?name={{ request.user.username|urlencode }}&background=f8fafc&color=64748b"
+                             alt="{{ request.user.username }}"
+                             class="w-full h-full object-cover">
                     </div>
                 </div>
             </div>
         </div>
     </header>
 
-    <div class="absolute inset-0 bg-slate-200/30 -z-10 translate-y-1" 
+    <div class="absolute inset-0 bg-slate-200/30 -z-10 translate-y-1"
          style="clip-path: polygon(0 0, 100% 0, 100% 76%, 50% 101%, 0 76%);">
     </div>
 </div>

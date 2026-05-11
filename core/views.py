@@ -14,8 +14,17 @@ from proyectos.models import Proyecto, RecepcionMuestra,MuestraDetalle, Solicitu
 from servicios.models import Cotizacion
 
 class CoreLoginView(LoginView):
-    template_name = 'registration/login.html' 
-    next_page = reverse_lazy('dashboard') 
+    template_name = 'registration/login.html'
+    redirect_authenticated_user = False
+
+    def get_success_url(self):
+        next_url = self.request.POST.get('next') or self.request.GET.get('next')
+
+        if next_url:
+            return next_url
+
+        return super().get_success_url()
+
     def form_invalid(self, form):
         messages.error(self.request, 'Usuario o contraseña incorrectos. Intente de nuevo.')
         return super().form_invalid(form)

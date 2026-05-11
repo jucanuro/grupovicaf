@@ -9,67 +9,42 @@
     <header id="main-header" class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 animate-fade-in-up gap-4">
         <div>
             <h1 class="text-xl font-extrabold text-slate-800">Panel de Control</h1>
-            <p class="text-slate-400 mt-1 text-sm">Hola, {{ user.get_full_name|default:user.username }}. Bienvenido al futuro de la gestión.</p>
+            <p class="text-slate-400 mt-1 text-sm">
+                Hola, {{ user.get_full_name|default:user.username }}. Bienvenido al futuro de la gestión.
+            </p>
         </div>
 
-       <div class="flex items-center">
+        {% if puede_ver_dashboard %}
+        <div class="flex items-center">
             <a href="{% url 'dashboard' %}" 
-            class="group relative flex items-center gap-3 px-5 py-2.5 bg-slate-900 text-white rounded-2xl text-xs font-bold 
-                    shadow-[0_10px_20px_-5px_rgba(0,0,0,0.3)] 
-                    hover:shadow-[0_20px_25px_-5px_rgba(59,130,246,0.2)] 
-                    hover:-translate-y-1 transition-all duration-300 active:scale-95 overflow-hidden border border-slate-800">
-                
+               class="group relative flex items-center gap-3 px-5 py-2.5 bg-slate-900 text-white rounded-2xl text-xs font-bold shadow-[0_10px_20px_-5px_rgba(0,0,0,0.3)] hover:shadow-[0_20px_25px_-5px_rgba(59,130,246,0.2)] hover:-translate-y-1 transition-all duration-300 active:scale-95 overflow-hidden border border-slate-800">
                 <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.05] to-transparent pointer-events-none"></div>
 
-                <div class="flex items-center justify-center w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 
-                            group-hover:border-blue-400 group-hover:bg-blue-600 transition-all duration-500 shadow-inner">
-                    
-                    <svg xmlns="http://www.w3.org/2000/svg" 
-                        class="w-4 h-4 text-blue-400 group-hover:text-white transition-colors duration-500" 
-                        viewBox="0 0 24 24" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        stroke-width="2.5" 
-                        stroke-linecap="round" 
-                        stroke-linejoin="round">
-                        <rect width="7" height="9" x="3" y="3" rx="1" />
-                        <rect width="7" height="5" x="14" y="3" rx="1" />
-                        <rect width="7" height="9" x="14" y="12" rx="1" />
-                        <rect width="7" height="5" x="3" y="16" rx="1" />
-                    </svg>
+                <div class="flex items-center justify-center w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 group-hover:border-blue-400 group-hover:bg-blue-600 transition-all duration-500 shadow-inner">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4 text-blue-400 group-hover:text-white transition-colors duration-500"></i>
                 </div>
-                
+
                 <span class="relative z-10 tracking-widest text-slate-200 group-hover:text-white transition-colors uppercase">
                     Ir al Dashboard Principal
                 </span>
 
-                <svg xmlns="http://www.w3.org/2000/svg" 
-                    class="w-3.5 h-3.5 text-slate-600 group-hover:text-blue-400 group-hover:translate-x-1 transition-all duration-300" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    stroke-width="3" 
-                    stroke-linecap="round" 
-                    stroke-linejoin="round">
-                    <path d="m9 18 6-6-6-6"/>
-                </svg>
-                
+                <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 group-hover:text-blue-400 group-hover:translate-x-1 transition-all duration-300"></i>
+
                 <div class="absolute -left-full top-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/[0.08] to-transparent group-hover:left-[150%] transition-all duration-700 ease-in-out"></div>
             </a>
         </div>
+        {% endif %}
     </header>
 
-    <div id="card-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        </div>
+    <div id="card-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6"></div>
 </div>
 
-<div id="analisis-content" class="hidden">
-</div>
+<div id="analisis-content" class="hidden"></div>
 
 <style>
     :root {
         --vicaf-primary: #3b82f6;
-        --vicaf-soft-bg: rgba(255, 255, 255, 0.98); 
+        --vicaf-soft-bg: rgba(255, 255, 255, 0.98);
     }
 
     .glass-modal-vicaf {
@@ -77,22 +52,13 @@
         backdrop-filter: blur(25px) saturate(200%);
         border: 1px solid rgba(255, 255, 255, 0.8);
         box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.25);
-        width: auto; 
+        width: auto;
         max-width: 95vw;
-        max-height: 85vh; 
+        max-height: 85vh;
         display: flex;
         flex-direction: column;
         border-radius: 32px;
         overflow: hidden;
-    }
-
-    .category-label {
-        text-[10px] font-black uppercase tracking-[0.25em];
-        color: #64748b;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 12px;
     }
 
     #submenu-list {
@@ -107,7 +73,6 @@
         width: 100%;
     }
 
-    /* Máximo 3 columnas por fila */
     #submenu-list > div {
         flex: 1 1 calc(33.333% - 1.34rem);
         max-width: calc(33.333% - 1.34rem);
@@ -155,20 +120,6 @@
         box-shadow: 0 12px 20px -5px rgba(59, 130, 246, 0.15);
     }
 
-    .item-title {
-        color: #0f172a;
-        font-weight: 800;
-        font-size: 0.85rem;
-        letter-spacing: -0.01em;
-    }
-
-    .item-desc {
-        color: #64748b;
-        font-size: 11px;
-        line-height: 1.4;
-        margin-top: 2px;
-    }
-
     .item-icon-wrapper {
         width: 44px;
         height: 44px;
@@ -190,25 +141,28 @@
 </style>
 
 <div id="card-overlay"
-    class="fixed inset-0 z-[999999] flex justify-center items-center bg-slate-900/40 backdrop-blur-md hidden transition-all duration-300">
-    
+     class="fixed inset-0 z-[999999] flex justify-center items-center bg-slate-900/40 backdrop-blur-md hidden transition-all duration-300">
+
     <div id="submenu-modal" 
          class="glass-modal-vicaf rounded-[32px] transform scale-95 opacity-0 transition-all duration-300">
-        
+
         <header class="p-8 pb-4 flex justify-between items-center">
             <div>
-                <span class="text-[10px] font-bold text-blue-600 uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-full">Sistema de administración VicafPro</span>
-                <h3 id="submenu-title" class="text-2xl font-extrabold text-slate-800 mt-2 tracking-tight">Opciones</h3>
+                <span class="text-[10px] font-bold text-blue-600 uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-full">
+                    Sistema de administración VicafPro
+                </span>
+                <h3 id="submenu-title" class="text-2xl font-extrabold text-slate-800 mt-2 tracking-tight">
+                    Opciones
+                </h3>
             </div>
-            
+
             <button id="close-submenu" class="p-3 bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-full transition-all">
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
         </header>
 
         <div class="p-8 pt-2 max-h-[70vh] overflow-y-auto custom-scrollbar">
-            <ul id="submenu-list">
-                </ul>
+            <ul id="submenu-list"></ul>
         </div>
 
         <footer class="px-8 py-5 bg-slate-50/50 border-t border-slate-100 flex justify-between items-center rounded-b-[32px]">
@@ -224,10 +178,10 @@
 
 {% block extra_content %}
 <div id="command-palette"
-    class="fixed inset-0 z-50 flex justify-center items-start pt-20 bg-black/50 backdrop-blur-sm hidden">
+     class="fixed inset-0 z-50 flex justify-center items-start pt-20 bg-black/50 backdrop-blur-sm hidden">
     <div class="glass-card w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden border-emerald-500/50">
         <input id="command-input" type="text" placeholder="Escribe un comando o busca una página..."
-            class="w-full p-4 text-lg bg-transparent text-white focus:outline-none border-b border-slate-500/50">
+               class="w-full p-4 text-lg bg-transparent text-white focus:outline-none border-b border-slate-500/50">
         <ul id="command-list" class="p-2 max-h-96 overflow-y-auto"></ul>
     </div>
 </div>
@@ -235,410 +189,665 @@
 
 {% block extra_scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const navigationData = [
-            {
-                id: 'clientes',
-                icon: '👥',
-                category: 'Gestión',
-                title: 'Módulo de Clientes',
-                desc: 'Administra y revisa la base de datos de clientes.',
-                glow: '#0ea5e9',
-                children: [
-                    { id: 'lista_clientes', url: "{% url 'clientes:lista_clientes' %}", icon: '📋', title: 'Listado de Clientes', desc: 'Ver todos los clientes registrados.', category: 'Clientes' },
-                    { id: 'crear_cliente', url: "{% url 'clientes:crear_cliente' %}", icon: '➕', title: 'Crear Cliente', desc: 'Registrar un nuevo perfil de cliente.', category: 'Clientes' },
-                ]
-            },
-            {
-                id: 'servicios',
-                icon: '🔧',
-                category: 'Gestión',
-                title: 'Módulo de Servicios',
-                desc: 'Administra los servicios y las cotizaciones de la empresa.',
-                glow: '#f59e0b',
-                children: [
-                    { id: 'servicios', url: "{% url 'servicios:lista_servicios' %}", icon: '📃', title: 'Listado de Servicios', desc: 'Ver el catálogo de servicios.', category: 'Servicios' },
-                    { id: 'crear_servicio', url: "{% url 'servicios:crear_servicio' %}", icon: '➕', title: 'Crear Servicio', desc: 'Registrar un nuevo servicio.', category: 'Servicios' },
-                    
-                    { 
-                        id: 'configuracion_tecnica', 
-                        icon: '⚙️', 
-                        title: 'Base de Datos Técnica', 
-                        desc: 'Configura normas y métodos de ensayo.',
-                        category: 'Configuración',
-                        children: [
-                            { id: 'normas_list', url: "{% url 'servicios:norma_list' %}", icon: '📚', title: 'Normas Técnicas', desc: 'Gestionar NTP, ASTM, ISO.', category: 'Configuración' },
-                            { id: 'metodos_list', url: "{% url 'servicios:metodo_list' %}", icon: '🧪', title: 'Métodos de Ensayo', desc: 'Gestionar protocolos operativos.', category: 'Configuración' },
-                        ]
-                    },
+document.addEventListener('DOMContentLoaded', () => {
+    const navigationData = [
+        {
+            id: 'clientes',
+            visible: {{ puede_ver_clientes|yesno:"true,false" }},
+            icon: '👥',
+            category: 'Gestión',
+            title: 'Módulo de Clientes',
+            desc: 'Administra y revisa la base de datos de clientes.',
+            glow: '#0ea5e9',
+            children: [
+                {
+                    id: 'lista_clientes',
+                    visible: {{ puede_ver_clientes|yesno:"true,false" }},
+                    url: "{% url 'clientes:lista_clientes' %}",
+                    icon: '📋',
+                    title: 'Listado de Clientes',
+                    desc: 'Ver todos los clientes registrados.',
+                    category: 'Clientes'
+                },
+                {
+                    id: 'crear_cliente',
+                    visible: {{ puede_ver_clientes|yesno:"true,false" }},
+                    url: "{% url 'clientes:crear_cliente' %}",
+                    icon: '➕',
+                    title: 'Crear Cliente',
+                    desc: 'Registrar un nuevo perfil de cliente.',
+                    category: 'Clientes'
+                },
+            ]
+        },
+        {
+            id: 'servicios',
+            visible: {{ puede_ver_servicios|yesno:"true,false" }} || {{ puede_ver_cotizaciones|yesno:"true,false" }},
+            icon: '🔧',
+            category: 'Gestión',
+            title: 'Módulo de Servicios',
+            desc: 'Administra los servicios y las cotizaciones de la empresa.',
+            glow: '#f59e0b',
+            children: [
+                {
+                    id: 'servicios',
+                    visible: {{ puede_ver_servicios|yesno:"true,false" }},
+                    url: "{% url 'servicios:lista_servicios' %}",
+                    icon: '📃',
+                    title: 'Listado de Servicios',
+                    desc: 'Ver el catálogo de servicios.',
+                    category: 'Servicios'
+                },
+                {
+                    id: 'crear_servicio',
+                    visible: {{ puede_ver_servicios|yesno:"true,false" }},
+                    url: "{% url 'servicios:crear_servicio' %}",
+                    icon: '➕',
+                    title: 'Crear Servicio',
+                    desc: 'Registrar un nuevo servicio.',
+                    category: 'Servicios'
+                },
+                {
+                    id: 'configuracion_tecnica',
+                    visible: {{ puede_ver_servicios|yesno:"true,false" }},
+                    icon: '⚙️',
+                    title: 'Base de Datos Técnica',
+                    desc: 'Configura normas y métodos de ensayo.',
+                    category: 'Configuración',
+                    children: [
+                        {
+                            id: 'normas_list',
+                            visible: {{ puede_ver_servicios|yesno:"true,false" }},
+                            url: "{% url 'servicios:norma_list' %}",
+                            icon: '📚',
+                            title: 'Normas Técnicas',
+                            desc: 'Gestionar NTP, ASTM, ISO.',
+                            category: 'Configuración'
+                        },
+                        {
+                            id: 'metodos_list',
+                            visible: {{ puede_ver_servicios|yesno:"true,false" }},
+                            url: "{% url 'servicios:metodo_list' %}",
+                            icon: '🧪',
+                            title: 'Métodos de Ensayo',
+                            desc: 'Gestionar protocolos operativos.',
+                            category: 'Configuración'
+                        },
+                    ]
+                },
+                {
+                    id: 'cotizaciones',
+                    visible: {{ puede_ver_cotizaciones|yesno:"true,false" }},
+                    icon: '💸',
+                    title: 'Gestión de Cotizaciones',
+                    desc: 'Administra las cotizaciones de servicios.',
+                    category: 'Cotizaciones',
+                    children: [
+                        {
+                            id: 'listar_cotizaciones',
+                            visible: {{ puede_ver_cotizaciones|yesno:"true,false" }},
+                            url: "{% url 'servicios:lista_cotizaciones' %}",
+                            icon: '📋',
+                            title: 'Listar Cotizaciones',
+                            desc: 'Ver y gestionar las cotizaciones existentes.',
+                            category: 'Cotizaciones'
+                        },
+                        {
+                            id: 'crear_cotizacion',
+                            visible: {{ puede_ver_cotizaciones|yesno:"true,false" }},
+                            url: "{% url 'servicios:crear_cotizacion' %}",
+                            icon: '➕',
+                            title: 'Crear Cotización',
+                            desc: 'Generar una nueva oferta de servicio.',
+                            category: 'Cotizaciones'
+                        },
+                    ]
+                },
+            ]
+        },
+        {
+            id: 'trabajadores',
+            visible: {{ puede_ver_trabajadores|yesno:"true,false" }} || {{ puede_ver_roles|yesno:"true,false" }} || {{ puede_ver_permisos|yesno:"true,false" }},
+            icon: '👨‍💼',
+            category: 'Gestión',
+            title: 'Módulo de Trabajadores',
+            desc: 'Gestiona trabajadores, roles y permisos.',
+            glow: '#6366f1',
+            children: [
+                {
+                    id: 'trabajador_list',
+                    visible: {{ puede_ver_trabajadores|yesno:"true,false" }},
+                    url: "{% url 'trabajadores:lista_trabajadores' %}",
+                    icon: '👨‍👧‍👦',
+                    title: 'Listado de Trabajadores',
+                    desc: 'Ver todos los trabajadores.',
+                    category: 'Trabajadores'
+                },
+                {
+                    id: 'trabajador_create',
+                    visible: {{ puede_ver_trabajadores|yesno:"true,false" }},
+                    url: "{% url 'trabajadores:crear_trabajador' %}",
+                    icon: '➕',
+                    title: 'Crear Trabajador',
+                    desc: 'Registrar un nuevo empleado.',
+                    category: 'Trabajadores'
+                },
+                {
+                    id: 'rol_list',
+                    visible: {{ puede_ver_roles|yesno:"true,false" }},
+                    url: "{% url 'trabajadores:lista_roles' %}",
+                    icon: '🔐',
+                    title: 'Gestión de Roles',
+                    desc: 'Administrar roles del sistema.',
+                    category: 'Roles'
+                },
+                {
+                    id: 'rol_create',
+                    visible: {{ puede_ver_roles|yesno:"true,false" }},
+                    url: "{% url 'trabajadores:crear_rol' %}",
+                    icon: '🛡️',
+                    title: 'Crear Nuevo Rol',
+                    desc: 'Definir un nuevo rol en el sistema.',
+                    category: 'Roles'
+                },
+                {
+                    id: 'permiso_list',
+                    visible: {{ puede_ver_permisos|yesno:"true,false" }},
+                    url: "{% url 'trabajadores:lista_permisos' %}",
+                    icon: '🗝️',
+                    title: 'Gestión de Permisos',
+                    desc: 'Administrar permisos por módulos y acciones.',
+                    category: 'Permisos'
+                },
+                {
+                    id: 'permiso_create',
+                    visible: {{ puede_ver_permisos|yesno:"true,false" }},
+                    url: "{% url 'trabajadores:crear_permiso' %}",
+                    icon: '➕',
+                    title: 'Crear Permiso',
+                    desc: 'Crear permisos del sistema.',
+                    category: 'Permisos'
+                },
+            ]
+        },
+        {
+            id: 'proyectos',
+            visible: {{ puede_ver_proyectos|yesno:"true,false" }} || {{ puede_ver_muestras|yesno:"true,false" }} || {{ puede_ver_ensayos|yesno:"true,false" }} || {{ puede_ver_informes|yesno:"true,false" }},
+            icon: '📁',
+            category: 'Operaciones',
+            title: 'Módulo de Proyectos',
+            desc: 'Controla proyectos, muestras, ensayos e informes.',
+            glow: '#a855f7',
+            children: [
+                {
+                    id: 'gestion_proyectos',
+                    visible: {{ puede_ver_proyectos|yesno:"true,false" }},
+                    icon: '✅',
+                    title: 'Gestión de Proyectos',
+                    desc: 'Administra los proyectos de la empresa.',
+                    category: 'Proyectos',
+                    children: [
+                        {
+                            id: 'proyectos_list',
+                            visible: {{ puede_ver_proyectos|yesno:"true,false" }},
+                            url: "{% url 'proyectos:lista_proyectos_pendientes' %}",
+                            icon: '📋',
+                            title: 'Listar Proyectos',
+                            desc: 'Visualiza el estado de los proyectos.',
+                            category: 'Proyectos'
+                        },
+                    ]
+                },
+                {
+                    id: 'gestion_muestras',
+                    visible: {{ puede_ver_muestras|yesno:"true,false" }},
+                    icon: '🔬',
+                    title: 'Gestión de Muestras',
+                    desc: 'Administra el registro de muestras.',
+                    category: 'Muestras',
+                    children: [
+                        {
+                            id: 'muestras_list',
+                            visible: {{ puede_ver_muestras|yesno:"true,false" }},
+                            url: "{% url 'proyectos:lista_recepciones' %}",
+                            icon: '📋',
+                            title: 'Listar Muestras',
+                            desc: 'Ver las muestras registradas.',
+                            category: 'Muestras'
+                        },
+                    ]
+                },
+                {
+                    id: 'gestion_ordenes_ensayo',
+                    visible: {{ puede_ver_ensayos|yesno:"true,false" }},
+                    icon: '📝',
+                    title: 'Gestión de Ensayos',
+                    desc: 'Gestiona solicitudes y órdenes de ensayo.',
+                    category: 'Ensayos',
+                    children: [
+                        {
+                            id: 'ordenes_ensayo_list',
+                            visible: {{ puede_ver_ensayos|yesno:"true,false" }},
+                            url: "{% url 'proyectos:lista_solicitudes' %}",
+                            icon: '📋',
+                            title: 'Listar Ensayos',
+                            desc: 'Ver y gestionar solicitudes de ensayo.',
+                            category: 'Ensayos'
+                        },
+                    ]
+                },
+                {
+                    id: 'gestion_documentos',
+                    visible: {{ puede_ver_informes|yesno:"true,false" }},
+                    icon: '📄',
+                    title: 'Gestión de Informes',
+                    desc: 'Administra informes y documentos finales.',
+                    category: 'Informes',
+                    children: [
+                        {
+                            id: 'documentos_list',
+                            visible: {{ puede_ver_informes|yesno:"true,false" }},
+                            url: "{% url 'proyectos:lista_informes' %}",
+                            icon: '📋',
+                            title: 'Listar Informes',
+                            desc: 'Ver los documentos finales generados.',
+                            category: 'Informes'
+                        },
+                    ]
+                },
+            ]
+        },
+        {
+            id: 'agenda',
+            visible: {{ puede_ver_calendario|yesno:"true,false" }} || {{ puede_ver_gantt|yesno:"true,false" }},
+            icon: '🗓️',
+            category: 'Planificación',
+            title: 'Agenda y Cronograma',
+            desc: 'Gestiona calendario y diagramas Gantt.',
+            glow: '#fb7185',
+            children: [
+                {
+                    id: 'calendario',
+                    visible: {{ puede_ver_calendario|yesno:"true,false" }},
+                    url: "{% url 'actividades:calendario_dashboard' %}",
+                    icon: '📅',
+                    title: 'Calendario',
+                    desc: 'Ver agenda de actividades.',
+                    category: 'Calendario'
+                },
+                {
+                    id: 'gantt',
+                    visible: {{ puede_ver_gantt|yesno:"true,false" }},
+                    url: "{% url 'actividades:gantt_dashboard' %}",
+                    icon: '📊',
+                    title: 'Gantt',
+                    desc: 'Ver planificación y tiempos.',
+                    category: 'Gantt'
+                },
+            ]
+        },
+        {
+            id: 'analisis',
+            visible: {{ puede_ver_dashboard|yesno:"true,false" }},
+            url: "{% url 'dashboard' %}",
+            icon: '📊',
+            category: 'Análisis',
+            title: 'Dashboard de Análisis',
+            desc: 'Métricas y KPIs de tus proyectos.',
+            glow: '#ef4444',
+            action: 'show_analysis_view',
+            isLight: false
+        },
+    ];
 
-                    { 
-                        id: 'cotizaciones', 
-                        icon: '💸', 
-                        title: 'Gestión de Cotizaciones', 
-                        desc: 'Administra las cotizaciones de servicios.',
-                        category: 'Cotizaciones',
-                        children: [
-                            { id: 'listar_cotizaciones', url: "{% url 'servicios:lista_servicios' %}", icon: '📋', title: 'Listar Cotizaciones', desc: 'Ver y gestionar las cotizaciones existentes.', category: 'Cotizaciones' },
-                            { id: 'crear_cotizacion', url: "{% url 'servicios:lista_servicios' %}", icon: '➕', title: 'Crear Cotización', desc: 'Generar una nueva oferta de servicio.', category: 'Cotizaciones' },
-                        ]
-                    },
-                ]
-            },
-            {
-                id: 'trabajadores',
-                icon: '👨‍💼',
-                category: 'Gestión',
-                title: 'Módulo de Trabajadores',
-                desc: 'Gestiona la información y roles de los empleados.',
-                glow: '#6366f1',
-                children: [
-                    { id: 'trabajador_list', url: "{% url 'trabajadores:lista_trabajadores' %}", icon: '👨‍👧‍👦', title: 'Listado de Trabajadores', desc: 'Ver todos los trabajadores.', category: 'Trabajadores' },
-                    { id: 'trabajador_create', url: "{% url 'trabajadores:crear_trabajador' %}", icon: '➕', title: 'Crear Trabajador', desc: 'Registrar un nuevo empleado.', category: 'Trabajadores' },
-                    { id: 'rol_list', url: "{% url 'trabajadores:lista_roles' %}", icon: '🔐', title: 'Gestión de Roles', desc: 'Administrar los tipos de cargos.', category: 'Roles' },
-                    { id: 'rol_create', url: "", icon: '🛡️', title: 'Crear Nuevo Rol', desc: 'Definir un nuevo rol en el sistema.', category: 'Roles' },
-                ]
-            },
-            {
-                id: 'proyectos',
-                icon: '📁',
-                category: 'Operaciones',
-                title: 'Módulo de Proyectos',
-                desc: 'Controla el progreso y los detalles de los proyectos.',
-                glow: '#a855f7',
-                children: [
-                    {
-                        id: 'gestion_proyectos',
-                        icon: '✅',
-                        title: 'Gestión de Proyectos',
-                        desc: 'Administra los proyectos de la empresa.',
-                        category: 'Proyectos',
-                        children: [
-                            { id: 'proyectos_list', url: "#", icon: '📋', title: 'Listar Proyectos', desc: 'Visualiza el estado de los proyectos.', category: 'Proyectos' },
-                        ]
-                    },
-                    {
-                        id: 'gestion_ordenes_ensayo',
-                        icon: '📝',
-                        title: 'Gestión de Órdenes de Ensayo',
-                        desc: 'Gestiona las órdenes de ensayo.',
-                        category: 'Órdenes de Ensayo',
-                        children: [
-                            { id: 'ordenes_ensayo_list', url: "#", icon: '📋', title: 'Listar Órdenes', desc: 'Ver y gestionar las órdenes de ensayo existentes.', category: 'Órdenes de Ensayo' },
-                            { id: 'ordenes_ensayo_nuevo', url: "#", icon: '➕', title: 'Nueva Orden', desc: 'Genera una nueva orden de ensayo.', category: 'Órdenes de Ensayo' },
-                        ]
-                    },
-                    {
-                        id: 'gestion_muestras',
-                        icon: '🔬',
-                        title: 'Gestión de Muestras',
-                        desc: 'Administra el registro de muestras.',
-                        category: 'Muestras',
-                        children: [
-                            { id: 'muestras_list', url: "#", icon: '📋', title: 'Listar Muestras', desc: 'Ver las muestras registradas.', category: 'Muestras' },
-                            { id: 'muestras_nuevo', url: "#", icon: '➕', title: 'Nueva Muestra', desc: 'Registra una nueva muestra.', category: 'Muestras' },
-                        ]
-                    },
-                    {
-                        id: 'gestion_resultados',
-                        icon: '📊',
-                        title: 'Gestión de Resultados',
-                        desc: 'Administra los resultados de los ensayos.',
-                        category: 'Resultados',
-                        children: [
-                            { id: 'resultados_list', url: "#", icon: '📋', title: 'Listar Resultados', desc: 'Ver los resultados de ensayo.', category: 'Resultados' },
-                            { id: 'resultados_nuevo', url: "#", icon: '➕', title: 'Nuevo Resultado', desc: 'Registra un nuevo resultado.', category: 'Resultados' },
-                        ]
-                    },
-                    {
-                        id: 'gestion_documentos',
-                        icon: '📄',
-                        title: 'Gestión de Documentos',
-                        desc: 'Administra los informes y documentos finales.',
-                        category: 'Documentos',
-                        children: [
-                            { id: 'documentos_list', url: "#", icon: '📋', title: 'Listar Documentos', desc: 'Ver los documentos finales generados.', category: 'Documentos' },
-                            { id: 'documentos_nuevo', url: "#", icon: '➕', title: 'Nuevo Documento', desc: 'Sube un nuevo informe o documento final.', category: 'Documentos' },
-                        ]
-                    },
-                ]
-            },
-            {
-                id: 'bolsa_trabajo',
-                icon: '💼',
-                category: 'RR.HH.',
-                title: 'Bolsa de Trabajo',
-                desc: 'Gestiona las candidaturas y ofertas de empleo.',
-                glow: '#3b82f6',
-                url: "#"
-            },
-            {
-                id: 'analisis',
-                url: "{% url 'dashboard' %}",
-                icon: '📊',
-                category: 'Análisis',
-                title: 'Dashboard de Análisis',
-                desc: 'Métricas y KPIs de tus proyectos.',
-                glow: '#ef4444',
-                action: 'show_analysis_view',
-                isLight: false 
-            },
-        ];
+    const filterVisibleItems = (items) => {
+        return items
+            .filter(item => item.visible !== false)
+            .map(item => {
+                if (item.children && item.children.length > 0) {
+                    return {
+                        ...item,
+                        children: filterVisibleItems(item.children)
+                    };
+                }
 
-        const cardContainer = document.getElementById('card-container');
-        const inicioContent = document.getElementById('inicio-content');
-        const analisisContent = document.getElementById('analisis-content');
-        const cardOverlay = document.getElementById('card-overlay');
-        const submenuModal = document.getElementById('submenu-modal');
-        const submenuTitle = document.getElementById('submenu-title');
-        const submenuList = document.getElementById('submenu-list');
-        const closeSubmenuButton = document.getElementById('close-submenu');
-        const commandPalette = document.getElementById('command-palette');
-        const commandInput = document.getElementById('command-input');
-        const commandList = document.getElementById('command-list');
-        const commandButtons = document.querySelectorAll('#command-palette-button-main');
-        let selectedIndex = 0;
-
-        document.body.style.backgroundColor = '#ffffff';
-        document.body.style.backgroundImage = `
-            radial-gradient(#e5e7eb 1px, transparent 1px),
-            linear-gradient(to right, #f3f4f6 1px, transparent 1px),
-            linear-gradient(to bottom, #f3f4f6 1px, transparent 1px)
-        `;
-        document.body.style.backgroundSize = '20px 20px, 100px 100px, 100px 100px';
-
-        // --- 3. FUNCIONES DE CONTROL ---
-        const setActiveView = (viewName) => {
-            const isInicio = viewName === 'inicio';
-            inicioContent.classList.toggle('hidden', !isInicio);
-            analisisContent.classList.toggle('hidden', isInicio);
-        };
-        
-        const closeSubmenuModal = () => {
-            submenuModal.classList.remove('scale-100', 'opacity-100');
-            submenuModal.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => { cardOverlay.classList.add('hidden'); }, 300);
-        };
-
-        const openCommandPalette = () => { 
-            if (commandPalette && commandInput) {
-                commandPalette.classList.remove('hidden'); 
-                commandInput.focus(); 
-                renderCommandList(commands); 
-            }
-        };
-        
-        const closeCommandPalette = () => { 
-            if (commandPalette && commandInput) {
-                commandPalette.classList.add('hidden'); 
-                commandInput.value = ''; 
-            }
-        };
-
-        // --- 4. RENDERIZADO DE CARDS PRINCIPALES ---
-        const renderCards = (items) => {
-            cardContainer.innerHTML = '';
-            const pyramidShape = "polygon(15% 0%, 85% 0%, 100% 80%, 50% 100%, 0% 80%)";
-
-            items.forEach((card) => {
-                const cardElement = document.createElement('a');
-                cardElement.className = `relative group cursor-pointer animate-fade-in-up h-56 w-full flex flex-col items-center justify-center transition-all duration-300 hover:-translate-y-2`;
-                cardElement.href = card.url || '#';
-
-                cardElement.innerHTML = `
-                    <div class="absolute inset-0 bg-white border border-slate-200 shadow-sm transition-all duration-500 group-hover:shadow-md" style="clip-path: ${pyramidShape};"></div>
-                    <div class="relative z-10 flex flex-col items-center px-4 text-center -mt-2">
-                        <div class="text-3xl mb-2 transition-transform group-hover:scale-110">${card.icon}</div>
-                        <span class="text-[8px] font-bold uppercase tracking-widest text-slate-400 mb-1">${card.category}</span>
-                        <h4 class="text-xs font-black text-slate-800 leading-tight">${card.title}</h4>
-                        <div class="mt-2 w-6 h-[2px] rounded-full transition-all duration-500 group-hover:w-12" style="background: ${card.glow}"></div>
-                    </div>
-                `;
-
-                cardElement.addEventListener('click', (e) => {
-                    if (card.children && card.children.length > 0) {
-                        e.preventDefault();
-                        renderSubmenu(card);
-                    } else if (card.action === 'show_analysis_view') {
-                        e.preventDefault();
-                        setActiveView('analisis');
-                    }
-                });
-                cardContainer.appendChild(cardElement);
+                return item;
+            })
+            .filter(item => {
+                if (item.children) return item.children.length > 0;
+                return item.visible !== false;
             });
-        };
+    };
 
-        // --- 5. RENDERIZADO DE SUBMENÚ ---
-        const renderSubmenu = (parentCard) => {
-            submenuTitle.textContent = parentCard.title;
-            submenuTitle.style.color = parentCard.glow;
-            
-            submenuList.innerHTML = '';
-            submenuList.className = "flex flex-wrap gap-8 p-2 items-start justify-start w-full";
+    const navigationDataFiltrado = filterVisibleItems(navigationData);
 
-            submenuModal.style.width = 'auto';
-            submenuModal.style.height = 'auto';
-            submenuModal.style.minWidth = '380px';
-            submenuModal.style.maxWidth = '92vw';
-            submenuModal.style.maxHeight = '85vh';
-            submenuModal.style.overflowY = 'auto';
-            submenuModal.style.overflowX = 'hidden';
+    const cardContainer = document.getElementById('card-container');
+    const inicioContent = document.getElementById('inicio-content');
+    const analisisContent = document.getElementById('analisis-content');
+    const cardOverlay = document.getElementById('card-overlay');
+    const submenuModal = document.getElementById('submenu-modal');
+    const submenuTitle = document.getElementById('submenu-title');
+    const submenuList = document.getElementById('submenu-list');
+    const closeSubmenuButton = document.getElementById('close-submenu');
+    const commandPalette = document.getElementById('command-palette');
+    const commandInput = document.getElementById('command-input');
+    const commandList = document.getElementById('command-list');
+    const commandButtons = document.querySelectorAll('#command-palette-button-main');
 
-            const grouped = parentCard.children.reduce((acc, child) => {
-                const cat = child.category || 'Opciones';
-                if (!acc[cat]) acc[cat] = [];
-                acc[cat].push(child);
-                return acc;
-            }, {});
+    let selectedIndex = 0;
 
-            Object.keys(grouped).forEach(catName => {
-                const column = document.createElement('div');
-                column.className = "flex flex-col gap-4 mb-4";
+    document.body.style.backgroundColor = '#ffffff';
+    document.body.style.backgroundImage = `
+        radial-gradient(#e5e7eb 1px, transparent 1px),
+        linear-gradient(to right, #f3f4f6 1px, transparent 1px),
+        linear-gradient(to bottom, #f3f4f6 1px, transparent 1px)
+    `;
+    document.body.style.backgroundSize = '20px 20px, 100px 100px, 100px 100px';
 
-                const label = document.createElement('h4');
-                label.className = "text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2 flex items-center gap-3";
-                label.innerHTML = `<span class="w-6 h-[1.5px]" style="background: ${parentCard.glow}44"></span>${catName}`;
-                column.appendChild(label);
+    const setActiveView = (viewName) => {
+        const isInicio = viewName === 'inicio';
+        inicioContent.classList.toggle('hidden', !isInicio);
+        analisisContent.classList.toggle('hidden', isInicio);
+    };
 
-                const itemsWrapper = document.createElement('div');
-                itemsWrapper.className = "flex flex-col gap-3";
+    const closeSubmenuModal = () => {
+        submenuModal.classList.remove('scale-100', 'opacity-100');
+        submenuModal.classList.add('scale-95', 'opacity-0');
 
-                grouped[catName].forEach(item => {
-                    const subItems = (item.children && item.children.length > 0) ? item.children : [item];
-                    
-                    subItems.forEach(subItem => {
-                        const card = document.createElement('a');
-                        card.href = subItem.url || '#';
-                        card.className = "submenu-item group w-full flex items-center p-4 rounded-2xl transition-all duration-300 hover:bg-white hover:shadow-lg border border-transparent hover:border-slate-100";
-                        
-                        card.innerHTML = `
-                            <div class="item-icon-wrapper flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 group-hover:bg-white transition-colors">
-                                <span class="text-xl">${subItem.icon}</span>
-                            </div>
-                            <div class="flex flex-col text-left ml-4 overflow-hidden pr-2">
-                                <span class="text-slate-800 font-bold text-[13px] leading-none mb-1">${subItem.title}</span>
-                                <span class="text-[10px] text-slate-400 font-medium leading-tight line-clamp-2">${subItem.desc || ''}</span>
-                            </div>
-                            <div class="ml-auto opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all">
-                                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
-                            </div>
-                        `;
-                        
-                        card.addEventListener('click', (e) => {
-                            if (subItem.url && subItem.url !== '#') closeSubmenuModal();
-                            else e.preventDefault();
-                        });
+        setTimeout(() => {
+            cardOverlay.classList.add('hidden');
+        }, 300);
+    };
 
-                        itemsWrapper.appendChild(card);
-                    });
-                });
+    const openCommandPalette = () => {
+        if (commandPalette && commandInput) {
+            commandPalette.classList.remove('hidden');
+            commandInput.focus();
+            renderCommandList(commands);
+        }
+    };
 
-                column.appendChild(itemsWrapper);
-                submenuList.appendChild(column);
-            });
+    const closeCommandPalette = () => {
+        if (commandPalette && commandInput) {
+            commandPalette.classList.add('hidden');
+            commandInput.value = '';
+        }
+    };
 
-            cardOverlay.classList.remove('hidden');
-            if (window.lucide) lucide.createIcons();
-            
-            setTimeout(() => {
-                submenuModal.classList.remove('scale-95', 'opacity-0');
-                submenuModal.classList.add('scale-100', 'opacity-100');
-            }, 10);
-        };
+    const renderCards = (items) => {
+        cardContainer.innerHTML = '';
 
-        // --- 6. DASHBOARD DE ANÁLISIS ---
-        const renderAnalysisDashboard = () => {
-            analisisContent.innerHTML = `
-                <header class="flex justify-between items-center mb-6">
-                    <h1 class="text-2xl font-black text-slate-800">Análisis Operativo</h1>
-                    <button id="back-from-analysis" class="text-xs px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors">Volver al Inicio</button>
-                </header>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
-                        <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">Status Global</div>
-                        <div class="text-emerald-500 font-black text-xl">SISTEMA ONLINE</div>
+        if (!items.length) {
+            cardContainer.innerHTML = `
+                <div class="col-span-full bg-white border border-slate-200 rounded-[2rem] p-10 text-center shadow-sm">
+                    <div class="w-16 h-16 mx-auto rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                        <i data-lucide="lock" class="w-7 h-7 text-slate-400"></i>
                     </div>
+                    <h3 class="text-sm font-black text-slate-700 uppercase tracking-widest">Sin módulos asignados</h3>
+                    <p class="text-sm text-slate-400 mt-2">Solicita permisos al administrador del sistema.</p>
                 </div>
             `;
-            document.getElementById('back-from-analysis').addEventListener('click', () => setActiveView('inicio'));
-        };
 
-        // --- 7. LÓGICA DE COMANDOS ---
-        const commandItems = [];
-        const processItems = (items) => {
-            items.forEach(item => {
-                if (item.children && item.children.length > 0) processItems(item.children);
-                else commandItems.push(item);
-            });
-        };
-        processItems(navigationData);
-
-        const commands = [
-            ...commandItems.map(card => ({
-                name: card.title, category: card.category || 'Módulo',
-                action: () => {
-                    if (card.action === 'show_analysis_view') setActiveView('analisis');
-                    else window.location.href = card.url;
-                }
-            })),
-            { name: 'Cerrar Sesión', category: 'Sistema', action: () => { console.log('Logout'); } }
-        ];
-
-        const renderCommandList = (items) => {
-            commandList.innerHTML = '';
-            if (items.length === 0) {
-                commandList.innerHTML = `<li class="p-4 text-slate-400 text-center text-xs">Sin coincidencias detectadas.</li>`;
-                return;
-            }
-            items.forEach((item, index) => {
-                const li = document.createElement('li');
-                li.className = `p-3 flex justify-between rounded-lg cursor-pointer text-xs ${index === selectedIndex ? 'bg-blue-600 text-white' : 'hover:bg-slate-50 text-slate-600'}`;
-                li.innerHTML = `<span>${item.name}</span> <span class="opacity-60 text-[9px] uppercase font-bold">${item.category}</span>`;
-                li.addEventListener('click', () => { item.action(); closeCommandPalette(); });
-                commandList.appendChild(li);
-            });
-        };
-
-        const navigateCommands = (direction) => {
-            const query = commandInput.value.toLowerCase();
-            const filtered = commands.filter(c => c.name.toLowerCase().includes(query) || c.category.toLowerCase().includes(query));
-            if (filtered.length === 0) return;
-
-            if (direction === 'down') selectedIndex = (selectedIndex + 1) % filtered.length;
-            else if (direction === 'up') selectedIndex = (selectedIndex - 1 + filtered.length) % filtered.length;
-            else if (direction === 'enter') { filtered[selectedIndex].action(); closeCommandPalette(); return; }
-            renderCommandList(filtered);
-        };
-
-        // --- 8. EVENT LISTENERS ---
-        renderCards(navigationData);
-        renderAnalysisDashboard();
-        setActiveView('inicio');
-
-        commandButtons.forEach(btn => btn.addEventListener('click', openCommandPalette));
-        if (commandInput) {
-            commandInput.addEventListener('input', () => {
-                selectedIndex = 0;
-                const query = commandInput.value.toLowerCase();
-                renderCommandList(commands.filter(c => c.name.toLowerCase().includes(query) || c.category.toLowerCase().includes(query)));
-            });
+            if (window.lucide) lucide.createIcons();
+            return;
         }
-        
-        closeSubmenuButton.addEventListener('click', closeSubmenuModal);
-        cardOverlay.addEventListener('click', (e) => { if (e.target === cardOverlay) closeSubmenuModal(); });
 
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') { closeSubmenuModal(); closeCommandPalette(); }
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') { 
-                e.preventDefault(); 
-                commandPalette.classList.contains('hidden') ? openCommandPalette() : closeCommandPalette(); 
-            }
-            if (!commandPalette.classList.contains('hidden')) {
-                if (e.key === 'ArrowDown') { e.preventDefault(); navigateCommands('down'); }
-                else if (e.key === 'ArrowUp') { e.preventDefault(); navigateCommands('up'); }
-                else if (e.key === 'Enter') { e.preventDefault(); navigateCommands('enter'); }
+        const pyramidShape = "polygon(15% 0%, 85% 0%, 100% 80%, 50% 100%, 0% 80%)";
+
+        items.forEach((card) => {
+            const cardElement = document.createElement('a');
+            cardElement.className = `relative group cursor-pointer animate-fade-in-up h-56 w-full flex flex-col items-center justify-center transition-all duration-300 hover:-translate-y-2`;
+            cardElement.href = card.url || '#';
+
+            cardElement.innerHTML = `
+                <div class="absolute inset-0 bg-white border border-slate-200 shadow-sm transition-all duration-500 group-hover:shadow-md" style="clip-path: ${pyramidShape};"></div>
+                <div class="relative z-10 flex flex-col items-center px-4 text-center -mt-2">
+                    <div class="text-3xl mb-2 transition-transform group-hover:scale-110">${card.icon}</div>
+                    <span class="text-[8px] font-bold uppercase tracking-widest text-slate-400 mb-1">${card.category}</span>
+                    <h4 class="text-xs font-black text-slate-800 leading-tight">${card.title}</h4>
+                    <div class="mt-2 w-6 h-[2px] rounded-full transition-all duration-500 group-hover:w-12" style="background: ${card.glow}"></div>
+                </div>
+            `;
+
+            cardElement.addEventListener('click', (e) => {
+                if (card.children && card.children.length > 0) {
+                    e.preventDefault();
+                    renderSubmenu(card);
+                } else if (card.action === 'show_analysis_view') {
+                    e.preventDefault();
+                    setActiveView('analisis');
+                }
+            });
+
+            cardContainer.appendChild(cardElement);
+        });
+    };
+
+    const renderSubmenu = (parentCard) => {
+        submenuTitle.textContent = parentCard.title;
+        submenuTitle.style.color = parentCard.glow;
+
+        submenuList.innerHTML = '';
+        submenuList.className = "flex flex-wrap gap-8 p-2 items-start justify-start w-full";
+
+        submenuModal.style.width = 'auto';
+        submenuModal.style.height = 'auto';
+        submenuModal.style.minWidth = '380px';
+        submenuModal.style.maxWidth = '92vw';
+        submenuModal.style.maxHeight = '85vh';
+        submenuModal.style.overflowY = 'auto';
+        submenuModal.style.overflowX = 'hidden';
+
+        const grouped = parentCard.children.reduce((acc, child) => {
+            const cat = child.category || 'Opciones';
+
+            if (!acc[cat]) acc[cat] = [];
+            acc[cat].push(child);
+
+            return acc;
+        }, {});
+
+        Object.keys(grouped).forEach(catName => {
+            const column = document.createElement('div');
+            column.className = "flex flex-col gap-4 mb-4";
+
+            const label = document.createElement('h4');
+            label.className = "text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2 flex items-center gap-3";
+            label.innerHTML = `<span class="w-6 h-[1.5px]" style="background: ${parentCard.glow}44"></span>${catName}`;
+            column.appendChild(label);
+
+            const itemsWrapper = document.createElement('div');
+            itemsWrapper.className = "flex flex-col gap-3";
+
+            grouped[catName].forEach(item => {
+                const subItems = (item.children && item.children.length > 0) ? item.children : [item];
+
+                subItems.forEach(subItem => {
+                    const card = document.createElement('a');
+                    card.href = subItem.url || '#';
+                    card.className = "submenu-item group w-full flex items-center p-4 rounded-2xl transition-all duration-300 hover:bg-white hover:shadow-lg border border-transparent hover:border-slate-100";
+
+                    card.innerHTML = `
+                        <div class="item-icon-wrapper flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 group-hover:bg-white transition-colors">
+                            <span class="text-xl">${subItem.icon}</span>
+                        </div>
+                        <div class="flex flex-col text-left ml-4 overflow-hidden pr-2">
+                            <span class="text-slate-800 font-bold text-[13px] leading-none mb-1">${subItem.title}</span>
+                            <span class="text-[10px] text-slate-400 font-medium leading-tight line-clamp-2">${subItem.desc || ''}</span>
+                        </div>
+                        <div class="ml-auto opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all">
+                            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+                        </div>
+                    `;
+
+                    card.addEventListener('click', (e) => {
+                        if (subItem.url && subItem.url !== '#') {
+                            closeSubmenuModal();
+                        } else {
+                            e.preventDefault();
+                        }
+                    });
+
+                    itemsWrapper.appendChild(card);
+                });
+            });
+
+            column.appendChild(itemsWrapper);
+            submenuList.appendChild(column);
+        });
+
+        cardOverlay.classList.remove('hidden');
+
+        if (window.lucide) lucide.createIcons();
+
+        setTimeout(() => {
+            submenuModal.classList.remove('scale-95', 'opacity-0');
+            submenuModal.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    };
+
+    const renderAnalysisDashboard = () => {
+        analisisContent.innerHTML = `
+            <header class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-black text-slate-800">Análisis Operativo</h1>
+                <button id="back-from-analysis" class="text-xs px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors">
+                    Volver al Inicio
+                </button>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
+                    <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">Status Global</div>
+                    <div class="text-emerald-500 font-black text-xl">SISTEMA ONLINE</div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('back-from-analysis').addEventListener('click', () => setActiveView('inicio'));
+    };
+
+    const commandItems = [];
+
+    const processItems = (items) => {
+        items.forEach(item => {
+            if (item.children && item.children.length > 0) {
+                processItems(item.children);
+            } else {
+                commandItems.push(item);
             }
         });
+    };
+
+    processItems(navigationDataFiltrado);
+
+    const commands = [
+        ...commandItems.map(card => ({
+            name: card.title,
+            category: card.category || 'Módulo',
+            action: () => {
+                if (card.action === 'show_analysis_view') {
+                    setActiveView('analisis');
+                } else if (card.url && card.url !== '#') {
+                    window.location.href = card.url;
+                }
+            }
+        })),
+        {
+            name: 'Cerrar Sesión',
+            category: 'Sistema',
+            action: () => {
+                window.location.href = "{% url 'logout' %}";
+            }
+        }
+    ];
+
+    const renderCommandList = (items) => {
+        commandList.innerHTML = '';
+
+        if (items.length === 0) {
+            commandList.innerHTML = `<li class="p-4 text-slate-400 text-center text-xs">Sin coincidencias detectadas.</li>`;
+            return;
+        }
+
+        items.forEach((item, index) => {
+            const li = document.createElement('li');
+            li.className = `p-3 flex justify-between rounded-lg cursor-pointer text-xs ${index === selectedIndex ? 'bg-blue-600 text-white' : 'hover:bg-slate-50 text-slate-600'}`;
+            li.innerHTML = `<span>${item.name}</span> <span class="opacity-60 text-[9px] uppercase font-bold">${item.category}</span>`;
+
+            li.addEventListener('click', () => {
+                item.action();
+                closeCommandPalette();
+            });
+
+            commandList.appendChild(li);
+        });
+    };
+
+    const navigateCommands = (direction) => {
+        const query = commandInput.value.toLowerCase();
+        const filtered = commands.filter(c => c.name.toLowerCase().includes(query) || c.category.toLowerCase().includes(query));
+
+        if (filtered.length === 0) return;
+
+        if (direction === 'down') selectedIndex = (selectedIndex + 1) % filtered.length;
+        else if (direction === 'up') selectedIndex = (selectedIndex - 1 + filtered.length) % filtered.length;
+        else if (direction === 'enter') {
+            filtered[selectedIndex].action();
+            closeCommandPalette();
+            return;
+        }
+
+        renderCommandList(filtered);
+    };
+
+    renderCards(navigationDataFiltrado);
+    renderAnalysisDashboard();
+    setActiveView('inicio');
+
+    commandButtons.forEach(btn => btn.addEventListener('click', openCommandPalette));
+
+    if (commandInput) {
+        commandInput.addEventListener('input', () => {
+            selectedIndex = 0;
+            const query = commandInput.value.toLowerCase();
+            renderCommandList(
+                commands.filter(c => c.name.toLowerCase().includes(query) || c.category.toLowerCase().includes(query))
+            );
+        });
+    }
+
+    closeSubmenuButton.addEventListener('click', closeSubmenuModal);
+
+    cardOverlay.addEventListener('click', (e) => {
+        if (e.target === cardOverlay) closeSubmenuModal();
     });
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeSubmenuModal();
+            closeCommandPalette();
+        }
+
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+            e.preventDefault();
+            commandPalette.classList.contains('hidden') ? openCommandPalette() : closeCommandPalette();
+        }
+
+        if (!commandPalette.classList.contains('hidden')) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                navigateCommands('down');
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                navigateCommands('up');
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                navigateCommands('enter');
+            }
+        }
+    });
+
+    if (window.lucide) lucide.createIcons();
+});
 </script>
 {% endblock %}
