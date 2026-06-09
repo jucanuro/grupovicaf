@@ -48,6 +48,11 @@
         .font-bold { font-weight: bold; }
         .nowrap { white-space: nowrap; }
 
+        /* Contenedor principal que mantiene junta toda la sección 4 y su cierre */
+        .avoid-page-break {
+            page-break-inside: avoid !important;
+        }
+
         #header_content table,
         #header_content td,
         #footer_content table,
@@ -338,7 +343,6 @@
             margin-top: 5px;
             width: 82%;
             border: 1px solid #d8dee7;
-            page-break-inside: avoid;
         }
 
         .bank-table td {
@@ -363,14 +367,31 @@
             color: #556170;
         }
 
-        .signature-wrap {
-            margin-top: 18px;
-            page-break-inside: avoid;
+        /* Tabla espaciadora indestructible para xhtml2pdf */
+        .force-giant-spacer-table {
+            width: 100%;
+            border: none !important;
+        }
+        
+        .force-giant-spacer-table td {
+            border: none !important;
+            background: transparent !important;
+            height: 38px; /* ESTO DETERMINA EL ANCHO DEL MARGEN AMPLIO */
+            line-height: 38px;
+            font-size: 1px;
+            padding: 0 !important;
+        }
+
+        /* Bloque definitivo blindado e inseparable para Atentamente y Firmas */
+        .atentamente-bloque-fijo {
+            page-break-inside: avoid !important;
+            display: block;
         }
 
         .signature-table {
             width: 100%;
             table-layout: fixed;
+            margin-top: 4px;
         }
 
         .signature-table td {
@@ -383,8 +404,8 @@
 
         .signature-line {
             border-top: 1px solid #606975;
-            margin-top: 38px;
-            margin-bottom: 5px;
+            margin-top: 45px; /* Espacio para firmar */
+            margin-bottom: 6px;
         }
 
         .signature-img-dynamic {
@@ -462,107 +483,109 @@
         </tr>
     </table>
 
-    <div class="intro-text">
-        Estimado cliente, mediante la presente remitimos nuestra oferta económica por el servicio solicitado:
-    </div>
+    <div class="avoid-page-break">
+        <div class="intro-text">
+            Estimado cliente, mediante la presente remitimos nuestra oferta económica por el servicio solicitado:
+        </div>
 
-    <table class="items-table" repeat="1">
-        <thead>
-            <tr>
-                <th style="width: 6%;">Ítem</th>
-                <th style="width: 37%;">Descripción</th>
-                <th style="width: 19%;">Norma de ensayo</th>
-                <th style="width: 8%;">Und.</th>
-                <th style="width: 8%;">Cant.</th>
-                <th style="width: 11%;">P. Unitario</th>
-                <th style="width: 11%;">P. Parcial</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for grupo in grupos %}
-                {% if grupo.nombre_grupo != "ENSAYOS DE LABORATORIO" %}
-                    <tr class="group-row">
-                        <td class="text-center">
-                            {% if forloop.counter == 1 %}A{% elif forloop.counter == 2 %}B{% elif forloop.counter == 3 %}C{% elif forloop.counter == 4 %}D{% else %}{{ forloop.counter }}{% endif %}
-                        </td>
-                        <td colspan="6">{{ grupo.nombre_grupo|upper }}</td>
-                    </tr>
-                {% elif grupos|length == 1 %}
-                    <tr class="group-row">
-                        <td class="text-center">A</td>
-                        <td colspan="6">
-                            {% if cotizacion.servicio_general and cotizacion.servicio_general.nombre %}
-                                {{ cotizacion.servicio_general.nombre|upper }}
-                            {% elif cotizacion.asunto_servicio %}
-                                {{ cotizacion.asunto_servicio|upper }}
-                            {% else %}
-                                SERVICIOS DE LABORATORIO
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% endif %}
+        <table class="items-table" repeat="1">
+            <thead>
+                <tr>
+                    <th style="width: 6%;">Ítem</th>
+                    <th style="width: 37%;">Descripción</th>
+                    <th style="width: 19%;">Norma de ensayo</th>
+                    <th style="width: 8%;">Und.</th>
+                    <th style="width: 8%;">Cant.</th>
+                    <th style="width: 11%;">P. Unitario</th>
+                    <th style="width: 11%;">P. Parcial</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for grupo in grupos %}
+                    {% if grupo.nombre_grupo != "ENSAYOS DE LABORATORIO" %}
+                        <tr class="group-row">
+                            <td class="text-center">
+                                {% if forloop.counter == 1 %}A{% elif forloop.counter == 2 %}B{% elif forloop.counter == 3 %}C{% elif forloop.counter == 4 %}D{% else %}{{ forloop.counter }}{% endif %}
+                            </td>
+                            <td colspan="6">{{ grupo.nombre_grupo|upper }}</td>
+                        </tr>
+                    {% elif grupos|length == 1 %}
+                        <tr class="group-row">
+                            <td class="text-center">A</td>
+                            <td colspan="6">
+                                {% if cotizacion.servicio_general and cotizacion.servicio_general.nombre %}
+                                    {{ cotizacion.servicio_general.nombre|upper }}
+                                {% elif cotizacion.asunto_servicio %}
+                                    {{ cotizacion.asunto_servicio|upper }}
+                                {% else %}
+                                    SERVICIOS DE LABORATORIO
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
 
-                {% for detalle in grupo.detalles_items.all %}
-                    <tr>
-                        <td class="text-center">{{ forloop.counter }}</td>
-                        <td>
-                            <span class="desc-strong">{{ detalle.servicio.nombre|default:detalle.descripcion_especifica }}</span>
-                            {% if detalle.descripcion_especifica and detalle.descripcion_especifica != detalle.servicio.nombre %}
-                                <br>{{ detalle.descripcion_especifica }}
-                            {% endif %}
-                        </td>
-                        <td class="text-center">
-                            {% if detalle.servicio.norma %}
-                                {{ detalle.servicio.norma }}
-                            {% elif detalle.norma_nombre %}
-                                {{ detalle.norma_nombre }}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                        <td class="text-center nowrap">
-                            {% if detalle.unidad_medida %}
-                                {{ detalle.unidad_medida }}
-                            {% else %}
-                                Ensayo
-                            {% endif %}
-                        </td>
-                        <td class="text-center nowrap">{{ detalle.cantidad|floatformat:0|default:"01" }}</td>
-                        <td class="text-right nowrap">S/ {{ detalle.precio_unitario|floatformat:2 }}</td>
-                        <td class="text-right nowrap">S/ {{ detalle.total_detalle|floatformat:2 }}</td>
-                    </tr>
+                    {% for detalle in grupo.detalles_items.all %}
+                        <tr>
+                            <td class="text-center">{{ forloop.counter }}</td>
+                            <td>
+                                <span class="desc-strong">{{ detalle.servicio.nombre|default:detalle.descripcion_especifica }}</span>
+                                {% if detalle.descripcion_especifica and detalle.descripcion_especifica != detalle.servicio.nombre %}
+                                    <br>{{ detalle.descripcion_especifica }}
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if detalle.servicio.norma %}
+                                    {{ detalle.servicio.norma }}
+                                {% elif detalle.norma_nombre %}
+                                    {{ detalle.norma_nombre }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="text-center nowrap">
+                                {% if detalle.unidad_medida %}
+                                    {{ detalle.unidad_medida }}
+                                {% else %}
+                                    Ensayo
+                                {% endif %}
+                            </td>
+                            <td class="text-center nowrap">{{ detalle.cantidad|floatformat:0|default:"01" }}</td>
+                            <td class="text-right nowrap">S/ {{ detalle.precio_unitario|floatformat:2 }}</td>
+                            <td class="text-right nowrap">S/ {{ detalle.total_detalle|floatformat:2 }}</td>
+                        </tr>
+                    {% endfor %}
                 {% endfor %}
-            {% endfor %}
-        </tbody>
+            </tbody>
 
-        <tfoot>
-            {% if subtotal_final %}
-            <tr class="totals-spacer">
-                <td colspan="7"></td>
-            </tr>
-            <tr class="totals-row">
-                <td colspan="6" class="totals-label">Costo directo sin IGV</td>
-                <td class="totals-value nowrap">S/ {{ subtotal_final|floatformat:2 }}</td>
-            </tr>
-            <tr class="totals-row">
-                <td colspan="6" class="totals-label">IGV ({{ igv_porcentaje }}%)</td>
-                <td class="totals-value nowrap">S/ {{ igv_monto_final|floatformat:2 }}</td>
-            </tr>
-            <tr class="grand-total">
-                <td colspan="6" class="totals-label">Costo total</td>
-                <td class="totals-value nowrap">S/ {{ monto_total_final|floatformat:2 }}</td>
-            </tr>
-            {% else %}
-            <tr class="totals-spacer">
-                <td colspan="7"></td>
-            </tr>
-            <tr class="grand-total">
-                <td colspan="6" class="totals-label">Costo total</td>
-                <td class="totals-value nowrap">S/ {{ cotizacion.monto_total|default:"0.00"|floatformat:2 }}</td>
-            </tr>
-            {% endif %}
-        </tfoot>
-    </table>
+            <tfoot>
+                {% if subtotal_final %}
+                <tr class="totals-spacer">
+                    <td colspan="7"></td>
+                </tr>
+                <tr class="totals-row">
+                    <td colspan="6" class="totals-label">Costo directo sin IGV</td>
+                    <td class="totals-value nowrap">S/ {{ subtotal_final|floatformat:2 }}</td>
+                </tr>
+                <tr class="totals-row">
+                    <td colspan="6" class="totals-label">IGV ({{ igv_porcentaje }}%)</td>
+                    <td class="totals-value nowrap">S/ {{ igv_monto_final|floatformat:2 }}</td>
+                </tr>
+                <tr class="grand-total">
+                    <td colspan="6" class="totals-label">Costo total</td>
+                    <td class="totals-value nowrap">S/ {{ monto_total_final|floatformat:2 }}</td>
+                </tr>
+                {% else %}
+                <tr class="totals-spacer">
+                    <td colspan="7"></td>
+                </tr>
+                <tr class="grand-total">
+                    <td colspan="6" class="totals-label">Costo total</td>
+                    <td class="totals-value nowrap">S/ {{ cotizacion.monto_total|default:"0.00"|floatformat:2 }}</td>
+                </tr>
+                {% endif %}
+            </tfoot>
+        </table>
+    </div>
 
     {% for seccion in secciones_condiciones_pdf %}
         {% if seccion.codigo == 'notas' %}
@@ -616,67 +639,77 @@
         </tr>
     </table>
 
-    <div class="section-band">
-        {{ secciones_condiciones_pdf|length|add:"2" }}. Datos para contrato - orden de servicio - pagos
-    </div>
+    <div class="avoid-page-break">
+        <div class="section-band">
+            {{ secciones_condiciones_pdf|length|add:"2" }}. Datos para contrato - orden de servicio - pagos
+        </div>
 
-    <table class="bank-table">
-        <tr>
-            <td class="bank-label">Razón Social</td>
-            <td class="bank-sep">:</td>
-            <td>GRUPO VICAF SAC</td>
-        </tr>
-        <tr>
-            <td class="bank-label">RUC</td>
-            <td class="bank-sep">:</td>
-            <td>20609464632</td>
-        </tr>
-        <tr>
-            <td class="bank-label">Dirección</td>
-            <td class="bank-sep">:</td>
-            <td>JR. LOS TOPACIOS 440 – CAJAMARCA</td>
-        </tr>
-        <tr>
-            <td class="bank-label">Cuenta BCP (Soles)</td>
-            <td class="bank-sep">:</td>
-            <td>24574415288082</td>
-        </tr>
-        <tr>
-            <td class="bank-label">Cuenta interbancaria (Soles)</td>
-            <td class="bank-sep">:</td>
-            <td>00224517441528808291</td>
-        </tr>
-        <tr>
-            <td class="bank-label">Cuenta de Detracción (BN)</td>
-            <td class="bank-sep">:</td>
-            <td>00761271644</td>
-        </tr>
-    </table>
+        <table class="bank-table">
+            <tbody>
+                <tr>
+                    <td class="bank-label">Razón Social</td>
+                    <td class="bank-sep">:</td>
+                    <td>GRUPO VICAF SAC</td>
+                </tr>
+                <tr>
+                    <td class="bank-label">RUC</td>
+                    <td class="bank-sep">:</td>
+                    <td>20609464632</td>
+                </tr>
+                <tr>
+                    <td class="bank-label">Dirección</td>
+                    <td class="bank-sep">:</td>
+                    <td>JR. LOS TOPACIOS 440 – CAJAMARCA</td>
+                </tr>
+                <tr>
+                    <td class="bank-label">Cuenta BCP (Soles)</td>
+                    <td class="bank-sep">:</td>
+                    <td>24574415288082</td>
+                </tr>
+                <tr>
+                    <td class="bank-label">Cuenta interbancaria (Soles)</td>
+                    <td class="bank-sep">:</td>
+                    <td>00224517441528808291</td>
+                </tr>
+                <tr>
+                    <td class="bank-label">Cuenta de Detracción (BN)</td>
+                    <td class="bank-sep">:</td>
+                    <td>00761271644</td>
+                </tr>
+            </tbody>
+        </table>
 
-    <div class="signature-wrap">
-        <div style="margin-bottom: 8px;">Atentamente,</div>
-
-        <table class="signature-table">
+        <table class="force-giant-spacer-table">
             <tr>
-                <td>
-                    {% if firma_aprobacion %}
-                        <img src="{{ firma_aprobacion }}" class="signature-img-dynamic" alt="Firma">
-                    {% endif %}
-                    <div class="signature-line"></div>
-                    <strong>Ing. Jessica Raquel Riojas Ortiz</strong><br>
-                    Jefe de Laboratorio<br>
-                    GRUPO VICAF SAC<br>
-                    Aprobó
-                </td>
-                <td>
-                    <div class="signature-line"></div>
-                    <strong>Representante:</strong><br>
-                    Empresa:<br>
-                    Cargo:<br>
-                    Aceptó
-                </td>
+                <td></td>
             </tr>
         </table>
+
+        <div class="atentamente-bloque-fijo">
+            <div style="font-size: 8.5px; color: #1a1a1a; font-weight: normal; padding-bottom: 5px;">Atentamente,</div>
+
+            <table class="signature-table">
+                <tr>
+                    <td>
+                        {% if firma_aprobacion %}
+                            <img src="{{ firma_aprobacion }}" class="signature-img-dynamic" alt="Firma">
+                        {% endif %}
+                        <div class="signature-line"></div>
+                        <strong>Ing. Jessica Raquel Riojas Ortiz</strong><br>
+                        Jefe de Laboratorio<br>
+                        GRUPO VICAF SAC<br>
+                        Aprobó
+                    </td>
+                    <td>
+                        <div class="signature-line"></div>
+                        <strong>Representante:</strong><br>
+                        Empresa:<br>
+                        Cargo:<br>
+                        Aceptó
+                    </td>
+                </tr>
+            </table>
+        </div>
     </div>
 
 </body>
