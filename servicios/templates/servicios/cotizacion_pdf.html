@@ -587,9 +587,15 @@
         </table>
     </div>
 
-    {% for seccion in secciones_condiciones_pdf %}
-        {% if seccion.codigo == 'notas' %}
-            <div class="notes-title">{{ seccion.titulo }}</div>
+   {% for seccion in secciones_condiciones_pdf %}
+        {% if seccion.id == 1 or seccion.codigo == 'notas' or seccion.titulo == '1. NOTAS:' or seccion.titulo == 'NOTAS:' %}
+            <div class="notes-title">
+                {% if seccion.titulo %}
+                    {{ seccion.titulo }}
+                {% else %}
+                    NOTAS:
+                {% endif %}
+            </div>
             <ol class="notes-list">
                 {% for item in seccion.items %}
                     {% if item.texto %}
@@ -601,7 +607,11 @@
             <div class="section-band">{{ seccion.titulo }}</div>
             <ul class="bullet-list">
                 {% for item in seccion.items %}
-                    {% if item.texto %}
+                    {% if item.es_subtitulo %}
+                        </ul>
+                        <div class="subsection-title">{{ item.texto }}</div>
+                        <ul class="bullet-list">
+                    {% elif item.texto %}
                         <li>{{ item.texto }}</li>
                     {% endif %}
                 {% endfor %}
