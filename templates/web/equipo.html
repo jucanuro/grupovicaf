@@ -1,0 +1,78 @@
+{% extends 'web/base.html' %}
+{% load static %}
+
+{% block meta_title %}Equipo Técnico de Grupo VICAF{% endblock %}
+{% block meta_description %}Conoce al equipo técnico de Grupo VICAF: ingenieros y técnicos que ejecutan los ensayos de suelos y materiales en Cajamarca.{% endblock %}
+
+{% block jsonld %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Inicio", "item": "{{ SITE_URL }}{% url 'web_home' %}"},
+        {"@type": "ListItem", "position": 2, "name": "Equipo", "item": "{{ SITE_URL }}{% url 'web_catalogo:equipo_list' %}"}
+    ]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-[1600px] px-4 pt-32 pb-16 sm:px-6 lg:px-8">
+    <span class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.28em] text-blue-900">
+        Nuestro equipo
+    </span>
+    <h1 class="mt-6 max-w-3xl text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">
+        Equipo técnico de Grupo VICAF
+    </h1>
+    <p class="mt-6 max-w-2xl text-lg text-slate-600">
+        Profesionales que ejecutan y supervisan cada ensayo bajo los estándares del
+        {{ negocio.acreditacion_entidad }}.
+    </p>
+</section>
+
+<section class="mx-auto max-w-[1600px] px-4 pb-24 sm:px-6 lg:px-8">
+    {% for rol in roles %}
+    <div class="mb-14">
+        <h2 class="text-2xl font-black tracking-tight text-slate-900">{{ rol.nombre }}</h2>
+        <ul class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {% for miembro in rol.miembros %}
+            <li class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.02)]">
+                {% if miembro.perfil.foto %}
+                <img src="{{ miembro.perfil.foto.url }}" alt="{{ miembro.perfil.nombre_completo }}"
+                     class="h-48 w-full object-cover" loading="lazy" decoding="async">
+                {% else %}
+                <div class="flex h-48 w-full items-center justify-center bg-slate-100 text-4xl font-black text-slate-300">
+                    {{ miembro.perfil.nombre_completo|slice:":1" }}
+                </div>
+                {% endif %}
+                <div class="p-5">
+                    <h3 class="font-bold text-slate-900">
+                        {% if miembro.perfil.titulo_profesional %}{{ miembro.perfil.titulo_profesional }}. {% endif %}{{ miembro.perfil.nombre_completo }}
+                    </h3>
+                    <p class="mt-1 text-sm text-blue-700">{{ rol.nombre }}</p>
+                    {% if miembro.bio_publica %}
+                    <p class="mt-2 text-sm text-slate-600">{{ miembro.bio_publica }}</p>
+                    {% endif %}
+                    <div class="mt-4 flex items-center gap-3">
+                        {% if miembro.perfil.linkedin %}
+                        <a href="{{ miembro.perfil.linkedin }}" target="_blank" rel="noopener noreferrer"
+                           class="text-sm font-semibold text-blue-700 hover:underline">LinkedIn</a>
+                        {% endif %}
+                        {% if miembro.mostrar_correo and miembro.perfil.correo_contacto %}
+                        <a href="mailto:{{ miembro.perfil.correo_contacto }}"
+                           class="text-sm font-semibold text-blue-700 hover:underline">Contactar</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% empty %}
+    <div class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
+        Aún no se ha publicado el equipo técnico.
+    </div>
+    {% endfor %}
+</section>
+{% endblock %}

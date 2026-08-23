@@ -1,0 +1,74 @@
+{% extends 'web/base.html' %}
+{% load static %}
+
+{% block meta_title %}Ensayos de Laboratorio en Cajamarca{% endblock %}
+{% block meta_description %}Catálogo de ensayos de suelos, concreto, agregados y geotecnia de Grupo VICAF, laboratorio acreditado INACAL en Cajamarca y el norte del Perú.{% endblock %}
+
+{% block jsonld %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Inicio", "item": "{{ SITE_URL }}{% url 'web_home' %}"},
+        {"@type": "ListItem", "position": 2, "name": "Servicios", "item": "{{ SITE_URL }}{% url 'web_catalogo:servicios_list' %}"}
+    ]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-[1600px] px-4 pt-32 pb-16 sm:px-6 lg:px-8">
+    <span class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.28em] text-blue-900">
+        Catálogo de ensayos
+    </span>
+    <h1 class="mt-6 max-w-3xl text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">
+        Ensayos de laboratorio en Cajamarca
+    </h1>
+    <p class="mt-6 max-w-2xl text-lg text-slate-600">
+        Ensayos de suelos, concreto, agregados y geotecnia respaldados por la acreditación
+        {{ negocio.acreditacion_entidad }}. Consulta la norma técnica y el método de cada ensayo.
+    </p>
+</section>
+
+<section class="mx-auto max-w-[1600px] px-4 pb-24 sm:px-6 lg:px-8">
+    {% for categoria in categorias %}
+    <div class="mb-14">
+        <h2 class="text-2xl font-black tracking-tight text-slate-900">{{ categoria.nombre }}</h2>
+        {% for subcategoria in categoria.subcategorias %}
+        <div class="mt-6">
+            {% if subcategoria.nombre %}
+            <h3 class="text-sm font-black uppercase tracking-[0.2em] text-slate-500">{{ subcategoria.nombre }}</h3>
+            {% endif %}
+            <ul class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {% for servicio in subcategoria.servicios %}
+                <li class="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300">
+                    <a href="{% url 'web_catalogo:servicio_detalle' slug=servicio.slug %}" class="flex h-full flex-col">
+                        {% if servicio.imagen %}
+                        <img src="{{ servicio.imagen.url }}" alt="{{ servicio.imagen_alt }}"
+                             class="h-40 w-full object-cover" loading="lazy" decoding="async"
+                             width="{{ servicio.imagen.width }}" height="{{ servicio.imagen.height }}">
+                        {% endif %}
+                        <div class="flex flex-1 flex-col p-5">
+                            {% if servicio.destacado %}
+                            <span class="mb-2 inline-flex w-fit items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-blue-800">
+                                Destacado
+                            </span>
+                            {% endif %}
+                            <h4 class="text-base font-bold text-slate-900 group-hover:text-blue-700">{{ servicio.titulo_publico }}</h4>
+                            <p class="mt-2 text-sm text-slate-600">{{ servicio.resumen }}</p>
+                        </div>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+    {% empty %}
+    <div class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
+        Aún no se han publicado ensayos.
+    </div>
+    {% endfor %}
+</section>
+{% endblock %}

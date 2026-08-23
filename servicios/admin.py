@@ -4,9 +4,24 @@ from .models import (
     Subcategoria,
     Norma,
     Metodo,
+    Servicio,
     CatalogoCondicionSeccion,
     CatalogoCondicionItem,
 )
+
+
+@admin.register(Servicio)
+class ServicioAdmin(admin.ModelAdmin):
+    """Registro mínimo requerido para que web_catalogo.ServicioPublicado
+    pueda usar autocomplete_fields hacia Servicio (regla 8 de CLAUDE.md:
+    publicar un ensayo es buscarlo aquí, nunca reescribirlo).
+    """
+
+    list_display = ('codigo_facturacion', 'nombre', 'norma', 'metodo', 'esta_acreditado')
+    list_filter = ('esta_acreditado', 'norma')
+    search_fields = ('codigo_facturacion', 'nombre')
+    ordering = ('nombre',)
+    autocomplete_fields = ('norma', 'metodo')
 
 
 @admin.register(CategoriaServicio)

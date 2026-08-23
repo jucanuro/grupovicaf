@@ -16,9 +16,8 @@
             >
         </a>
 
-        {# Los enlaces a Equipo/Servicios/Clientes/Contáctenos/Bolsa de Trabajo
-           apuntan a '#' hasta que existan las apps web_catalogo, web_contacto
-           y web_empleo (ver tabla de apps en CLAUDE.md). Cambiar a
+        {# Contáctenos/Bolsa de Trabajo apuntan a '#' hasta que existan las apps
+           web_contacto y web_empleo (ver tabla de apps en CLAUDE.md). Cambiar a
            {% templatetag openblock %} url ... {% templatetag closeblock %} en cuanto cada ruta exista. #}
         <nav class="hidden items-center space-x-1 text-sm font-medium md:flex lg:space-x-2"
              aria-label="Navegación principal">
@@ -33,14 +32,26 @@
                {% if url_name == 'nosotros' %}aria-current="page"{% endif %}>
                 Nosotros
             </a>
-            <a href="#" class="nav-link relative rounded-md px-3 py-2 text-gray-700 transition-colors duration-300 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700">Equipo</a>
-            <a href="#" class="nav-link relative rounded-md px-3 py-2 text-gray-700 transition-colors duration-300 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700">Servicios</a>
+            <a href="{% url 'web_catalogo:equipo_list' %}"
+               class="nav-link relative rounded-md px-3 py-2 transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 {% if url_name == 'equipo_list' %}font-semibold text-blue-700{% else %}text-gray-700 hover:text-blue-700{% endif %}"
+               {% if url_name == 'equipo_list' %}aria-current="page"{% endif %}>
+                Equipo
+            </a>
+            <a href="{% url 'web_catalogo:servicios_list' %}"
+               class="nav-link relative rounded-md px-3 py-2 transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 {% if url_name == 'servicios_list' or url_name == 'servicio_detalle' %}font-semibold text-blue-700{% else %}text-gray-700 hover:text-blue-700{% endif %}"
+               {% if url_name == 'servicios_list' or url_name == 'servicio_detalle' %}aria-current="page"{% endif %}>
+                Servicios
+            </a>
             <a href="{% url 'web_acreditacion:acreditacion' %}"
                class="nav-link relative rounded-md px-3 py-2 transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 {% if url_name == 'acreditacion' %}font-semibold text-blue-700{% else %}text-gray-700 hover:text-blue-700{% endif %}"
                {% if url_name == 'acreditacion' %}aria-current="page"{% endif %}>
                 Acreditación
             </a>
-            <a href="#" class="nav-link relative rounded-md px-3 py-2 text-gray-700 transition-colors duration-300 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700">Clientes</a>
+            <a href="{% url 'web_catalogo:clientes_list' %}"
+               class="nav-link relative rounded-md px-3 py-2 transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 {% if url_name == 'clientes_list' %}font-semibold text-blue-700{% else %}text-gray-700 hover:text-blue-700{% endif %}"
+               {% if url_name == 'clientes_list' %}aria-current="page"{% endif %}>
+                Clientes
+            </a>
             <a href="#" class="nav-link relative rounded-md px-3 py-2 text-gray-700 transition-colors duration-300 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700">Contáctenos</a>
             <a href="#" class="nav-link relative rounded-md px-3 py-2 text-gray-700 transition-colors duration-300 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700">Bolsa de Trabajo</a>
         </nav>

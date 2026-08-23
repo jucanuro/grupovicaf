@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'web_inicio',
     'web_nosotros',
     'web_acreditacion',
+    'web_catalogo',
 ]
 
 SITE_ID = 1
@@ -127,7 +128,8 @@ LOGIN_REDIRECT_URL = 'dashboard'
 LOGIN_URL = 'login'
 LOGOUT_REDIRECT_URL = 'login'
 
-# Cache (Redis). Configurado y listo, aún no se usa en vistas/sesiones.
+# Cache (Redis). Usado por web_catalogo en las vistas de listado (15 min,
+# ver web_catalogo/cache.py); aún no se usa para sesiones.
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0')
 CACHES = {
     'default': {

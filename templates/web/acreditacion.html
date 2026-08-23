@@ -84,14 +84,18 @@
                 <ul class="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
                     {% for servicio in acreditacion.servicios_acreditados.all %}
                     <li>
-                        {# El detalle del servicio vive en web_catalogo (aún no existe, ver
-                           tabla de apps en CLAUDE.md); cambiar '#' por {% templatetag openblock %}
-                           url 'web_catalogo:servicio_detalle' slug=... {% templatetag closeblock %}
-                           en cuanto esa app y su companion con slug existan. #}
-                        <a href="#" class="flex items-center gap-2 text-sm text-slate-700 hover:text-blue-700">
+                        {% if servicio.publicado.activo %}
+                        <a href="{% url 'web_catalogo:servicio_detalle' slug=servicio.publicado.slug %}"
+                           class="flex items-center gap-2 text-sm text-slate-700 hover:text-blue-700">
                             <span class="h-[6px] w-[6px] shrink-0 rounded-full bg-blue-600"></span>
                             {{ servicio.nombre }}
                         </a>
+                        {% else %}
+                        <span class="flex items-center gap-2 text-sm text-slate-700">
+                            <span class="h-[6px] w-[6px] shrink-0 rounded-full bg-blue-600"></span>
+                            {{ servicio.nombre }}
+                        </span>
+                        {% endif %}
                     </li>
                     {% endfor %}
                 </ul>

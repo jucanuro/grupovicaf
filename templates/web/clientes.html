@@ -1,0 +1,58 @@
+{% extends 'web/base.html' %}
+{% load static %}
+
+{% block meta_title %}Clientes que confían en Grupo VICAF{% endblock %}
+{% block meta_description %}Empresas de construcción, minería e infraestructura que confían en los ensayos de suelos y materiales de Grupo VICAF en Cajamarca.{% endblock %}
+
+{% block jsonld %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Inicio", "item": "{{ SITE_URL }}{% url 'web_home' %}"},
+        {"@type": "ListItem", "position": 2, "name": "Clientes", "item": "{{ SITE_URL }}{% url 'web_catalogo:clientes_list' %}"}
+    ]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-[1600px] px-4 pt-32 pb-16 sm:px-6 lg:px-8">
+    <span class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.28em] text-blue-900">
+        Confianza técnica
+    </span>
+    <h1 class="mt-6 max-w-3xl text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">
+        Clientes que confían en Grupo VICAF
+    </h1>
+    <p class="mt-6 max-w-2xl text-lg text-slate-600">
+        Empresas de construcción, minería e infraestructura del norte del Perú respaldadas por
+        nuestros ensayos de laboratorio.
+    </p>
+</section>
+
+<section class="mx-auto max-w-[1600px] px-4 pb-24 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-2 items-center gap-8 sm:grid-cols-3 lg:grid-cols-5">
+        {% for destacado in clientes %}
+        <div class="flex h-24 items-center justify-center rounded-2xl border border-slate-200 bg-white p-4 grayscale transition-all duration-300 hover:grayscale-0">
+            {% if destacado.enlace %}
+            <a href="{{ destacado.enlace }}" target="_blank" rel="noopener noreferrer" class="flex h-full w-full items-center justify-center">
+            {% endif %}
+            {% if destacado.cliente.logo_empresa %}
+                <img src="{{ destacado.cliente.logo_empresa.url }}" alt="{{ destacado.cliente.razon_social }}"
+                     class="max-h-16 w-auto object-contain" loading="lazy" decoding="async">
+            {% else %}
+                <span class="text-center text-sm font-semibold text-slate-500">{{ destacado.cliente.razon_social }}</span>
+            {% endif %}
+            {% if destacado.enlace %}
+            </a>
+            {% endif %}
+        </div>
+        {% empty %}
+        <div class="col-span-full rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
+            Aún no se han publicado clientes destacados.
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
