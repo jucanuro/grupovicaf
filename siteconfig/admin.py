@@ -1,0 +1,12 @@
+from django.contrib import admin
+
+from .models import NegocioConfig
+
+
+@admin.register(NegocioConfig)
+class NegocioConfigAdmin(admin.ModelAdmin):
+    def has_add_permission(self, request):
+        return not NegocioConfig.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False

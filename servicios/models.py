@@ -3,7 +3,7 @@ from django.db import models
 from django.utils import timezone
 from clientes.models import Cliente
 from trabajadores.models import TrabajadorProfile
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from django.utils import timezone
 from django.db.utils import IntegrityError
 from datetime import date
@@ -14,7 +14,26 @@ from django.db import transaction
 
 
 
-TASA_IGV_PORCENTAJE = Decimal('0.18') 
+TASA_IGV_PORCENTAJE = Decimal('0.18')
+
+
+def a_decimal_seguro(valor, nombre_campo):
+    """Convierte str/int/float/Decimal a Decimal sin errores de precisión binaria.
+
+    Pasa siempre por Decimal(str(valor)) en vez de Decimal(valor) directo,
+    porque Decimal(float) arrastra la representación binaria del float
+    (p. ej. Decimal(0.1) -> Decimal('0.1000000000000000055511151231257827021181583404541015625')).
+    """
+    if isinstance(valor, Decimal):
+        return valor
+    if isinstance(valor, (int, float, str)) and not isinstance(valor, bool):
+        try:
+            return Decimal(str(valor))
+        except (InvalidOperation, ValueError):
+            pass
+    raise ValidationError(
+        f"El valor '{valor!r}' de '{nombre_campo}' no es un número válido."
+    )
 
 class Norma(models.Model):
     codigo = models.CharField(max_length=50, unique=True, verbose_name="Código de Norma")
@@ -65,7 +84,7 @@ class Subcategoria(models.Model):
 
 class Servicio(models.Model):
     codigo_facturacion = models.CharField(max_length=50, unique=True)
-    nombre = models.CharField(max_length=150, verbose_name="Nombre del Ensayo")
+    nombre = models.CharField(max_length=300, verbose_name="Nombre del Ensayo")
     norma = models.ForeignKey('Norma', on_delete=models.SET_NULL, null=True, blank=True)
     metodo = models.ForeignKey('Metodo', on_delete=models.SET_NULL, null=True, blank=True)
     
@@ -185,6 +204,8 @@ class Cotizacion(models.Model):
         ])
 
     def save(self, *args, **kwargs):
+        self.tasa_igv = a_decimal_seguro(self.tasa_igv, 'tasa_igv')
+
         if self.es_plantilla:
             self.numero_oferta = None
             if not self.nombre_plantilla:
@@ -240,8 +261,10 @@ class CotizacionDetalle(models.Model):
     total_detalle = models.DecimalField(max_digits=12, decimal_places=2, editable=False)
 
     def save(self, *args, **kwargs):
-        self.total_detalle = Decimal(self.cantidad) * self.precio_unitario
-        
+        cantidad = a_decimal_seguro(self.cantidad, 'cantidad')
+        self.precio_unitario = a_decimal_seguro(self.precio_unitario, 'precio_unitario')
+        self.total_detalle = cantidad * self.precio_unitario
+
         from django.db import transaction
         with transaction.atomic():
             super().save(*args, **kwargs)

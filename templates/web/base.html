@@ -1,0 +1,117 @@
+{% load static l10n %}<!DOCTYPE html>
+<html lang="es-PE">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{% block meta_title %}{% endblock %} | Grupo VICAF</title>
+    <meta name="description" content="{% block meta_description %}{{ negocio.descripcion }}{% endblock %}">
+    <meta name="author" content="Grupo VICAF SAC">
+    <meta name="theme-color" content="#172554">
+
+    {% block meta_robots %}<meta name="robots" content="index,follow">{% endblock %}
+
+    <link rel="canonical" href="{% block canonical %}{{ SITE_URL }}{{ request.path }}{% endblock %}">
+
+    <!-- Open Graph -->
+    <meta property="og:site_name" content="Grupo VICAF">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:locale" content="es_PE">
+    <meta property="og:title" content="{% block og_title %}{{ negocio.nombre }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ negocio.descripcion }}{% endblock %}">
+    <meta property="og:url" content="{{ SITE_URL }}{{ request.path }}">
+    <meta property="og:image" content="{% block og_image %}{{ SITE_URL }}{% static 'web/img/LogoF.webp' %}{% endblock %}">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}{{ negocio.nombre }}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{{ negocio.descripcion }}{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}{{ SITE_URL }}{% static 'web/img/LogoF.webp' %}{% endblock %}">
+
+    <link rel="icon" href="{% static 'web/img/LogoF.webp' %}" type="image/webp">
+
+    {#
+      Sin webfont: _ref/vicafpro no define ninguna tipografía propia para el
+      sitio público (solo el panel LIMS usa Plus Jakarta Sans). Se usa la
+      pila sans-serif del sistema (font-sans de Tailwind) — cero peticiones
+      de red, cero CLS por swap de fuente. Si el diseño define una tipografía
+      de marca más adelante, precargarla aquí con font-display: swap.
+    #}
+    <link rel="stylesheet" href="{% static 'web/css/output.css' %}">
+    <link rel="stylesheet" href="{% static 'web/css/vicaf.css' %}">
+
+    {% if negocio %}
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "LocalBusiness",
+        "name": "{{ negocio.nombre }}",
+        "description": "{{ negocio.descripcion|escapejs }}",
+        "url": "{{ SITE_URL }}",
+        "image": "{{ SITE_URL }}{% static 'web/img/LogoF.webp' %}",
+        "telephone": "{{ negocio.telefono }}",
+        "email": "{{ negocio.correo }}",
+        "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "{{ negocio.direccion_calle }}",
+            "addressLocality": "{{ negocio.direccion_localidad }}",
+            "addressRegion": "{{ negocio.direccion_region }}",
+            "postalCode": "{{ negocio.direccion_codigo_postal }}",
+            "addressCountry": "{{ negocio.direccion_pais }}"
+        },
+        {% if negocio.latitud and negocio.longitud %}
+        "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": {{ negocio.latitud|unlocalize }},
+            "longitude": {{ negocio.longitud|unlocalize }}
+        },
+        {% endif %}
+        "areaServed": [
+            {% for ciudad in negocio.ciudades_cobertura %}"{{ ciudad }}"{% if not forloop.last %}, {% endif %}{% endfor %}
+        ],
+        {% if negocio.horario_semana_apertura %}
+        "openingHoursSpecification": [
+            {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                "opens": "{{ negocio.horario_semana_apertura|time:'H:i' }}",
+                "closes": "{{ negocio.horario_semana_cierre|time:'H:i' }}"
+            }{% if negocio.horario_sabado_apertura %},
+            {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": ["Saturday"],
+                "opens": "{{ negocio.horario_sabado_apertura|time:'H:i' }}",
+                "closes": "{{ negocio.horario_sabado_cierre|time:'H:i' }}"
+            }{% endif %}
+        ],
+        {% endif %}
+        "hasCredential": {
+            "@type": "EducationalOccupationalCredential",
+            "credentialCategory": "Acreditación de laboratorio de ensayo",
+            "recognizedBy": {
+                "@type": "Organization",
+                "name": "{{ negocio.acreditacion_entidad }}"
+            },
+            "identifier": "{{ negocio.acreditacion_codigo }}"
+        }
+    }
+    </script>
+    {% endif %}
+
+    {% block jsonld %}{% endblock %}
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-white text-slate-900">
+
+    {% include 'web/header.html' %}
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    {% include 'web/footer.html' %}
+
+    <script src="{% static 'web/js/header.js' %}" defer></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

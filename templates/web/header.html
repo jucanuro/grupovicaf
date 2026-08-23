@@ -1,0 +1,123 @@
+{% load static %}
+{% with url_name=request.resolver_match.url_name %}
+<header id="site-header" class="fixed inset-x-0 top-0 z-50 w-full bg-white shadow-lg">
+    <div class="mx-auto flex h-20 max-w-[1600px] items-center justify-between px-4 sm:px-6 lg:px-8">
+
+        <a href="{% url 'web_home' %}"
+           class="flex-shrink-0 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
+           aria-label="Ir al inicio de Grupo VICAF">
+            <img
+                src="{% static 'web/img/LogoF.webp' %}"
+                alt="Grupo VICAF SAC, laboratorio de suelos y materiales en Cajamarca"
+                class="h-10 w-auto object-contain lg:h-12"
+                width="843"
+                height="351"
+                decoding="async"
+            >
+        </a>
+
+        {# Los enlaces a Equipo/Servicios/Clientes/Contáctenos/Bolsa de Trabajo
+           apuntan a '#' hasta que existan las apps web_catalogo, web_contacto
+           y web_empleo (ver tabla de apps en CLAUDE.md). Cambiar a
+           {% templatetag openblock %} url ... {% templatetag closeblock %} en cuanto cada ruta exista. #}
+        <nav class="hidden items-center space-x-1 text-sm font-medium md:flex lg:space-x-2"
+             aria-label="Navegación principal">
+
+            <a href="{% url 'web_home' %}"
+               class="nav-link relative rounded-md px-3 py-2 transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 {% if url_name == 'web_home' %}font-semibold text-blue-700{% else %}text-gray-700 hover:text-blue-700{% endif %}"
+               {% if url_name == 'web_home' %}aria-current="page"{% endif %}>
+                Inicio
+            </a>
+            <a href="{% url 'web_nosotros:nosotros' %}"
+               class="nav-link relative rounded-md px-3 py-2 transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 {% if url_name == 'nosotros' %}font-semibold text-blue-700{% else %}text-gray-700 hover:text-blue-700{% endif %}"
+               {% if url_name == 'nosotros' %}aria-current="page"{% endif %}>
+                Nosotros
+            </a>
+            <a href="#" class="nav-link relative rounded-md px-3 py-2 text-gray-700 transition-colors duration-300 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700">Equipo</a>
+            <a href="#" class="nav-link relative rounded-md px-3 py-2 text-gray-700 transition-colors duration-300 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700">Servicios</a>
+            <a href="{% url 'web_acreditacion:acreditacion' %}"
+               class="nav-link relative rounded-md px-3 py-2 transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 {% if url_name == 'acreditacion' %}font-semibold text-blue-700{% else %}text-gray-700 hover:text-blue-700{% endif %}"
+               {% if url_name == 'acreditacion' %}aria-current="page"{% endif %}>
+                Acreditación
+            </a>
+            <a href="#" class="nav-link relative rounded-md px-3 py-2 text-gray-700 transition-colors duration-300 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700">Clientes</a>
+            <a href="#" class="nav-link relative rounded-md px-3 py-2 text-gray-700 transition-colors duration-300 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700">Contáctenos</a>
+            <a href="#" class="nav-link relative rounded-md px-3 py-2 text-gray-700 transition-colors duration-300 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700">Bolsa de Trabajo</a>
+        </nav>
+
+        <div class="hidden items-center space-x-1 lg:flex" aria-label="Redes sociales de Grupo VICAF">
+            {% if negocio.linkedin_url %}
+            <a href="{{ negocio.linkedin_url }}" target="_blank" rel="noopener noreferrer"
+               class="group rounded-full p-2 text-gray-500 transition-all duration-300 hover:scale-110 hover:bg-blue-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
+               aria-label="Visitar LinkedIn de Grupo VICAF">
+                <svg class="h-5 w-5" viewBox="0 0 448 512" aria-hidden="true" focusable="false">
+                    <path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3C448 46.5 433.6 32 416 32zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96s38.5 17.3 38.5 38.5S123.5 173 102.2 173zM384.3 416h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"/>
+                </svg>
+            </a>
+            {% endif %}
+            {% if negocio.facebook_url %}
+            <a href="{{ negocio.facebook_url }}" target="_blank" rel="noopener noreferrer"
+               class="group rounded-full p-2 text-gray-500 transition-all duration-300 hover:scale-110 hover:bg-blue-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
+               aria-label="Visitar Facebook de Grupo VICAF">
+                <svg class="h-5 w-5" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+                    <path fill="currentColor" d="M512 256C512 114.6 397.4 0 256 0S0 114.6 0 256c0 120 82.7 220.8 194.2 248.5V334.2h-52.8V256h52.8v-33.7c0-87.1 39.4-127.5 125-127.5 16.2 0 44.2 3.2 55.7 6.4V172c-6-.6-16.5-1-29.6-1-42 0-58.2 15.9-58.2 57.2V256h83.6l-14.4 78.2H287v175.9C413.8 494.8 512 386.9 512 256z"/>
+                </svg>
+            </a>
+            {% endif %}
+            {% if negocio.instagram_url %}
+            <a href="{{ negocio.instagram_url }}" target="_blank" rel="noopener noreferrer"
+               class="group rounded-full p-2 text-gray-500 transition-all duration-300 hover:scale-110 hover:bg-blue-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
+               aria-label="Visitar Instagram de Grupo VICAF">
+                <svg class="h-5 w-5" viewBox="0 0 448 512" aria-hidden="true" focusable="false">
+                    <path fill="currentColor" d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1S3.3 127.5 1.5 163.4c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.8 0-184.8zM398.8 388c-7.8 19.6-22.9 34.7-42.6 42.6-29.5 11.7-99.5 9-132.1 9s-102.7 2.6-132.1-9c-19.6-7.8-34.7-22.9-42.6-42.6-11.7-29.5-9-99.5-9-132.1s-2.6-102.7 9-132.1c7.8-19.6 22.9-34.7 42.6-42.6 29.5-11.7 99.5-9 132.1-9s102.7-2.6 132.1 9c19.6 7.8 34.7 22.9 42.6 42.6 11.7 29.5 9 99.5 9 132.1s2.7 102.7-9 132.1z"/>
+                </svg>
+            </a>
+            {% endif %}
+            {% if negocio.correo %}
+            <a href="mailto:{{ negocio.correo }}?subject=Consulta%20sobre%20servicios%20de%20laboratorio"
+               class="group rounded-full p-2 text-gray-500 transition-all duration-300 hover:scale-110 hover:bg-blue-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
+               aria-label="Enviar correo a Grupo VICAF">
+                <svg class="h-5 w-5" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+                    <path fill="currentColor" d="M48 64C21.5 64 0 85.5 0 112c0 15.1 7.1 29.3 19.2 38.4l217.6 163.2c11.4 8.5 27 8.5 38.4 0l217.6-163.2c12.1-9.1 19.2-23.3 19.2-38.4 0-26.5-21.5-48-48-48H48zM0 176v208c0 35.3 28.7 64 64 64h384c35.3 0 64-28.7 64-64V176L294.4 339.2c-22.8 17.1-54 17.1-76.8 0L0 176z"/>
+                </svg>
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="flex items-center md:hidden">
+            <button
+                id="menu-toggle"
+                type="button"
+                class="rounded-md p-2 text-gray-700 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
+                aria-controls="mobile-menu"
+                aria-expanded="false"
+                aria-label="Abrir menú principal"
+            >
+                <svg id="menu-icon-open" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
+                </svg>
+                <svg id="menu-icon-close" class="hidden h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <div id="mobile-menu" class="hidden border-t border-gray-200 bg-white shadow-lg md:hidden">
+        <nav class="flex flex-col space-y-1 px-3 py-4" aria-label="Navegación móvil">
+            <a href="{% url 'web_home' %}"
+               class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium transition-colors duration-300 {% if url_name == 'web_home' %}bg-blue-700 text-white{% else %}text-gray-700 hover:bg-blue-700 hover:text-white{% endif %}"
+               {% if url_name == 'web_home' %}aria-current="page"{% endif %}>
+                Inicio
+            </a>
+            <a href="{% url 'web_nosotros:nosotros' %}" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Nosotros</a>
+            <a href="#" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Equipo</a>
+            <a href="#" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Servicios</a>
+            <a href="{% url 'web_acreditacion:acreditacion' %}" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Acreditación</a>
+            <a href="#" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Clientes</a>
+            <a href="#" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Contáctenos</a>
+            <a href="#" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Bolsa de Trabajo</a>
+        </nav>
+    </div>
+</header>
+{% endwith %}

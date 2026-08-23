@@ -1,0 +1,78 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-grupovicaf}
+      POSTGRES_USER: ${DB_USER:-grupovicaf}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-grupovicaf}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-grupovicaf} -d ${DB_NAME:-grupovicaf}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  lab:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    command: python manage.py runserver 0.0.0.0:8000
+    user: root
+    environment:
+      SITE_ROLE: lab
+      DJANGO_SETTINGS_MODULE: grupovicaf.settings.dev
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    ports:
+      - "${LAB_HOST_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    command: python manage.py runserver 0.0.0.0:8001
+    user: root
+    environment:
+      SITE_ROLE: web
+      DJANGO_SETTINGS_MODULE: grupovicaf.settings.dev
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    ports:
+      - "8001:8001"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # Compilación de Tailwind en modo watch. El pipeline real (package.json,
+  # tailwind.config.js) se añade en F3; por ahora el contenedor solo se
+  # mantiene arriba para no romper `docker compose up`.
+  node:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: >
+      sh -c "if [ -f package.json ]; then npm install && npm run watch:css; else
+      echo 'Tailwind se configura en F3 (falta package.json)' && tail -f /dev/null; fi"
+
+volumes:
+  postgres_data:

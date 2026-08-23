@@ -1,0 +1,108 @@
+{% extends 'web/base.html' %}
+{% load static %}
+
+{% block meta_title %}Laboratorio Acreditado INACAL en el Norte del Perú{% endblock %}
+{% block meta_description %}Grupo VICAF es un laboratorio de ensayo acreditado por INACAL, con cobertura en Cajamarca y el norte del Perú. Conoce nuestro alcance de acreditación.{% endblock %}
+
+{% block jsonld %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Inicio", "item": "{{ SITE_URL }}{% url 'web_home' %}"},
+        {"@type": "ListItem", "position": 2, "name": "Acreditación", "item": "{{ SITE_URL }}{% url 'web_acreditacion:acreditacion' %}"}
+    ]
+}
+</script>
+{% if acreditaciones %}
+<script type="application/ld+json">
+[
+    {% for acreditacion in acreditaciones %}
+    {
+        "@context": "https://schema.org",
+        "@type": "EducationalOccupationalCredential",
+        "credentialCategory": "Acreditación de laboratorio de ensayo",
+        "name": "{{ acreditacion.alcance|truncatewords:20|escapejs }}",
+        "recognizedBy": {"@type": "Organization", "name": "{{ acreditacion.organismo|escapejs }}"},
+        "identifier": "{{ acreditacion.numero_acreditacion|escapejs }}"
+        {% if acreditacion.vigencia_hasta %},"validUntil": "{{ acreditacion.vigencia_hasta|date:'Y-m-d' }}"{% endif %}
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+</script>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-[1600px] px-4 pt-32 pb-16 sm:px-6 lg:px-8">
+    <span class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.28em] text-blue-900">
+        Confianza técnica
+    </span>
+    <h1 class="mt-6 max-w-3xl text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">
+        Laboratorio acreditado INACAL en el norte del Perú
+    </h1>
+    <p class="mt-6 max-w-2xl text-lg text-slate-600">
+        Los ensayos que respaldamos con acreditación cumplen los requisitos de la norma
+        técnica peruana e internacional bajo la supervisión del {{ negocio.acreditacion_entidad }}.
+    </p>
+</section>
+
+<section class="mx-auto max-w-[1600px] px-4 pb-24 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-1 gap-8">
+        {% for acreditacion in acreditaciones %}
+        <div class="grid grid-cols-1 gap-8 rounded-3xl border border-slate-200 bg-white p-8 shadow-[0_4px_20px_rgba(15,23,42,0.02)] lg:grid-cols-12">
+            <div class="lg:col-span-3">
+                {% if acreditacion.logo %}
+                <img src="{{ acreditacion.logo.url }}" alt="{{ acreditacion.logo_alt }}"
+                     class="h-24 w-auto object-contain" loading="lazy" decoding="async"
+                     width="{{ acreditacion.logo.width }}" height="{{ acreditacion.logo.height }}">
+                {% endif %}
+                <h2 class="mt-4 text-lg font-black text-slate-900">{{ acreditacion.organismo }}</h2>
+                <p class="text-sm font-semibold text-blue-700">N.º {{ acreditacion.numero_acreditacion }}</p>
+                {% if acreditacion.vigencia_desde or acreditacion.vigencia_hasta %}
+                <p class="mt-1 text-xs text-slate-500">
+                    Vigencia:
+                    {% if acreditacion.vigencia_desde %}{{ acreditacion.vigencia_desde|date:'d/m/Y' }}{% endif %}
+                    {% if acreditacion.vigencia_hasta %} — {{ acreditacion.vigencia_hasta|date:'d/m/Y' }}{% endif %}
+                </p>
+                {% endif %}
+                {% if acreditacion.documento %}
+                <a href="{{ acreditacion.documento.url }}" target="_blank" rel="noopener noreferrer"
+                   class="mt-4 inline-flex items-center gap-2 rounded-lg border border-blue-200 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">
+                    Ver certificado (PDF)
+                </a>
+                {% endif %}
+            </div>
+
+            <div class="lg:col-span-9">
+                <h3 class="text-sm font-black uppercase tracking-[0.2em] text-slate-500">Alcance de acreditación</h3>
+                <p class="mt-3 text-slate-700">{{ acreditacion.alcance }}</p>
+
+                {% if acreditacion.servicios_acreditados.all %}
+                <h3 class="mt-6 text-sm font-black uppercase tracking-[0.2em] text-slate-500">Ensayos acreditados</h3>
+                <ul class="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+                    {% for servicio in acreditacion.servicios_acreditados.all %}
+                    <li>
+                        {# El detalle del servicio vive en web_catalogo (aún no existe, ver
+                           tabla de apps en CLAUDE.md); cambiar '#' por {% templatetag openblock %}
+                           url 'web_catalogo:servicio_detalle' slug=... {% templatetag closeblock %}
+                           en cuanto esa app y su companion con slug existan. #}
+                        <a href="#" class="flex items-center gap-2 text-sm text-slate-700 hover:text-blue-700">
+                            <span class="h-[6px] w-[6px] shrink-0 rounded-full bg-blue-600"></span>
+                            {{ servicio.nombre }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
+            Aún no se han publicado registros de acreditación.
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

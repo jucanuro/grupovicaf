@@ -5,6 +5,7 @@ Contiene ajustes comunes para todos los entornos.
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 # Cargar variables del archivo .env
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -12,6 +13,15 @@ load_dotenv(BASE_DIR / '.env')
 
 # --- CONFIGURACIÓN DE SEGURIDAD Y ENTORNO ---
 SECRET_KEY = os.environ.get('SECRET_KEY')
+
+# --- ROL DEL SITIO: 'lab' (LIMS) o 'web' (institucional pública) ---
+SITE_ROLE = os.environ.get('SITE_ROLE', 'lab')
+if SITE_ROLE not in ('lab', 'web'):
+    raise ImproperlyConfigured(f"SITE_ROLE inválido: {SITE_ROLE}")
+ROOT_URLCONF = f'grupovicaf.urls_{SITE_ROLE}'
+SESSION_COOKIE_NAME = f'gv_{SITE_ROLE}_sessionid'
+CSRF_COOKIE_NAME = f'gv_{SITE_ROLE}_csrftoken'
+SITE_URL = os.environ.get('SITE_URL', 'http://127.0.0.1:8000')
 
 # Apps por defecto y de terceros
 INSTALLED_APPS = [
@@ -22,6 +32,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
+    'django.contrib.sitemaps',
 
     # Tus apps
     'core',
@@ -30,7 +42,13 @@ INSTALLED_APPS = [
     'servicios',
     'proyectos',
     'actividades',
+    'siteconfig',
+    'web_inicio',
+    'web_nosotros',
+    'web_acreditacion',
 ]
+
+SITE_ID = 1
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -41,8 +59,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
-ROOT_URLCONF = 'grupovicaf.urls'
 
 TEMPLATES = [
     {
@@ -56,6 +72,8 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'trabajadores.context_processors.permisos_usuario',
+                'grupovicaf.context_processors.site_url',
+                'siteconfig.context_processors.negocio',
             ],
         },
     },
@@ -102,12 +120,21 @@ STATICFILES_DIRS = [
 
 # Archivos media
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = BASE_DIR / 'mediafiles'
 
 # Login / Logout
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGIN_URL = 'login'
 LOGOUT_REDIRECT_URL = 'login'
+
+# Cache (Redis). Configurado y listo, aún no se usa en vistas/sesiones.
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0')
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': REDIS_URL,
+    }
+}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
