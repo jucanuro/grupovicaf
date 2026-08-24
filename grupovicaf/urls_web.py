@@ -27,6 +27,8 @@ urlpatterns = [
     path('nosotros/', include('web_nosotros.urls', namespace='web_nosotros')),
     path('acreditacion/', include('web_acreditacion.urls', namespace='web_acreditacion')),
     path('', include('web_catalogo.urls', namespace='web_catalogo')),
+    path('', include('web_zonas.urls', namespace='web_zonas')),
+    path('contacto/', include('web_contacto.urls', namespace='web_contacto')),
     path('robots.txt', robots_txt, name='robots_txt'),
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
 ]

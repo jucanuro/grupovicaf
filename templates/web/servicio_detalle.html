@@ -134,9 +134,23 @@
                    class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:underline">
                     Ver alcance de acreditación →
                 </a>
-                {# Enlaces a la landing de zona ({{ publicado.zona_principal }}) pendientes hasta
-                   que exista web_zonas (ver tabla de apps en CLAUDE.md). #}
             </div>
+
+            {% if publicado.zonas.all %}
+            <div class="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-6">
+                <h2 class="text-sm font-black uppercase tracking-[0.2em] text-slate-500">Disponible en estas zonas</h2>
+                <ul class="mt-4 flex flex-wrap gap-2">
+                    {% for zona in publicado.zonas.all %}
+                    <li>
+                        <a href="{% url 'web_zonas:zona_detalle' slug=zona.slug %}"
+                           class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-blue-300 hover:text-blue-700">
+                            {{ zona.nombre }}{% if zona.es_sede %} (sede){% endif %}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
         </aside>
     </div>
 </section>

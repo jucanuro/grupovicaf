@@ -1,0 +1,21 @@
+Nueva solicitud de cotización desde la web
+============================================
+
+Cotización generada: {{ cotizacion.numero_oferta }} (Pendiente de revisión)
+
+Empresa: {{ solicitud.razon_social }}
+RUC: {{ solicitud.ruc }}
+Contacto: {{ solicitud.persona_contacto }}
+Correo: {{ solicitud.correo_contacto }}
+Teléfono: {{ solicitud.telefono_contacto }}
+Zona: {{ solicitud.zona.nombre|default:"(no indicada)" }}
+Origen: {{ solicitud.origen|default:"(no indicado)" }}
+
+Necesidad descrita:
+{{ solicitud.necesidad }}
+
+Servicios solicitados:
+{% for item in solicitud.items.all %}  - {{ item.servicio_publicado.titulo_publico }} (cantidad estimada: {{ item.cantidad_estimada }})
+{% endfor %}
+---
+Revisar y completar en el LIMS: Cotizaciones > {{ cotizacion.numero_oferta }}.

@@ -76,9 +76,22 @@ class Cliente(models.Model):
     )
 
     activo = models.BooleanField(
-        default=True, 
+        default=True,
         verbose_name="Cliente Activo"
     )
+
+    ORIGEN_CHOICES = [
+        ('lims', 'Registrado en el LIMS'),
+        ('web', 'Solicitud desde la web pública'),
+    ]
+    origen = models.CharField(
+        max_length=10,
+        choices=ORIGEN_CHOICES,
+        default='lims',
+        verbose_name="Origen del registro",
+        help_text="'web' marca los clientes creados automáticamente desde una solicitud de cotización pública."
+    )
+
     creado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.SET_NULL, 

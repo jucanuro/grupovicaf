@@ -16,9 +16,8 @@
             >
         </a>
 
-        {# Contáctenos/Bolsa de Trabajo apuntan a '#' hasta que existan las apps
-           web_contacto y web_empleo (ver tabla de apps en CLAUDE.md). Cambiar a
-           {% templatetag openblock %} url ... {% templatetag closeblock %} en cuanto cada ruta exista. #}
+        {# Bolsa de Trabajo apunta a '#' hasta que exista la app web_empleo
+           (ver tabla de apps en CLAUDE.md). #}
         <nav class="hidden items-center space-x-1 text-sm font-medium md:flex lg:space-x-2"
              aria-label="Navegación principal">
 
@@ -52,7 +51,11 @@
                {% if url_name == 'clientes_list' %}aria-current="page"{% endif %}>
                 Clientes
             </a>
-            <a href="#" class="nav-link relative rounded-md px-3 py-2 text-gray-700 transition-colors duration-300 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700">Contáctenos</a>
+            <a href="{% url 'web_contacto:contacto' %}"
+               class="nav-link relative rounded-md px-3 py-2 transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 {% if url_name == 'contacto' %}font-semibold text-blue-700{% else %}text-gray-700 hover:text-blue-700{% endif %}"
+               {% if url_name == 'contacto' %}aria-current="page"{% endif %}>
+                Contáctenos
+            </a>
             <a href="#" class="nav-link relative rounded-md px-3 py-2 text-gray-700 transition-colors duration-300 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700">Bolsa de Trabajo</a>
         </nav>
 
@@ -126,7 +129,7 @@
             <a href="#" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Servicios</a>
             <a href="{% url 'web_acreditacion:acreditacion' %}" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Acreditación</a>
             <a href="#" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Clientes</a>
-            <a href="#" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Contáctenos</a>
+            <a href="{% url 'web_contacto:contacto' %}" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Contáctenos</a>
             <a href="#" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Bolsa de Trabajo</a>
         </nav>
     </div>

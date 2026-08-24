@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     'web_nosotros',
     'web_acreditacion',
     'web_catalogo',
+    'web_zonas',
+    'web_contacto',
 ]
 
 SITE_ID = 1
@@ -137,6 +139,20 @@ CACHES = {
         'LOCATION': REDIS_URL,
     }
 }
+
+# Correo (formulario de contacto público, web_contacto). Sin valores en el
+# código (regla 6): todo viene de .env; ver .env.example.
+EMAIL_BACKEND = os.environ.get(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.smtp.EmailBackend' if os.environ.get('EMAIL_HOST')
+    else 'django.core.mail.backends.console.EmailBackend',
+)
+EMAIL_HOST = os.environ.get('EMAIL_HOST', '')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-responder@grupovicaf.com')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

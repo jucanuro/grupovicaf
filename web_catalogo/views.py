@@ -1,7 +1,10 @@
 from itertools import groupby
 
 from django.core.cache import cache
+from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, render
+
+from web_zonas.models import ZonaCobertura
 
 from .cache import KEY_CLIENTES_LIST, KEY_EQUIPO_LIST, KEY_SERVICIOS_LIST, TIMEOUT_LISTADOS
 from .models import ClienteDestacado, MiembroEquipoPublicado, ServicioPublicado
@@ -45,6 +48,12 @@ def servicio_detalle_view(request, slug):
     publicado = get_object_or_404(
         ServicioPublicado.objects.publicados()
         .select_related('categoria', 'subcategoria', 'servicio', 'servicio__norma', 'servicio__metodo')
+        .prefetch_related(
+            Prefetch(
+                'zonas',
+                queryset=ZonaCobertura.objects.activas().only('slug', 'nombre', 'es_sede'),
+            )
+        )
         .only(
             'slug', 'titulo_publico', 'resumen', 'contenido', 'imagen', 'imagen_alt', 'zona_principal',
             'meta_title', 'meta_description', 'noindex', 'imagen_og',
