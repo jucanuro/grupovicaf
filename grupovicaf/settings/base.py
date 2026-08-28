@@ -3,6 +3,7 @@ Configuración Base de Django para el proyecto GRUPO VICAF (LIMS).
 Contiene ajustes comunes para todos los entornos.
 """
 import os
+import re
 from pathlib import Path
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
@@ -46,6 +47,9 @@ INSTALLED_APPS = [
     'web_inicio',
     'web_nosotros',
     'web_acreditacion',
+    'web_catalogo',
+    'web_zonas',
+    'web_contacto',
 ]
 
 SITE_ID = 1
@@ -127,7 +131,8 @@ LOGIN_REDIRECT_URL = 'dashboard'
 LOGIN_URL = 'login'
 LOGOUT_REDIRECT_URL = 'login'
 
-# Cache (Redis). Configurado y listo, aún no se usa en vistas/sesiones.
+# Cache (Redis, DB 0). Usado por web_catalogo en las vistas de listado
+# (15 min, ver web_catalogo/cache.py); aún no se usa para sesiones.
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0')
 CACHES = {
     'default': {
@@ -136,31 +141,42 @@ CACHES = {
     }
 }
 
+
+def _redis_db(url, db):
+    """Misma instancia de Redis que ``url`` pero en otra base lógica."""
+    return re.sub(r'/\d+\Z', f'/{db}', url, count=1)
+
+
 # --- Celery ---
 # Toda tarea de más de ~1s (PDF, QR, correo, SMS) va aquí en vez de bloquear
-# la request. Reusa el mismo Redis del cache como broker/backend: en este
-# volumen de tráfico no justifica una instancia separada.
-CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', REDIS_URL)
-CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', REDIS_URL)
+# la request. Comparte la instancia de Redis con el cache pero en otra base
+# lógica (DB 1): así un FLUSHDB del cache no se lleva por delante la cola.
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL') or _redis_db(REDIS_URL, 1)
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND') or _redis_db(REDIS_URL, 1)
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
+# Silencia el CPendingDeprecationWarning de Celery 5.x: reintenta la conexión
+# con el broker durante el arranque del worker (comportamiento por defecto en 6.0).
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 # --- Email ---
+# Sin valores en el código (regla 6): todo viene de .env; ver .env.example.
+# Sin EMAIL_HOST (dev local) los correos se imprimen en consola en vez de
+# tumbar el worker de Celery.
 EMAIL_HOST = os.environ.get('EMAIL_HOST', '')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT') or 587)
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@grupovicaf.com')
-if EMAIL_HOST:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-else:
-    # Sin credenciales SMTP (dev local): los correos se imprimen en consola
-    # en vez de fallar el worker de Celery.
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = os.environ.get(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.smtp.EmailBackend' if EMAIL_HOST
+    else 'django.core.mail.backends.console.EmailBackend',
+)
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

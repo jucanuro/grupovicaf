@@ -104,3 +104,4 @@ terraform.tfvars
 local_settings.py
 # Referencia del proyecto web anterior (no versionar)
 _ref/
+*:Zone.Identifier

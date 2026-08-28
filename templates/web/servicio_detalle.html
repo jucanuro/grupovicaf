@@ -1,0 +1,157 @@
+{% extends 'web/base.html' %}
+{% load static %}
+
+{% block meta_title %}{% if publicado.meta_title %}{{ publicado.meta_title }}{% else %}{{ publicado.titulo_publico }} en {{ publicado.zona_principal }}{% endif %}{% endblock %}
+{% block meta_description %}{% if publicado.meta_description %}{{ publicado.meta_description }}{% else %}{{ publicado.resumen }}{% endif %}{% endblock %}
+{% block meta_robots %}<meta name="robots" content="{% if publicado.noindex %}noindex,follow{% else %}index,follow{% endif %}">{% endblock %}
+
+{% block og_image %}{% if publicado.imagen_og %}{{ SITE_URL }}{{ publicado.imagen_og.url }}{% elif publicado.imagen %}{{ SITE_URL }}{{ publicado.imagen.url }}{% else %}{{ SITE_URL }}{% static 'web/img/LogoF.webp' %}{% endif %}{% endblock %}
+
+{% block jsonld %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Inicio", "item": "{{ SITE_URL }}{% url 'web_home' %}"},
+        {"@type": "ListItem", "position": 2, "name": "Servicios", "item": "{{ SITE_URL }}{% url 'web_catalogo:servicios_list' %}"},
+        {"@type": "ListItem", "position": 3, "name": "{{ publicado.titulo_publico|escapejs }}", "item": "{{ SITE_URL }}{% url 'web_catalogo:servicio_detalle' slug=publicado.slug %}"}
+    ]
+}
+</script>
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "name": "{{ publicado.titulo_publico|escapejs }}",
+    "description": "{{ publicado.resumen|escapejs }}",
+    "serviceType": "{{ publicado.titulo_publico|escapejs }}",
+    "areaServed": "{{ publicado.zona_principal|escapejs }}",
+    "provider": {
+        "@type": "LocalBusiness",
+        "name": "{{ negocio.nombre|escapejs }}",
+        "url": "{{ SITE_URL }}"
+    }
+    {% if publicado.servicio.norma or publicado.servicio.metodo %}
+    ,"additionalProperty": [
+        {% if publicado.servicio.norma %}
+        {"@type": "PropertyValue", "name": "Norma técnica", "value": "{{ publicado.servicio.norma.codigo|escapejs }} — {{ publicado.servicio.norma.nombre|escapejs }}"}
+        {% endif %}
+        {% if publicado.servicio.norma and publicado.servicio.metodo %},{% endif %}
+        {% if publicado.servicio.metodo %}
+        {"@type": "PropertyValue", "name": "Método", "value": "{{ publicado.servicio.metodo.codigo|escapejs }} — {{ publicado.servicio.metodo.nombre|escapejs }}"}
+        {% endif %}
+    ]
+    {% endif %}
+}
+</script>
+{% if preguntas %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+        {% for pregunta in preguntas %}
+        {
+            "@type": "Question",
+            "name": "{{ pregunta.pregunta|escapejs }}",
+            "acceptedAnswer": {"@type": "Answer", "text": "{{ pregunta.respuesta|escapejs }}"}
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ]
+}
+</script>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-[1600px] px-4 pt-32 pb-16 sm:px-6 lg:px-8">
+    <nav aria-label="Breadcrumb" class="mb-6 flex flex-wrap items-center gap-1 text-xs font-medium text-slate-500">
+        <a href="{% url 'web_home' %}" class="hover:text-blue-700">Inicio</a>
+        <span aria-hidden="true">/</span>
+        <a href="{% url 'web_catalogo:servicios_list' %}" class="hover:text-blue-700">Servicios</a>
+        <span aria-hidden="true">/</span>
+        <span class="text-slate-800" aria-current="page">{{ publicado.titulo_publico }}</span>
+    </nav>
+
+    <span class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.28em] text-blue-900">
+        {{ publicado.categoria.nombre }}{% if publicado.subcategoria %} · {{ publicado.subcategoria.nombre }}{% endif %}
+    </span>
+    <h1 class="mt-6 max-w-3xl text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">
+        {{ publicado.titulo_publico }} en {{ publicado.zona_principal }}
+    </h1>
+    <p class="mt-6 max-w-2xl text-lg text-slate-600">{{ publicado.resumen }}</p>
+</section>
+
+<section class="mx-auto max-w-[1600px] px-4 pb-16 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-1 gap-12 lg:grid-cols-12">
+        <div class="lg:col-span-8">
+            {% if publicado.imagen %}
+            <img src="{{ publicado.imagen.url }}" alt="{{ publicado.imagen_alt }}"
+                 class="mb-8 h-72 w-full rounded-3xl object-cover" loading="lazy" decoding="async"
+                 width="{{ publicado.imagen.width }}" height="{{ publicado.imagen.height }}">
+            {% endif %}
+            <div class="prose max-w-none text-slate-700">
+                {{ publicado.contenido|linebreaks }}
+            </div>
+
+            {% if preguntas %}
+            <div class="mt-14">
+                <h2 class="text-2xl font-black tracking-tight text-slate-900">Preguntas frecuentes</h2>
+                <div class="mt-6 space-y-4">
+                    {% for pregunta in preguntas %}
+                    <div class="rounded-2xl border border-slate-200 bg-white p-6">
+                        <h3 class="font-bold text-slate-900">{{ pregunta.pregunta }}</h3>
+                        <p class="mt-2 text-sm text-slate-600">{{ pregunta.respuesta }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <aside class="lg:col-span-4">
+            <div class="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+                <h2 class="text-sm font-black uppercase tracking-[0.2em] text-slate-500">Datos técnicos</h2>
+                {% if publicado.servicio.norma %}
+                <p class="mt-4 text-sm text-slate-700">
+                    <span class="font-bold">Norma:</span>
+                    {{ publicado.servicio.norma.codigo }} — {{ publicado.servicio.norma.nombre }}
+                </p>
+                {% endif %}
+                {% if publicado.servicio.metodo %}
+                <p class="mt-2 text-sm text-slate-700">
+                    <span class="font-bold">Método:</span>
+                    {{ publicado.servicio.metodo.codigo }} — {{ publicado.servicio.metodo.nombre }}
+                </p>
+                {% endif %}
+                {% if publicado.servicio.esta_acreditado %}
+                <p class="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-blue-700">
+                    Ensayo acreditado por {{ negocio.acreditacion_entidad }}
+                </p>
+                {% endif %}
+                <a href="{% url 'web_acreditacion:acreditacion' %}"
+                   class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:underline">
+                    Ver alcance de acreditación →
+                </a>
+            </div>
+
+            {% if publicado.zonas.all %}
+            <div class="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-6">
+                <h2 class="text-sm font-black uppercase tracking-[0.2em] text-slate-500">Disponible en estas zonas</h2>
+                <ul class="mt-4 flex flex-wrap gap-2">
+                    {% for zona in publicado.zonas.all %}
+                    <li>
+                        <a href="{% url 'web_zonas:zona_detalle' slug=zona.slug %}"
+                           class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-blue-300 hover:text-blue-700">
+                            {{ zona.nombre }}{% if zona.es_sede %} (sede){% endif %}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </aside>
+    </div>
+</section>
+{% endblock %}

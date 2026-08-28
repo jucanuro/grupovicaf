@@ -1,0 +1,14 @@
+Nuevo mensaje de contacto desde la web
+======================================
+
+Nombre: {{ mensaje.nombre }}
+Correo: {{ mensaje.correo }}
+Teléfono: {{ mensaje.telefono|default:"(no indicado)" }}
+Asunto: {{ mensaje.asunto }}
+Origen: {{ mensaje.origen|default:"(no indicado)" }}
+
+Mensaje:
+{{ mensaje.mensaje }}
+
+---
+Responder directamente a {{ mensaje.correo }}.
