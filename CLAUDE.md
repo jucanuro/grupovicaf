@@ -176,10 +176,19 @@ docker compose exec lab python manage.py migrate
 docker compose exec lab python manage.py collectstatic --noinput
 ```
 
-El servicio `worker` (Celery, `-A grupovicaf worker`) ya corre en dev y prod
-para las tareas de más de ~1s (hoy: estampado de QR + notificación del
-`InformeFinal`). Sin `beat` ni `nginx` todavía — se añaden en fases
-posteriores.
+Los servicios `worker` (Celery, `-A grupovicaf worker`) y `beat`
+(`-A grupovicaf beat`) corren en dev y prod. Tareas de más de ~1s:
+estampado de QR + notificación del `InformeFinal` y los correos del
+formulario de contacto (`web_contacto.tasks`). Periódicas (`beat`):
+barrido diario de proyectos con `fecha_entrega_estimada` vencida
+(`proyectos.tasks.notificar_proyectos_vencidos`, 07:30 America/Lima).
+Sin `nginx` todavía — se añade en una fase posterior.
+
+El **cache** usa Redis en la DB 0; el **broker/backend de Celery** en la
+DB 1 de la misma instancia, para que limpiar el cache no borre la cola
+(`_redis_db()` en `settings/base.py`; override con `CELERY_BROKER_URL` /
+`CELERY_RESULT_BACKEND`).
+
 Los estáticos/media viven en volúmenes nombrados (`static_volume`,
 `media_volume`) compartidos entre `lab` y `web`, listos para que nginx los
 sirva directamente cuando se añada.
@@ -190,6 +199,7 @@ sirva directamente cuando se añada.
 SITE_ROLE=lab python manage.py runserver 8000
 SITE_ROLE=web python manage.py runserver 8001
 SITE_ROLE=lab celery -A grupovicaf worker -l info   # requiere Redis local
+SITE_ROLE=lab celery -A grupovicaf beat -l info     # tareas periódicas
 ```
 
 ## Flujo de trabajo

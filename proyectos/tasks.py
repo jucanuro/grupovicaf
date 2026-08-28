@@ -3,8 +3,11 @@ import logging
 from celery import shared_task
 from django.conf import settings
 from django.core.mail import send_mail
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
+
+ESTADOS_CERRADOS = ('FINALIZADO', 'CANCELADO')
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=30)
@@ -57,3 +60,53 @@ def _notificar_responsable(informe):
         recipient_list=[destinatario],
         fail_silently=True,
     )
+
+
+@shared_task
+def notificar_proyectos_vencidos():
+    """Barrido diario (Celery beat): proyectos cuya ``fecha_entrega_estimada`` ya
+    pasó y que siguen abiertos (ni FINALIZADO ni CANCELADO).
+
+    Manda un digest al correo del negocio (``NegocioConfig.correo``); si no hay
+    configuración de negocio cae a ``DEFAULT_FROM_EMAIL``. Sin proyectos vencidos
+    no envía nada. Devuelve el número de proyectos vencidos para trazabilidad.
+    """
+    from siteconfig.models import NegocioConfig
+    from .models import Proyecto
+
+    hoy = timezone.localdate()
+    vencidos = list(
+        Proyecto.objects
+        .filter(fecha_entrega_estimada__isnull=False, fecha_entrega_estimada__lt=hoy)
+        .exclude(estado__in=ESTADOS_CERRADOS)
+        .select_related('cliente')
+        .order_by('fecha_entrega_estimada')
+    )
+
+    if not vencidos:
+        logger.info("Barrido de proyectos vencidos: nada pendiente.")
+        return 0
+
+    lineas = [
+        f"- {p.codigo_proyecto} · {p.nombre_proyecto} · {p.cliente.razon_social} · "
+        f"entrega {p.fecha_entrega_estimada:%d/%m/%Y} "
+        f"({(hoy - p.fecha_entrega_estimada).days} día(s) de atraso) · "
+        f"estado {p.get_estado_display()}"
+        for p in vencidos
+    ]
+    logger.warning("Proyectos con entrega vencida sin cerrar: %s", len(vencidos))
+
+    negocio = NegocioConfig.objects.first()
+    destinatario = (negocio.correo if negocio else '') or settings.DEFAULT_FROM_EMAIL
+
+    send_mail(
+        subject=f"[GRUPO VICAF] {len(vencidos)} proyecto(s) con entrega vencida",
+        message=(
+            "Estos proyectos superaron su fecha de entrega estimada y siguen "
+            "abiertos:\n\n" + "\n".join(lineas)
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[destinatario],
+        fail_silently=True,
+    )
+    return len(vencidos)

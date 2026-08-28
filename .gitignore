@@ -90,6 +90,10 @@ static/web/css/output.css
 gunicorn.sock
 gunicorn.pid
 
+# Celery beat (scheduler local sin Docker)
+celerybeat-schedule*
+celerybeat.pid
+
 .terraform/
 *.tfstate
 *.tfstate.*

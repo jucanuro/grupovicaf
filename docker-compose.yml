@@ -81,7 +81,26 @@ services:
       redis:
         condition: service_started
 
-  # beat y nginx se añaden en fases posteriores.
+  # Planificador de tareas periódicas (hoy: barrido diario de proyectos
+  # vencidos, ver grupovicaf/celery.py).
+  beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    restart: unless-stopped
+    command: celery -A grupovicaf beat -l info --schedule /tmp/celerybeat-schedule
+    environment:
+      SITE_ROLE: lab
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # nginx se añade en fases posteriores.
 
 volumes:
   postgres_data:

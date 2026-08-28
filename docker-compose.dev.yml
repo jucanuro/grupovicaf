@@ -82,6 +82,29 @@ services:
       redis:
         condition: service_started
 
+  # Planificador de tareas periódicas (hoy: barrido diario de proyectos
+  # vencidos, ver grupovicaf/celery.py). El archivo de estado va a /tmp para
+  # no ensuciar el árbol montado en /app.
+  beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    command: celery -A grupovicaf beat -l info --schedule /tmp/celerybeat-schedule
+    user: root
+    environment:
+      SITE_ROLE: lab
+      DJANGO_SETTINGS_MODULE: grupovicaf.settings.dev
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
   # Compilación de Tailwind en modo watch. El pipeline real (package.json,
   # tailwind.config.js) se añade en F3; por ahora el contenedor solo se
   # mantiene arriba para no romper `docker compose up`.

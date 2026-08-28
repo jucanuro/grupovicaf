@@ -1,19 +1,23 @@
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.contrib.auth.models import User
+from django.core import mail
 from django.template.loader import render_to_string
-from django.test import TestCase
+from django.test import TestCase, override_settings
+from django.utils import timezone
 from weasyprint import HTML
 
 from clientes.models import Cliente
 from proyectos.models import (
     DetalleSolicitudEnsayo,
     MuestraDetalle,
+    Proyecto,
     RecepcionMuestra,
     SolicitudEnsayo,
     TipoMuestra,
 )
+from proyectos.tasks import notificar_proyectos_vencidos
 from servicios.models import Cotizacion, CotizacionDetalle, CotizacionGrupo, Servicio
 from trabajadores.models import RolTrabajador, TrabajadorProfile
 
@@ -105,3 +109,54 @@ class InformePDFRenderTest(TestCase):
 
         self.assertTrue(pdf_bytes.startswith(b'%PDF-'))
         self.assertGreater(len(pdf_bytes), 1000)
+
+
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+class NotificarProyectosVencidosTest(TestCase):
+    """Barrido diario de proyectos con fecha_entrega_estimada vencida."""
+
+    def setUp(self):
+        self.cliente = Cliente.objects.create(
+            ruc='20456789123',
+            razon_social='Minera Norte SAC',
+            persona_contacto='Luis Vega',
+            celular_contacto='999888777',
+            correo_contacto='luis@minera.pe',
+        )
+        self.hoy = timezone.localdate()
+
+    def _crear(self, codigo, **kwargs):
+        return Proyecto.objects.create(
+            nombre_proyecto=codigo,
+            codigo_proyecto=codigo,
+            cliente=self.cliente,
+            **kwargs,
+        )
+
+    def test_envia_digest_con_proyectos_vencidos_abiertos(self):
+        self._crear('PRJ-VENCIDO', fecha_entrega_estimada=self.hoy - timedelta(days=3), estado='EN_CURSO')
+
+        total = notificar_proyectos_vencidos()
+
+        self.assertEqual(total, 1)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('PRJ-VENCIDO', mail.outbox[0].body)
+
+    def test_ignora_cerrados_futuros_y_sin_fecha(self):
+        self._crear('PRJ-VENCIDO', fecha_entrega_estimada=self.hoy - timedelta(days=3), estado='EN_CURSO')
+        self._crear('PRJ-FIN', fecha_entrega_estimada=self.hoy - timedelta(days=9), estado='FINALIZADO')
+        self._crear('PRJ-CAN', fecha_entrega_estimada=self.hoy - timedelta(days=9), estado='CANCELADO')
+        self._crear('PRJ-SIN-FECHA', estado='EN_CURSO')
+        self._crear('PRJ-FUTURO', fecha_entrega_estimada=self.hoy + timedelta(days=5), estado='EN_CURSO')
+
+        total = notificar_proyectos_vencidos()
+
+        self.assertEqual(total, 1)
+
+    def test_sin_vencidos_no_envia_correo(self):
+        self._crear('PRJ-OK', fecha_entrega_estimada=self.hoy + timedelta(days=2), estado='EN_CURSO')
+
+        total = notificar_proyectos_vencidos()
+
+        self.assertEqual(total, 0)
+        self.assertEqual(mail.outbox, [])

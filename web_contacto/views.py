@@ -6,9 +6,9 @@ from django.views.decorators.http import require_POST
 from web_catalogo.models import ServicioPublicado
 from web_zonas.models import ZonaCobertura
 
-from .emails import enviar_correo_mensaje_contacto, enviar_correo_solicitud_cotizacion
 from .models import MensajeContacto, SolicitudCotizacionItem, SolicitudCotizacionWeb
 from .services import procesar_solicitud_cotizacion
+from .tasks import enviar_correo_mensaje_contacto, enviar_correo_solicitud_cotizacion
 from .utils import es_honeypot, obtener_ip_cliente, rate_limit_excedido
 
 
@@ -64,7 +64,7 @@ def _procesar_mensaje(request):
         origen=request.POST.get('origen', '')[:255],
         ip=obtener_ip_cliente(request),
     )
-    enviar_correo_mensaje_contacto(mensaje)
+    enviar_correo_mensaje_contacto.delay(mensaje.pk)
 
     messages.success(request, 'Gracias por escribirnos. Te responderemos pronto.')
     return redirect('web_contacto:contacto')
@@ -141,7 +141,7 @@ def solicitud_cotizacion_view(request):
 
         cotizacion = procesar_solicitud_cotizacion(solicitud)
 
-    enviar_correo_solicitud_cotizacion(solicitud, cotizacion)
+    enviar_correo_solicitud_cotizacion.delay(solicitud.pk, cotizacion.pk)
 
     messages.success(
         request, 'Gracias, recibimos tu solicitud de cotización. Nuestro equipo te contactará pronto.',
