@@ -21,6 +21,7 @@ from django.views.decorators.http import require_POST
 
 from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso
 from .utils import enviar_whatsapp_pdf
+from .tasks import procesar_informe_final
 
 from .models import (
     Proyecto,
@@ -1130,11 +1131,15 @@ def gestionar_informe_final(request, solicitud_id=None):
                 if archivo:
                     informe_actual.archivo_pdf = archivo
                     informe_actual.save()
-                    informe_actual.estampar_qr_en_pdf()
+                    procesar_informe_final.delay(informe_actual.id)
+                    messages.success(
+                        request,
+                        f"Informe {informe_actual.codigo_informe} actualizado. "
+                        "El estampado del QR y la notificación al responsable se están procesando."
+                    )
                 else:
                     informe_actual.save()
-
-                messages.success(request, f"Informe {informe_actual.codigo_informe} actualizado.")
+                    messages.success(request, f"Informe {informe_actual.codigo_informe} actualizado.")
             else:
                 if not archivo:
                     messages.error(request, "El archivo PDF es obligatorio para nuevos informes.")
@@ -1146,8 +1151,12 @@ def gestionar_informe_final(request, solicitud_id=None):
                     responsable_firma_id=responsable_id
                 )
 
-                nuevo.estampar_qr_en_pdf()
-                messages.success(request, f"Informe {nuevo.codigo_informe} generado con éxito.")
+                procesar_informe_final.delay(nuevo.id)
+                messages.success(
+                    request,
+                    f"Informe {nuevo.codigo_informe} generado con éxito. "
+                    "El estampado del QR y la notificación al responsable se están procesando."
+                )
 
             return redirect('proyectos:lista_informes')
 

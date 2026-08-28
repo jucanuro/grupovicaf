@@ -176,7 +176,10 @@ docker compose exec lab python manage.py migrate
 docker compose exec lab python manage.py collectstatic --noinput
 ```
 
-Sin `worker`, `beat` ni `nginx` todavía — se añaden en fases posteriores.
+El servicio `worker` (Celery, `-A grupovicaf worker`) ya corre en dev y prod
+para las tareas de más de ~1s (hoy: estampado de QR + notificación del
+`InformeFinal`). Sin `beat` ni `nginx` todavía — se añaden en fases
+posteriores.
 Los estáticos/media viven en volúmenes nombrados (`static_volume`,
 `media_volume`) compartidos entre `lab` y `web`, listos para que nginx los
 sirva directamente cuando se añada.
@@ -186,6 +189,7 @@ sirva directamente cuando se añada.
 ```bash
 SITE_ROLE=lab python manage.py runserver 8000
 SITE_ROLE=web python manage.py runserver 8001
+SITE_ROLE=lab celery -A grupovicaf worker -l info   # requiere Redis local
 ```
 
 ## Flujo de trabajo

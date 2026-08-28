@@ -136,5 +136,31 @@ CACHES = {
     }
 }
 
+# --- Celery ---
+# Toda tarea de más de ~1s (PDF, QR, correo, SMS) va aquí en vez de bloquear
+# la request. Reusa el mismo Redis del cache como broker/backend: en este
+# volumen de tráfico no justifica una instancia separada.
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', REDIS_URL)
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', REDIS_URL)
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+
+# --- Email ---
+EMAIL_HOST = os.environ.get('EMAIL_HOST', '')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT') or 587)
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@grupovicaf.com')
+if EMAIL_HOST:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+else:
+    # Sin credenciales SMTP (dev local): los correos se imprimen en consola
+    # en vez de fallar el worker de Celery.
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

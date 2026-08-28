@@ -62,7 +62,26 @@ services:
       redis:
         condition: service_started
 
-  # worker, beat y nginx se añaden en fases posteriores.
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    restart: unless-stopped
+    command: celery -A grupovicaf worker -l info --concurrency=2
+    environment:
+      SITE_ROLE: lab
+    env_file:
+      - .env
+    volumes:
+      - media_volume:/app/mediafiles
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # beat y nginx se añaden en fases posteriores.
 
 volumes:
   postgres_data:
