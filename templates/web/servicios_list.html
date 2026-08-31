@@ -1,8 +1,8 @@
 {% extends 'web/base.html' %}
 {% load static %}
 
-{% block meta_title %}Ensayos de Laboratorio en Cajamarca{% endblock %}
-{% block meta_description %}Catálogo de ensayos de suelos, concreto, agregados y geotecnia de Grupo VICAF, laboratorio acreditado INACAL en Cajamarca y el norte del Perú.{% endblock %}
+{% block meta_title %}Servicios de laboratorio en Cajamarca{% endblock %}
+{% block meta_description %}8 líneas de servicio de Grupo VICAF: calidad en obra, mecánica de suelos, canteras, estructuras, laboratorio, química, mezclas y equipos. Acreditación INACAL.{% endblock %}
 
 {% block jsonld %}
 <script type="application/ld+json">
@@ -20,55 +20,61 @@
 {% block content %}
 <section class="mx-auto max-w-[1600px] px-4 pt-32 pb-16 sm:px-6 lg:px-8">
     <span class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.28em] text-blue-900">
-        Catálogo de ensayos
+        Servicios especializados
     </span>
     <h1 class="mt-6 max-w-3xl text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">
-        Ensayos de laboratorio en Cajamarca
+        Servicios de laboratorio en Cajamarca
     </h1>
     <p class="mt-6 max-w-2xl text-lg text-slate-600">
-        Ensayos de suelos, concreto, agregados y geotecnia respaldados por la acreditación
-        {{ negocio.acreditacion_entidad }}. Consulta la norma técnica y el método de cada ensayo.
+        Soluciones técnicas en ingeniería, laboratorio y control de calidad, respaldadas por la
+        acreditación {{ negocio.acreditacion_entidad|default:"INACAL" }}.
     </p>
 </section>
 
 <section class="mx-auto max-w-[1600px] px-4 pb-24 sm:px-6 lg:px-8">
-    {% for categoria in categorias %}
-    <div class="mb-14">
-        <h2 class="text-2xl font-black tracking-tight text-slate-900">{{ categoria.nombre }}</h2>
-        {% for subcategoria in categoria.subcategorias %}
-        <div class="mt-6">
-            {% if subcategoria.nombre %}
-            <h3 class="text-sm font-black uppercase tracking-[0.2em] text-slate-500">{{ subcategoria.nombre }}</h3>
-            {% endif %}
-            <ul class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {% for servicio in subcategoria.servicios %}
-                <li class="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300">
-                    <a href="{% url 'web_catalogo:servicio_detalle' slug=servicio.slug %}" class="flex h-full flex-col">
-                        {% if servicio.imagen %}
-                        <img src="{{ servicio.imagen.url }}" alt="{{ servicio.imagen_alt }}"
-                             class="h-40 w-full object-cover" loading="lazy" decoding="async"
-                             width="{{ servicio.imagen.width }}" height="{{ servicio.imagen.height }}">
-                        {% endif %}
-                        <div class="flex flex-1 flex-col p-5">
-                            {% if servicio.destacado %}
-                            <span class="mb-2 inline-flex w-fit items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-blue-800">
-                                Destacado
-                            </span>
-                            {% endif %}
-                            <h4 class="text-base font-bold text-slate-900 group-hover:text-blue-700">{{ servicio.titulo_publico }}</h4>
-                            <p class="mt-2 text-sm text-slate-600">{{ servicio.resumen }}</p>
-                        </div>
-                    </a>
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
+    <ul class="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
+        {% for linea in lineas %}
+        <li class="group relative overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-[0_15px_60px_-15px_rgba(15,23,42,0.12)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_25px_80px_-20px_rgba(30,64,175,0.25)]">
+            <a href="{% url 'web_catalogo:servicio_detalle' slug=linea.slug %}" class="flex h-full flex-col">
+                <div class="relative h-64 overflow-hidden bg-slate-200">
+                    {% if linea.imagen %}
+                    <img src="{{ linea.imagen.url }}" alt="{{ linea.imagen_alt|default:linea.nombre }}"
+                         class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                         loading="lazy" decoding="async"
+                         width="{{ linea.imagen.width }}" height="{{ linea.imagen.height }}">
+                    {% endif %}
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-900/20 to-transparent"></div>
+
+                    {% if linea.destacado %}
+                    <span class="absolute top-5 right-5 inline-flex items-center rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-blue-900 backdrop-blur-md">
+                        Destacado
+                    </span>
+                    {% endif %}
+
+                    <div class="absolute bottom-6 left-6 right-6">
+                        <h2 class="text-2xl font-bold leading-tight text-white">{{ linea.nombre }}</h2>
+                    </div>
+                </div>
+
+                <div class="flex flex-1 flex-col p-7">
+                    <p class="text-sm leading-7 text-slate-600">{{ linea.resumen }}</p>
+
+                    <span class="mt-7 inline-flex items-center gap-3 text-sm font-semibold text-blue-900 group-hover:text-blue-700">
+                        Explorar servicio
+                        <span class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 transition-transform group-hover:translate-x-1">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6l6 6-6 6"/>
+                            </svg>
+                        </span>
+                    </span>
+                </div>
+            </a>
+        </li>
+        {% empty %}
+        <li class="col-span-full rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
+            Aún no se han publicado líneas de servicio.
+        </li>
         {% endfor %}
-    </div>
-    {% empty %}
-    <div class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
-        Aún no se han publicado ensayos.
-    </div>
-    {% endfor %}
+    </ul>
 </section>
 {% endblock %}

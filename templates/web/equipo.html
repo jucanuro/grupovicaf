@@ -18,61 +18,190 @@
 {% endblock %}
 
 {% block content %}
-<section class="mx-auto max-w-[1600px] px-4 pt-32 pb-16 sm:px-6 lg:px-8">
-    <span class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.28em] text-blue-900">
-        Nuestro equipo
-    </span>
-    <h1 class="mt-6 max-w-3xl text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">
-        Equipo técnico de Grupo VICAF
-    </h1>
-    <p class="mt-6 max-w-2xl text-lg text-slate-600">
-        Profesionales que ejecutan y supervisan cada ensayo bajo los estándares del
-        {{ negocio.acreditacion_entidad }}.
-    </p>
-</section>
+{% comment %}
+  Estructura y lenguaje visual replicados de
+  _ref/vicafpro/trabajadores/templates/trabajadores/trabajadores.html
+  (badge con punto animado, H1 con acento en degradado, barra de
+  contadores con divisores, grilla de tarjetas agrupada por área/rol).
+  Desviaciones deliberadas frente al original:
+    - Los blobs de fondo (blur-3xl, 520px/560px) se ocultan por debajo de
+      lg: cuestan render en móvil y ahí el bloque ya no tiene el espacio
+      para lucirse.
+    - Los contadores salen de web_catalogo.views.equipo_list_view
+      (total_areas / total_personas, calculados sobre la data real). Si un
+      contador es 0 se oculta esa columna en vez de mostrar un cero.
+    - animate-ping / animate-pulse quedan dentro de motion-reduce:hidden /
+      motion-reduce:animate-none para no forzar movimiento a quien pidió
+      menos animaciones al sistema operativo.
+    - Sin correo por defecto: solo aparece si mostrar_correo está activo en
+      el companion (regla 2 de CLAUDE.md, lista blanca de campos).
+    - Nunca se pasa firma_electronica ni ningún campo fuera de la lista
+      blanca de la vista (regla 3 de CLAUDE.md).
+    - El original agrupaba por "área"; aquí no existe ese modelo en el LIMS
+      (trabajadores.TrabajadorProfile.rol es lo único disponible), así que
+      la agrupación real es por RolTrabajador — la vista ya lo hace en
+      equipo_list_view.
+    - H1 y metas SEO se mantienen intactos (encargo): solo cambia el estilo
+      visual del H1, no el copy ni la keyword objetivo.
+{% endcomment %}
+<section class="relative overflow-hidden bg-[#f6f8fc]">
 
-<section class="mx-auto max-w-[1600px] px-4 pb-24 sm:px-6 lg:px-8">
-    {% for rol in roles %}
-    <div class="mb-14">
-        <h2 class="text-2xl font-black tracking-tight text-slate-900">{{ rol.nombre }}</h2>
-        <ul class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {% for miembro in rol.miembros %}
-            <li class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.02)]">
-                {% if miembro.perfil.foto %}
-                <img src="{{ miembro.perfil.foto.url }}" alt="{{ miembro.perfil.nombre_completo }}"
-                     class="h-48 w-full object-cover" loading="lazy" decoding="async">
-                {% else %}
-                <div class="flex h-48 w-full items-center justify-center bg-slate-100 text-4xl font-black text-slate-300">
-                    {{ miembro.perfil.nombre_completo|slice:":1" }}
-                </div>
-                {% endif %}
-                <div class="p-5">
-                    <h3 class="font-bold text-slate-900">
-                        {% if miembro.perfil.titulo_profesional %}{{ miembro.perfil.titulo_profesional }}. {% endif %}{{ miembro.perfil.nombre_completo }}
-                    </h3>
-                    <p class="mt-1 text-sm text-blue-700">{{ rol.nombre }}</p>
-                    {% if miembro.bio_publica %}
-                    <p class="mt-2 text-sm text-slate-600">{{ miembro.bio_publica }}</p>
-                    {% endif %}
-                    <div class="mt-4 flex items-center gap-3">
-                        {% if miembro.perfil.linkedin %}
-                        <a href="{{ miembro.perfil.linkedin }}" target="_blank" rel="noopener noreferrer"
-                           class="text-sm font-semibold text-blue-700 hover:underline">LinkedIn</a>
-                        {% endif %}
-                        {% if miembro.mostrar_correo and miembro.perfil.correo_contacto %}
-                        <a href="mailto:{{ miembro.perfil.correo_contacto }}"
-                           class="text-sm font-semibold text-blue-700 hover:underline">Contactar</a>
-                        {% endif %}
+    <!-- Fondo ambiental: solo en escritorio (lg+), regla de rendimiento móvil -->
+    <div class="pointer-events-none absolute inset-0 overflow-hidden">
+        <div class="hidden lg:block absolute -top-40 -left-32 h-[520px] w-[520px] rounded-full bg-blue-200/25 blur-3xl"></div>
+        <div class="hidden lg:block absolute -bottom-52 -right-32 h-[560px] w-[560px] rounded-full bg-cyan-200/25 blur-3xl"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.85),transparent_55%)]"></div>
+    </div>
+
+    <div class="relative z-10 mx-auto max-w-[1600px] px-4 pt-32 pb-16 sm:px-6 lg:px-8">
+        <span class="inline-flex items-center gap-2.5 rounded-full border border-blue-100 bg-white px-4 py-1.5 shadow-sm">
+            <span class="relative flex h-2 w-2">
+                <span class="motion-reduce:hidden absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-500 opacity-60"></span>
+                <span class="relative inline-flex h-2 w-2 rounded-full bg-blue-700"></span>
+            </span>
+            <span class="text-[11px] font-black uppercase tracking-[0.28em] text-blue-900">
+                Nuestro equipo
+            </span>
+        </span>
+
+        <h1 class="mt-6 max-w-3xl text-4xl font-black tracking-tight leading-[1.05] text-slate-900 sm:text-5xl">
+            Equipo técnico de
+            <span class="bg-gradient-to-r from-blue-900 via-blue-700 to-cyan-500 bg-clip-text text-transparent">
+                Grupo VICAF
+            </span>
+        </h1>
+
+        <p class="mt-6 max-w-2xl text-lg leading-7 text-slate-600">
+            Profesionales que ejecutan y supervisan cada ensayo bajo los estándares del
+            {{ negocio.acreditacion_entidad }}, organizados por área de especialidad.
+        </p>
+
+        {% if total_areas or total_personas %}
+        <div class="mt-10 flex max-w-xl divide-x divide-slate-200 border-y border-slate-200">
+            {% if total_areas %}
+            <div class="py-5 pr-8">
+                <div class="flex items-end gap-3">
+                    <div class="text-5xl font-black leading-none tracking-tight bg-gradient-to-b from-blue-900 via-blue-700 to-cyan-500 bg-clip-text text-transparent">
+                        {{ total_areas }}
+                    </div>
+                    <div class="mb-1 flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1">
+                        <span class="h-2 w-2 rounded-full bg-emerald-500 motion-reduce:animate-none animate-pulse"></span>
+                        <span class="text-[9px] font-bold uppercase tracking-[0.18em] text-emerald-700">Activas</span>
                     </div>
                 </div>
-            </li>
+                <p class="mt-3 text-sm font-semibold text-slate-900">Áreas corporativas</p>
+            </div>
+            {% endif %}
+
+            {% if total_personas %}
+            <div class="py-5 pl-8">
+                <div class="flex items-end gap-3">
+                    <div class="text-5xl font-black leading-none tracking-tight bg-gradient-to-b from-slate-900 via-blue-800 to-cyan-500 bg-clip-text text-transparent">
+                        {{ total_personas }}
+                    </div>
+                    <div class="mb-1 flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-1">
+                        <span class="h-2 w-2 rounded-full bg-blue-600 motion-reduce:animate-none animate-pulse"></span>
+                        <span class="text-[9px] font-bold uppercase tracking-[0.18em] text-blue-700">Team</span>
+                    </div>
+                </div>
+                <p class="mt-3 text-sm font-semibold text-slate-900">Profesionales especializados</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="relative z-10 mx-auto max-w-[1600px] px-4 pb-24 sm:px-6 lg:px-8">
+        <div class="space-y-14">
+            {% for rol in roles %}
+            <div>
+                <div class="border-b border-slate-200 pb-4">
+                    <div class="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.28em] text-blue-600">
+                        <span class="h-px w-6 bg-blue-500"></span>
+                        Área corporativa
+                    </div>
+                    <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-800 sm:text-3xl">
+                        {{ rol.nombre }}
+                    </h2>
+                </div>
+
+                <ul class="mt-8 grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
+                    {% for miembro in rol.miembros %}
+                    <li class="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white/90 shadow-[0_10px_35px_-15px_rgba(59,130,246,0.12)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_25px_50px_-12px_rgba(37,99,235,0.22)]">
+
+                        <div class="pointer-events-none absolute -right-6 -top-6 h-36 w-36 rounded-full bg-gradient-to-br from-blue-400/20 to-cyan-300/10 blur-2xl opacity-80 transition-opacity duration-300 group-hover:opacity-100"></div>
+
+                        <div class="relative z-10 flex items-center gap-4 px-6 pt-6">
+                            <div class="relative shrink-0">
+                                {% if miembro.perfil.foto %}
+                                <img src="{{ miembro.perfil.foto.url }}"
+                                     alt="{{ miembro.perfil.nombre_completo }}"
+                                     class="h-14 w-14 rounded-full object-cover ring-2 ring-blue-50 shadow-sm"
+                                     loading="lazy" decoding="async"
+                                     width="{{ miembro.perfil.foto.width }}" height="{{ miembro.perfil.foto.height }}">
+                                {% else %}
+                                <div class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 text-sm font-bold text-white ring-2 ring-blue-50 shadow-sm">
+                                    {{ miembro.perfil.nombre_completo|slice:":1" }}
+                                </div>
+                                {% endif %}
+                                <span class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+                            </div>
+
+                            <div class="min-w-0 flex-1">
+                                <h4 class="text-[16px] font-bold leading-snug tracking-tight text-slate-900">
+                                    {% if miembro.perfil.titulo_profesional %}{{ miembro.perfil.titulo_profesional }}. {% endif %}{{ miembro.perfil.nombre_completo }}
+                                </h4>
+                                <p class="mt-0.5 text-xs font-medium text-blue-600">{{ rol.nombre }}</p>
+                            </div>
+
+                            {% if miembro.perfil.linkedin %}
+                            <a href="{{ miembro.perfil.linkedin }}" target="_blank" rel="noopener noreferrer"
+                               aria-label="LinkedIn de {{ miembro.perfil.nombre_completo }}"
+                               class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-400 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M4.98 3.5C4.98 4.88 3.86 6 2.48 6S0 4.88 0 3.5 1.12 1 2.48 1 4.98 2.12 4.98 3.5zM.5 8h4V24h-4V8zm7.5 0h3.8v2.2h.1c.5-.9 1.8-2.2 3.9-2.2 4.2 0 5 2.8 5 6.4V24h-4v-7.5c0-1.8 0-4-2.4-4-2.5 0-2.9 1.9-2.9 3.9V24h-4V8z"/>
+                                </svg>
+                            </a>
+                            {% endif %}
+                        </div>
+
+                        {% if miembro.bio_publica %}
+                        <p class="relative z-10 mt-4 px-6 text-sm leading-6 text-slate-600">{{ miembro.bio_publica }}</p>
+                        {% endif %}
+
+                        {% if miembro.mostrar_correo and miembro.perfil.correo_contacto %}
+                        <div class="relative z-10 mt-4 flex items-center gap-1.5 px-6 text-[11px] text-slate-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8m-18 8h18V8H3v8z"/>
+                            </svg>
+                            <a href="mailto:{{ miembro.perfil.correo_contacto }}" class="truncate text-slate-500 hover:text-blue-700 hover:underline">
+                                {{ miembro.perfil.correo_contacto }}
+                            </a>
+                        </div>
+                        {% endif %}
+
+                        <div class="relative z-10 mt-6 flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-6 py-3">
+                            <span class="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">{{ rol.nombre }}</span>
+                            <span class="inline-flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.2em] text-blue-600">
+                                Activo
+                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                            </span>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% empty %}
+            <div class="rounded-3xl border border-dashed border-slate-300 bg-white/80 px-10 py-24 text-center">
+                <h3 class="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+                    Aún no se ha publicado el equipo técnico
+                </h3>
+                <p class="mt-3 text-slate-500">
+                    Estamos organizando los perfiles de nuestro equipo. Vuelve pronto.
+                </p>
+            </div>
             {% endfor %}
-        </ul>
+        </div>
     </div>
-    {% empty %}
-    <div class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
-        Aún no se ha publicado el equipo técnico.
-    </div>
-    {% endfor %}
 </section>
 {% endblock %}

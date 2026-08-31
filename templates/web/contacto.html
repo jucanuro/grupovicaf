@@ -51,7 +51,7 @@
     <div class="grid grid-cols-1 gap-12 lg:grid-cols-12">
 
         <!-- FORMULARIO: SOLICITUD DE COTIZACIÓN -->
-        <div class="lg:col-span-8">
+        <div id="solicitar-cotizacion" class="lg:col-span-8 scroll-mt-28" data-linea-preseleccionada="{{ linea_preseleccionada }}">
             <div class="rounded-3xl border border-slate-200 bg-white p-8 shadow-[0_15px_40px_rgba(15,23,42,0.04)]">
                 <h2 class="text-2xl font-black tracking-tight text-slate-900">Solicitar cotización</h2>
                 <p class="mt-2 text-sm text-slate-600">
@@ -114,7 +114,7 @@
                             <div class="pt-3 first:pt-0">
                                 <p class="text-[11px] font-black uppercase tracking-[0.2em] text-blue-800">{{ grupo.grouper }}</p>
                                 {% for servicio in grupo.list %}
-                                <div class="mt-2 flex items-center justify-between gap-4 rounded-xl px-2 py-1.5 hover:bg-slate-50">
+                                <div class="mt-2 flex items-center justify-between gap-4 rounded-xl px-2 py-1.5 hover:bg-slate-50" data-linea-slug="{{ servicio.linea.slug|default:'' }}">
                                     <label class="flex items-center gap-3 text-sm text-slate-700" for="id_servicio_{{ servicio.slug }}">
                                         <input id="id_servicio_{{ servicio.slug }}" type="checkbox" name="servicios" value="{{ servicio.slug }}"
                                                class="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-600">
@@ -236,4 +236,24 @@
         </aside>
     </div>
 </section>
+
+<script>
+// CTA "Cotiza esta línea" de linea_detalle.html llega con ?linea=<slug>.
+// Marca los checkboxes de esa línea (data-linea-slug, ver arriba) para que
+// el visitante no tenga que volver a elegir uno por uno los ensayos que ya
+// vio en la página de la línea. No hay dato de cliente involucrado.
+document.addEventListener('DOMContentLoaded', function () {
+    var contenedor = document.getElementById('solicitar-cotizacion');
+    var lineaSlug = contenedor && contenedor.dataset.lineaPreseleccionada;
+    if (!lineaSlug) return;
+
+    var filas = contenedor.querySelectorAll('[data-linea-slug="' + lineaSlug + '"]');
+    if (!filas.length) return;
+
+    filas.forEach(function (fila) {
+        var checkbox = fila.querySelector('input[type="checkbox"]');
+        if (checkbox) checkbox.checked = true;
+    });
+});
+</script>
 {% endblock %}

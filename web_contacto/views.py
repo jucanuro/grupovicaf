@@ -21,7 +21,7 @@ def contacto_view(request):
         ServicioPublicado.objects.publicados()
         .filter(servicio__isnull=False)
         .select_related('categoria')
-        .only('slug', 'titulo_publico', 'categoria__nombre')
+        .only('slug', 'titulo_publico', 'categoria__nombre', 'linea__slug', 'linea_id')
         .order_by('categoria__nombre', 'titulo_publico')
     )
     zonas = ZonaCobertura.objects.activas().only('slug', 'nombre')
@@ -31,6 +31,10 @@ def contacto_view(request):
         'servicios_disponibles': servicios_disponibles,
         'zonas': zonas,
         'origen_sugerido': origen_sugerido[:255],
+        # CTA de linea_detalle.html: ?linea=<slug> llega hasta acá y el JS de
+        # contacto.html precarga los checkboxes de esa línea (ver bloque al
+        # final de la plantilla). Ningún dato del cliente depende de esto.
+        'linea_preseleccionada': request.GET.get('linea', '')[:100],
     }
     return render(request, 'web/contacto.html', context)
 

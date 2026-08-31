@@ -78,6 +78,8 @@ TEMPLATES = [
                 'trabajadores.context_processors.permisos_usuario',
                 'grupovicaf.context_processors.site_url',
                 'siteconfig.context_processors.negocio',
+                'web_catalogo.context_processors.footer_lineas',
+                'web_zonas.context_processors.footer_zonas',
             ],
         },
     },

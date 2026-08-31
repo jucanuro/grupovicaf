@@ -111,6 +111,11 @@ services:
   node:
     image: node:20-alpine
     working_dir: /app
+    # tailwindcss --watch se apaga solo en cuanto detecta stdin cerrado (lo que
+    # `docker compose up -d` hace por defecto). Sin stdin_open/tty el contenedor
+    # corre `npm install`, arranca el watcher y muere a los ~3s en cada `up`.
+    stdin_open: true
+    tty: true
     volumes:
       - .:/app
     command: >

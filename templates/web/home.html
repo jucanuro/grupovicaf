@@ -140,62 +140,180 @@
     </div>
 </div>
 
-<section class="mx-auto max-w-[1600px] px-4 py-20 sm:px-6 lg:px-8">
-    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <a href="{% url 'web_acreditacion:acreditacion' %}"
-           class="group rounded-2xl border border-slate-200 bg-white p-8 shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-[0_12px_30px_rgba(37,99,235,0.06)]">
-            <span class="text-[11px] font-black uppercase tracking-[0.28em] text-blue-900">Acreditación INACAL</span>
-            <h2 class="mt-3 text-2xl font-black tracking-tight text-slate-900">
-                Laboratorio acreditado en el norte del Perú
-            </h2>
-            <p class="mt-3 text-slate-600">
-                Conoce nuestro alcance de acreditación y los ensayos que respaldamos con norma técnica.
-            </p>
-            <span class="mt-5 inline-block font-semibold text-blue-700 group-hover:underline">Ver acreditación →</span>
-        </a>
+{% comment %}
+  Franja de credibilidad, inmediatamente bajo el hero (fondo oscuro para
+  romper con el hero y arrancar la página con autoridad). Cifras reales via
+  web_inicio.views._metricas_credibilidad(): solo entran métricas con dato
+  distinto de cero, nunca inventadas.
+{% endcomment %}
+<section class="reveal border-b border-slate-800 bg-slate-900 py-16 text-white lg:py-20">
+    <div class="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col items-center gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
+            <button type="button" data-modal-cert-open
+                    class="group flex shrink-0 items-center gap-4 rounded-2xl border border-slate-700 bg-slate-800/60 px-6 py-5 text-left transition-colors duration-300 hover:border-blue-500 hover:bg-slate-800">
+                <img src="{% static 'web/img/LogoInacal1.webp' %}" alt=""
+                     class="h-14 w-14 shrink-0 rounded-full bg-white object-contain p-1"
+                     width="400" height="400" loading="lazy" decoding="async">
+                <span>
+                    <span class="block text-[11px] font-black uppercase tracking-[0.28em] text-blue-300">Acreditación</span>
+                    <span class="mt-1 block text-lg font-bold text-white">
+                        {{ negocio.acreditacion_entidad|default:"INACAL" }} · {{ negocio.acreditacion_codigo|default:"LE-230" }}
+                    </span>
+                </span>
+            </button>
 
-        <a href="{% url 'web_nosotros:nosotros' %}"
-           class="group rounded-2xl border border-slate-200 bg-white p-8 shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-[0_12px_30px_rgba(37,99,235,0.06)]">
-            <span class="text-[11px] font-black uppercase tracking-[0.28em] text-blue-900">Sobre nosotros</span>
-            <h2 class="mt-3 text-2xl font-black tracking-tight text-slate-900">
-                Excelencia, innovación y confianza institucional
-            </h2>
-            <p class="mt-3 text-slate-600">
-                Conoce al Grupo VICAF y descarga nuestros documentos institucionales.
-            </p>
-            <span class="mt-5 inline-block font-semibold text-blue-700 group-hover:underline">Conocer más →</span>
-        </a>
+            {% if metricas %}
+            <dl class="reveal-group flex flex-1 flex-wrap justify-center gap-x-12 gap-y-8 lg:justify-end">
+                {% for metrica in metricas %}
+                <div class="reveal text-center">
+                    <dd class="text-4xl font-black tracking-tight text-white sm:text-5xl">{{ metrica.valor }}<span class="text-blue-400">{{ metrica.sufijo }}</span></dd>
+                    <dt class="mt-2 text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">{{ metrica.etiqueta }}</dt>
+                </div>
+                {% endfor %}
+            </dl>
+            {% endif %}
+        </div>
     </div>
 </section>
 
-{% comment %} Resumen de servicios: enlaza al catálogo completo (web_catalogo). {% endcomment %}
-<section id="servicios" class="scroll-mt-24 bg-slate-50 py-20">
+{% comment %}
+  Servicios: las 8 líneas como tarjetas con imagen (mismo lenguaje visual que
+  _ref/vicafpro/servicios/servicios.html: foto + degradado + título en
+  blanco), pero con el radio/sombra ya establecido en el resto del sitio
+  (rounded-2xl + shadow-[...rgba(15,23,42,...)]) en vez del rounded-[30px]
+  propio de esa referencia, para no introducir una segunda familia visual.
+{% endcomment %}
+<section id="servicios" class="reveal scroll-mt-24 bg-white py-20 lg:py-28">
     <div class="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
-        <span class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.28em] text-blue-900">
-            Catálogo de ensayos
-        </span>
-        <h2 class="mt-6 max-w-3xl text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-            Ensayos de laboratorio para cada material
-        </h2>
-        <p class="mt-4 max-w-2xl text-lg text-slate-600">
-            Suelos, agregados, concreto, asfalto y geotecnia respaldados por la acreditación
-            {{ negocio.acreditacion_entidad|default:"INACAL" }}. Consulta la norma técnica y el método de cada ensayo.
-        </p>
+        <div class="max-w-2xl">
+            <span class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.28em] text-blue-900">
+                Catálogo de ensayos
+            </span>
+            <h2 class="mt-6 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+                Ensayos de laboratorio para cada material
+            </h2>
+            <p class="mt-4 text-lg text-slate-600">
+                Suelos, agregados, concreto, asfalto y geotecnia respaldados por la acreditación
+                {{ negocio.acreditacion_entidad|default:"INACAL" }}.
+            </p>
+        </div>
 
-        <ul class="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            <li><a href="{% url 'web_catalogo:servicios_list' %}" class="group flex h-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300"><span class="font-bold text-slate-900 group-hover:text-blue-700">Suelos</span><span class="text-blue-700">→</span></a></li>
-            <li><a href="{% url 'web_catalogo:servicios_list' %}" class="group flex h-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300"><span class="font-bold text-slate-900 group-hover:text-blue-700">Agregados</span><span class="text-blue-700">→</span></a></li>
-            <li><a href="{% url 'web_catalogo:servicios_list' %}" class="group flex h-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300"><span class="font-bold text-slate-900 group-hover:text-blue-700">Concreto</span><span class="text-blue-700">→</span></a></li>
-            <li><a href="{% url 'web_catalogo:servicios_list' %}" class="group flex h-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300"><span class="font-bold text-slate-900 group-hover:text-blue-700">Asfalto</span><span class="text-blue-700">→</span></a></li>
-            <li><a href="{% url 'web_catalogo:servicios_list' %}" class="group flex h-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300"><span class="font-bold text-slate-900 group-hover:text-blue-700">Rocas</span><span class="text-blue-700">→</span></a></li>
-            <li><a href="{% url 'web_catalogo:servicios_list' %}" class="group flex h-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300"><span class="font-bold text-slate-900 group-hover:text-blue-700">Cal</span><span class="text-blue-700">→</span></a></li>
-            <li><a href="{% url 'web_catalogo:servicios_list' %}" class="group flex h-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300"><span class="font-bold text-slate-900 group-hover:text-blue-700">Carbón</span><span class="text-blue-700">→</span></a></li>
-            <li><a href="{% url 'web_catalogo:servicios_list' %}" class="group flex h-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300"><span class="font-bold text-slate-900 group-hover:text-blue-700">Geotecnia</span><span class="text-blue-700">→</span></a></li>
+        <ul class="reveal-group mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {% for linea in lineas %}
+            <li class="reveal">
+                <a href="{% url 'web_catalogo:servicio_detalle' slug=linea.slug %}"
+                   class="group relative flex h-72 flex-col justify-end overflow-hidden rounded-2xl bg-slate-800 shadow-[0_4px_20px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(15,23,42,0.2)]">
+                    {% if linea.imagen %}
+                    <img src="{{ linea.imagen.url }}" alt="{{ linea.imagen_alt|default:linea.nombre }}"
+                         class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+                         loading="lazy" decoding="async"
+                         width="{{ linea.imagen.width }}" height="{{ linea.imagen.height }}">
+                    {% endif %}
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/25 to-transparent"></div>
+                    <div class="relative p-5">
+                        <h3 class="text-lg font-bold leading-snug text-white">{{ linea.nombre }}</h3>
+                        <span class="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-300 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                            Ver línea
+                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
+                            </svg>
+                        </span>
+                    </div>
+                </a>
+            </li>
+            {% empty %}
+            <li class="col-span-full rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
+                Aún no se han publicado líneas de servicio.
+            </li>
+            {% endfor %}
         </ul>
 
-        <a href="{% url 'web_catalogo:servicios_list' %}"
-           class="mt-10 inline-flex items-center gap-2 rounded-full bg-blue-800 px-8 py-3.5 text-sm font-black uppercase tracking-[0.15em] text-white transition-all duration-300 hover:bg-blue-900">
-            Ver todos los servicios
+        <div class="mt-12 text-center">
+            <a href="{% url 'web_catalogo:servicios_list' %}"
+               class="inline-flex items-center gap-2 rounded-full bg-blue-800 px-8 py-3.5 text-sm font-black uppercase tracking-[0.15em] text-white transition-all duration-300 hover:bg-blue-900">
+                Ver todos los servicios
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
+                </svg>
+            </a>
+        </div>
+    </div>
+</section>
+
+{% comment %}
+  Acreditación destacada: rompe el ritmo con fondo oscuro/degradado azul.
+  Reutiliza la misma imagen de certificado y el mismo modal que el badge
+  INACAL del hero (partials/modal_certificado_inacal.html) — no se duplica
+  el certificado en dos formatos distintos.
+{% endcomment %}
+<section class="reveal bg-gradient-to-br from-blue-950 via-blue-900 to-slate-900 py-20 text-white lg:py-28">
+    <div class="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
+        <div class="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
+            <div>
+                <span class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.28em] text-blue-200">
+                    Acreditación {{ negocio.acreditacion_entidad|default:"INACAL" }}
+                </span>
+                <h2 class="mt-6 text-3xl font-black tracking-tight sm:text-4xl">
+                    Ensayos respaldados por acreditación oficial
+                </h2>
+                <p class="mt-4 max-w-xl text-blue-100">
+                    Registro {{ negocio.acreditacion_codigo|default:"LE-230" }} ante
+                    {{ negocio.acreditacion_entidad|default:"INACAL" }}: resultados imparciales, trazables y
+                    reconocidos por entidades públicas y privadas del norte del Perú.
+                </p>
+                <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+                    <button type="button" data-modal-cert-open
+                            class="inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-3.5 text-sm font-black uppercase tracking-[0.15em] text-blue-900 transition-all duration-300 hover:bg-blue-50">
+                        Ver certificado
+                    </button>
+                    <a href="{% url 'web_acreditacion:acreditacion' %}"
+                       class="inline-flex items-center justify-center gap-2 rounded-full border-2 border-white/50 px-8 py-3.5 text-sm font-black uppercase tracking-[0.15em] text-white transition-all duration-300 hover:bg-white hover:text-blue-900">
+                        Ver alcance completo
+                    </a>
+                </div>
+            </div>
+
+            <button type="button" data-modal-cert-open
+                    class="group block overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-3 shadow-2xl transition-transform duration-300 hover:-translate-y-1">
+                <img src="{% static 'web/img/certificaciones/GRUPO-VICAF-CERTIFICADO.webp' %}"
+                     alt="Certificado de acreditación {{ negocio.acreditacion_entidad|default:'INACAL' }} N.º {{ negocio.acreditacion_codigo|default:'LE-230' }} de Grupo VICAF"
+                     class="w-full rounded-xl transition-transform duration-500 group-hover:scale-[1.02]"
+                     width="1754" height="1241" loading="lazy" decoding="async">
+            </button>
+        </div>
+    </div>
+</section>
+
+{% comment %} Zonas de cobertura: enlazado interno a las 7 landing pages de web_zonas. {% endcomment %}
+<section class="reveal bg-slate-50 py-20 lg:py-28">
+    <div class="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
+        <div class="max-w-2xl">
+            <span class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.28em] text-blue-900">
+                Cobertura
+            </span>
+            <h2 class="mt-6 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+                Presencia en el norte del Perú
+            </h2>
+            <p class="mt-4 text-lg text-slate-600">
+                Sede en Cajamarca y atención de ensayos en las principales provincias de la región.
+            </p>
+        </div>
+
+        <ul class="reveal-group mt-10 flex flex-wrap gap-3">
+            {% for zona in zonas %}
+            <li class="reveal">
+                <a href="{% url 'web_zonas:zona_detalle' slug=zona.slug %}"
+                   class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-700">
+                    {% if zona.es_sede %}<span class="h-2 w-2 rounded-full bg-blue-600"></span>{% endif %}
+                    {{ zona.nombre }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <a href="{% url 'web_zonas:zonas_list' %}"
+           class="mt-8 inline-flex items-center gap-2 text-sm font-black text-blue-700 hover:underline">
+            Ver toda la cobertura
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
             </svg>
@@ -203,8 +321,50 @@
     </div>
 </section>
 
+{% comment %} Muro de clientes: escala de grises, color al hover. Oculto por completo si no hay destacados (regla: nunca inventar contenido). {% endcomment %}
+{% if clientes_destacados %}
+<section class="reveal bg-slate-900 py-20 text-white lg:py-28">
+    <div class="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center">
+            <span class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.28em] text-blue-300">
+                Confianza técnica
+            </span>
+            <h2 class="mt-6 text-3xl font-black tracking-tight sm:text-4xl">
+                Empresas que confían en nosotros
+            </h2>
+        </div>
+
+        <div class="reveal-group mt-12 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
+            {% for destacado in clientes_destacados %}
+            <div class="reveal flex h-24 items-center justify-center rounded-2xl bg-white p-4">
+                {% if destacado.enlace %}
+                <a href="{{ destacado.enlace }}" target="_blank" rel="noopener noreferrer" class="flex h-full w-full items-center justify-center">
+                {% endif %}
+                {% if destacado.cliente.logo_empresa %}
+                    <img src="{{ destacado.cliente.logo_empresa.url }}" alt="{{ destacado.cliente.razon_social }}"
+                         class="max-h-14 w-auto object-contain grayscale transition-all duration-300 hover:grayscale-0"
+                         loading="lazy" decoding="async">
+                {% else %}
+                    <span class="text-center text-sm font-semibold text-slate-500">{{ destacado.cliente.razon_social }}</span>
+                {% endif %}
+                {% if destacado.enlace %}
+                </a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="mt-10 text-center">
+            <a href="{% url 'web_catalogo:clientes_list' %}" class="text-sm font-black text-blue-300 hover:text-blue-200 hover:underline">
+                Ver todos los clientes →
+            </a>
+        </div>
+    </div>
+</section>
+{% endif %}
+
 {% comment %} Bloque de contacto/CTA. NAP: fuente única = siteconfig.NegocioConfig. {% endcomment %}
-<section id="contacto" class="scroll-mt-24 bg-blue-900 py-20 text-white">
+<section id="contacto" class="scroll-mt-24 bg-blue-900 py-20 text-white lg:py-28">
     <div class="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
         <div class="grid gap-12 lg:grid-cols-2 lg:items-center">
             <div>
@@ -272,4 +432,5 @@
 {% block extra_js %}
 <script src="{% static 'web/js/inicio.js' %}" defer></script>
 <script src="{% static 'web/js/modal-certificado.js' %}" defer></script>
+<script src="{% static 'web/js/scroll-reveal.js' %}" defer></script>
 {% endblock %}

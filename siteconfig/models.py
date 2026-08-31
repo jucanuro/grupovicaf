@@ -11,6 +11,11 @@ class NegocioConfig(models.Model):
     """
 
     nombre = models.CharField(max_length=150, default='Grupo VICAF SAC')
+    ruc = models.CharField(
+        max_length=11, blank=True,
+        help_text='RUC de la propia empresa (dato público, no confundir con clientes.Cliente.ruc). '
+                   'Se muestra en la barra inferior del footer.',
+    )
     descripcion = models.CharField(max_length=300)
 
     direccion_calle = models.CharField(max_length=200)

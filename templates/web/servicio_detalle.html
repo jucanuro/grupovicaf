@@ -71,6 +71,10 @@
         <span aria-hidden="true">/</span>
         <a href="{% url 'web_catalogo:servicios_list' %}" class="hover:text-blue-700">Servicios</a>
         <span aria-hidden="true">/</span>
+        {% if publicado.linea %}
+        <a href="{% url 'web_catalogo:servicio_detalle' slug=publicado.linea.slug %}" class="hover:text-blue-700">{{ publicado.linea.nombre }}</a>
+        <span aria-hidden="true">/</span>
+        {% endif %}
         <span class="text-slate-800" aria-current="page">{{ publicado.titulo_publico }}</span>
     </nav>
 
@@ -134,6 +138,12 @@
                    class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:underline">
                     Ver alcance de acreditación →
                 </a>
+                {% if publicado.linea %}
+                <a href="{% url 'web_catalogo:servicio_detalle' slug=publicado.linea.slug %}"
+                   class="mt-3 flex items-center gap-2 text-sm font-semibold text-blue-700 hover:underline">
+                    Ver línea de servicio: {{ publicado.linea.nombre }} →
+                </a>
+                {% endif %}
             </div>
 
             {% if publicado.zonas.all %}

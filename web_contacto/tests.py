@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from clientes.models import Cliente
 from servicios.models import CategoriaServicio, Cotizacion, Servicio
-from web_catalogo.models import ServicioPublicado
+from web_catalogo.models import LineaServicio, ServicioPublicado
 from web_zonas.models import ZonaCobertura
 
 from .models import MensajeContacto, SolicitudCotizacionWeb
@@ -125,6 +125,37 @@ class SolicitudCotizacionTestCase(TestCase):
 
         self.assertFalse(SolicitudCotizacionWeb.objects.exists())
         self.assertFalse(Cliente.objects.filter(ruc='20888888888').exists())
+
+
+class PreseleccionDeLineaTestCase(TestCase):
+    """CTA de linea_detalle.html: /contacto/?linea=<slug> debe llegar hasta el
+    formulario para que el JS (linea-detalle.js / contacto.html) marque los
+    checkboxes de esa línea."""
+
+    @classmethod
+    def setUpTestData(cls):
+        categoria = CategoriaServicio.objects.create(nombre='Suelos')
+        cls.linea = LineaServicio.objects.create(
+            slug='mecanica-de-suelos-test', nombre='Mecánica de Suelos', titulo_h1='x',
+            resumen='r', contenido='c', activo=True,
+        )
+        servicio = Servicio.objects.create(codigo_facturacion='ES011-TEST', nombre='CBR')
+        cls.publicado = ServicioPublicado.objects.create(
+            servicio=servicio, categoria=categoria, linea=cls.linea, slug='ensayo-cbr-test',
+            titulo_publico='Ensayo CBR', resumen='r', contenido='c', activo=True,
+        )
+
+    def setUp(self):
+        cache.clear()
+
+    def test_query_param_linea_llega_al_html_como_data_attribute(self):
+        response = self.client.get(reverse('web_contacto:contacto'), {'linea': self.linea.slug})
+        self.assertContains(response, f'data-linea-preseleccionada="{self.linea.slug}"')
+        self.assertContains(response, f'data-linea-slug="{self.linea.slug}"')
+
+    def test_sin_query_param_el_atributo_queda_vacio(self):
+        response = self.client.get(reverse('web_contacto:contacto'))
+        self.assertContains(response, 'data-linea-preseleccionada=""')
 
 
 class MensajeContactoTestCase(TestCase):

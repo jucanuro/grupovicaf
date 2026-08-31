@@ -24,7 +24,18 @@ ENV PATH=/opt/venv/bin:$PATH
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ---------- Stage 2: runtime ----------
+# ---------- Stage 2: node-builder (CSS de Tailwind) ----------
+FROM node:20-alpine AS node-builder
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build:css
+
+# ---------- Stage 3: runtime ----------
 FROM python:3.12-slim AS runtime
 
 # Librerías de sistema que WeasyPrint necesita en RUNTIME (no en build).
@@ -45,6 +56,7 @@ WORKDIR /app
 
 COPY --from=builder /opt/venv /opt/venv
 COPY . .
+COPY --from=node-builder /app/static/web/css/output.css /app/static/web/css/output.css
 
 RUN mkdir -p /app/staticfiles /app/mediafiles \
     && chown -R app:app /app /opt/venv

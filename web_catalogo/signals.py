@@ -9,11 +9,10 @@ from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 
 from clientes.models import Cliente
-from servicios.models import Servicio
 from trabajadores.models import TrabajadorProfile
 
 from .cache import KEY_CLIENTES_LIST, KEY_EQUIPO_LIST, KEY_SERVICIOS_LIST
-from .models import ClienteDestacado, MiembroEquipoPublicado, ServicioPublicado
+from .models import ClienteDestacado, LineaServicio, MiembroEquipoPublicado
 
 
 def _invalidar(clave):
@@ -26,7 +25,7 @@ _invalidar_servicios = _invalidar(KEY_SERVICIOS_LIST)
 _invalidar_clientes = _invalidar(KEY_CLIENTES_LIST)
 _invalidar_equipo = _invalidar(KEY_EQUIPO_LIST)
 
-for modelo in (ServicioPublicado, Servicio):
+for modelo in (LineaServicio,):
     post_save.connect(_invalidar_servicios, sender=modelo, weak=False)
     post_delete.connect(_invalidar_servicios, sender=modelo, weak=False)
 

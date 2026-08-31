@@ -4,50 +4,93 @@ from django.core.cache import cache
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, render
 
+from servicios.models import Servicio
 from web_zonas.models import ZonaCobertura
 
 from .cache import KEY_CLIENTES_LIST, KEY_EQUIPO_LIST, KEY_SERVICIOS_LIST, TIMEOUT_LISTADOS
-from .models import ClienteDestacado, MiembroEquipoPublicado, ServicioPublicado
+from .models import ClienteDestacado, ImagenLinea, LineaServicio, MiembroEquipoPublicado, ServicioPublicado
+
+# Lista blanca de servicios.Servicio para cualquier vista pública (regla 2 y
+# "REGLA CRÍTICA" del encargo de líneas): precio_base y codigo_facturacion
+# nunca viajan al HTML público.
+_ENSAYO_CAMPOS_PUBLICOS = (
+    'nombre', 'esta_acreditado',
+    'norma__codigo', 'norma__nombre',
+    'metodo__codigo', 'metodo__nombre',
+    'publicado__slug', 'publicado__activo',
+)
+
+
+def lineas_sidebar():
+    """Las 8 líneas activas para el índice (/servicios/) y el sidebar de cada
+    línea (linea_detalle.html). Comparten la misma caché de 15 min (regla 6):
+    ambas vistas necesitan el mismo listado ligero, solo cambia cómo lo pintan.
+    """
+    lineas = cache.get(KEY_SERVICIOS_LIST)
+    if lineas is None:
+        lineas = list(
+            LineaServicio.objects.publicadas()
+            .only('slug', 'nombre', 'resumen', 'imagen', 'imagen_alt', 'icono', 'destacado', 'orden')
+            .order_by('orden', 'nombre')
+        )
+        cache.set(KEY_SERVICIOS_LIST, lineas, TIMEOUT_LISTADOS)
+    return lineas
 
 
 def servicios_list_view(request):
-    """/servicios/ agrupado por CategoriaServicio -> Subcategoria.
-
-    Cacheado 15 min (regla 6). Solo campos públicos: nunca se pasa un
-    Servicio completo del LIMS a la plantilla (regla 2 de CLAUDE.md).
-    """
-    categorias = cache.get(KEY_SERVICIOS_LIST)
-    if categorias is None:
-        publicados = (
-            ServicioPublicado.objects.publicados()
-            .select_related('categoria', 'subcategoria')
-            .only(
-                'slug', 'titulo_publico', 'resumen', 'imagen', 'imagen_alt', 'destacado', 'orden',
-                'categoria__nombre', 'subcategoria__nombre',
-            )
-            .order_by('categoria__nombre', 'subcategoria__nombre', 'orden', 'titulo_publico')
-        )
-
-        categorias = []
-        for nombre_categoria, items_categoria in groupby(publicados, key=lambda sp: sp.categoria.nombre):
-            items_categoria = list(items_categoria)
-            subcategorias = []
-            for subcategoria, items_sub in groupby(
-                items_categoria, key=lambda sp: sp.subcategoria.nombre if sp.subcategoria_id else None
-            ):
-                subcategorias.append({'nombre': subcategoria, 'servicios': list(items_sub)})
-            categorias.append({'nombre': nombre_categoria, 'subcategorias': subcategorias})
-
-        cache.set(KEY_SERVICIOS_LIST, categorias, TIMEOUT_LISTADOS)
-
-    return render(request, 'web/servicios_list.html', {'categorias': categorias})
+    """/servicios/ — índice de líneas comerciales (8 tarjetas, ver LineaServicio)."""
+    return render(request, 'web/servicios_list.html', {'lineas': lineas_sidebar()})
 
 
 def servicio_detalle_view(request, slug):
-    """/servicios/<slug>/ — sin caché (solo listados se cachean, regla 6)."""
+    """/servicios/<slug>/ — línea comercial o ensayo individual, sin caché.
+
+    LineaServicio y ServicioPublicado comparten el prefijo /servicios/<slug>/
+    para que una línea (p. ej. mecanica-de-suelos) pueda enlazar a sus
+    ensayos individuales (p. ej. ensayo-cbr) bajo la misma jerarquía de URL.
+    Se prueba primero LineaServicio; si no hay match se cae al
+    ServicioPublicado de siempre (comportamiento sin cambios).
+    """
+    linea = (
+        LineaServicio.objects.publicadas()
+        .prefetch_related(
+            Prefetch(
+                'ensayos',
+                queryset=(
+                    Servicio.objects.select_related('norma', 'metodo', 'publicado')
+                    .only(*_ENSAYO_CAMPOS_PUBLICOS)
+                    .order_by('nombre')
+                ),
+            ),
+            Prefetch(
+                'galeria',
+                queryset=(
+                    ImagenLinea.objects.publicadas()
+                    .only(
+                        'linea_id', 'imagen', 'ancho', 'alto',
+                        'imagen_miniatura', 'ancho_miniatura', 'alto_miniatura',
+                        'alt_text', 'orden',
+                    )
+                    .order_by('orden', 'id')
+                ),
+            ),
+        )
+        .only(
+            'slug', 'nombre', 'titulo_h1', 'resumen', 'contenido', 'imagen', 'imagen_alt',
+            'meta_title', 'meta_description', 'noindex', 'imagen_og',
+        )
+        .filter(slug=slug)
+        .first()
+    )
+    if linea is not None:
+        return render(request, 'web/linea_detalle.html', {
+            'linea': linea,
+            'todas_las_lineas': lineas_sidebar(),
+        })
+
     publicado = get_object_or_404(
         ServicioPublicado.objects.publicados()
-        .select_related('categoria', 'subcategoria', 'servicio', 'servicio__norma', 'servicio__metodo')
+        .select_related('categoria', 'subcategoria', 'linea', 'servicio', 'servicio__norma', 'servicio__metodo')
         .prefetch_related(
             Prefetch(
                 'zonas',
@@ -58,6 +101,7 @@ def servicio_detalle_view(request, slug):
             'slug', 'titulo_publico', 'resumen', 'contenido', 'imagen', 'imagen_alt', 'zona_principal',
             'meta_title', 'meta_description', 'noindex', 'imagen_og',
             'categoria__nombre', 'categoria_id', 'subcategoria__nombre',
+            'linea__slug', 'linea__nombre', 'linea_id',
             'servicio__nombre', 'servicio__esta_acreditado',
             'servicio__norma__codigo', 'servicio__norma__nombre',
             'servicio__metodo__codigo', 'servicio__metodo__nombre',
@@ -69,8 +113,10 @@ def servicio_detalle_view(request, slug):
     return render(request, 'web/servicio_detalle.html', {'publicado': publicado, 'preguntas': preguntas})
 
 
-def clientes_list_view(request):
-    """/clientes/ — muro de logos. Nunca ruc/codigo_confidencial (regla 3)."""
+def clientes_destacados():
+    """Muro de logos (companion de clientes.Cliente). Nunca ruc/codigo_confidencial
+    (regla 3). Compartido por /clientes/ y el muro de la home (misma caché de 15 min).
+    """
     clientes = cache.get(KEY_CLIENTES_LIST)
     if clientes is None:
         clientes = list(
@@ -80,8 +126,12 @@ def clientes_list_view(request):
             .order_by('orden', 'id')
         )
         cache.set(KEY_CLIENTES_LIST, clientes, TIMEOUT_LISTADOS)
+    return clientes
 
-    return render(request, 'web/clientes.html', {'clientes': clientes})
+
+def clientes_list_view(request):
+    """/clientes/ — muro de logos."""
+    return render(request, 'web/clientes.html', {'clientes': clientes_destacados()})
 
 
 def equipo_list_view(request):
@@ -105,4 +155,11 @@ def equipo_list_view(request):
 
         cache.set(KEY_EQUIPO_LIST, roles, TIMEOUT_LISTADOS)
 
-    return render(request, 'web/equipo.html', {'roles': roles})
+    total_areas = len(roles)
+    total_personas = sum(len(rol['miembros']) for rol in roles)
+
+    return render(request, 'web/equipo.html', {
+        'roles': roles,
+        'total_areas': total_areas,
+        'total_personas': total_personas,
+    })
