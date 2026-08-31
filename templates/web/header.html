@@ -17,8 +17,9 @@
         </a>
 
         {% comment %}
-          Bolsa de Trabajo enlaza a "#" hasta que exista la app web_empleo
-          (ver tabla de apps en CLAUDE.md).
+          Bolsa de Trabajo no se renderiza todavía: la app web_empleo no
+          existe (ver tabla de apps en CLAUDE.md). Añadir el enlace, aquí y
+          en el menú móvil, cuando exista una URL real.
         {% endcomment %}
         <nav class="hidden items-center space-x-1 text-sm font-medium md:flex lg:space-x-2"
              aria-label="Navegación principal">
@@ -58,7 +59,6 @@
                {% if url_name == 'contacto' %}aria-current="page"{% endif %}>
                 Contáctenos
             </a>
-            <a href="#" class="nav-link relative rounded-md px-3 py-2 text-gray-700 transition-colors duration-300 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700">Bolsa de Trabajo</a>
         </nav>
 
         <div class="hidden items-center space-x-1 lg:flex" aria-label="Redes sociales de Grupo VICAF">
@@ -127,12 +127,11 @@
                 Inicio
             </a>
             <a href="{% url 'web_nosotros:nosotros' %}" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Nosotros</a>
-            <a href="#" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Equipo</a>
-            <a href="#" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Servicios</a>
+            <a href="{% url 'web_catalogo:equipo_list' %}" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Equipo</a>
+            <a href="{% url 'web_catalogo:servicios_list' %}" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Servicios</a>
             <a href="{% url 'web_acreditacion:acreditacion' %}" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Acreditación</a>
-            <a href="#" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Clientes</a>
+            <a href="{% url 'web_catalogo:clientes_list' %}" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Clientes</a>
             <a href="{% url 'web_contacto:contacto' %}" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Contáctenos</a>
-            <a href="#" class="mobile-nav-link block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition-colors duration-300 hover:bg-blue-700 hover:text-white">Bolsa de Trabajo</a>
         </nav>
     </div>
 </header>

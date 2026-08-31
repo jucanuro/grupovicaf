@@ -142,14 +142,20 @@ sigue cayendo a `db.sqlite3` como hasta ahora.
 
 ### Restaurar/migrar datos al Postgres del contenedor
 
-No hay un volcado `.sql` versionado (los `.sql`/`.gz`/`.zip` están en
-`.gitignore`). Para pasar datos desde `db.sqlite3` al Postgres de Docker:
+**Estado: hecho.** `db.sqlite3` (backup, no se borra) ya se migró al Postgres
+del contenedor dev. No hay un volcado `.sql` versionado (los
+`.sql`/`.gz`/`.zip`/`.dump` están en `.gitignore`). El volcado se acota a las
+apps del LIMS — `auth.user`, `clientes`, `trabajadores`, `servicios`,
+`proyectos`, `actividades` — porque las apps `web_*` y `siteconfig` traen su
+propio seed vía migraciones de datos (`RunPython`) y algunas (`web_nosotros`)
+ya tenían contenido propio en Postgres que no viene de `db.sqlite3` y no debe
+pisarse:
 
 ```bash
 # 1. Volcar desde sqlite (fuera de Docker, con DB_HOST vacío para no apuntar a Postgres)
 DB_HOST= SITE_ROLE=lab DJANGO_SETTINGS_MODULE=grupovicaf.settings.dev \
-  venv/bin/python manage.py dumpdata --natural-foreign --natural-primary \
-  -e contenttypes -e auth.permission -e admin.logentry -e sessions.session \
+  venv/bin/python manage.py dumpdata auth.user clientes trabajadores servicios proyectos actividades \
+  --natural-foreign --natural-primary \
   --indent 2 -o db_dump.json
 
 # 2. Con los contenedores arriba y el volumen de código montado en /app:
@@ -158,14 +164,104 @@ docker compose -f docker-compose.dev.yml exec lab python manage.py loaddata db_d
 rm db_dump.json   # no versionar el volcado
 ```
 
-> ⚠️ **Pendiente conocido**: `Servicio.objects.get(pk=16).nombre` tiene 156
-> caracteres pero el campo es `max_length=150`. SQLite nunca lo validó;
-> Postgres sí, y `loaddata` falla con
-> `StringDataRightTruncation: value too long for type character varying(150)`.
-> Antes de migrar los datos reales hay que decidir con el equipo: acortar ese
-> texto en origen o ampliar `max_length` en `servicios.models.Servicio` (con
-> su migración). No se tocó la data de producción para no decidir esto por
-> el equipo.
+`--natural-primary` solo afecta a `auth.User` (el único modelo del volcado
+con `natural_key()`); el resto conserva su PK explícita de sqlite, así que
+`loaddata` sobreescribe por PK cualquier fila placeholder que ya existiera en
+Postgres (p. ej. las `Norma`/`Metodo`/`CategoriaServicio` de prueba creadas a
+mano mientras la tabla estaba vacía).
+
+> **Resuelto**: el desborde conocido de `Servicio.objects.get(pk=16).nombre`
+> (156 caracteres contra `max_length=150`) ya no existe — el campo se amplió
+> a `max_length=255` en un commit posterior. Una auditoría completa de los
+> 173 `CharField`/`SlugField` de las 13 apps propias contra los datos reales
+> de `db.sqlite3` (2026-08-31) no encontró ningún campo desbordado.
+
+### Restaurar el dump de Postgres en producción (EC2)
+
+Volcado generado con `pg_dump -F c` (formato *custom*, comprimido, admite
+`pg_restore --clean` para reemplazar el esquema existente):
+
+```bash
+# En el host de producción, con el contenedor db arriba:
+docker compose cp grupovicaf_YYYYMMDD.dump db:/tmp/grupovicaf.dump
+docker compose exec db pg_restore -U grupovicaf -d grupovicaf --clean --if-exists /tmp/grupovicaf.dump
+docker compose exec db rm /tmp/grupovicaf.dump
+docker compose exec lab python manage.py migrate   # por si el dump es de una revisión anterior
+```
+
+### Actualizar contenido web sin tocar el LIMS
+
+AWS es la fuente de verdad del LIMS (`clientes`, `trabajadores`, `servicios`,
+`proyectos`, `actividades`) y **nunca se sobrescribe** desde dev. Cuando lo
+que cambió en local es solo contenido web (`web_inicio`, `web_nosotros`,
+`web_acreditacion`, `web_catalogo`, `web_zonas`, `web_contacto`,
+`siteconfig`), se sube con este procedimiento en vez de `pg_restore`.
+
+**El problema de fondo**: `LineaServicio.ensayos` (M2M), `Acreditacion.
+servicios_acreditados` (M2M) y `ServicioPublicado.servicio` (FK) apuntan a
+`servicios.Servicio`. Los IDs de esa tabla NO coinciden entre bases (dev
+tiene 99 `Servicio` de prueba, AWS tiene los 14 reales) — subir esos campos
+tal cual enlazaría cada línea/ensayo al `Servicio` equivocado. Además,
+`ServicioPublicado.categoria` es un FK NOT NULL a `servicios.
+CategoriaServicio`, y en dev esa tabla solo tiene categorías placeholder
+("Categoria 1", "cATEGORÍA 2"...) sin ningún significado real — no hay nada
+que emparejar por nombre ahí, así que el volcado no puede traer esa columna.
+
+**1. En dev, generar el paquete** (no se versiona, ver `.gitignore`):
+
+```bash
+docker compose -f docker-compose.dev.yml exec lab python manage.py exportar_datos_web --output-dir /tmp
+docker compose -f docker-compose.dev.yml cp lab:/tmp/web_dump.json .
+docker compose -f docker-compose.dev.yml cp lab:/tmp/web_dump_relink.json .
+```
+
+Produce dos archivos:
+- `web_dump.json`: fixture estándar de Django (todo `web_*`/`siteconfig`
+  excepto `ServicioPublicado`), con `LineaServicio.ensayos`,
+  `Acreditacion.servicios_acreditados`, `ServicioPublicado.servicio`,
+  `SolicitudCotizacionWeb.cliente/cotizacion` y `MensajeContacto.
+  atendido_por` vacíos.
+- `web_dump_relink.json`: lo que depende del catálogo LIMS — cada
+  `ServicioPublicado` (con su `servicio` original como snapshot de
+  nombre/código, no de ID) y las listas de `Servicio` que cada
+  `LineaServicio`/`Acreditacion` tenía vinculadas.
+
+**2. Copiar ambos archivos al host de producción** (`scp`, no por git) y, con
+los contenedores arriba:
+
+```bash
+docker compose cp web_dump.json lab:/tmp/web_dump.json
+docker compose cp web_dump_relink.json lab:/tmp/web_dump_relink.json
+
+# 2a. Recrea ServicioPublicado con su mismo pk y una categoría placeholder
+#     explícita ("Sin categorizar (pendiente)") — hay que reasignarla a mano
+#     desde el admin después. Sin este paso, el loaddata de 2b falla: NOT
+#     NULL en categoria_id apuntando a un modelo que no se sube.
+docker compose exec lab python manage.py cargar_servicios_publicados /tmp/web_dump_relink.json
+
+# 2b. Todo lo demás, con PK preservada (PreguntaFrecuente,
+#     ZonaCobertura.servicios, SolicitudCotizacionItem ya resuelven bien
+#     porque ServicioPublicado quedó cargado en el paso anterior).
+docker compose exec lab python manage.py loaddata /tmp/web_dump.json
+
+# 2c. Revincula por código de facturación / nombre normalizado contra el
+#     catálogo REAL de esta base. Dry-run por defecto — revisa el reporte
+#     antes de repetir con --apply.
+docker compose exec lab python manage.py revincular_catalogo /tmp/web_dump_relink.json
+docker compose exec lab python manage.py revincular_catalogo /tmp/web_dump_relink.json --apply
+
+docker compose exec lab rm /tmp/web_dump.json /tmp/web_dump_relink.json
+```
+
+`revincular_catalogo` nunca adivina: los casos ambiguos (dos `Servicio` con
+nombre parecido) o sin match quedan reportados para vincular a mano desde el
+admin (`autocomplete_fields`), igual que ya advierte
+`poblar_catalogo_ensayos.py` para los ensayos con variantes en el LIMS.
+
+**3. Pendiente manual después de aplicar**: reasignar en el admin la
+categoría real de cada `ServicioPublicado` (quedó en "Sin categorizar
+(pendiente)") y resolver los casos que `revincular_catalogo` reportó como
+ambiguos o sin match.
 
 ### Producción
 

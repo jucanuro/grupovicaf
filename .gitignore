@@ -104,6 +104,8 @@ terraform.tfvars
 *.zip
 *.tar
 *.tar.gz
+*.dump
+web_dump*.json
 
 local_settings.py
 # Referencia del proyecto web anterior (no versionar)

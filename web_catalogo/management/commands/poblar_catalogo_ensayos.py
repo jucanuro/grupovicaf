@@ -16,7 +16,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from servicios.models import CategoriaServicio, Servicio
-from web_catalogo.models import ServicioPublicado
+from web_catalogo.models import LineaServicio, ServicioPublicado
 
 PLACEHOLDER_RESUMEN = 'PENDIENTE DE REDACCIÓN — resumen comercial del ensayo.'
 PLACEHOLDER_CONTENIDO = (
@@ -26,28 +26,32 @@ PLACEHOLDER_CONTENIDO = (
     'No publicar sin reemplazar este placeholder.'
 )
 
-# slug -> (titulo_publico, id de Servicio si es inequívoco o None, nota)
+# slug -> (titulo_publico, id de Servicio si es inequívoco o None, slug de
+# LineaServicio si es inequívoco o None, nota)
 ENSAYOS = [
-    ('ensayo-cbr', 'Ensayo CBR', 85, 'Servicio único: CBR (ES011).'),
-    ('ensayo-proctor', 'Ensayo Proctor', None,
+    ('ensayo-cbr', 'Ensayo CBR', 85, 'mecanica-de-suelos',
+     'Servicio único: CBR (ES011).'),
+    ('ensayo-proctor', 'Ensayo Proctor', None, 'mecanica-de-suelos',
      'Ambiguo: existen Proctor Estándar (ES009, id 83) y Proctor Modificado '
      '(ES010, id 84). Vincular manualmente el que corresponda.'),
-    ('ensayo-triaxial', 'Ensayo Triaxial', None,
+    ('ensayo-triaxial', 'Ensayo Triaxial', None, 'mecanica-de-suelos',
      'Ambiguo: 6 variantes en el LIMS (UU/CU/CD, diámetros 2.8" y 4"): '
      'EE002, EE003, EE005, EE006, EE008, EE009. Vincular manualmente.'),
-    ('rotura-de-probetas', 'Rotura de Probetas', None,
+    ('rotura-de-probetas', 'Rotura de Probetas', None, 'control-de-calidad',
      'Ambiguo: dos registros casi duplicados — id 4 (EC-004, "...(*)") y '
      'id 32 (EC001, sin asterisco). Vincular manualmente tras confirmar '
      'cuál es el vigente.'),
-    ('diseno-de-mezclas', 'Diseño de Mezclas', None,
+    ('diseno-de-mezclas', 'Diseño de Mezclas', None, 'diseno-de-mezclas',
      'Ambiguo: 4 candidatos — id 1 (ES001), id 15 (CN007, TEÓRICO), '
      'id 16 (CN008, TEÓRICO con/sin aditivos), id 17 (CN009, COMPROBADO). '
      'Vincular manualmente el que corresponda.'),
-    ('densidad-de-campo', 'Densidad de Campo', 35,
+    ('densidad-de-campo', 'Densidad de Campo', 35, 'mecanica-de-suelos',
      'Servicio único: Densidad mediante el cono y la arena (EDC002).'),
-    ('ensayos-de-asfalto', 'Ensayos de Asfalto', None,
-     'Sin match: ningún Servicio del LIMS menciona "asfalto". Crear el '
-     'registro interno en servicios.Servicio antes de vincular.'),
+    ('ensayos-de-asfalto', 'Ensayos de Asfalto', None, None,
+     'Sin match: ningún Servicio del LIMS menciona "asfalto", y ninguna '
+     'LineaServicio existente es inequívocamente la correcta (¿Control de '
+     'Calidad? ¿Estudio de Canteras?). Crear el registro interno en '
+     'servicios.Servicio y confirmar la línea antes de vincular.'),
 ]
 
 
@@ -72,12 +76,18 @@ class Command(BaseCommand):
         avisos = []
 
         with transaction.atomic():
-            for slug, titulo, servicio_id, nota in ENSAYOS:
+            for slug, titulo, servicio_id, linea_slug, nota in ENSAYOS:
                 servicio = None
                 if servicio_id is not None:
                     servicio = Servicio.objects.filter(pk=servicio_id).first()
                     if servicio is None:
                         avisos.append(f'{slug}: se esperaba Servicio id={servicio_id}, no existe. {nota}')
+
+                linea = None
+                if linea_slug is not None:
+                    linea = LineaServicio.objects.filter(slug=linea_slug).first()
+                    if linea is None:
+                        avisos.append(f'{slug}: se esperaba LineaServicio slug="{linea_slug}", no existe.')
 
                 publicado, creado = ServicioPublicado.objects.update_or_create(
                     slug=slug,
@@ -88,14 +98,16 @@ class Command(BaseCommand):
                         'contenido': PLACEHOLDER_CONTENIDO,
                         'activo': False,  # no se indexa hasta que se redacte y se revise
                         'servicio': servicio,
+                        'linea': linea,
                     },
                 )
 
                 accion = 'creado' if creado else 'actualizado'
                 vinculo = f'-> Servicio #{servicio.pk} ({servicio.codigo_facturacion})' if servicio else '-> SIN VINCULAR'
-                self.stdout.write(f'{slug}: {accion} {vinculo}')
+                vinculo_linea = f'-> Línea "{linea.nombre}"' if linea else '-> SIN LÍNEA'
+                self.stdout.write(f'{slug}: {accion} {vinculo} {vinculo_linea}')
 
-                if servicio is None and servicio_id is None:
+                if servicio_id is None or linea_slug is None:
                     avisos.append(f'{slug}: {nota}')
 
         if avisos:
