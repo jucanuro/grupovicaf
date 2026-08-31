@@ -46,6 +46,14 @@
         Los ensayos que respaldamos con acreditación cumplen los requisitos de la norma
         técnica peruana e internacional bajo la supervisión del {{ negocio.acreditacion_entidad }}.
     </p>
+
+    {% comment %} Abre el mismo modal del certificado que el badge INACAL de la home. {% endcomment %}
+    <button type="button" data-modal-cert-open
+            class="mt-8 inline-flex items-center gap-3 rounded-full border border-blue-200 bg-white py-2 pl-2 pr-5 text-sm font-bold text-blue-900 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2">
+        <img src="{% static 'web/img/LogoInacal1.webp' %}" alt=""
+             class="h-8 w-8 object-contain" width="400" height="400" decoding="async">
+        Ver certificado de acreditación {{ negocio.acreditacion_entidad|default:"INACAL" }}
+    </button>
 </section>
 
 <section class="mx-auto max-w-[1600px] px-4 pb-24 sm:px-6 lg:px-8">
@@ -109,4 +117,10 @@
         {% endfor %}
     </div>
 </section>
+
+{% include 'web/partials/modal_certificado_inacal.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'web/js/modal-certificado.js' %}" defer></script>
 {% endblock %}

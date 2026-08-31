@@ -23,6 +23,9 @@ class Nosotros(SeoModel):
         help_text='Obligatorio si se sube imagen: describe la escena para accesibilidad y SEO.',
     )
 
+    mision = models.TextField(blank=True)
+    vision = models.TextField(blank=True)
+
     creado = models.DateTimeField(auto_now_add=True)
     actualizado = models.DateTimeField(auto_now=True)
 

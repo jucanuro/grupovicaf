@@ -5,45 +5,140 @@
 {% block meta_description %}{{ negocio.descripcion }}{% endblock %}
 
 {% block content %}
-<section class="relative overflow-hidden bg-slate-950">
-    <div class="relative h-[85vh] min-h-[560px] w-full">
-        {% for slide in slides %}
-        <div class="carousel-item absolute inset-0 {% if forloop.first %}active{% else %}hidden{% endif %}">
-            {% if slide.enlace %}<a href="{{ slide.enlace }}" class="absolute inset-0 z-10" aria-label="{{ slide.titulo }}"></a>{% endif %}
-            <img
-                src="{{ slide.imagen.url }}"
-                alt="{{ slide.alt_text }}"
-                class="h-full w-full object-cover"
-                width="{{ slide.imagen.width }}"
-                height="{{ slide.imagen.height }}"
-                {% if forloop.first %}decoding="async"{% else %}loading="lazy" decoding="async"{% endif %}
-            >
-            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/50 to-slate-950/10"></div>
+{% comment %}
+  Hero: copia estructural literal de
+  _ref/vicafpro/inicio/templates/inicio/inicio.html. Mismos tags, mismo
+  anidamiento, mismas clases Tailwind. Únicos cambios permitidos frente al
+  original:
+    1. rutas {% templatetag openblock %} static {% templatetag closeblock %}: 'img/...' -> 'web/img/...'
+    2. portadas .jpg/.jpeg -> .webp
+    3. extiende templates/web/base.html (el original no extendía nada)
+    4. el modal del certificado se abre por clic, no solo — como el original
+       no tenía disparador (se auto-abría al cargar), se añadió el badge
+       INACAL con data-modal-cert-open. El modal en sí, su JS y el botón
+       flotante de WhatsApp de más abajo YA existen en esta plantilla más
+       adelante (partials/modal_certificado_inacal.html, modal-certificado.js,
+       sección #contacto) — no se duplican aquí para no repetir el modal ni
+       el botón de WhatsApp dos veces en la página.
+    5. botones amarillos -> azul de marca (bg-blue-700/hover:bg-blue-800,
+       icono a fill-white en vez de fill-gray-900)
+    6. WhatsApp sale de negocio.whatsapp (siteconfig.NegocioConfig)
 
-            <div class="relative z-20 mx-auto flex h-full max-w-[1600px] flex-col justify-end px-4 pb-20 pt-32 sm:px-6 lg:px-8">
-                {% if forloop.first %}
-                <h1 class="max-w-3xl text-4xl font-black tracking-tight text-white sm:text-5xl lg:text-6xl">
-                    Laboratorio de ensayo de materiales acreditado en Cajamarca
-                </h1>
-                {% endif %}
-                <p class="mt-6 max-w-2xl text-lg font-medium text-slate-200">{{ slide.titulo }}</p>
-                {% if slide.descripcion %}
-                <p class="mt-2 max-w-2xl text-base text-slate-300">{{ slide.descripcion }}</p>
-                {% endif %}
-            </div>
-        </div>
-        {% empty %}
-        <div class="carousel-item active absolute inset-0 bg-gradient-to-br from-blue-950 via-slate-900 to-slate-950">
-            <div class="relative z-20 mx-auto flex h-full max-w-[1600px] flex-col justify-end px-4 pb-20 pt-32 sm:px-6 lg:px-8">
-                <h1 class="max-w-3xl text-4xl font-black tracking-tight text-white sm:text-5xl lg:text-6xl">
-                    Laboratorio de ensayo de materiales acreditado en Cajamarca
-                </h1>
-                <p class="mt-6 max-w-2xl text-lg font-medium text-slate-200">{{ negocio.descripcion }}</p>
-            </div>
-        </div>
-        {% endfor %}
+  El botón "Sistema Interno" original iba en top-4, pero aquí el header es
+  fixed (h-20, z-50 — templates/web/header.html) y lo taparía por completo;
+  se bajó a top-24 para que quede visible. Es la única desviación de
+  posición frente al original.
+
+  El carrusel se alimenta de CarruselInicio; si la tabla está vacía (rama
+  "empty" de forloop), cae a las 5 portadas estáticas de
+  static/web/img/inicio/ para no dejar el hero sin foto — igual que hacía
+  _ref con PORTADA1..5, solo que en .webp. Se preserva el orden original
+  (5, 4, 3, 2, 1) y el efecto hover:scale-105 que traía cada imagen.
+
+  La franja de marquesina queda con class="hidden" tal como en el original
+  (ahí nunca se mostraba: era una barra sin ningún trigger que le quitara la
+  clase). Se deja igual, sin "arreglarla", tal como pide el encargo.
+{% endcomment %}
+<div id="home" class="relative min-h-screen bg-slate-900 text-white">
+
+    <div class="absolute top-24 right-4 z-30 hidden sm:block">
+        <a href="https://laboratorio.grupovicaf.com/" target="_blank" rel="noopener noreferrer"
+           class="group inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-4 py-2.5 text-sm font-semibold text-white shadow-xl backdrop-blur-md transition-all duration-300 hover:border-blue-400 hover:bg-blue-700 md:text-base">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400 transition-colors duration-300 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            </svg>
+            <span>Sistema Interno</span>
+        </a>
     </div>
-</section>
+
+    <div class="relative w-full h-screen">
+
+        <div class="absolute rounded-lg px-4 lg:px-0 top-20 lg:left-12 z-20 w-full md:w-1/2 lg:w-1/3 pt-10 pb-6 px-4 sm:px-6 lg:px-8 flex flex-col items-start text-left bg-black/60">
+            <button type="button" data-modal-cert-open
+                    class="group inline-flex items-center gap-2.5 rounded-full border border-white/25 bg-slate-900/70 py-1.5 pl-1.5 pr-4 text-[11px] font-black uppercase tracking-[0.28em] text-white transition-colors hover:bg-slate-800/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
+                <img src="{% static 'web/img/LogoInacal1.webp' %}" alt=""
+                     class="h-6 w-6 rounded-full bg-white object-contain p-0.5"
+                     width="400" height="400" decoding="async">
+                <span>{{ negocio.acreditacion_entidad|default:"INACAL" }} · Registro {{ negocio.acreditacion_codigo|default:"LE-230" }}</span>
+                <span class="hidden text-blue-100 group-hover:text-white sm:inline">· Ver certificado</span>
+            </button>
+
+            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-3 mt-5 leading-tight" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.6);">
+                Laboratorio de ensayo de materiales acreditado en Cajamarca
+            </h1>
+            <p class="text-lg mt-6 sm:text-xl lg:text-2xl text-gray-200 mb-6" style="text-shadow: 1px 1px 4px rgba(0,0,0,0.6);">
+                Suelos · Agregados · Concreto · Asfalto · Rocas · Cal · Carbón
+            </p>
+
+            <div class="flex flex-col sm:flex-row justify-center items-center space-y-3 sm:space-y-0 sm:space-x-4 mt-6 w-full">
+                <a href="#servicios"
+                   class="group bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-50 flex items-center text-sm lg:text-base">
+                    Ver Servicios
+                    <svg class="w-5 h-5 ml-2 fill-white transition-transform duration-300 ease-in-out group-hover:translate-x-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512">
+                        <path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM144 256a144 144 0 1 1 288 0 144 144 0 1 1 -288 0zm144-64c0 35.3-28.7 64-64 64c-7.1 0-13.9-1.2-20.3-3.3c-5.5-1.8-11.9 1.6-11.7 7.4c.3 6.9 1.3 13.8 3.2 20.7c13.7 51.2 66.4 81.6 117.6 67.9s81.6-66.4 67.9-117.6c-11.1-41.5-47.8-69.4-88.6-71.1c-5.8-.2-9.2 6.1-7.4 11.7c2.1 6.4 3.3 13.2 3.3 20.3z"/>
+                    </svg>
+                </a>
+                <a href="{% static 'web/pdf/brochure-grupo-vicaf-2025.pdf' %}" target="_blank" rel="noopener noreferrer"
+                   class="group bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-50 flex items-center text-sm lg:text-base">
+                    Descargar Brochure
+                    <svg class="w-5 h-5 ml-2 fill-white transition-transform duration-300 ease-in-out group-hover:translate-x-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                        <path d="M288 32c0-17.7-14.3-32-32-32s-32 14.3-32 32v242.7l-73.4-73.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l128 128c12.5 12.5 32.8 12.5 45.3 0l128-128c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L288 274.7V32zM64 352c-35.3 0-64 28.7-64 64v32c0 35.3 28.7 64 64 64h384c35.3 0 64-28.7 64-64v-32c0-35.3-28.7-64-64-64H64zm368 56a24 24 0 1 1 0 48 24 24 0 1 1 0-48z"></path>
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <div id="carousel" class="absolute inset-0 z-10 w-full h-full overflow-hidden">
+            {% for slide in slides %}
+            <div class="carousel-item {% if forloop.first %}active{% else %}hidden{% endif %} relative w-full h-full">
+                {% if slide.enlace %}<a href="{{ slide.enlace }}" class="absolute inset-0 z-10" aria-label="{{ slide.titulo }}"></a>{% endif %}
+                <img src="{{ slide.imagen.url }}"
+                     alt="{{ slide.alt_text }}"
+                     {% if forloop.first %}loading="eager"{% else %}loading="lazy"{% endif %}
+                     class="w-full h-full object-cover transition-transform duration-500 ease-in-out hover:scale-105"
+                     width="{{ slide.imagen.width }}" height="{{ slide.imagen.height }}">
+            </div>
+            {% empty %}
+            <div class="carousel-item active relative w-full h-full">
+                <img src="{% static 'web/img/inicio/PORTADA5.webp' %}"
+                     alt="Imagen de portada 1: Control de Calidad en Materiales"
+                     loading="eager"
+                     class="w-full h-full object-cover transition-transform duration-500 ease-in-out hover:scale-105" />
+            </div>
+            <div class="carousel-item relative w-full h-full hidden">
+                <img src="{% static 'web/img/inicio/PORTADA4.webp' %}"
+                     alt="Imagen de portada 2: Ensayos de Mecánica de Suelos"
+                     loading="lazy"
+                     class="w-full h-full object-cover transition-transform duration-500 ease-in-out hover:scale-105" />
+            </div>
+            <div class="carousel-item relative w-full h-full hidden">
+                <img src="{% static 'web/img/inicio/PORTADA3.webp' %}"
+                     alt="Imagen de portada 3: Estudios de Canteras de Áridos"
+                     loading="lazy"
+                     class="w-full h-full object-cover transition-transform duration-500 ease-in-out hover:scale-105" />
+            </div>
+            <div class="carousel-item w-full h-full hidden">
+                <img src="{% static 'web/img/inicio/PORTADA2.webp' %}"
+                     alt="Imagen de portada 4: Evaluación Estructural de Edificaciones"
+                     loading="lazy"
+                     class="w-full h-full object-cover transition-transform duration-500 ease-in-out hover:scale-105">
+            </div>
+            <div class="carousel-item w-full h-full hidden">
+                <img src="{% static 'web/img/inicio/PORTADA1.webp' %}"
+                     alt="Imagen de portada 5: Diseño de Mezclas de Concreto y Asfalto"
+                     loading="lazy"
+                     class="w-full h-full object-cover transition-transform duration-500 ease-in-out hover:scale-105">
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="absolute hidden bottom-0 left-0 right-0 z-20 bg-transparent backdrop-blur-md py-3 sm:py-4 overflow-hidden shadow-lg">
+            <div class="whitespace-nowrap animate-marquee text-center text-white text-sm sm:text-base font-bold tracking-wider">
+                PRECISIÓN EN RESULTADOS • ACOMPAÑAMIENTO TÉCNICO • IMPARCIALIDAD Y CONFIDENCIALIDAD • PERSONAL COMPETENTE • EQUIPOS CALIBRADOS
+            </div>
+        </div>
+    </div>
+</div>
 
 <section class="mx-auto max-w-[1600px] px-4 py-20 sm:px-6 lg:px-8">
     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -72,8 +167,109 @@
         </a>
     </div>
 </section>
+
+{% comment %} Resumen de servicios: enlaza al catálogo completo (web_catalogo). {% endcomment %}
+<section id="servicios" class="scroll-mt-24 bg-slate-50 py-20">
+    <div class="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
+        <span class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.28em] text-blue-900">
+            Catálogo de ensayos
+        </span>
+        <h2 class="mt-6 max-w-3xl text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+            Ensayos de laboratorio para cada material
+        </h2>
+        <p class="mt-4 max-w-2xl text-lg text-slate-600">
+            Suelos, agregados, concreto, asfalto y geotecnia respaldados por la acreditación
+            {{ negocio.acreditacion_entidad|default:"INACAL" }}. Consulta la norma técnica y el método de cada ensayo.
+        </p>
+
+        <ul class="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <li><a href="{% url 'web_catalogo:servicios_list' %}" class="group flex h-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300"><span class="font-bold text-slate-900 group-hover:text-blue-700">Suelos</span><span class="text-blue-700">→</span></a></li>
+            <li><a href="{% url 'web_catalogo:servicios_list' %}" class="group flex h-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300"><span class="font-bold text-slate-900 group-hover:text-blue-700">Agregados</span><span class="text-blue-700">→</span></a></li>
+            <li><a href="{% url 'web_catalogo:servicios_list' %}" class="group flex h-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300"><span class="font-bold text-slate-900 group-hover:text-blue-700">Concreto</span><span class="text-blue-700">→</span></a></li>
+            <li><a href="{% url 'web_catalogo:servicios_list' %}" class="group flex h-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300"><span class="font-bold text-slate-900 group-hover:text-blue-700">Asfalto</span><span class="text-blue-700">→</span></a></li>
+            <li><a href="{% url 'web_catalogo:servicios_list' %}" class="group flex h-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300"><span class="font-bold text-slate-900 group-hover:text-blue-700">Rocas</span><span class="text-blue-700">→</span></a></li>
+            <li><a href="{% url 'web_catalogo:servicios_list' %}" class="group flex h-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300"><span class="font-bold text-slate-900 group-hover:text-blue-700">Cal</span><span class="text-blue-700">→</span></a></li>
+            <li><a href="{% url 'web_catalogo:servicios_list' %}" class="group flex h-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300"><span class="font-bold text-slate-900 group-hover:text-blue-700">Carbón</span><span class="text-blue-700">→</span></a></li>
+            <li><a href="{% url 'web_catalogo:servicios_list' %}" class="group flex h-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300"><span class="font-bold text-slate-900 group-hover:text-blue-700">Geotecnia</span><span class="text-blue-700">→</span></a></li>
+        </ul>
+
+        <a href="{% url 'web_catalogo:servicios_list' %}"
+           class="mt-10 inline-flex items-center gap-2 rounded-full bg-blue-800 px-8 py-3.5 text-sm font-black uppercase tracking-[0.15em] text-white transition-all duration-300 hover:bg-blue-900">
+            Ver todos los servicios
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
+            </svg>
+        </a>
+    </div>
+</section>
+
+{% comment %} Bloque de contacto/CTA. NAP: fuente única = siteconfig.NegocioConfig. {% endcomment %}
+<section id="contacto" class="scroll-mt-24 bg-blue-900 py-20 text-white">
+    <div class="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
+        <div class="grid gap-12 lg:grid-cols-2 lg:items-center">
+            <div>
+                <h2 class="text-3xl font-black tracking-tight sm:text-4xl">¿Necesitas una cotización?</h2>
+                <p class="mt-4 max-w-xl text-blue-100">
+                    Cuéntanos el alcance de tu proyecto y te respondemos con la propuesta técnica y económica
+                    en horario de oficina.
+                </p>
+                <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+                    <a href="{% url 'web_contacto:contacto' %}"
+                       class="inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-3.5 text-sm font-black uppercase tracking-[0.15em] text-blue-900 transition-all duration-300 hover:bg-blue-50">
+                        Solicitar cotización
+                    </a>
+                    {% if negocio.whatsapp %}
+                    <a href="https://wa.me/{{ negocio.whatsapp }}" target="_blank" rel="noopener noreferrer"
+                       class="inline-flex items-center justify-center gap-2 rounded-full border-2 border-white/70 px-8 py-3.5 text-sm font-black uppercase tracking-[0.15em] text-white transition-all duration-300 hover:bg-white hover:text-blue-900">
+                        Escribir por WhatsApp
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <dl class="grid gap-4 sm:grid-cols-2">
+                <div class="rounded-2xl bg-white/10 p-5">
+                    <dt class="text-[11px] font-black uppercase tracking-[0.2em] text-blue-200">Teléfono</dt>
+                    <dd class="mt-1 font-semibold">{{ negocio.telefono }}</dd>
+                </div>
+                <div class="rounded-2xl bg-white/10 p-5">
+                    <dt class="text-[11px] font-black uppercase tracking-[0.2em] text-blue-200">Correo</dt>
+                    <dd class="mt-1 font-semibold break-words">{{ negocio.correo }}</dd>
+                </div>
+                <div class="rounded-2xl bg-white/10 p-5">
+                    <dt class="text-[11px] font-black uppercase tracking-[0.2em] text-blue-200">Oficina</dt>
+                    <dd class="mt-1 text-sm leading-relaxed text-blue-50">
+                        {{ negocio.direccion_calle }}, {{ negocio.direccion_localidad }} – Perú
+                    </dd>
+                </div>
+                {% if negocio.horario_semana_apertura %}
+                <div class="rounded-2xl bg-white/10 p-5">
+                    <dt class="text-[11px] font-black uppercase tracking-[0.2em] text-blue-200">Horario</dt>
+                    <dd class="mt-1 text-sm leading-relaxed text-blue-50">
+                        Lun a Vie {{ negocio.horario_semana_apertura|time:'H:i' }}–{{ negocio.horario_semana_cierre|time:'H:i' }}
+                        {% if negocio.horario_sabado_apertura %}<br>Sáb {{ negocio.horario_sabado_apertura|time:'H:i' }}–{{ negocio.horario_sabado_cierre|time:'H:i' }}{% endif %}
+                    </dd>
+                </div>
+                {% endif %}
+            </dl>
+        </div>
+    </div>
+</section>
+
+{% if negocio.whatsapp %}
+<a href="https://wa.me/{{ negocio.whatsapp }}" target="_blank" rel="noopener noreferrer"
+   aria-label="Escríbenos por WhatsApp"
+   class="fixed bottom-5 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg transition-all duration-300 hover:scale-105 hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2">
+    <svg class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12.04 1.999c-5.523 0-10 4.477-10 10 0 1.767.463 3.47 1.338 4.98l-1.39 5.071 5.196-1.363c1.449.79 3.081 1.212 4.856 1.212 5.523 0 10-4.477 10-10s-4.477-10-10-10zm0 17.5c-1.553 0-3.064-.405-4.394-1.17l-.314-.177-3.085.81.828-3.028-.195-.314c-.835-1.345-1.276-2.894-1.276-4.46 0-4.408 3.592-8 8-8 4.408 0 8 3.592 8 8s-3.592 8-8 8zm4.5-5.95c-.247-.123-1.462-.722-1.69-.803-.228-.081-.395-.123-.561.123-.164.247-.643.802-.787.967-.145.164-.29.184-.538.062-.247-.123-1.042-.383-1.984-1.222-.733-.653-1.228-1.457-1.372-1.704-.144-.247-.015-.38.108-.503.111-.111.247-.29.37-.436.123-.145.164-.247.247-.41.082-.164.041-.308-.02-.431-.061-.123-.538-1.296-.736-1.773-.194-.477-.391-.412-.561-.42-.145-.007-.308-.009-.472-.009-.164 0-.431.062-.654.308-.223.247-.853.832-.853 2.034 0 1.203.874 2.366.996 2.529.123.164 1.715 2.617 4.158 3.674.58.25 1.031.398 1.382.508.581.184 1.109.158 1.526.096.465-.07 1.462-.597 1.668-1.174.205-.576.205-1.071.144-1.175-.06-.103-.226-.164-.472-.287z"/>
+    </svg>
+</a>
+{% endif %}
+
+{% include 'web/partials/modal_certificado_inacal.html' %}
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'web/js/inicio.js' %}" defer></script>
+<script src="{% static 'web/js/modal-certificado.js' %}" defer></script>
 {% endblock %}

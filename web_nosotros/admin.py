@@ -20,6 +20,7 @@ class NosotrosAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('Contenido', {'fields': ('titulo', 'contenido', 'imagen', 'vista_previa', 'imagen_alt')}),
+        ('Misión y visión', {'fields': ('mision', 'vision')}),
         ('SEO', {'fields': ('slug', 'meta_title', 'meta_description', 'noindex', 'imagen_og')}),
         ('Auditoría', {'fields': ('creado', 'actualizado'), 'classes': ('collapse',)}),
     )

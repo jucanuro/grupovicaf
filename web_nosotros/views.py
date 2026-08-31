@@ -6,7 +6,7 @@ from .services import obtener_documentos_nosotros
 
 def nosotros_view(request):
     nosotros = Nosotros.objects.only(
-        'titulo', 'contenido', 'imagen', 'imagen_alt',
+        'titulo', 'contenido', 'imagen', 'imagen_alt', 'mision', 'vision',
         'meta_title', 'meta_description', 'noindex', 'imagen_og',
     ).first()
 

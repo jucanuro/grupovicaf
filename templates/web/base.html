@@ -30,13 +30,13 @@
 
     <link rel="icon" href="{% static 'web/img/LogoF.webp' %}" type="image/webp">
 
-    {#
+    {% comment %}
       Sin webfont: _ref/vicafpro no define ninguna tipografía propia para el
       sitio público (solo el panel LIMS usa Plus Jakarta Sans). Se usa la
       pila sans-serif del sistema (font-sans de Tailwind) — cero peticiones
       de red, cero CLS por swap de fuente. Si el diseño define una tipografía
       de marca más adelante, precargarla aquí con font-display: swap.
-    #}
+    {% endcomment %}
     <link rel="stylesheet" href="{% static 'web/css/output.css' %}">
     <link rel="stylesheet" href="{% static 'web/css/vicaf.css' %}">
 
