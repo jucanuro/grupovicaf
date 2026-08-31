@@ -1,0 +1,39 @@
+# Grupo VICAF — Celery beat (planificador de tareas periódicas).
+# Hoy: barrido diario de proyectos con fecha_entrega_estimada vencida, 07:30
+# America/Lima (ver grupovicaf/celery.py). Un único proceso beat, nunca más
+# de uno corriendo a la vez o duplica las tareas periódicas.
+#
+# Instalar en /etc/systemd/system/vicafbeat.service — ver deploy/INSTRUCTIVO.md.
+
+[Unit]
+Description=Grupo VICAF - Celery beat
+After=network.target postgresql.service redis-server.service vicafworker.service
+Wants=postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/projects/grupovicaf
+EnvironmentFile=/var/www/projects/grupovicaf/.env
+Environment=SITE_ROLE=lab
+Environment=SITE_URL=https://laboratorio.grupovicaf.com
+Environment=DJANGO_SETTINGS_MODULE=grupovicaf.settings.prod
+
+ExecStart=/var/www/projects/grupovicaf/venv/bin/celery -A grupovicaf beat \
+    -l info \
+    --schedule=/var/www/projects/grupovicaf/celerybeat-schedule \
+    --pidfile=
+
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=vicafbeat
+
+[Install]
+WantedBy=multi-user.target

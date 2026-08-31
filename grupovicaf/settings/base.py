@@ -24,6 +24,13 @@ SESSION_COOKIE_NAME = f'gv_{SITE_ROLE}_sessionid'
 CSRF_COOKIE_NAME = f'gv_{SITE_ROLE}_csrftoken'
 SITE_URL = os.environ.get('SITE_URL', 'http://127.0.0.1:8000')
 
+# Interruptor de indexación para el rol 'web' (regla 15 + fase de
+# despliegue): en True, todas las páginas públicas emiten noindex,nofollow
+# y robots.txt devuelve Disallow: / sin importar el noindex de cada página.
+# Se apaga (SITE_NOINDEX=False en .env) cuando el contenido esté listo para
+# salir a producción.
+SITE_NOINDEX = os.environ.get('SITE_NOINDEX', 'True') == 'True'
+
 # Apps por defecto y de terceros
 INSTALLED_APPS = [
     

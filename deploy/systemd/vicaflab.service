@@ -1,0 +1,52 @@
+# Grupo VICAF — LIMS (rol 'lab'), gunicorn sobre socket unix.
+#
+# Instalar en /etc/systemd/system/vicaflab.service — ver deploy/INSTRUCTIVO.md.
+# Ajustar User/Group/WorkingDirectory si difieren del venv ya desplegado.
+
+[Unit]
+Description=Grupo VICAF - LIMS (gunicorn, SITE_ROLE=lab)
+After=network.target postgresql.service redis-server.service
+Wants=postgresql.service redis-server.service
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/projects/grupovicaf
+EnvironmentFile=/var/www/projects/grupovicaf/.env
+Environment=SITE_ROLE=lab
+Environment=SITE_URL=https://laboratorio.grupovicaf.com
+Environment=DJANGO_SETTINGS_MODULE=grupovicaf.settings.prod
+
+RuntimeDirectory=gunicorn
+RuntimeDirectoryMode=0750
+
+# 2 workers: LIMS es el rol con más carga (informes PDF, dashboard interno).
+# --max-requests recicla el worker cada N requests para contener el RSS de
+# WeasyPrint/Pillow, que no siempre libera memoria de vuelta al SO.
+ExecStart=/var/www/projects/grupovicaf/venv/bin/gunicorn \
+    grupovicaf.wsgi:application \
+    --workers 2 \
+    --threads 2 \
+    --timeout 120 \
+    --graceful-timeout 30 \
+    --max-requests 500 \
+    --max-requests-jitter 50 \
+    --umask 0007 \
+    --bind unix:/run/gunicorn/vicaflab.sock \
+    --access-logfile - \
+    --error-logfile -
+
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=vicaflab
+
+[Install]
+WantedBy=multi-user.target

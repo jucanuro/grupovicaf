@@ -1,0 +1,17 @@
+# Grupo VICAF — backup diario de Postgres + mediafiles, retención 7 días.
+# Disparado por vicafbackup.timer; no habilitar WantedBy=multi-user.target
+# directamente (se activa vía el timer).
+
+[Unit]
+Description=Grupo VICAF - backup diario (Postgres + mediafiles)
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+EnvironmentFile=/var/www/projects/grupovicaf/.env
+ExecStart=/var/www/projects/grupovicaf/deploy/scripts/backup.sh
+
+NoNewPrivileges=yes
+PrivateTmp=yes

@@ -8,7 +8,7 @@ from .sitemaps import sitemaps
 
 
 def robots_txt(request):
-    if settings.DEBUG:
+    if settings.DEBUG or settings.SITE_NOINDEX:
         lineas = ["User-agent: *", "Disallow: /"]
     else:
         lineas = [

@@ -1,0 +1,50 @@
+# Grupo VICAF — web institucional pública (rol 'web'), gunicorn sobre socket unix.
+#
+# Instalar en /etc/systemd/system/vicafweb.service — ver deploy/INSTRUCTIVO.md.
+# Ajustar User/Group/WorkingDirectory si difieren del venv ya desplegado.
+
+[Unit]
+Description=Grupo VICAF - Web institucional (gunicorn, SITE_ROLE=web)
+After=network.target postgresql.service redis-server.service
+Wants=postgresql.service redis-server.service
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/projects/grupovicaf
+EnvironmentFile=/var/www/projects/grupovicaf/.env
+Environment=SITE_ROLE=web
+Environment=SITE_URL=https://www.grupovicaf.com
+Environment=DJANGO_SETTINGS_MODULE=grupovicaf.settings.prod
+
+RuntimeDirectory=gunicorn
+RuntimeDirectoryMode=0750
+
+# 2 workers: tráfico público, mucho más ligero que el LIMS (sin PDFs).
+ExecStart=/var/www/projects/grupovicaf/venv/bin/gunicorn \
+    grupovicaf.wsgi:application \
+    --workers 2 \
+    --threads 2 \
+    --timeout 60 \
+    --graceful-timeout 30 \
+    --max-requests 500 \
+    --max-requests-jitter 50 \
+    --umask 0007 \
+    --bind unix:/run/gunicorn/vicafweb.sock \
+    --access-logfile - \
+    --error-logfile -
+
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=vicafweb
+
+[Install]
+WantedBy=multi-user.target

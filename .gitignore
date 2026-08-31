@@ -24,6 +24,7 @@ ENV/
 .env
 .env.*
 !.env.example
+!.env.produccion.example
 
 
 db.sqlite3

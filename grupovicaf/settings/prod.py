@@ -8,12 +8,13 @@ DEBUG = False
 
 ALLOWED_HOSTS = os.environ.get(
     'ALLOWED_HOSTS',
-    'laboratorio.grupovicaf.com,35.153.197.74,localhost,127.0.0.1'
+    'laboratorio.grupovicaf.com,grupovicaf.com,www.grupovicaf.com,35.153.197.74,localhost,127.0.0.1'
 ).split(',')
 
 CSRF_TRUSTED_ORIGINS = os.environ.get(
     'CSRF_TRUSTED_ORIGINS',
-    'http://laboratorio.grupovicaf.com,http://35.153.197.74,https://laboratorio.grupovicaf.com'
+    'https://laboratorio.grupovicaf.com,https://grupovicaf.com,https://www.grupovicaf.com,'
+    'http://laboratorio.grupovicaf.com,http://35.153.197.74'
 ).split(',')
 
 MIDDLEWARE = [

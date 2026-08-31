@@ -1,0 +1,13 @@
+# Dispara vicafbackup.service todos los días a las 03:00 America/Lima
+# (hora de menor tráfico). Ver deploy/INSTRUCTIVO.md para instalación.
+
+[Unit]
+Description=Grupo VICAF - backup diario (timer)
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 America/Lima
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

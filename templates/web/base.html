@@ -9,7 +9,7 @@
     <meta name="author" content="Grupo VICAF SAC">
     <meta name="theme-color" content="#172554">
 
-    {% block meta_robots %}<meta name="robots" content="index,follow">{% endblock %}
+    {% if site_noindex %}<meta name="robots" content="noindex,nofollow">{% else %}{% block meta_robots %}<meta name="robots" content="index,follow">{% endblock %}{% endif %}
 
     <link rel="canonical" href="{% block canonical %}{{ SITE_URL }}{{ request.path }}{% endblock %}">
 

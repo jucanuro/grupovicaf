@@ -1,0 +1,44 @@
+# Grupo VICAF — worker de Celery (PDFs/QR, correos de contacto, etc.).
+# Un único worker sirve a ambos SITE_ROLE, ver grupovicaf/celery.py.
+#
+# Instalar en /etc/systemd/system/vicafworker.service — ver deploy/INSTRUCTIVO.md.
+
+[Unit]
+Description=Grupo VICAF - Celery worker
+After=network.target postgresql.service redis-server.service
+Wants=postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/projects/grupovicaf
+EnvironmentFile=/var/www/projects/grupovicaf/.env
+Environment=SITE_ROLE=lab
+Environment=SITE_URL=https://laboratorio.grupovicaf.com
+# grupovicaf/celery.py hace os.environ.setdefault(..., 'settings.dev') si no
+# se fija aquí: sin esta línea el worker correría contra sqlite en dev.
+Environment=DJANGO_SETTINGS_MODULE=grupovicaf.settings.prod
+
+# concurrency=2: WeasyPrint es el paso más pesado (informe PDF); con RAM
+# ajustada en el servidor, 2 procesos concurrentes es el techo prudente.
+ExecStart=/var/www/projects/grupovicaf/venv/bin/celery -A grupovicaf worker \
+    -l info \
+    --concurrency=2 \
+    --max-tasks-per-child=100 \
+    --hostname=vicafworker@%%h
+
+Restart=on-failure
+RestartSec=5
+# Celery puede tardar en drenar tareas en curso (informes PDF).
+TimeoutStopSec=60
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=vicafworker
+
+[Install]
+WantedBy=multi-user.target
