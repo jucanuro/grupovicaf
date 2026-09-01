@@ -10,7 +10,7 @@ Wants=postgresql.service redis-server.service
 
 [Service]
 Type=simple
-User=www-data
+User=ubuntu
 Group=www-data
 WorkingDirectory=/var/www/projects/grupovicaf
 EnvironmentFile=/var/www/projects/grupovicaf/.env

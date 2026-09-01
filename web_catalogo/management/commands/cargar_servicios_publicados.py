@@ -8,9 +8,9 @@ nombre — CategoriaServicio local es solo un placeholder de prueba ("Categoria
 1", "cATEGORÍA 2", ...), no hay nada real que emparejar.
 
 Este comando crea/actualiza cada ServicioPublicado con su mismo pk (para que
-las FK internas del fixture — PreguntaFrecuente, ZonaCobertura.servicios,
-SolicitudCotizacionItem — sigan resolviendo bien al cargar web_dump.json
-después) y con `categoria` apuntando a una categoría placeholder explícita
+las FK internas del fixture — PreguntaFrecuente, SolicitudCotizacionItem —
+sigan resolviendo bien al cargar web_dump.json después) y con `categoria`
+apuntando a una categoría placeholder explícita
 ("Sin categorizar (pendiente)"), dejando constancia en el mensaje de que hay
 que reasignarla a mano desde el admin — igual que ya advierte
 poblar_catalogo_ensayos.py para esta misma tabla.

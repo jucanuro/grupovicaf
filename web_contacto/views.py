@@ -4,7 +4,6 @@ from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
 from web_catalogo.models import ServicioPublicado
-from web_zonas.models import ZonaCobertura
 
 from .models import MensajeContacto, SolicitudCotizacionItem, SolicitudCotizacionWeb
 from .services import procesar_solicitud_cotizacion
@@ -24,12 +23,10 @@ def contacto_view(request):
         .only('slug', 'titulo_publico', 'categoria__nombre', 'linea__slug', 'linea_id')
         .order_by('categoria__nombre', 'titulo_publico')
     )
-    zonas = ZonaCobertura.objects.activas().only('slug', 'nombre')
     origen_sugerido = request.GET.get('origen') or request.META.get('HTTP_REFERER', '') or request.path
 
     context = {
         'servicios_disponibles': servicios_disponibles,
-        'zonas': zonas,
         'origen_sugerido': origen_sugerido[:255],
         # CTA de linea_detalle.html: ?linea=<slug> llega hasta acá y el JS de
         # contacto.html precarga los checkboxes de esa línea (ver bloque al
@@ -91,7 +88,6 @@ def solicitud_cotizacion_view(request):
     correo_contacto = request.POST.get('correo_contacto', '').strip()
     telefono_contacto = request.POST.get('telefono_contacto', '').strip()
     necesidad = request.POST.get('necesidad', '').strip()
-    zona_slug = request.POST.get('zona', '').strip()
     servicio_slugs = [s for s in request.POST.getlist('servicios') if s]
 
     errores = []
@@ -117,8 +113,6 @@ def solicitud_cotizacion_view(request):
             messages.error(request, error)
         return redirect('web_contacto:contacto')
 
-    zona = ZonaCobertura.objects.activas().filter(slug=zona_slug).first() if zona_slug else None
-
     with transaction.atomic():
         solicitud = SolicitudCotizacionWeb.objects.create(
             ruc=ruc,
@@ -126,7 +120,6 @@ def solicitud_cotizacion_view(request):
             persona_contacto=persona_contacto,
             correo_contacto=correo_contacto,
             telefono_contacto=telefono_contacto,
-            zona=zona,
             necesidad=necesidad,
             origen=request.POST.get('origen', '')[:255],
             ip=obtener_ip_cliente(request),

@@ -10,7 +10,7 @@ Wants=postgresql.service redis-server.service
 
 [Service]
 Type=notify
-User=www-data
+User=ubuntu
 Group=www-data
 WorkingDirectory=/var/www/projects/grupovicaf
 EnvironmentFile=/var/www/projects/grupovicaf/.env
@@ -20,6 +20,7 @@ Environment=DJANGO_SETTINGS_MODULE=grupovicaf.settings.prod
 
 RuntimeDirectory=gunicorn
 RuntimeDirectoryMode=0750
+RuntimeDirectoryPreserve=yes
 
 # 2 workers: LIMS es el rol con más carga (informes PDF, dashboard interno).
 # --max-requests recicla el worker cada N requests para contener el RSS de

@@ -177,32 +177,8 @@ body {
   }
 }
 
-/* Animación de entrada al hacer scroll (home, F9). .reveal-group escalona a
-   sus hijos .reveal por nth-child; static/web/js/scroll-reveal.js añade
-   .is-visible vía IntersectionObserver y respeta prefers-reduced-motion
-   devolviendo el estado final sin animar (además del guard de abajo, por si
-   el JS no llega a cargar). */
-.reveal {
-  opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-}
-.reveal.is-visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-.reveal-group > .reveal:nth-child(2) { transition-delay: 80ms; }
-.reveal-group > .reveal:nth-child(3) { transition-delay: 160ms; }
-.reveal-group > .reveal:nth-child(4) { transition-delay: 240ms; }
-.reveal-group > .reveal:nth-child(5) { transition-delay: 320ms; }
-.reveal-group > .reveal:nth-child(6) { transition-delay: 400ms; }
-.reveal-group > .reveal:nth-child(7) { transition-delay: 480ms; }
-.reveal-group > .reveal:nth-child(8) { transition-delay: 560ms; }
-
-@media (prefers-reduced-motion: reduce) {
-  .reveal {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
-}
+/* .reveal / .reveal-group se movieron a static/web/css/input.css (@layer
+   utilities) como parte del sistema de diseño del rediseño F10, con los
+   valores de motion del encargo (translateY 12px, stagger 60ms). No
+   duplicar aquí: esta hoja se carga después de output.css en base.html y
+   pisaría esos valores con la versión antigua (24px/80ms). */

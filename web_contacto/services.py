@@ -68,8 +68,6 @@ def _armar_asunto(items):
 
 def _armar_observaciones(solicitud):
     partes = [f'Solicitud generada desde {solicitud.origen or "/contacto/"}.']
-    if solicitud.zona_id:
-        partes.append(f'Zona de interés: {solicitud.zona.nombre}.')
     partes.append('Necesidad descrita por el visitante:')
     partes.append(solicitud.necesidad)
     return '\n'.join(partes)

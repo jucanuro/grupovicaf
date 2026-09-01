@@ -1,0 +1,9 @@
+{% comment %}
+  Textura de las secciones OSCURAS del sitio: retícula técnica (plano de
+  ingeniería, blanco 8% con máscara radial que la desvanece hacia los bordes)
+  + ruido SVG (3%). Se usa sobre un contenedor `.section-dark relative
+  overflow-hidden` para que todas las bandas oscuras tengan exactamente el
+  mismo tratamiento. El contenido va después con `relative z-10`.
+{% endcomment %}
+<div class="pointer-events-none absolute inset-0 bg-grid-technical"></div>
+<div class="pointer-events-none absolute inset-0 bg-noise-overlay"></div>

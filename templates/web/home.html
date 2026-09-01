@@ -1,7 +1,7 @@
 {% extends 'web/base.html' %}
-{% load static %}
+{% load static l10n %}
 
-{% block meta_title %}Laboratorio de Ensayo de Materiales Acreditado en Cajamarca{% endblock %}
+{% block meta_title %}Laboratorio para la construcción en Cajamarca{% endblock %}
 {% block meta_description %}{{ negocio.descripcion }}{% endblock %}
 
 {% block content %}
@@ -39,7 +39,7 @@
   (ahí nunca se mostraba: era una barra sin ningún trigger que le quitara la
   clase). Se deja igual, sin "arreglarla", tal como pide el encargo.
 {% endcomment %}
-<div id="home" class="relative min-h-screen bg-slate-900 text-white">
+<div id="home" class="relative min-h-screen bg-blue-950 text-white">
 
     <div class="absolute top-24 right-4 z-30 hidden sm:block">
         <a href="https://laboratorio.grupovicaf.com/" target="_blank" rel="noopener noreferrer"
@@ -53,7 +53,7 @@
 
     <div class="relative w-full h-screen">
 
-        <div class="absolute rounded-lg px-4 lg:px-0 top-20 lg:left-12 z-20 w-full md:w-1/2 lg:w-1/3 pt-10 pb-6 px-4 sm:px-6 lg:px-8 flex flex-col items-start text-left bg-black/60">
+        <div class="absolute rounded-lg px-4 lg:px-0 top-20 lg:left-12 z-20 w-full md:w-1/2 lg:w-1/3 pt-10 pb-6 px-4 sm:px-6 lg:px-8 flex flex-col items-start text-left border border-white/10 bg-blue-950/85 backdrop-blur-sm">
             <button type="button" data-modal-cert-open
                     class="group inline-flex items-center gap-2.5 rounded-full border border-white/25 bg-slate-900/70 py-1.5 pl-1.5 pr-4 text-[11px] font-black uppercase tracking-[0.28em] text-white transition-colors hover:bg-slate-800/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
                 <img src="{% static 'web/img/LogoInacal1.webp' %}" alt=""
@@ -63,25 +63,24 @@
                 <span class="hidden text-blue-100 group-hover:text-white sm:inline">· Ver certificado</span>
             </button>
 
-            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-3 mt-5 leading-tight" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.6);">
-                Laboratorio de ensayo de materiales acreditado en Cajamarca
+            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white mb-3 mt-5 leading-[1.05]" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.6);">
+                Laboratorio para la construcción en Cajamarca
             </h1>
             <p class="text-lg mt-6 sm:text-xl lg:text-2xl text-gray-200 mb-6" style="text-shadow: 1px 1px 4px rgba(0,0,0,0.6);">
                 Suelos · Agregados · Concreto · Asfalto · Rocas · Cal · Carbón
             </p>
 
-            <div class="flex flex-col sm:flex-row justify-center items-center space-y-3 sm:space-y-0 sm:space-x-4 mt-6 w-full">
-                <a href="#servicios"
-                   class="group bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-50 flex items-center text-sm lg:text-base">
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-3 mt-6 w-full">
+                <a href="#servicios" class="btn-primary-inverse w-full sm:w-auto">
                     Ver Servicios
-                    <svg class="w-5 h-5 ml-2 fill-white transition-transform duration-300 ease-in-out group-hover:translate-x-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512">
+                    <svg class="h-4 w-4 fill-current transition-transform duration-300 ease-in-out group-hover:translate-x-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" aria-hidden="true">
                         <path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM144 256a144 144 0 1 1 288 0 144 144 0 1 1 -288 0zm144-64c0 35.3-28.7 64-64 64c-7.1 0-13.9-1.2-20.3-3.3c-5.5-1.8-11.9 1.6-11.7 7.4c.3 6.9 1.3 13.8 3.2 20.7c13.7 51.2 66.4 81.6 117.6 67.9s81.6-66.4 67.9-117.6c-11.1-41.5-47.8-69.4-88.6-71.1c-5.8-.2-9.2 6.1-7.4 11.7c2.1 6.4 3.3 13.2 3.3 20.3z"/>
                     </svg>
                 </a>
                 <a href="{% static 'web/pdf/brochure-grupo-vicaf-2025.pdf' %}" target="_blank" rel="noopener noreferrer"
-                   class="group bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-50 flex items-center text-sm lg:text-base">
+                   class="btn-secondary-inverse w-full sm:w-auto">
                     Descargar Brochure
-                    <svg class="w-5 h-5 ml-2 fill-white transition-transform duration-300 ease-in-out group-hover:translate-x-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                    <svg class="h-4 w-4 fill-current transition-transform duration-300 ease-in-out group-hover:translate-x-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" aria-hidden="true">
                         <path d="M288 32c0-17.7-14.3-32-32-32s-32 14.3-32 32v242.7l-73.4-73.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l128 128c12.5 12.5 32.8 12.5 45.3 0l128-128c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L288 274.7V32zM64 352c-35.3 0-64 28.7-64 64v32c0 35.3 28.7 64 64 64h384c35.3 0 64-28.7 64-64v-32c0-35.3-28.7-64-64-64H64zm368 56a24 24 0 1 1 0 48 24 24 0 1 1 0-48z"></path>
                     </svg>
                 </a>
@@ -141,22 +140,24 @@
 </div>
 
 {% comment %}
-  Franja de credibilidad, inmediatamente bajo el hero (fondo oscuro para
-  romper con el hero y arrancar la página con autoridad). Cifras reales via
-  web_inicio.views._metricas_credibilidad(): solo entran métricas con dato
-  distinto de cero, nunca inventadas.
+  Franja de credibilidad, inmediatamente bajo el hero. Mismo tratamiento que
+  toda banda oscura del sitio: gradiente azul + retícula técnica + ruido
+  (partial textura_tecnica). Cifras vía web_inicio.views._metricas_credibilidad():
+  solo datos verificables contra la BD (ensayos acreditados, registro,
+  normas técnicas, vigencia); ninguna métrica inventada, sin "+".
 {% endcomment %}
-<section class="reveal border-b border-slate-800 bg-slate-900 py-16 text-white lg:py-20">
-    <div class="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
+<section class="reveal section-dark relative overflow-hidden py-16 text-white lg:py-20">
+    {% include 'web/partials/textura_tecnica.html' %}
+    <div class="relative z-10 mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col items-center gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
             <button type="button" data-modal-cert-open
-                    class="group flex shrink-0 items-center gap-4 rounded-2xl border border-slate-700 bg-slate-800/60 px-6 py-5 text-left transition-colors duration-300 hover:border-blue-500 hover:bg-slate-800">
+                    class="group flex shrink-0 items-center gap-4 rounded-2xl border border-white/15 bg-white/5 px-6 py-5 text-left transition-colors duration-300 hover:border-blue-400 hover:bg-white/10">
                 <img src="{% static 'web/img/LogoInacal1.webp' %}" alt=""
                      class="h-14 w-14 shrink-0 rounded-full bg-white object-contain p-1"
                      width="400" height="400" loading="lazy" decoding="async">
                 <span>
-                    <span class="block text-[11px] font-black uppercase tracking-[0.28em] text-blue-300">Acreditación</span>
-                    <span class="mt-1 block text-lg font-bold text-white">
+                    <span class="block text-eyebrow uppercase text-blue-300">Acreditación</span>
+                    <span class="mono-tag mt-1 block text-lg font-bold text-white">
                         {{ negocio.acreditacion_entidad|default:"INACAL" }} · {{ negocio.acreditacion_codigo|default:"LE-230" }}
                     </span>
                 </span>
@@ -166,8 +167,8 @@
             <dl class="reveal-group flex flex-1 flex-wrap justify-center gap-x-12 gap-y-8 lg:justify-end">
                 {% for metrica in metricas %}
                 <div class="reveal text-center">
-                    <dd class="text-4xl font-black tracking-tight text-white sm:text-5xl">{{ metrica.valor }}<span class="text-blue-400">{{ metrica.sufijo }}</span></dd>
-                    <dt class="mt-2 text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">{{ metrica.etiqueta }}</dt>
+                    <dd class="mono-tag text-4xl font-extrabold tracking-tight text-white sm:text-5xl">{{ metrica.valor }}</dd>
+                    <dt class="mt-2 text-eyebrow uppercase text-blue-300">{{ metrica.etiqueta }}</dt>
                 </div>
                 {% endfor %}
             </dl>
@@ -183,16 +184,14 @@
   (rounded-2xl + shadow-[...rgba(15,23,42,...)]) en vez del rounded-[30px]
   propio de esa referencia, para no introducir una segunda familia visual.
 {% endcomment %}
-<section id="servicios" class="reveal scroll-mt-24 bg-white py-20 lg:py-28">
+<section id="servicios" class="reveal section-light scroll-mt-24 py-20 lg:py-28">
     <div class="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
         <div class="max-w-2xl">
-            <span class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.28em] text-blue-900">
-                Catálogo de ensayos
-            </span>
-            <h2 class="mt-6 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+            <span class="eyebrow">Catálogo de ensayos</span>
+            <h2 class="h2-section mt-6">
                 Ensayos de laboratorio para cada material
             </h2>
-            <p class="mt-4 text-lg text-slate-600">
+            <p class="body-copy mt-4">
                 Suelos, agregados, concreto, asfalto y geotecnia respaldados por la acreditación
                 {{ negocio.acreditacion_entidad|default:"INACAL" }}.
             </p>
@@ -200,19 +199,12 @@
 
         <ul class="reveal-group mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {% for linea in lineas %}
-            <li class="reveal">
-                <a href="{% url 'web_catalogo:servicio_detalle' slug=linea.slug %}"
-                   class="group relative flex h-72 flex-col justify-end overflow-hidden rounded-2xl bg-slate-800 shadow-[0_4px_20px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(15,23,42,0.2)]">
-                    {% if linea.imagen %}
-                    <img src="{{ linea.imagen.url }}" alt="{{ linea.imagen_alt|default:linea.nombre }}"
-                         class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
-                         loading="lazy" decoding="async"
-                         width="{{ linea.imagen.width }}" height="{{ linea.imagen.height }}">
-                    {% endif %}
-                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/25 to-transparent"></div>
-                    <div class="relative p-5">
+            <li class="reveal group relative flex h-72 flex-col justify-end overflow-hidden rounded-card bg-slate-900 shadow-layered transition-all duration-300 ease-in-out hover:-translate-y-1 hover:shadow-layered-lg">
+                <a href="{% url 'web_catalogo:servicio_detalle' slug=linea.slug %}" class="absolute inset-0 flex flex-col justify-end focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
+                    {% include 'web/partials/linea_media.html' with linea=linea %}
+                    <div class="relative z-10 border-t-2 border-transparent p-5 transition-colors duration-300 ease-in-out group-hover:border-blue-400">
                         <h3 class="text-lg font-bold leading-snug text-white">{{ linea.nombre }}</h3>
-                        <span class="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-300 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                        <span class="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-300 opacity-0 transition-opacity duration-300 ease-in-out group-hover:opacity-100">
                             Ver línea
                             <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
@@ -222,15 +214,14 @@
                 </a>
             </li>
             {% empty %}
-            <li class="col-span-full rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
+            <li class="col-span-full rounded-card border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
                 Aún no se han publicado líneas de servicio.
             </li>
             {% endfor %}
         </ul>
 
         <div class="mt-12 text-center">
-            <a href="{% url 'web_catalogo:servicios_list' %}"
-               class="inline-flex items-center gap-2 rounded-full bg-blue-800 px-8 py-3.5 text-sm font-black uppercase tracking-[0.15em] text-white transition-all duration-300 hover:bg-blue-900">
+            <a href="{% url 'web_catalogo:servicios_list' %}" class="btn-primary">
                 Ver todos los servicios
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
@@ -241,102 +232,145 @@
 </section>
 
 {% comment %}
-  Acreditación destacada: rompe el ritmo con fondo oscuro/degradado azul.
-  Reutiliza la misma imagen de certificado y el mismo modal que el badge
-  INACAL del hero (partials/modal_certificado_inacal.html) — no se duplica
-  el certificado en dos formatos distintos.
+  Acreditación destacada: el activo más fuerte del negocio, tratado como tal.
+  Capas de fondo (de atrás hacia adelante): degradado diagonal de dos azules
+  -> retícula técnica (plano de ingeniería, 6% opacidad) -> ruido SVG
+  feTurbulence (3%, quita el plano digital) -> contenido. El certificado
+  lleva una perspectiva ligera (rotateY) para leerse como documento físico
+  apoyado, no como una imagen plana más. Reutiliza el mismo modal que el
+  badge INACAL del hero (partials/modal_certificado_inacal.html).
 {% endcomment %}
-<section class="reveal bg-gradient-to-br from-blue-950 via-blue-900 to-slate-900 py-20 text-white lg:py-28">
-    <div class="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
+<section class="reveal section-dark relative overflow-hidden py-20 text-white lg:py-28">
+    {% include 'web/partials/textura_tecnica.html' %}
+
+    <div class="relative z-10 mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
         <div class="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
             <div>
-                <span class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.28em] text-blue-200">
+                <span class="eyebrow-inverse">
                     Acreditación {{ negocio.acreditacion_entidad|default:"INACAL" }}
                 </span>
-                <h2 class="mt-6 text-3xl font-black tracking-tight sm:text-4xl">
+                <h2 class="h2-section-inverse mt-6">
                     Ensayos respaldados por acreditación oficial
                 </h2>
-                <p class="mt-4 max-w-xl text-blue-100">
-                    Registro {{ negocio.acreditacion_codigo|default:"LE-230" }} ante
-                    {{ negocio.acreditacion_entidad|default:"INACAL" }}: resultados imparciales, trazables y
+                <p class="body-copy-inverse mt-4">
+                    Registro
+                    <span class="mono-tag rounded-md bg-white/10 px-1.5 py-0.5 font-semibold text-white">{{ negocio.acreditacion_codigo|default:"LE-230" }}</span>
+                    ante {{ negocio.acreditacion_entidad|default:"INACAL" }}: resultados imparciales, trazables y
                     reconocidos por entidades públicas y privadas del norte del Perú.
                 </p>
                 <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-                    <button type="button" data-modal-cert-open
-                            class="inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-3.5 text-sm font-black uppercase tracking-[0.15em] text-blue-900 transition-all duration-300 hover:bg-blue-50">
+                    <button type="button" data-modal-cert-open class="btn-primary-inverse">
                         Ver certificado
                     </button>
-                    <a href="{% url 'web_acreditacion:acreditacion' %}"
-                       class="inline-flex items-center justify-center gap-2 rounded-full border-2 border-white/50 px-8 py-3.5 text-sm font-black uppercase tracking-[0.15em] text-white transition-all duration-300 hover:bg-white hover:text-blue-900">
+                    <a href="{% url 'web_acreditacion:acreditacion' %}" class="btn-secondary-inverse">
                         Ver alcance completo
                     </a>
                 </div>
             </div>
 
-            <button type="button" data-modal-cert-open
-                    class="group block overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-3 shadow-2xl transition-transform duration-300 hover:-translate-y-1">
-                <img src="{% static 'web/img/certificaciones/GRUPO-VICAF-CERTIFICADO.webp' %}"
-                     alt="Certificado de acreditación {{ negocio.acreditacion_entidad|default:'INACAL' }} N.º {{ negocio.acreditacion_codigo|default:'LE-230' }} de Grupo VICAF"
-                     class="w-full rounded-xl transition-transform duration-500 group-hover:scale-[1.02]"
-                     width="1754" height="1241" loading="lazy" decoding="async">
-            </button>
+            <div style="perspective: 1600px;">
+                <button type="button" data-modal-cert-open
+                        style="transform: rotateY(-4deg) rotateX(1deg);"
+                        class="group block w-full origin-right overflow-hidden rounded-card border border-white/10 bg-white/5 p-3 shadow-certificate transition-transform duration-500 ease-in-out hover:[transform:rotateY(0deg)_rotateX(0deg)]">
+                    <img src="{% static 'web/img/certificaciones/GRUPO-VICAF-CERTIFICADO.webp' %}"
+                         alt="Certificado de acreditación {{ negocio.acreditacion_entidad|default:'INACAL' }} N.º {{ negocio.acreditacion_codigo|default:'LE-230' }} de Grupo VICAF"
+                         class="w-full rounded-btn"
+                         width="1754" height="1241" loading="lazy" decoding="async">
+                </button>
+            </div>
         </div>
     </div>
 </section>
 
-{% comment %} Zonas de cobertura: enlazado interno a las 7 landing pages de web_zonas. {% endcomment %}
-<section class="reveal bg-slate-50 py-20 lg:py-28">
-    <div class="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
-        <div class="max-w-2xl">
-            <span class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.28em] text-blue-900">
-                Cobertura
-            </span>
-            <h2 class="mt-6 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-                Presencia en el norte del Perú
-            </h2>
-            <p class="mt-4 text-lg text-slate-600">
-                Sede en Cajamarca y atención de ensayos en las principales provincias de la región.
-            </p>
+{% comment %}
+  Ubicación: sede única en Cajamarca (el laboratorio no opera en otras
+  ciudades). Mismo tratamiento visual que la sección de acreditación —
+  gradiente azul + retícula técnica + ruido (partial textura_tecnica) — y
+  datos NAP + coordenadas + horario en monoespaciada, todo desde
+  siteconfig.NegocioConfig (regla 14), nunca hardcodeado.
+{% endcomment %}
+<section id="ubicacion" class="reveal section-light-alt relative overflow-hidden scroll-mt-24 py-20 lg:py-28">
+    {% include 'web/partials/textura_tecnica_clara.html' %}
+    <div class="relative z-10 mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
+        <div class="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
+            <div>
+                <span class="eyebrow">Ubicación</span>
+                <h2 class="h2-section mt-6">
+                    Nuestro laboratorio en Cajamarca
+                </h2>
+                <p class="body-copy mt-4">
+                    Recepción de muestras y atención técnica en nuestra sede. Coordina el envío
+                    o la entrega de tus muestras con el equipo.
+                </p>
+
+                <dl class="mt-8 space-y-3">
+                    <div class="rounded-card border border-slate-200 bg-white p-5 shadow-layered">
+                        <dt class="text-eyebrow uppercase text-blue-700">Dirección</dt>
+                        <dd class="mono-tag mt-1 text-sm font-semibold text-slate-900">
+                            {{ negocio.direccion_calle }}, {{ negocio.direccion_localidad }}, {{ negocio.direccion_region }} — Perú
+                        </dd>
+                    </div>
+                    {% if negocio.latitud and negocio.longitud %}
+                    <div class="rounded-card border border-slate-200 bg-white p-5 shadow-layered">
+                        <dt class="text-eyebrow uppercase text-blue-700">Coordenadas</dt>
+                        <dd class="mono-tag mt-1 text-sm font-semibold text-slate-900">
+                            {{ negocio.latitud|unlocalize }}, {{ negocio.longitud|unlocalize }}
+                        </dd>
+                    </div>
+                    {% endif %}
+                    {% if negocio.horario_semana_apertura %}
+                    <div class="rounded-card border border-slate-200 bg-white p-5 shadow-layered">
+                        <dt class="text-eyebrow uppercase text-blue-700">Horario de atención</dt>
+                        <dd class="mono-tag mt-1 text-sm font-semibold leading-relaxed text-slate-900">
+                            Lun–Vie {{ negocio.horario_semana_apertura|time:'H:i' }}–{{ negocio.horario_semana_cierre|time:'H:i' }}{% if negocio.horario_sabado_apertura %}<br>Sáb {{ negocio.horario_sabado_apertura|time:'H:i' }}–{{ negocio.horario_sabado_cierre|time:'H:i' }}{% endif %}
+                        </dd>
+                    </div>
+                    {% endif %}
+                </dl>
+
+                <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+                    <a href="{% url 'web_contacto:contacto' %}" class="btn-primary">
+                        Coordinar envío de muestras
+                    </a>
+                    {% if negocio.latitud and negocio.longitud %}
+                    <a href="https://www.google.com/maps/search/?api=1&query={{ negocio.latitud|unlocalize }},{{ negocio.longitud|unlocalize }}"
+                       target="_blank" rel="noopener noreferrer" class="btn-secondary">
+                        Cómo llegar
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if negocio.latitud and negocio.longitud %}
+            <div class="overflow-hidden rounded-card border border-slate-200 shadow-layered">
+                <iframe
+                    src="https://www.google.com/maps?q={{ negocio.latitud|unlocalize }},{{ negocio.longitud|unlocalize }}&z=16&output=embed"
+                    class="block h-[360px] w-full lg:h-[460px]" style="border:0;"
+                    loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+                    title="Mapa de la sede de {{ negocio.nombre }} en {{ negocio.direccion_localidad }}"></iframe>
+            </div>
+            {% endif %}
         </div>
-
-        <ul class="reveal-group mt-10 flex flex-wrap gap-3">
-            {% for zona in zonas %}
-            <li class="reveal">
-                <a href="{% url 'web_zonas:zona_detalle' slug=zona.slug %}"
-                   class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-700">
-                    {% if zona.es_sede %}<span class="h-2 w-2 rounded-full bg-blue-600"></span>{% endif %}
-                    {{ zona.nombre }}
-                </a>
-            </li>
-            {% endfor %}
-        </ul>
-
-        <a href="{% url 'web_zonas:zonas_list' %}"
-           class="mt-8 inline-flex items-center gap-2 text-sm font-black text-blue-700 hover:underline">
-            Ver toda la cobertura
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
-            </svg>
-        </a>
     </div>
 </section>
 
 {% comment %} Muro de clientes: escala de grises, color al hover. Oculto por completo si no hay destacados (regla: nunca inventar contenido). {% endcomment %}
 {% if clientes_destacados %}
-<section class="reveal bg-slate-900 py-20 text-white lg:py-28">
-    <div class="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
+<section class="reveal section-light relative overflow-hidden py-20 lg:py-28">
+    {% include 'web/partials/textura_tecnica_clara.html' %}
+    <div class="relative z-10 mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
         <div class="mx-auto max-w-2xl text-center">
-            <span class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.28em] text-blue-300">
+            <span class="eyebrow">
                 Confianza técnica
             </span>
-            <h2 class="mt-6 text-3xl font-black tracking-tight sm:text-4xl">
+            <h2 class="h2-section mt-6">
                 Empresas que confían en nosotros
             </h2>
         </div>
 
         <div class="reveal-group mt-12 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
             {% for destacado in clientes_destacados %}
-            <div class="reveal flex h-24 items-center justify-center rounded-2xl bg-white p-4">
+            <div class="reveal flex h-24 items-center justify-center rounded-2xl border border-slate-200 bg-white p-4 shadow-layered">
                 {% if destacado.enlace %}
                 <a href="{{ destacado.enlace }}" target="_blank" rel="noopener noreferrer" class="flex h-full w-full items-center justify-center">
                 {% endif %}
@@ -355,7 +389,7 @@
         </div>
 
         <div class="mt-10 text-center">
-            <a href="{% url 'web_catalogo:clientes_list' %}" class="text-sm font-black text-blue-300 hover:text-blue-200 hover:underline">
+            <a href="{% url 'web_catalogo:clientes_list' %}" class="text-sm font-black text-blue-700 hover:text-blue-800 hover:underline">
                 Ver todos los clientes →
             </a>
         </div>
@@ -364,23 +398,22 @@
 {% endif %}
 
 {% comment %} Bloque de contacto/CTA. NAP: fuente única = siteconfig.NegocioConfig. {% endcomment %}
-<section id="contacto" class="scroll-mt-24 bg-blue-900 py-20 text-white lg:py-28">
-    <div class="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
+<section id="contacto" class="reveal section-dark relative overflow-hidden scroll-mt-24 py-20 text-white lg:py-28">
+    {% include 'web/partials/textura_tecnica.html' %}
+    <div class="relative z-10 mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
         <div class="grid gap-12 lg:grid-cols-2 lg:items-center">
             <div>
-                <h2 class="text-3xl font-black tracking-tight sm:text-4xl">¿Necesitas una cotización?</h2>
-                <p class="mt-4 max-w-xl text-blue-100">
+                <h2 class="h2-section-inverse">¿Necesitas una cotización?</h2>
+                <p class="body-copy-inverse mt-4">
                     Cuéntanos el alcance de tu proyecto y te respondemos con la propuesta técnica y económica
                     en horario de oficina.
                 </p>
                 <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-                    <a href="{% url 'web_contacto:contacto' %}"
-                       class="inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-3.5 text-sm font-black uppercase tracking-[0.15em] text-blue-900 transition-all duration-300 hover:bg-blue-50">
+                    <a href="{% url 'web_contacto:contacto' %}" class="btn-primary-inverse">
                         Solicitar cotización
                     </a>
                     {% if negocio.whatsapp %}
-                    <a href="https://wa.me/{{ negocio.whatsapp }}" target="_blank" rel="noopener noreferrer"
-                       class="inline-flex items-center justify-center gap-2 rounded-full border-2 border-white/70 px-8 py-3.5 text-sm font-black uppercase tracking-[0.15em] text-white transition-all duration-300 hover:bg-white hover:text-blue-900">
+                    <a href="https://wa.me/{{ negocio.whatsapp }}" target="_blank" rel="noopener noreferrer" class="btn-secondary-inverse">
                         Escribir por WhatsApp
                     </a>
                     {% endif %}
@@ -388,23 +421,23 @@
             </div>
 
             <dl class="grid gap-4 sm:grid-cols-2">
-                <div class="rounded-2xl bg-white/10 p-5">
-                    <dt class="text-[11px] font-black uppercase tracking-[0.2em] text-blue-200">Teléfono</dt>
-                    <dd class="mt-1 font-semibold">{{ negocio.telefono }}</dd>
+                <div class="rounded-card bg-white/10 p-5">
+                    <dt class="text-eyebrow uppercase text-blue-200">Teléfono</dt>
+                    <dd class="mono-tag mt-1 font-semibold">{{ negocio.telefono }}</dd>
                 </div>
-                <div class="rounded-2xl bg-white/10 p-5">
-                    <dt class="text-[11px] font-black uppercase tracking-[0.2em] text-blue-200">Correo</dt>
+                <div class="rounded-card bg-white/10 p-5">
+                    <dt class="text-eyebrow uppercase text-blue-200">Correo</dt>
                     <dd class="mt-1 font-semibold break-words">{{ negocio.correo }}</dd>
                 </div>
-                <div class="rounded-2xl bg-white/10 p-5">
-                    <dt class="text-[11px] font-black uppercase tracking-[0.2em] text-blue-200">Oficina</dt>
+                <div class="rounded-card bg-white/10 p-5">
+                    <dt class="text-eyebrow uppercase text-blue-200">Oficina</dt>
                     <dd class="mt-1 text-sm leading-relaxed text-blue-50">
                         {{ negocio.direccion_calle }}, {{ negocio.direccion_localidad }} – Perú
                     </dd>
                 </div>
                 {% if negocio.horario_semana_apertura %}
-                <div class="rounded-2xl bg-white/10 p-5">
-                    <dt class="text-[11px] font-black uppercase tracking-[0.2em] text-blue-200">Horario</dt>
+                <div class="rounded-card bg-white/10 p-5">
+                    <dt class="text-eyebrow uppercase text-blue-200">Horario</dt>
                     <dd class="mt-1 text-sm leading-relaxed text-blue-50">
                         Lun a Vie {{ negocio.horario_semana_apertura|time:'H:i' }}–{{ negocio.horario_semana_cierre|time:'H:i' }}
                         {% if negocio.horario_sabado_apertura %}<br>Sáb {{ negocio.horario_sabado_apertura|time:'H:i' }}–{{ negocio.horario_sabado_cierre|time:'H:i' }}{% endif %}

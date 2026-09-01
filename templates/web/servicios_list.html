@@ -18,63 +18,73 @@
 {% endblock %}
 
 {% block content %}
-<section class="mx-auto max-w-[1600px] px-4 pt-32 pb-16 sm:px-6 lg:px-8">
-    <span class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.28em] text-blue-900">
-        Servicios especializados
-    </span>
-    <h1 class="mt-6 max-w-3xl text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">
+<section class="reveal mx-auto max-w-[1600px] px-4 pt-32 pb-16 sm:px-6 lg:px-8">
+    <span class="eyebrow">Servicios especializados</span>
+    <h1 class="h1-display mt-6 max-w-3xl">
         Servicios de laboratorio en Cajamarca
     </h1>
-    <p class="mt-6 max-w-2xl text-lg text-slate-600">
+    <p class="body-copy mt-6">
         Soluciones técnicas en ingeniería, laboratorio y control de calidad, respaldadas por la
         acreditación {{ negocio.acreditacion_entidad|default:"INACAL" }}.
     </p>
 </section>
 
+{% comment %}
+  Grid bento: la primera línea ocupa 2 columnas x 2 filas (destacada), el
+  resto 1x1. lg:auto-rows fija la altura de una celda para que el span de la
+  destacada sea exactamente el doble + el gap. En móvil (sin lg:) todo cae a
+  una sola columna, sin span.
+
+  El <a> de cada tarjeta es absolute inset-0 (para apilar imagen/degradado/
+  texto en capas), así que no aporta altura al flujo normal: sin una altura
+  explícita en el <li> para los breakpoints por debajo de lg, la tarjeta
+  colapsa a la altura del borde (bug: se veía como una línea gris vacía en
+  móvil/tablet). h-72/h-80 la fija fuera de lg; en lg, auto-rows + row-span
+  vuelven a mandar y se desactiva con lg:h-auto.
+{% endcomment %}
 <section class="mx-auto max-w-[1600px] px-4 pb-24 sm:px-6 lg:px-8">
-    <ul class="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
+    <ul class="reveal-group grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:auto-rows-[240px]">
         {% for linea in lineas %}
-        <li class="group relative overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-[0_15px_60px_-15px_rgba(15,23,42,0.12)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_25px_80px_-20px_rgba(30,64,175,0.25)]">
-            <a href="{% url 'web_catalogo:servicio_detalle' slug=linea.slug %}" class="flex h-full flex-col">
-                <div class="relative h-64 overflow-hidden bg-slate-200">
-                    {% if linea.imagen %}
-                    <img src="{{ linea.imagen.url }}" alt="{{ linea.imagen_alt|default:linea.nombre }}"
-                         class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                         loading="lazy" decoding="async"
-                         width="{{ linea.imagen.width }}" height="{{ linea.imagen.height }}">
-                    {% endif %}
-                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-900/20 to-transparent"></div>
+        <li class="reveal group relative h-72 overflow-hidden rounded-card border border-slate-200 bg-slate-900 shadow-layered transition-all duration-300 ease-in-out hover:-translate-y-1 hover:shadow-layered-lg sm:h-80 lg:h-auto {% if forloop.first %}sm:col-span-2 lg:col-span-2 lg:row-span-2{% endif %}">
+            <a href="{% url 'web_catalogo:servicio_detalle' slug=linea.slug %}" class="absolute inset-0 flex h-full flex-col justify-end focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
+                {% include 'web/partials/linea_media.html' with linea=linea %}
 
-                    {% if linea.destacado %}
-                    <span class="absolute top-5 right-5 inline-flex items-center rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-blue-900 backdrop-blur-md">
-                        Destacado
-                    </span>
-                    {% endif %}
+                {% if linea.num_ensayos %}
+                <span class="mono-tag absolute top-5 right-5 inline-flex items-center rounded-full bg-white/90 px-3 py-1 text-[11px] font-bold text-blue-900 backdrop-blur-md">
+                    {{ linea.num_ensayos }} ensayo{{ linea.num_ensayos|pluralize }}
+                </span>
+                {% endif %}
+                {% if linea.destacado %}
+                <span class="absolute top-5 left-5 inline-flex items-center rounded-full border border-white/25 bg-slate-950/60 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white backdrop-blur-md">
+                    Destacado
+                </span>
+                {% endif %}
 
-                    <div class="absolute bottom-6 left-6 right-6">
-                        <h2 class="text-2xl font-bold leading-tight text-white">{{ linea.nombre }}</h2>
-                    </div>
-                </div>
-
-                <div class="flex flex-1 flex-col p-7">
-                    <p class="text-sm leading-7 text-slate-600">{{ linea.resumen }}</p>
-
-                    <span class="mt-7 inline-flex items-center gap-3 text-sm font-semibold text-blue-900 group-hover:text-blue-700">
-                        Explorar servicio
-                        <span class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 transition-transform group-hover:translate-x-1">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6l6 6-6 6"/>
-                            </svg>
-                        </span>
+                <div class="relative z-10 border-t-2 border-transparent p-6 transition-colors duration-300 ease-in-out group-hover:border-blue-400 {% if forloop.first %}sm:p-8{% endif %}">
+                    <h2 class="font-extrabold leading-tight text-white transition-transform duration-300 ease-in-out group-hover:-translate-y-0.5 {% if forloop.first %}text-2xl sm:text-3xl{% else %}text-lg{% endif %}">
+                        {{ linea.nombre }}
+                    </h2>
+                    <p class="mt-2 max-w-md text-sm leading-6 text-slate-200 {% if not forloop.first %}line-clamp-2{% endif %}">
+                        {{ linea.resumen }}
+                    </p>
+                    <span class="mt-4 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.1em] text-blue-300">
+                        Explorar línea
+                        <svg class="h-3.5 w-3.5 transition-transform duration-300 ease-in-out group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
+                        </svg>
                     </span>
                 </div>
             </a>
         </li>
         {% empty %}
-        <li class="col-span-full rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
+        <li class="col-span-full rounded-card border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
             Aún no se han publicado líneas de servicio.
         </li>
         {% endfor %}
     </ul>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'web/js/scroll-reveal.js' %}" defer></script>
 {% endblock %}

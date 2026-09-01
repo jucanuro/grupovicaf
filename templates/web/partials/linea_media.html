@@ -1,0 +1,24 @@
+{% comment %}
+  Fondo de una tarjeta/hero de LineaServicio: foto real con degradado dirigido,
+  o —si la línea no tiene imagen todavía— un patrón geométrico de marca en vez
+  de una caja vacía sobre el degradado oscuro (bug: se veía como rectángulo
+  negro). Se incluye con {% include 'web/partials/linea_media.html' with linea=linea %}
+  dentro de un contenedor `relative overflow-hidden`; el título de la tarjeta
+  se pinta encima, fuera de este partial, para que cada plantilla controle su
+  propio tamaño de texto.
+{% endcomment %}
+{% if linea.imagen %}
+<img src="{{ linea.imagen.url }}" alt="{{ linea.imagen_alt|default:linea.nombre }}"
+     class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-[1.04]"
+     loading="lazy" decoding="async"
+     width="{{ linea.imagen.width }}" height="{{ linea.imagen.height }}">
+<div class="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-transparent"></div>
+{% else %}
+<div class="absolute inset-0 bg-gradient-to-br from-blue-800 via-blue-900 to-slate-950 transition-transform duration-500 ease-in-out group-hover:scale-[1.04]">
+    <div class="absolute inset-0 opacity-20 bg-[linear-gradient(45deg,rgba(255,255,255,.6)_1px,transparent_1px),linear-gradient(-45deg,rgba(255,255,255,.6)_1px,transparent_1px)] bg-[size:22px_22px]"></div>
+    <svg class="absolute inset-0 m-auto h-16 w-16 text-white/15" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M14.25 3.104v5.714c0 .597.237 1.169.659 1.591L19.5 14.5M5 14.5h14M5 14.5a4 4 0 0 0 4 4h6a4 4 0 0 0 4-4M9.75 3.104h4.5M9.75 3.104a24.301 24.301 0 0 0 4.5 0" />
+    </svg>
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent"></div>
+{% endif %}

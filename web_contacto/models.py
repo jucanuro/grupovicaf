@@ -58,10 +58,6 @@ class SolicitudCotizacionWeb(models.Model):
     correo_contacto = models.EmailField()
     telefono_contacto = models.CharField(max_length=20)
 
-    zona = models.ForeignKey(
-        'web_zonas.ZonaCobertura', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='solicitudes_cotizacion',
-    )
     necesidad = models.TextField(help_text='Descripción libre de la necesidad del visitante.')
 
     origen = models.CharField(

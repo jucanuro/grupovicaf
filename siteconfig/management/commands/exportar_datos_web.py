@@ -36,7 +36,6 @@ from web_catalogo.models import ImagenLinea, LineaServicio, PreguntaFrecuente, S
 from web_contacto.models import MensajeContacto, SolicitudCotizacionItem, SolicitudCotizacionWeb
 from web_inicio.models import CarruselInicio
 from web_nosotros.models import DocumentoNosotros, Nosotros, TipoDocumentoNosotros
-from web_zonas.models import ZonaCobertura
 from siteconfig.models import NegocioConfig
 
 
@@ -75,9 +74,9 @@ class Command(BaseCommand):
 
         # --- 1. web_dump.json: fixture estándar, en orden seguro de FKs internas ---
         # ServicioPublicado NO va aquí (ver docstring): sus dependientes
-        # (PreguntaFrecuente, ZonaCobertura.servicios, SolicitudCotizacionItem)
-        # solo se cargan después de que cargar_servicios_publicados haya
-        # recreado esas filas con su mismo pk.
+        # (PreguntaFrecuente, SolicitudCotizacionItem) solo se cargan después
+        # de que cargar_servicios_publicados haya recreado esas filas con su
+        # mismo pk.
         querysets_en_orden = [
             NegocioConfig.objects.all(),
             CarruselInicio.objects.all(),
@@ -87,7 +86,6 @@ class Command(BaseCommand):
             Acreditacion.objects.all(),
             LineaServicio.objects.all(),
             ImagenLinea.objects.all(),
-            ZonaCobertura.objects.all(),
             MensajeContacto.objects.all(),
             SolicitudCotizacionWeb.objects.all(),
             SolicitudCotizacionItem.objects.all(),

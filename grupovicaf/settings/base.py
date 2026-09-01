@@ -55,7 +55,6 @@ INSTALLED_APPS = [
     'web_nosotros',
     'web_acreditacion',
     'web_catalogo',
-    'web_zonas',
     'web_contacto',
 ]
 
@@ -86,7 +85,6 @@ TEMPLATES = [
                 'grupovicaf.context_processors.site_url',
                 'siteconfig.context_processors.negocio',
                 'web_catalogo.context_processors.footer_lineas',
-                'web_zonas.context_processors.footer_zonas',
             ],
         },
     },

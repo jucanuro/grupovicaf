@@ -1,11 +1,10 @@
 from itertools import groupby
 
 from django.core.cache import cache
-from django.db.models import Prefetch
+from django.db.models import Count, Prefetch
 from django.shortcuts import get_object_or_404, render
 
 from servicios.models import Servicio
-from web_zonas.models import ZonaCobertura
 
 from .cache import KEY_CLIENTES_LIST, KEY_EQUIPO_LIST, KEY_SERVICIOS_LIST, TIMEOUT_LISTADOS
 from .models import ClienteDestacado, ImagenLinea, LineaServicio, MiembroEquipoPublicado, ServicioPublicado
@@ -31,6 +30,10 @@ def lineas_sidebar():
         lineas = list(
             LineaServicio.objects.publicadas()
             .only('slug', 'nombre', 'resumen', 'imagen', 'imagen_alt', 'icono', 'destacado', 'orden')
+            # num_ensayos alimenta el badge "N ensayos" de la tarjeta bento en
+            # servicios_list.html; distinct=True por si el M2M trajera join
+            # duplicado con otro prefetch en el futuro.
+            .annotate(num_ensayos=Count('ensayos', distinct=True))
             .order_by('orden', 'nombre')
         )
         cache.set(KEY_SERVICIOS_LIST, lineas, TIMEOUT_LISTADOS)
@@ -91,12 +94,6 @@ def servicio_detalle_view(request, slug):
     publicado = get_object_or_404(
         ServicioPublicado.objects.publicados()
         .select_related('categoria', 'subcategoria', 'linea', 'servicio', 'servicio__norma', 'servicio__metodo')
-        .prefetch_related(
-            Prefetch(
-                'zonas',
-                queryset=ZonaCobertura.objects.activas().only('slug', 'nombre', 'es_sede'),
-            )
-        )
         .only(
             'slug', 'titulo_publico', 'resumen', 'contenido', 'imagen', 'imagen_alt', 'zona_principal',
             'meta_title', 'meta_description', 'noindex', 'imagen_og',

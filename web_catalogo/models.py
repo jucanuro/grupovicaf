@@ -195,8 +195,7 @@ class ServicioPublicado(SeoModel):
     )
     zona_principal = models.CharField(
         max_length=100, default='Cajamarca',
-        help_text='Ciudad usada en el H1 ("Ensayo CBR en Cajamarca"). '
-                   'Sin enlace a landing de zona todavía: web_zonas no existe.',
+        help_text='Ciudad usada en el H1 ("Ensayo CBR en Cajamarca").',
     )
 
     destacado = models.BooleanField(default=False)

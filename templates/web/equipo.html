@@ -44,34 +44,24 @@
     - H1 y metas SEO se mantienen intactos (encargo): solo cambia el estilo
       visual del H1, no el copy ni la keyword objetivo.
 {% endcomment %}
-<section class="relative overflow-hidden bg-[#f6f8fc]">
+<section class="section-light-alt relative overflow-hidden">
 
-    <!-- Fondo ambiental: solo en escritorio (lg+), regla de rendimiento móvil -->
-    <div class="pointer-events-none absolute inset-0 overflow-hidden">
-        <div class="hidden lg:block absolute -top-40 -left-32 h-[520px] w-[520px] rounded-full bg-blue-200/25 blur-3xl"></div>
-        <div class="hidden lg:block absolute -bottom-52 -right-32 h-[560px] w-[560px] rounded-full bg-cyan-200/25 blur-3xl"></div>
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.85),transparent_55%)]"></div>
-    </div>
+    {% include 'web/partials/textura_tecnica_clara.html' %}
 
-    <div class="relative z-10 mx-auto max-w-[1600px] px-4 pt-32 pb-16 sm:px-6 lg:px-8">
-        <span class="inline-flex items-center gap-2.5 rounded-full border border-blue-100 bg-white px-4 py-1.5 shadow-sm">
+    <div class="reveal relative z-10 mx-auto max-w-[1600px] px-4 pt-32 pb-16 sm:px-6 lg:px-8">
+        <span class="eyebrow">
             <span class="relative flex h-2 w-2">
                 <span class="motion-reduce:hidden absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-500 opacity-60"></span>
                 <span class="relative inline-flex h-2 w-2 rounded-full bg-blue-700"></span>
             </span>
-            <span class="text-[11px] font-black uppercase tracking-[0.28em] text-blue-900">
-                Nuestro equipo
-            </span>
+            Nuestro equipo
         </span>
 
-        <h1 class="mt-6 max-w-3xl text-4xl font-black tracking-tight leading-[1.05] text-slate-900 sm:text-5xl">
-            Equipo técnico de
-            <span class="bg-gradient-to-r from-blue-900 via-blue-700 to-cyan-500 bg-clip-text text-transparent">
-                Grupo VICAF
-            </span>
+        <h1 class="h1-display mt-6 max-w-3xl">
+            Equipo técnico de Grupo VICAF
         </h1>
 
-        <p class="mt-6 max-w-2xl text-lg leading-7 text-slate-600">
+        <p class="body-copy mt-6">
             Profesionales que ejecutan y supervisan cada ensayo bajo los estándares del
             {{ negocio.acreditacion_entidad }}, organizados por área de especialidad.
         </p>
@@ -81,7 +71,7 @@
             {% if total_areas %}
             <div class="py-5 pr-8">
                 <div class="flex items-end gap-3">
-                    <div class="text-5xl font-black leading-none tracking-tight bg-gradient-to-b from-blue-900 via-blue-700 to-cyan-500 bg-clip-text text-transparent">
+                    <div class="text-5xl font-extrabold leading-none tracking-tight text-slate-900">
                         {{ total_areas }}
                     </div>
                     <div class="mb-1 flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1">
@@ -96,7 +86,7 @@
             {% if total_personas %}
             <div class="py-5 pl-8">
                 <div class="flex items-end gap-3">
-                    <div class="text-5xl font-black leading-none tracking-tight bg-gradient-to-b from-slate-900 via-blue-800 to-cyan-500 bg-clip-text text-transparent">
+                    <div class="text-5xl font-extrabold leading-none tracking-tight text-blue-700">
                         {{ total_personas }}
                     </div>
                     <div class="mb-1 flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-1">
@@ -111,23 +101,23 @@
         {% endif %}
     </div>
 
-    <div class="relative z-10 mx-auto max-w-[1600px] px-4 pb-24 sm:px-6 lg:px-8">
+    <div class="relative z-10 mx-auto max-w-[1600px] px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
         <div class="space-y-14">
             {% for rol in roles %}
-            <div>
+            <div class="reveal">
                 <div class="border-b border-slate-200 pb-4">
-                    <div class="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.28em] text-blue-600">
+                    <div class="inline-flex items-center gap-2 text-eyebrow uppercase text-blue-600">
                         <span class="h-px w-6 bg-blue-500"></span>
                         Área corporativa
                     </div>
-                    <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-800 sm:text-3xl">
+                    <h2 class="mt-2 text-2xl font-extrabold tracking-tight text-slate-800 sm:text-3xl">
                         {{ rol.nombre }}
                     </h2>
                 </div>
 
-                <ul class="mt-8 grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
+                <ul class="reveal-group mt-8 grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
                     {% for miembro in rol.miembros %}
-                    <li class="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white/90 shadow-[0_10px_35px_-15px_rgba(59,130,246,0.12)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_25px_50px_-12px_rgba(37,99,235,0.22)]">
+                    <li class="reveal card-tech group relative flex flex-col overflow-hidden bg-white/90 backdrop-blur-sm">
 
                         <div class="pointer-events-none absolute -right-6 -top-6 h-36 w-36 rounded-full bg-gradient-to-br from-blue-400/20 to-cyan-300/10 blur-2xl opacity-80 transition-opacity duration-300 group-hover:opacity-100"></div>
 
@@ -192,7 +182,7 @@
                 </ul>
             </div>
             {% empty %}
-            <div class="rounded-3xl border border-dashed border-slate-300 bg-white/80 px-10 py-24 text-center">
+            <div class="rounded-card border border-dashed border-slate-300 bg-white/80 px-10 py-24 text-center">
                 <h3 class="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
                     Aún no se ha publicado el equipo técnico
                 </h3>
@@ -204,4 +194,8 @@
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'web/js/scroll-reveal.js' %}" defer></script>
 {% endblock %}

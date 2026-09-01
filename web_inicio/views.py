@@ -1,31 +1,49 @@
 from django.shortcuts import render
 
-from clientes.models import Cliente
-from servicios.models import Servicio
+from servicios.models import Norma, Servicio
+from siteconfig.models import NegocioConfig
+from web_acreditacion.models import Acreditacion
 from web_catalogo.models import LineaServicio
 from web_catalogo.views import clientes_destacados
-from web_zonas.models import ZonaCobertura
 
 from .models import CarruselInicio
 
 
 def _metricas_credibilidad():
-    """Cifras reales para la franja de credibilidad bajo el hero.
+    """Franja de credibilidad bajo el hero.
 
-    Solo entran métricas con dato real y distinto de cero: un "0 clientes
-    atendidos" no acredita nada y contradice la franja (regla del encargo:
-    "si un dato no existe en BD, no lo inventes, omite esa métrica").
+    Regla del encargo: si un número no sale de un dato real y verificable de
+    la BD, no se muestra. Nada de "+" para inflar, nada de valores por
+    defecto inventados. Cada métrica con conteo 0 (o sin registro) se omite.
     """
-    candidatas = (
-        (Servicio.objects.filter(esta_acreditado=True).count(), 'Ensayos acreditados', '+'),
-        (Cliente.objects.count(), 'Clientes atendidos', '+'),
-        (ZonaCobertura.objects.activas().count(), 'Zonas de cobertura', ''),
+    metricas = []
+
+    acreditados = Servicio.objects.filter(esta_acreditado=True).count()
+    if acreditados:
+        metricas.append({'valor': str(acreditados), 'etiqueta': 'Ensayos acreditados'})
+
+    config = NegocioConfig.objects.first()
+    if config and config.acreditacion_codigo:
+        entidad = (config.acreditacion_entidad or '').strip()
+        metricas.append({
+            'valor': config.acreditacion_codigo,
+            'etiqueta': f'Registro {entidad}'.strip() if entidad else 'Registro de acreditación',
+        })
+
+    normas = Norma.objects.count()
+    if normas:
+        metricas.append({'valor': str(normas), 'etiqueta': 'Normas técnicas'})
+
+    vigencia_hasta = (
+        Acreditacion.objects.filter(activo=True, vigencia_hasta__isnull=False)
+        .order_by('-vigencia_hasta')
+        .values_list('vigencia_hasta', flat=True)
+        .first()
     )
-    return [
-        {'valor': valor, 'etiqueta': etiqueta, 'sufijo': sufijo}
-        for valor, etiqueta, sufijo in candidatas
-        if valor
-    ]
+    if vigencia_hasta:
+        metricas.append({'valor': vigencia_hasta.strftime('%m/%Y'), 'etiqueta': 'Acreditación vigente hasta'})
+
+    return metricas
 
 
 def inicio_view(request):
@@ -37,15 +55,9 @@ def inicio_view(request):
         .only('slug', 'nombre', 'resumen', 'imagen', 'imagen_alt')
         .order_by('orden', 'nombre')
     )
-    zonas = (
-        ZonaCobertura.objects.activas()
-        .only('slug', 'nombre', 'es_sede')
-        .order_by('-es_sede', 'orden', 'nombre')
-    )
     return render(request, 'web/home.html', {
         'slides': slides,
         'lineas': lineas,
-        'zonas': zonas,
         'metricas': _metricas_credibilidad(),
         'clientes_destacados': clientes_destacados(),
     })

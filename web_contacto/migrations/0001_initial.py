@@ -14,7 +14,6 @@ class Migration(migrations.Migration):
         ("servicios", "0006_alter_servicio_nombre"),
         ("clientes", "0002_cliente_origen"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("web_zonas", "0002_seed_zonas"),
     ]
 
     operations = [
@@ -79,16 +78,6 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="solicitud_web",
                         to="servicios.cotizacion",
-                    ),
-                ),
-                (
-                    "zona",
-                    models.ForeignKey(
-                        blank=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        related_name="solicitudes_cotizacion",
-                        to="web_zonas.zonacobertura",
                     ),
                 ),
             ],

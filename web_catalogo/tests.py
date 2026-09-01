@@ -300,7 +300,7 @@ class LineaServicioDetalleTests(CatalogoPublicoTestCase):
         contenido = response.content.decode()
         self.assertEqual(contenido.count('galeria-item'), 10)
         self.assertEqual(contenido.count('galeria-item group relative block aspect-square '
-                                          'overflow-hidden rounded-2xl border border-slate-200 '
+                                          'overflow-hidden rounded-card border border-slate-200 '
                                           'bg-slate-100 hidden'), 2)
         self.assertIn('id="btn-ver-mas-galeria"', contenido)
 

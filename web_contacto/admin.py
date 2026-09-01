@@ -29,13 +29,13 @@ class SolicitudCotizacionItemInline(admin.TabularInline):
 @admin.register(SolicitudCotizacionWeb)
 class SolicitudCotizacionWebAdmin(admin.ModelAdmin):
     list_display = (
-        'razon_social', 'ruc', 'zona', 'cliente', 'cotizacion', 'origen', 'creado',
+        'razon_social', 'ruc', 'cliente', 'cotizacion', 'origen', 'creado',
     )
-    list_filter = ('zona', 'creado')
+    list_filter = ('creado',)
     search_fields = ('razon_social', 'ruc', 'correo_contacto', 'cotizacion__numero_oferta')
     readonly_fields = (
         'ruc', 'razon_social', 'persona_contacto', 'correo_contacto', 'telefono_contacto',
-        'zona', 'necesidad', 'origen', 'ip', 'cliente', 'cotizacion', 'creado',
+        'necesidad', 'origen', 'ip', 'cliente', 'cotizacion', 'creado',
     )
     autocomplete_fields = ('cliente',)
     inlines = [SolicitudCotizacionItemInline]

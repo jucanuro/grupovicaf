@@ -7,7 +7,6 @@ from django.urls import reverse
 from clientes.models import Cliente
 from servicios.models import CategoriaServicio, Cotizacion, Servicio
 from web_catalogo.models import LineaServicio, ServicioPublicado
-from web_zonas.models import ZonaCobertura
 
 from .models import MensajeContacto, SolicitudCotizacionWeb
 from .utils import RATE_LIMIT_MAX_INTENTOS
@@ -29,11 +28,6 @@ class SolicitudCotizacionTestCase(TestCase):
             servicio=None, categoria=categoria, slug='sin-servicio-test',
             titulo_publico='Sin vínculo LIMS', resumen='r', contenido='c', activo=True,
         )
-        cls.zona = ZonaCobertura.objects.create(
-            nombre='Jaén', provincia='Jaén', titulo_h1='Laboratorio de suelos en Jaén',
-            introduccion='i', contenido='c', slug='jaen-test',
-        )
-
     def setUp(self):
         cache.clear()
 
@@ -45,7 +39,6 @@ class SolicitudCotizacionTestCase(TestCase):
             'correo_contacto': 'juan@example.com',
             'telefono_contacto': '999999999',
             'necesidad': 'Necesito CBR para un proyecto vial.',
-            'zona': self.zona.slug,
             'servicios': [self.publicado.slug],
             f'cantidad_{self.publicado.slug}': '2',
             'origen': '/servicios/ensayo-cbr-test/',

@@ -10,7 +10,7 @@ Wants=postgresql.service redis-server.service
 
 [Service]
 Type=notify
-User=www-data
+User=ubuntu
 Group=www-data
 WorkingDirectory=/var/www/projects/grupovicaf
 EnvironmentFile=/var/www/projects/grupovicaf/.env
@@ -20,6 +20,7 @@ Environment=DJANGO_SETTINGS_MODULE=grupovicaf.settings.prod
 
 RuntimeDirectory=gunicorn
 RuntimeDirectoryMode=0750
+RuntimeDirectoryPreserve=yes
 
 # 2 workers: tráfico público, mucho más ligero que el LIMS (sin PDFs).
 ExecStart=/var/www/projects/grupovicaf/venv/bin/gunicorn \

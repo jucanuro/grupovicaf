@@ -1,3 +1,179 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Sistema de diseño de la web pública (rediseño F10): jerarquía tipográfica,
+   botones, tarjetas y texturas de marca reutilizadas en home, servicios,
+   líneas, nosotros, equipo y acreditación. Reglas 9-17 de CLAUDE.md.
+
+   Bandas oscuras: SIEMPRE `bg-gradient-to-br from-blue-950 via-blue-900
+   to-blue-950` + partial `web/partials/textura_tecnica.html`. Nunca negro
+   ni bg-slate-900 sueltos. */
+
+@layer base {
+  /* focus-visible consistente en todo elemento interactivo (regla 17). Se
+     define en base, no en components, para que gane a cualquier utilidad de
+     Tailwind sin depender de !important. */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid #1d4ed8;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@layer components {
+  /* --- Tratamientos de fondo de sección (encargo de color): tres y solo tres.
+     Ninguna página inventa el suyo. Regla de ritmo: una `.section-dark` NUNCA
+     va seguida de otra `.section-dark` — entre dos oscuras siempre hay una
+     `.section-light` o `.section-light-alt`.
+
+       .section-dark       -> azul con volumen: gradiente diagonal de 3 paradas
+                              (profundo / marca / más oscuro) + resplandor
+                              radial muy tenue en la esquina superior derecha.
+                              Lleva encima `web/partials/textura_tecnica.html`
+                              (retícula blanca 8% + ruido) y el contenido con
+                              `relative z-10`. Texto en blanco.
+       .section-light      -> blanco. Textura opcional (retícula slate 4%) vía
+                              `web/partials/textura_tecnica_clara.html`.
+       .section-light-alt  -> slate-50, para alternar entre dos claras. Misma
+                              textura clara opcional. --- */
+  .section-dark {
+    position: relative;
+    background-color: #14204a;
+    background-image:
+      radial-gradient(120% 130% at 88% 6%, rgba(56, 132, 255, 0.16), transparent 55%),
+      linear-gradient(135deg, #14204a 0%, #1e40af 48%, #0d1836 100%);
+  }
+  .section-light {
+    position: relative;
+    background-color: #ffffff;
+  }
+  .section-light-alt {
+    position: relative;
+    background-color: #f8fafc;
+  }
+
+  /* --- Tipografía --- */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-eyebrow uppercase text-blue-900;
+  }
+  .eyebrow-inverse {
+    @apply inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-eyebrow uppercase text-blue-200;
+  }
+  .h1-display {
+    @apply text-display text-slate-900;
+  }
+  .h1-display-inverse {
+    @apply text-display text-white;
+  }
+  .h2-section {
+    @apply text-display-sm text-slate-900;
+  }
+  .h2-section-inverse {
+    @apply text-display-sm text-white;
+  }
+  .body-copy {
+    @apply max-w-[65ch] text-body text-slate-600;
+  }
+  .body-copy-inverse {
+    @apply max-w-[65ch] text-body text-blue-100;
+  }
+  .mono-tag {
+    @apply font-mono tracking-wide;
+  }
+
+  /* --- Botones: radio 8-10px, altura 48px, nunca píldora --- */
+  .btn {
+    @apply inline-flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-btn px-6 text-sm font-semibold tracking-[0.02em] transition-all duration-300 ease-in-out;
+  }
+  .btn-primary {
+    @apply btn bg-vicaf-primary text-white shadow-btn-primary hover:-translate-y-px hover:bg-blue-800;
+  }
+  .btn-secondary {
+    @apply btn border-[1.5px] border-vicaf-primary/40 bg-transparent text-vicaf-dark hover:-translate-y-px hover:border-vicaf-primary hover:bg-blue-50;
+  }
+  .btn-primary-inverse {
+    @apply btn bg-white text-blue-900 shadow-layered hover:-translate-y-px hover:bg-blue-50;
+  }
+  .btn-secondary-inverse {
+    @apply btn border-[1.5px] border-white/50 bg-transparent text-white hover:-translate-y-px hover:border-white hover:bg-white hover:text-blue-900;
+  }
+
+  /* --- Tarjetas: capas, no una foto con overlay plano --- */
+  .card-tech {
+    @apply rounded-card border border-slate-200 bg-white shadow-layered transition-all duration-300 ease-in-out;
+  }
+  .card-tech:hover {
+    @apply -translate-y-1 shadow-layered-lg;
+  }
+  /* Como .card-tech pero sin el hover de elevación: para contenedores que
+     llevan enlaces/botones propios adentro (sidebar, hero, bloques de
+     acreditación), donde levantar toda la caja al pasar el mouse por un
+     hijo se sentiría como un temblor, no como una interacción. */
+  .card-flat {
+    @apply rounded-card border border-slate-200 bg-white shadow-layered;
+  }
+
+  /* --- Retícula técnica de fondo: líneas finas de 1px cada 40px, evoca plano
+     de ingeniería. Máscara radial horneada en la clase para que se desvanezca
+     hacia los bordes en vez de leerse como un tablero plano. Variante `-light`
+     para secciones claras (slate-900 al 4% en lugar de blanco al 8%). --- */
+  .bg-grid-technical {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+    background-size: 40px 40px;
+    -webkit-mask-image: radial-gradient(ellipse 78% 78% at 50% 42%, #000 32%, transparent 100%);
+            mask-image: radial-gradient(ellipse 78% 78% at 50% 42%, #000 32%, transparent 100%);
+  }
+  .bg-grid-technical-light {
+    background-image:
+      linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    -webkit-mask-image: radial-gradient(ellipse 78% 78% at 50% 42%, #000 32%, transparent 100%);
+            mask-image: radial-gradient(ellipse 78% 78% at 50% 42%, #000 32%, transparent 100%);
+  }
+
+  /* --- Ruido sutil (SVG feTurbulence, ~3% opacidad) para quitar el plano digital --- */
+  .bg-noise-overlay {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+  }
+}
+
+@layer utilities {
+  /* Motion contenido: fade + translateY(12px) al entrar en viewport, con
+     stagger de 60ms entre hermanos. static/web/js/scroll-reveal.js añade
+     .is-visible vía IntersectionObserver; el guard de prefers-reduced-motion
+     desactiva la animación por completo (regla F8). */
+  .reveal {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-group > .reveal:nth-child(2) { transition-delay: 60ms; }
+  .reveal-group > .reveal:nth-child(3) { transition-delay: 120ms; }
+  .reveal-group > .reveal:nth-child(4) { transition-delay: 180ms; }
+  .reveal-group > .reveal:nth-child(5) { transition-delay: 240ms; }
+  .reveal-group > .reveal:nth-child(6) { transition-delay: 300ms; }
+  .reveal-group > .reveal:nth-child(7) { transition-delay: 360ms; }
+  .reveal-group > .reveal:nth-child(8) { transition-delay: 420ms; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
+}
