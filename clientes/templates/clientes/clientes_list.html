@@ -216,6 +216,9 @@
 
                         <td class="py-2 px-6 text-right">
                             <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                                <button type="button" data-ver-cliente class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="Ver detalle">
+                                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                </button>
                                 <a href="{% url 'clientes:editar_cliente' pk=cliente.pk %}" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="Editar">
                                     <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
                                 </a>
@@ -350,6 +353,9 @@
                     </div>
 
                     <div class="flex flex-col gap-1 flex-shrink-0">
+                        <button type="button" data-ver-cliente class="w-8 h-8 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 flex items-center justify-center transition-all" title="Ver detalle">
+                            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                        </button>
                         <a href="{% url 'clientes:editar_cliente' pk=cliente.pk %}" class="w-8 h-8 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 flex items-center justify-center transition-all" title="Editar">
                             <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
                         </a>
@@ -389,54 +395,74 @@
 
 {% block extra_scripts %}
 <script>
+    // El "modal" de detalle: un .company-tooltip que se muestra al pasar el
+    // cursor sobre el nombre y se puede FIJAR (con el ojo de Acciones o clic
+    // en el nombre). El estado "fijado" vive en la clase .tooltip-pinned.
+    function mostrarTooltip(t) {
+        t.classList.remove('invisible', 'opacity-0', 'scale-95', 'pointer-events-none');
+        t.classList.add('visible', 'opacity-100', 'scale-100');
+    }
+
+    function ocultarTooltip(t) {
+        t.classList.remove('visible', 'opacity-100', 'scale-100', 'tooltip-pinned');
+        t.classList.add('invisible', 'opacity-0', 'scale-95', 'pointer-events-none');
+        const btn = t.querySelector('.close-tooltip-btn');
+        if (btn) btn.classList.add('hidden');
+    }
+
+    function fijarTooltip(tooltip) {
+        document.querySelectorAll('.company-tooltip').forEach(ocultarTooltip);
+        mostrarTooltip(tooltip);
+        tooltip.classList.add('tooltip-pinned');
+        const btn = tooltip.querySelector('.close-tooltip-btn');
+        if (btn) btn.classList.remove('hidden');
+    }
+
     function initTooltips() {
+        // Los tooltips se mueven a <body>; al re-renderizar la tabla (búsqueda)
+        // los del render anterior quedan huérfanos ahí. Limpiarlos primero.
+        document.querySelectorAll('body > .company-tooltip').forEach(t => t.remove());
+
         document.querySelectorAll('.info-trigger-zone').forEach(zone => {
             const tooltip = zone.querySelector('.company-tooltip');
             if (!tooltip) return;
 
             const closeBtn = tooltip.querySelector('.close-tooltip-btn');
-            let isPinned = false;
+            const row = zone.closest('.group');
+            const eyeBtn = row ? row.querySelector('[data-ver-cliente]') : null;
+            const estaFijado = () => tooltip.classList.contains('tooltip-pinned');
 
             if (tooltip.parentElement !== document.body) {
                 document.body.appendChild(tooltip);
             }
 
+            if (eyeBtn) {
+                eyeBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    fijarTooltip(tooltip);
+                });
+            }
+
             zone.addEventListener('mouseenter', () => {
-                if (window.innerWidth < 768 || isPinned) return;
-                tooltip.classList.replace('invisible', 'visible');
-                tooltip.classList.replace('opacity-0', 'opacity-100');
-                tooltip.classList.replace('scale-95', 'scale-100');
+                if (window.innerWidth < 768 || estaFijado()) return;
+                mostrarTooltip(tooltip);
             });
 
             zone.addEventListener('mouseleave', () => {
-                if (window.innerWidth < 768 || isPinned) return;
-                tooltip.classList.replace('visible', 'invisible');
-                tooltip.classList.replace('opacity-100', 'opacity-0');
-                tooltip.classList.replace('scale-100', 'scale-95');
+                if (window.innerWidth < 768 || estaFijado()) return;
+                ocultarTooltip(tooltip);
             });
 
             zone.addEventListener('click', (e) => {
                 e.stopPropagation();
-
-                document.querySelectorAll('.company-tooltip').forEach(t => {
-                    t.classList.add('invisible', 'opacity-0', 'scale-95', 'pointer-events-none');
-                    t.classList.remove('tooltip-pinned');
-                    const btn = t.querySelector('.close-tooltip-btn');
-                    if (btn) btn.classList.add('hidden');
-                });
-
-                isPinned = true;
-                tooltip.classList.remove('invisible', 'opacity-0', 'scale-95', 'pointer-events-none');
-                tooltip.classList.add('visible', 'opacity-100', 'scale-100', 'tooltip-pinned');
-                if (closeBtn) closeBtn.classList.remove('hidden');
+                fijarTooltip(tooltip);
             });
 
             if (closeBtn) {
                 closeBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    isPinned = false;
-                    tooltip.classList.add('invisible', 'opacity-0', 'scale-95', 'pointer-events-none');
-                    closeBtn.classList.add('hidden');
+                    ocultarTooltip(tooltip);
                 });
             }
 
@@ -448,59 +474,86 @@
         if (typeof lucide !== 'undefined') lucide.createIcons();
         initTooltips();
 
-        const searchInput = document.getElementById('search-input');
+        // Inputs de búsqueda: el del encabezado (cabecera_base.html, solo en
+        // esta página) y el del panel plegable. Ambos filtran la MISMA lista.
+        const headerInput = document.getElementById('clientes-scope-search');
+        const panelInput = document.getElementById('search-input');
+        const searchForm = document.getElementById('search-form');
+        const searchInputs = [headerInput, panelInput].filter(Boolean);
         const tableBody = document.getElementById('clientes-table-body');
         const mobileBody = document.getElementById('clientes-mobile-body');
         const tableFooter = document.getElementById('table-footer');
         let typingTimer;
 
-        if (searchInput) {
-            searchInput.addEventListener('input', () => {
+        function ejecutarBusqueda(query) {
+            const url = `{% url 'clientes:lista_clientes' %}?q=${encodeURIComponent(query)}`;
+
+            if (tableBody) tableBody.classList.add('loading-fade');
+            if (mobileBody) mobileBody.classList.add('loading-fade');
+
+            fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(response => response.text())
+                .then(html => {
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+
+                    const newTableBody = doc.getElementById('clientes-table-body');
+                    const newMobileBody = doc.getElementById('clientes-mobile-body');
+                    const newFooter = doc.getElementById('table-footer');
+
+                    if (newTableBody && tableBody) tableBody.innerHTML = newTableBody.innerHTML;
+                    if (newMobileBody && mobileBody) mobileBody.innerHTML = newMobileBody.innerHTML;
+                    if (newFooter && tableFooter) tableFooter.innerHTML = newFooter.innerHTML;
+
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                    initTooltips();
+
+                    if (tableBody) tableBody.classList.remove('loading-fade');
+                    if (mobileBody) mobileBody.classList.remove('loading-fade');
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    if (tableBody) tableBody.classList.remove('loading-fade');
+                    if (mobileBody) mobileBody.classList.remove('loading-fade');
+                });
+        }
+
+        function sincronizar(value) {
+            searchInputs.forEach(i => { i.value = value; });
+        }
+
+        searchInputs.forEach(input => {
+            input.addEventListener('input', (e) => {
+                const value = e.target.value;
+                // Mantener sincronizados los dos campos.
+                searchInputs.forEach(other => { if (other !== e.target) other.value = value; });
                 clearTimeout(typingTimer);
-                typingTimer = setTimeout(() => {
-                    const query = searchInput.value;
-                    const url = `{% url 'clientes:lista_clientes' %}?q=${encodeURIComponent(query)}`;
+                typingTimer = setTimeout(() => ejecutarBusqueda(value), 300);
+            });
 
-                    if (tableBody) tableBody.classList.add('loading-fade');
-                    if (mobileBody) mobileBody.classList.add('loading-fade');
+            // ESC: limpia el buscador y vuelve a mostrar la lista completa.
+            input.addEventListener('keydown', (e) => {
+                if (e.key !== 'Escape' || input.value === '') return;
+                e.preventDefault();
+                e.stopPropagation();   // no cerrar el panel plegable al mismo tiempo
+                sincronizar('');
+                clearTimeout(typingTimer);
+                ejecutarBusqueda('');
+            });
+        });
 
-                    fetch(url, {
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                    })
-                    .then(response => response.text())
-                    .then(html => {
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(html, 'text/html');
-                        
-                        const newTableBody = doc.getElementById('clientes-table-body');
-                        const newMobileBody = doc.getElementById('clientes-mobile-body');
-                        const newFooter = doc.getElementById('table-footer');
-                        
-                        if (newTableBody && tableBody) tableBody.innerHTML = newTableBody.innerHTML;
-                        if (newMobileBody && mobileBody) mobileBody.innerHTML = newMobileBody.innerHTML;
-                        if (newFooter && tableFooter) tableFooter.innerHTML = newFooter.innerHTML;
-
-                        if (typeof lucide !== 'undefined') lucide.createIcons();
-                        initTooltips();
-
-                        if (tableBody) tableBody.classList.remove('loading-fade');
-                        if (mobileBody) mobileBody.classList.remove('loading-fade');
-                    })
-                    .catch(err => {
-                        console.error('Error:', err);
-                        if (tableBody) tableBody.classList.remove('loading-fade');
-                        if (mobileBody) mobileBody.classList.remove('loading-fade');
-                    });
-                }, 300);
+        // ENTER en el form del panel no debe recargar la página: los
+        // resultados ya salen a medida que se escribe.
+        if (searchForm) {
+            searchForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                clearTimeout(typingTimer);
+                ejecutarBusqueda(panelInput ? panelInput.value : '');
             });
         }
        
+        // Clic en cualquier otro lado: cierra el detalle fijado.
         document.addEventListener('click', () => {
-            document.querySelectorAll('.company-tooltip').forEach(t => {
-                t.classList.add('invisible', 'opacity-0', 'scale-95', 'pointer-events-none');
-                const btn = t.querySelector('.close-tooltip-btn');
-                if (btn) btn.classList.add('hidden');
-            });
+            document.querySelectorAll('.company-tooltip').forEach(ocultarTooltip);
         });
     });
 </script>

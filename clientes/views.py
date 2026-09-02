@@ -37,6 +37,9 @@ def lista_clientes(request):
     context = {
         'clientes': page_obj,
         'query': query,
+        # Hace que cabecera_base.html reemplace el buscador global por un
+        # filtro acotado a esta lista (ver templates/cabecera_base.html).
+        'header_search_scope': 'clientes',
     }
 
     return render(request, 'clientes/clientes_list.html', context)

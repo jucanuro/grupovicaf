@@ -82,7 +82,7 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
+# package-lock.json
 yarn.lock
 pnpm-lock.yaml
 static/web/css/output.css
@@ -117,3 +117,5 @@ desktop.ini
 *.swo
 *.orig
 *.rej
+
+docker-compose.dev.local.yml
