@@ -2,30 +2,21 @@
 
 Cambios notables de **GRUPO VICAF** (LIMS + web institucional).
 
-Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
-Todavía no se usan versiones SemVer: las entradas se agrupan por fecha. El
-detalle commit a commit está en `git log`.
+---
 
-<!--
-Al trabajar, agregá una línea bajo la sección que corresponda dentro de
-[Unreleased], en el MISMO commit que el cambio:
-  Added       funcionalidad nueva
-  Changed     cambios en funcionalidad existente
-  Deprecated  algo que se va a quitar pronto
-  Removed     algo que se quitó
-  Fixed       bugs corregidos
-  Security    vulnerabilidades tapadas
-Si el cambio no se nota desde afuera (refactor interno, rename de variable),
-NO va acá: eso vive solo en git log.
-Al entregar un bloque de trabajo: renombrá [Unreleased] a una fecha y creá
-un [Unreleased] vacío nuevo.
--->
-
-## [Unreleased]
+## [2026-09-01 - 2026-09-02]
 
 ### Added
 
 - `CHANGELOG.md` (este archivo).
+- Comando `python manage.py sembrar_demo` (`core`): genera un dataset de
+  demostración coherente respetando la cadena de dependencias — 4 roles, 91
+  permisos, 10 trabajadores, catálogos, 50 cotizaciones con sus grupos y
+  detalles, ~40 proyectos, ~66 recepciones de muestra, ~250 muestras, ~66
+  solicitudes de ensayo con sus detalles e incidencias, y 50 actividades de
+  calendario. Todo marcado (`COT-DEMO-*`, `PROY-DEMO-*`, `demo.trab*`,
+  `origen_modelo='demo'`) y borrable con `--reset`. No genera `InformeFinal`
+  (requiere un PDF por informe).
 
 ### Changed
 
@@ -102,3 +93,24 @@ un [Unreleased] vacío nuevo.
   muestra, informes de ensayo.
 - Flujo de cotización completo: creación, aprobación, textos dinámicos, PDF.
 - Migración de la base de datos de SQLite a PostgreSQL.
+
+---
+
+Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
+Todavía no se usan versiones SemVer: las entradas se agrupan por fecha. El
+detalle commit a commit está en `git log`.
+
+<!--
+Al trabajar, agregá una línea bajo la sección que corresponda dentro de
+[Unreleased], en el MISMO commit que el cambio:
+  Added       funcionalidad nueva
+  Changed     cambios en funcionalidad existente
+  Deprecated  algo que se va a quitar pronto
+  Removed     algo que se quitó
+  Fixed       bugs corregidos
+  Security    vulnerabilidades tapadas
+Si el cambio no se nota desde afuera (refactor interno, rename de variable),
+NO va acá: eso vive solo en git log.
+Al entregar un bloque de trabajo: renombrá [Unreleased] a una fecha y creá
+un [Unreleased] vacío nuevo.
+-->
