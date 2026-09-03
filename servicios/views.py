@@ -20,6 +20,8 @@ import logging
 from django.conf import settings
 from xhtml2pdf import pisa
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+
+from core.lista_utils import HeaderSearchMixin
 from django.urls import reverse_lazy
 from django.contrib.messages.views import SuccessMessageMixin
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -87,11 +89,12 @@ def lista_servicios(request):
     categorias_disponibles = CategoriaServicio.objects.all().order_by('nombre')
 
     context = {
-        'servicios': page_obj, 
+        'servicios': page_obj,
         'query': query,
         'categorias_disponibles': categorias_disponibles,
+        'header_search': {'id': 'buscar-servicios', 'placeholder': 'Buscar servicio por nombre o código...'},
     }
-    
+
     return render(request, 'servicios/servicios_list.html', context)
 
 @login_required
@@ -303,11 +306,19 @@ def crear_metodo_ajax(request):
             return JsonResponse({'success': False, 'error': 'Error interno del servidor.'})
     return JsonResponse({'success': False, 'error': 'Método no permitido.'})
     
-class NormaListView(LoginRequiredMixin, PermisoModuloMixin, ListView):
+class NormaListView(HeaderSearchMixin, LoginRequiredMixin, PermisoModuloMixin, ListView):
     permiso_requerido_codigo = 'servicios.ver'
     model = Norma
     template_name = 'servicios/norma_list.html'
     context_object_name = 'normas'
+    header_search = {'id': 'buscar-normas', 'placeholder': 'Buscar norma por código o nombre...'}
+
+    def get_queryset(self):
+        qs = Norma.objects.all().order_by('codigo')
+        q = self.request.GET.get('q')
+        if q:
+            qs = qs.filter(Q(codigo__icontains=q) | Q(nombre__icontains=q))
+        return qs
 
 class NormaCreateView(LoginRequiredMixin, PermisoModuloMixin, SuccessMessageMixin, CreateView):
     permiso_requerido_codigo = 'servicios.crear'
@@ -325,11 +336,19 @@ class NormaUpdateView(LoginRequiredMixin, PermisoModuloMixin, SuccessMessageMixi
     success_url = reverse_lazy('servicios:norma_list')
     success_message = "La norma técnica fue actualizada con éxito."
 
-class MetodoListView(LoginRequiredMixin, PermisoModuloMixin, ListView):
+class MetodoListView(HeaderSearchMixin, LoginRequiredMixin, PermisoModuloMixin, ListView):
     permiso_requerido_codigo = 'servicios.ver'
     model = Metodo
     template_name = 'servicios/metodo_list.html'
     context_object_name = 'metodos'
+    header_search = {'id': 'buscar-metodos', 'placeholder': 'Buscar método por código o nombre...'}
+
+    def get_queryset(self):
+        qs = Metodo.objects.all().order_by('codigo')
+        q = self.request.GET.get('q')
+        if q:
+            qs = qs.filter(Q(codigo__icontains=q) | Q(nombre__icontains=q))
+        return qs
 
 class MetodoCreateView(LoginRequiredMixin, PermisoModuloMixin, SuccessMessageMixin, CreateView):
     permiso_requerido_codigo = 'servicios.crear'
@@ -453,6 +472,7 @@ def lista_cotizaciones(request):
         'query': query,
         'estados_disponibles': Cotizacion.ESTADO_CHOICES,
         'get_params': get_params.urlencode(),
+        'header_search': {'id': 'buscar-cotizaciones', 'placeholder': 'Buscar por N° oferta, cliente o asunto...'},
     }
 
     return render(request, 'servicios/cotizacion_list.html', context)
@@ -1336,6 +1356,7 @@ def lista_plantillas(request):
     context = {
         'plantillas': page_obj,
         'query': query,
+        'header_search': {'id': 'buscar-plantillas', 'placeholder': 'Buscar plantilla por nombre o asunto...'},
     }
     return render(request, 'servicios/plantillas_list.html', context)
 

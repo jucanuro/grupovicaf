@@ -1,4 +1,6 @@
 from django.views.generic import ListView
+
+from core.lista_utils import HeaderSearchMixin
 from django.contrib.auth.mixins import LoginRequiredMixin
 from datetime import datetime
 import json
@@ -95,7 +97,7 @@ def lista_proyectos_pendientes(request):
         ~Q(estado__in=['FINALIZADO', 'CANCELADO'])
     )
 
-    search_query = request.GET.get('search', '')
+    search_query = request.GET.get('q') or request.GET.get('search', '')
 
     if search_query:
         proyectos_qs = proyectos_qs.filter(
@@ -142,7 +144,9 @@ def lista_proyectos_pendientes(request):
     context = {
         'proyectos_pendientes': proyectos_paginados,
         'search_query': search_query,
+        'query': search_query,
         'titulo_lista': 'Panel de Control de Proyectos',
+        'header_search': {'id': 'buscar-proyectos', 'placeholder': 'Buscar proyecto por código, nombre o cliente...'},
     }
 
     return render(request, 'proyectos/lista_proyectos_pendientes.html', context)
@@ -380,11 +384,12 @@ def lista_muestras_recepcion(request, recepcion_id):
     })
 
 
-class RecepcionMuestraListView(LoginRequiredMixin, ListView):
+class RecepcionMuestraListView(HeaderSearchMixin, LoginRequiredMixin, ListView):
     model = RecepcionMuestra
     template_name = 'proyectos/lista_general_recepciones.html'
     context_object_name = 'recepciones'
     paginate_by = 20
+    header_search = {'id': 'buscar-recepciones', 'placeholder': 'Buscar por cliente, procedencia o N°...'}
 
     def dispatch(self, request, *args, **kwargs):
         if not trabajador_tiene_permiso(request.user, 'muestras.ver'):
@@ -401,9 +406,9 @@ class RecepcionMuestraListView(LoginRequiredMixin, ListView):
 
         if query:
             queryset = queryset.filter(
-                Q(cotizacion__cliente__nombre__icontains=query) |
-                Q(id__icontains=query) |
-                Q(procedencia__icontains=query)
+                Q(cotizacion__cliente__razon_social__icontains=query) |
+                Q(procedencia__icontains=query) |
+                Q(responsable_cliente__icontains=query)
             )
 
         return queryset
@@ -1034,7 +1039,9 @@ def lista_solicitudes(request):
 
     return render(request, 'proyectos/ensayos_list.html', {
         'solicitudes': solicitudes,
-        'q': q
+        'q': q,
+        'query': q,
+        'header_search': {'id': 'buscar-solicitudes', 'placeholder': 'Buscar por N° solicitud, cliente o cotización...'},
     })
 
 
@@ -1075,10 +1082,23 @@ def generar_pdf_ensayo(request, solicitud_id):
 @login_required
 @permiso_requerido('informes.ver')
 def lista_informes_finales(request):
-    informes = InformeFinal.objects.all().order_by('-fecha_emision')
+    query = request.GET.get('q', '').strip()
+
+    informes = InformeFinal.objects.select_related(
+        'solicitud__cotizacion__cliente'
+    ).order_by('-fecha_emision')
+
+    if query:
+        informes = informes.filter(
+            Q(codigo_informe__icontains=query) |
+            Q(solicitud__codigo_solicitud__icontains=query) |
+            Q(solicitud__cotizacion__cliente__razon_social__icontains=query)
+        ).distinct()
 
     return render(request, 'proyectos/informes_list.html', {
-        'informes': informes
+        'informes': informes,
+        'query': query,
+        'header_search': {'id': 'buscar-informes', 'placeholder': 'Buscar informe por código o cliente...'},
     })
 
 

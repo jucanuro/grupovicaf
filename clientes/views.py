@@ -37,10 +37,16 @@ def lista_clientes(request):
     context = {
         'clientes': page_obj,
         'query': query,
-        # Hace que cabecera_base.html reemplace el buscador global por un
-        # filtro acotado a esta lista (ver templates/cabecera_base.html).
-        'header_search_scope': 'clientes',
+        # Activa el buscador acotado en el encabezado (cabecera_base.html).
+        'header_search': {
+            'id': 'buscar-clientes',
+            'placeholder': 'Buscar cliente por nombre, RUC o código...',
+        },
     }
+
+    # Filtrado en vivo (lista_buscador.js): devolver solo el parcial de la tabla.
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return render(request, 'clientes/includes/clientes_tabla.html', context)
 
     return render(request, 'clientes/clientes_list.html', context)
 

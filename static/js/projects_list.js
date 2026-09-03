@@ -8,27 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const samplesHistoryList = document.getElementById('samples-history-list');
     const registerSampleForm = document.getElementById('register-sample-form');
 
-    const searchInput = document.getElementById('search-input');
-    const table = document.getElementById('projects-table');
-    const rows = table ? table.getElementsByTagName('tr') : [];
-    
-    if (searchInput) {
-        searchInput.addEventListener('keyup', (e) => {
-            const filter = e.target.value.toLowerCase();
-            for (let i = 1; i < rows.length; i++) {
-                const row = rows[i];
-                const cells = row.getElementsByTagName('td');
-                const projectText = cells[0].textContent || cells[0].innerText;
-                const clientText = cells[1].textContent || cells[1].innerText;
-                
-                if (projectText.toLowerCase().indexOf(filter) > -1 || clientText.toLowerCase().indexOf(filter) > -1) {
-                    row.style.display = "";
-                } else {
-                    row.style.display = "none";
-                }
-            }
-        });
-    }
+    // La búsqueda la maneja static/js/lista_buscador.js (server-rendered).
 
     const backToProjectsBtn = document.getElementById('back-to-projects-btn');
     const registerSamplesBtns = document.querySelectorAll('.register-samples-btn');

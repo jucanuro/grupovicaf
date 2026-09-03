@@ -4,6 +4,45 @@ Cambios notables de **GRUPO VICAF** (LIMS + web institucional).
 
 ---
 
+## [Unreleased]
+
+### Removed
+
+- Buscador global de comandos (`⌘K` / `#cmd-palette`): la plantilla
+  `buscador.html`, su modal, el atajo de teclado y todo su JS en `vicafbase.js`.
+  Solo filtraba 5 enlaces fijos, nunca consultaba la base de datos.
+
+### Changed
+
+- La barra de búsqueda del encabezado (`cabecera_base.html`) es ahora un filtro
+  acotado a la lista de cada página: aparece cuando la vista pasa
+  `header_search = {'id', 'placeholder'}`, y filtra en vivo mientras se escribe
+  (server-rendered, `Esc` limpia, arrastra los filtros del `<form>` si el input
+  está dentro de uno). Motor común en `static/js/lista_buscador.js`, activado
+  por `[data-lista-buscador]` en el input y
+  `[data-lista-contenedor][data-lista-url]` en la plantilla.
+- Las 14 listas del LIMS usan ese buscador en el encabezado: clientes,
+  servicios, cotizaciones, métodos, normas, plantillas, proyectos pendientes,
+  recepciones, solicitudes de ensayo, informes, trabajadores, roles y permisos.
+  Cada `<tbody>` sigue siendo HTML de Django (una sola fuente); el JS extrae el
+  contenedor de la respuesta.
+- La lista de clientes además devuelve solo el parcial de la tabla
+  (`clientes/includes/clientes_tabla.html`) en peticiones AJAX — optimización de
+  payload opcional que el resto puede adoptar sin cambiar el JS.
+
+### Fixed
+
+- La búsqueda de la lista general de recepciones de muestra tiraba `FieldError`
+  (`cotizacion__cliente__nombre`, campo inexistente); ahora filtra por
+  `razon_social` / procedencia / responsable.
+
+### Removed
+
+- Endpoints de búsqueda por JSON que solo usaban sus propias listas y quedaron
+  sin uso: `buscar_servicios_api` y `buscar_trabajadores_api` ya no se invocan
+  desde las plantillas (se pueden borrar junto con `buscar_clientes_api` y
+  `buscar_cotizaciones_api`, que nunca se usaron).
+
 ## [2026-09-01 - 2026-09-02]
 
 ### Added

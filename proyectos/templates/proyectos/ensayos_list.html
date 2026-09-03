@@ -81,6 +81,8 @@
                             <input
                                 type="text"
                                 name="q"
+                                data-lista-buscador
+                                value="{{ q|default:'' }}"
                                 class="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50 text-xs font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                                 placeholder="Buscar por código, cliente o proyecto..."
                                 value="{{ q }}"
@@ -106,7 +108,8 @@
             </div>
         </div>
     </div>
-    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden"
+         data-lista-contenedor data-lista-url="{% url 'proyectos:lista_solicitudes' %}">
         
         <!-- DESKTOP -->
         <div class="hidden md:block overflow-x-auto">

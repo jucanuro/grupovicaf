@@ -158,6 +158,13 @@
     </script>
 
     <style>
+        /* Estado de carga del contenedor de lista mientras se filtra (lista_buscador.js) */
+        .lista-cargando {
+            opacity: 0.5;
+            pointer-events: none;
+            transition: opacity 0.15s ease;
+        }
+
         .command-header {
             position: relative;
             z-index: 80;
@@ -570,10 +577,10 @@
         </div>
     </div>
 
-    {% include 'buscador.html' %}
     {% block modals %}{% endblock %}
     <script src="https://unpkg.com/lucide@latest" defer></script>
     <script src="{% static 'js/vicafbase.js' %}"></script>
+    <script src="{% static 'js/lista_buscador.js' %}"></script>
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

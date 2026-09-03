@@ -29,13 +29,15 @@
                 <i data-lucide="search" class="w-5 h-5 text-slate-400"></i>
                 <input type="text"
                        name="q"
+                       data-lista-buscador
                        value="{{ query }}"
                        placeholder="Buscar por código, módulo o nombre..."
                        class="w-full bg-transparent outline-none text-sm text-slate-700 placeholder:text-slate-400">
             </div>
         </form>
 
-        <div class="bg-white rounded-[2rem] border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
+        <div class="bg-white rounded-[2rem] border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden"
+             data-lista-contenedor data-lista-url="{% url 'trabajadores:lista_permisos' %}">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead class="bg-slate-50 border-b border-slate-200">
