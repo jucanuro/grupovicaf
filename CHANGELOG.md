@@ -41,6 +41,9 @@ Cambios notables de **GRUPO VICAF** (LIMS + web institucional).
   arriba del formulario.
 - `servicios/modals/all_modals.html` incluía dos veces el modal de subcategoría
   y dejaba un `|` suelto visible en la página.
+- En el panel de servicios de la cotización, al seleccionar categoría /
+  subcategoría o agregar un ítem la fila se sumaba al final de la tabla fuera de
+  pantalla; ahora la vista se desplaza sola hasta esa fila.
 
 ## [2026-09-01 - 2026-09-02]
 

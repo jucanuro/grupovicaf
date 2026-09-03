@@ -52,6 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const getLetter = (num, upper = true) => String.fromCharCode((upper ? 65 : 97) + (num - 1));
     const deepClone = (value) => JSON.parse(JSON.stringify(value || []));
 
+    // Trae a la vista la última fila del detalle: al seleccionar categoría /
+    // subcategoría o agregar un ítem, la fila se añade abajo y el usuario no la ve.
+    const scrollAlDetalle = () => {
+        const fila = document.getElementById('cotizacion-detalles')?.lastElementChild;
+        fila?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+
     const clientesSelect = document.getElementById('id_cliente_ruc');
     let tsCliente = null;
     if (clientesSelect) {
@@ -338,6 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         window.renderTable();
+        scrollAlDetalle();
     };
 
     window.addItem = () => {
@@ -371,6 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         window.renderTable();
+        scrollAlDetalle();
     };
 
     window.remove = (idx) => {
