@@ -20,7 +20,7 @@
                 </button>
             </div>
 
-            <form id="formNuevoClienteAjax" class="p-6">
+            <form id="formNuevoClienteAjax" class="p-6" novalidate>
                 {% csrf_token %}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     
@@ -31,24 +31,39 @@
                         </div>
                         
                         <div>
-                            <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Número de RUC</label>
-                            <input type="text" name="ruc" required maxlength="11"
-                                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono-tech focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                            <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Número de RUC <span class="text-red-500">*</span></label>
+                            <input type="text" name="ruc" required maxlength="11" inputmode="numeric"
+                                data-validar data-label="RUC" data-patron="^\d{11}$" data-mensaje="El RUC debe tener 11 dígitos numéricos."
+                                class="js-input w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono-tech focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                                 placeholder="10XXXXXXXXX">
+                            <div class="campo-estado" data-for="ruc">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
 
                         <div>
-                            <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Razón Social</label>
-                            <input type="text" name="razon_social" required 
-                                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                            <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Razón Social <span class="text-red-500">*</span></label>
+                            <input type="text" name="razon_social" required
+                                data-validar data-label="Razón social" data-min="2" maxlength="200"
+                                class="js-input w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                                 placeholder="NOMBRE COMPLETO DE LA EMPRESA">
+                            <div class="campo-estado" data-for="razon_social">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
 
                         <div>
                             <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Dirección Fiscal</label>
-                            <textarea name="direccion" rows="2" 
-                                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                            <textarea name="direccion" rows="2"
+                                data-validar data-label="Dirección" maxlength="255"
+                                class="js-input w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                                 placeholder="AV. EJEMPLO 123..."></textarea>
+                            <div class="campo-estado" data-for="direccion">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
                     </div>
 
@@ -61,30 +76,50 @@
                         <div>
                             <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Persona Responsable</label>
                             <input type="text" name="persona_contacto" id="modal_atencion"
-                                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                                data-validar data-label="Persona responsable" maxlength="100"
+                                class="js-input w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                                 placeholder="NOMBRE DEL CONTACTO">
+                            <div class="campo-estado" data-for="persona_contacto">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Cargo</label>
-                                <input type="text" name="cargo_contacto" 
-                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold" 
+                                <input type="text" name="cargo_contacto"
+                                    data-validar data-label="Cargo" maxlength="100"
+                                    class="js-input w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold"
                                     placeholder="EJ: GERENTE">
+                                <div class="campo-estado" data-for="cargo_contacto">
+                                    <span class="campo-msg" data-msg></span>
+                                    <span class="campo-contador" data-contador></span>
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Teléfono</label>
-                                <input type="text" name="celular_contacto" 
-                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono-tech" 
+                                <input type="text" name="celular_contacto"
+                                    data-validar data-label="Teléfono" maxlength="20"
+                                    class="js-input w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono-tech"
                                     placeholder="999000XXX">
+                                <div class="campo-estado" data-for="celular_contacto">
+                                    <span class="campo-msg" data-msg></span>
+                                    <span class="campo-contador" data-contador></span>
+                                </div>
                             </div>
                         </div>
 
                         <div>
                             <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Correo de Contacto</label>
-                            <input type="email" name="correo_contacto" 
-                                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                            <input type="email" name="correo_contacto"
+                                data-validar data-label="Correo" data-tipo="email" maxlength="100"
+                                class="js-input w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                                 placeholder="ejemplo@correo.com">
+                            <div class="campo-estado" data-for="correo_contacto">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
                     </div>
                 </div>

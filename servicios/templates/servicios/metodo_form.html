@@ -68,7 +68,7 @@
     </div>
 
     <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <form method="post" class="p-8">
+        <form method="post" class="p-8" novalidate>
             {% csrf_token %}
             
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -81,17 +81,27 @@
                     
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Código Interno / ID</label>
-                            <input type="text" name="codigo" value="{{ form.codigo.value|default:'' }}" 
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Código Interno / ID <span class="text-red-500">*</span></label>
+                            <input type="text" name="codigo" value="{{ form.codigo.value|default:'' }}"
+                                data-validar data-label="Código" required maxlength="50"
                                 placeholder="EJ. MET-SU-01"
-                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono-tech font-bold text-slate-700 placeholder:text-[9px] placeholder:text-slate-300 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all uppercase">
+                                class="js-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono-tech font-bold text-slate-700 placeholder:text-[9px] placeholder:text-slate-300 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all uppercase">
+                            <div class="campo-estado" data-for="codigo">
+                                <span class="campo-msg" data-msg>{{ form.codigo.errors.0 }}</span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
-                        
+
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombre del Método</label>
-                            <input type="text" name="nombre" value="{{ form.nombre.value|default:'' }}" 
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombre del Método <span class="text-red-500">*</span></label>
+                            <input type="text" name="nombre" value="{{ form.nombre.value|default:'' }}"
+                                data-validar data-label="Nombre" required data-min="3" maxlength="100"
                                 placeholder="EJ. ANÁLISIS GRANULOMÉTRICO POR TAMIZADO"
-                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 placeholder:text-[9px] placeholder:text-slate-300 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all uppercase">
+                                class="js-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 placeholder:text-[9px] placeholder:text-slate-300 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all uppercase">
+                            <div class="campo-estado" data-for="nombre">
+                                <span class="campo-msg" data-msg>{{ form.nombre.errors.0 }}</span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
                     </div>
                 </div>

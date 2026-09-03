@@ -14,13 +14,18 @@
                 </button>
             </div>
 
-            <form id="formNuevaSubcategoriaAjax" class="p-6">
+            <form id="formNuevaSubcategoriaAjax" class="p-6" novalidate>
                 {% csrf_token %}
                 <div class="mb-6">
-                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Nombre de la Sub-Categoría</label>
-                    <input type="text" name="nombre" required 
+                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Nombre de la Sub-Categoría <span class="text-red-500">*</span></label>
+                    <input type="text" name="nombre" required
+                        data-validar data-label="Nombre" data-min="2" maxlength="100"
                         placeholder="EJ: AGREGADO FINO"
-                        class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold uppercase focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all">
+                        class="js-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold uppercase focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all">
+                    <div class="campo-estado" data-for="nombre">
+                        <span class="campo-msg" data-msg></span>
+                        <span class="campo-contador" data-contador></span>
+                    </div>
                 </div>
 
                 <div class="flex justify-end gap-3">

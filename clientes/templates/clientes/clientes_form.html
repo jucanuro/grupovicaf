@@ -88,7 +88,7 @@
     {% endif %}
 
     <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <form id="cliente-form" method="post" enctype="multipart/form-data" class="p-8">
+        <form id="cliente-form" method="post" enctype="multipart/form-data" class="p-8" novalidate>
             {% csrf_token %}
             
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -101,23 +101,37 @@
                     
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Razón Social</label>
-                            <input type="text" name="razon_social" value="{{ data_cliente.razon_social|default:'' }}" 
-                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
-                            {% if errors.razon_social %}<p class="text-[9px] text-red-500 mt-1 font-bold">{{ errors.razon_social }}</p>{% endif %}
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Razón Social <span class="text-red-500">*</span></label>
+                            <input type="text" name="razon_social" value="{{ data_cliente.razon_social|default:'' }}"
+                                data-validar data-label="Razón social" required data-min="2" maxlength="255"
+                                class="js-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            <div class="campo-estado" data-for="razon_social">
+                                <span class="campo-msg" data-msg>{% if errors.razon_social %}{{ errors.razon_social }}{% endif %}</span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
                         
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Número de RUC</label>
-                            <input type="text" name="ruc" value="{{ data_cliente.ruc|default:'' }}" 
-                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono-tech text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
-                            {% if errors.ruc %}<p class="text-[9px] text-red-500 mt-1 font-bold">{{ errors.ruc }}</p>{% endif %}
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Número de RUC <span class="text-red-500">*</span></label>
+                            <input type="text" name="ruc" value="{{ data_cliente.ruc|default:'' }}"
+                                data-validar data-label="RUC" required maxlength="11" inputmode="numeric"
+                                data-patron="^\d{11}$" data-mensaje="El RUC debe tener 11 dígitos numéricos."
+                                class="js-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono-tech text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            <div class="campo-estado" data-for="ruc">
+                                <span class="campo-msg" data-msg>{% if errors.ruc %}{{ errors.ruc }}{% endif %}</span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
                         
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Dirección Fiscal</label>
-                            <textarea name="direccion" rows="2" 
-                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">{{ data_cliente.direccion|default:'' }}</textarea>
+                            <textarea name="direccion" rows="2"
+                                data-validar data-label="Dirección" maxlength="255"
+                                class="js-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">{{ data_cliente.direccion|default:'' }}</textarea>
+                            <div class="campo-estado" data-for="direccion">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
 
                         <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
@@ -135,23 +149,38 @@
                     
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Persona Responsable</label>
-                            <input type="text" name="persona_contacto" value="{{ data_cliente.persona_contacto|default:'' }}" 
-                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Persona Responsable <span class="text-red-500">*</span></label>
+                            <input type="text" name="persona_contacto" value="{{ data_cliente.persona_contacto|default:'' }}"
+                                data-validar data-label="Persona responsable" required data-min="2" maxlength="255"
+                                class="js-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            <div class="campo-estado" data-for="persona_contacto">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
                         
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cargo / Puesto</label>
-                            <input type="text" name="cargo_contacto" value="{{ data_cliente.cargo_contacto|default:'' }}" 
-                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            <input type="text" name="cargo_contacto" value="{{ data_cliente.cargo_contacto|default:'' }}"
+                                data-validar data-label="Cargo" maxlength="100"
+                                class="js-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            <div class="campo-estado" data-for="cargo_contacto">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
 
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Teléfono Celular</label>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Teléfono Celular <span class="text-red-500">*</span></label>
                             <div class="relative">
                                 <i data-lucide="phone" class="absolute left-3 top-3 w-3.5 h-3.5 text-slate-400"></i>
-                                <input type="text" name="celular_contacto" value="{{ data_cliente.celular_contacto|default:'' }}" 
-                                    class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                                <input type="text" name="celular_contacto" value="{{ data_cliente.celular_contacto|default:'' }}"
+                                    data-validar data-label="Teléfono celular" required data-min="6" maxlength="20"
+                                    class="js-input w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            </div>
+                            <div class="campo-estado" data-for="celular_contacto">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
                             </div>
                         </div>
 
@@ -159,8 +188,13 @@
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sitio Web Corporativo</label>
                             <div class="relative">
                                 <i data-lucide="globe" class="absolute left-3 top-3 w-3.5 h-3.5 text-slate-400"></i>
-                                <input type="text" name="sitio_web" value="{{ data_cliente.sitio_web|default:'' }}" 
-                                    class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                                <input type="text" name="sitio_web" value="{{ data_cliente.sitio_web|default:'' }}"
+                                    data-validar data-label="Sitio web" data-tipo="url" maxlength="255"
+                                    class="js-input w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            </div>
+                            <div class="campo-estado" data-for="sitio_web">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
                             </div>
                         </div>
                     </div>
@@ -174,9 +208,14 @@
                     
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Correo de Notificación</label>
-                            <input type="email" name="correo_contacto" value="{{ data_cliente.correo_contacto|default:'' }}" 
-                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Correo de Notificación <span class="text-slate-300 normal-case font-medium">(opcional)</span></label>
+                            <input type="email" name="correo_contacto" value="{{ data_cliente.correo_contacto|default:'' }}"
+                                data-validar data-label="Correo" data-tipo="email" maxlength="255"
+                                class="js-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            <div class="campo-estado" data-for="correo_contacto">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
 
                         <div>

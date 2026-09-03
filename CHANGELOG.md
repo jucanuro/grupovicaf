@@ -4,44 +4,36 @@ Cambios notables de **GRUPO VICAF** (LIMS + web institucional).
 
 ---
 
-## [Unreleased]
+## [2026-09-03]
 
-### Removed
+### Added
 
-- Buscador global de comandos (`⌘K` / `#cmd-palette`): la plantilla
-  `buscador.html`, su modal, el atajo de teclado y todo su JS en `vicafbase.js`.
-  Solo filtraba 5 enlaces fijos, nunca consultaba la base de datos.
-
-### Changed
-
-- La barra de búsqueda del encabezado (`cabecera_base.html`) es ahora un filtro
-  acotado a la lista de cada página: aparece cuando la vista pasa
-  `header_search = {'id', 'placeholder'}`, y filtra en vivo mientras se escribe
-  (server-rendered, `Esc` limpia, arrastra los filtros del `<form>` si el input
-  está dentro de uno). Motor común en `static/js/lista_buscador.js`, activado
-  por `[data-lista-buscador]` en el input y
-  `[data-lista-contenedor][data-lista-url]` en la plantilla.
-- Las 14 listas del LIMS usan ese buscador en el encabezado: clientes,
-  servicios, cotizaciones, métodos, normas, plantillas, proyectos pendientes,
-  recepciones, solicitudes de ensayo, informes, trabajadores, roles y permisos.
-  Cada `<tbody>` sigue siendo HTML de Django (una sola fuente); el JS extrae el
-  contenedor de la respuesta.
-- La lista de clientes además devuelve solo el parcial de la tabla
-  (`clientes/includes/clientes_tabla.html`) en peticiones AJAX — optimización de
-  payload opcional que el resto puede adoptar sin cambiar el JS.
+- Módulo común `static/js/form_validador.js` (+ CSS en `base_vicafpro.html`):
+  contador de caracteres que aparece al enfocar cada campo, chequeo del contenido
+  completo al salir del campo (borde verde / rojo y mensaje debajo), y bloqueo
+  del envío con foco en el primer campo inválido. No necesita JS por formulario:
+  cada campo se activa con `data-validar` en el input y un
+  `<div class="campo-estado" data-for="…">` debajo. Los campos obligatorios
+  llevan un asterisco rojo en la etiqueta.
+- Ese módulo se aplicó a los formularios de: cliente
+  (`clientes/clientes_form.html`), trabajador, rol, norma, método, servicio,
+  recepción de muestras, cotización y plantilla de cotización; y a los modales
+  de alta rápida de categoría, subcategoría, tipo de muestra y cliente. Todos
+  los campos de texto ahora llevan `maxlength`, lo que evita el error
+  `value too long for type character varying(N)` por la vía del formulario. El
+  RUC del cliente (formulario y modal) exige 11 dígitos numéricos.
+- El modal de tipo de muestra limitaba la sigla a 10 caracteres cuando la
+  columna admite 5; ahora limita a 5.
+- Los formularios con pestañas (recepción, cotización, plantilla) vuelven solos
+  a la pestaña del primer campo inválido cuando el módulo frena el envío.
+- Carpeta `docs/` con notas de desarrollo; primera nota: `docs/form-validador.md`
+  (cómo funciona y dónde está aplicado el módulo de validación de formularios).
 
 ### Fixed
 
-- La búsqueda de la lista general de recepciones de muestra tiraba `FieldError`
-  (`cotizacion__cliente__nombre`, campo inexistente); ahora filtra por
-  `razon_social` / procedencia / responsable.
-
-### Removed
-
-- Endpoints de búsqueda por JSON que solo usaban sus propias listas y quedaron
-  sin uso: `buscar_servicios_api` y `buscar_trabajadores_api` ya no se invocan
-  desde las plantillas (se pueden borrar junto con `buscar_clientes_api` y
-  `buscar_cotizaciones_api`, que nunca se usaron).
+- El formulario de servicio (`servicios/servicios_form.html`) no mostraba el
+  mensaje de error cuando el guardado fallaba en el servidor; ahora lo muestra
+  arriba del formulario.
 
 ## [2026-09-01 - 2026-09-02]
 
@@ -66,6 +58,37 @@ Cambios notables de **GRUPO VICAF** (LIMS + web institucional).
 - La columna Acciones de la lista de clientes tiene un botón "ojo" que abre
   fijada la ficha de detalle (la misma que aparece al pasar el cursor sobre el
   nombre) — útil en pantallas táctiles, donde el hover no existe.
+- La barra de búsqueda del encabezado (`cabecera_base.html`) es ahora un filtro
+  acotado a la lista de cada página: aparece cuando la vista pasa
+  `header_search = {'id', 'placeholder'}`, y filtra en vivo mientras se escribe
+  (server-rendered, `Esc` limpia, arrastra los filtros del `<form>` si el input
+  está dentro de uno). Motor común en `static/js/lista_buscador.js`, activado
+  por `[data-lista-buscador]` en el input y
+  `[data-lista-contenedor][data-lista-url]` en la plantilla.
+- Las 14 listas del LIMS usan ese buscador en el encabezado: clientes,
+  servicios, cotizaciones, métodos, normas, plantillas, proyectos pendientes,
+  recepciones, solicitudes de ensayo, informes, trabajadores, roles y permisos.
+  Cada `<tbody>` sigue siendo HTML de Django (una sola fuente); el JS extrae el
+  contenedor de la respuesta.
+- La lista de clientes además devuelve solo el parcial de la tabla
+  (`clientes/includes/clientes_tabla.html`) en peticiones AJAX — optimización de
+  payload opcional que el resto puede adoptar sin cambiar el JS.
+
+### Removed
+
+- Buscador global de comandos (`⌘K` / `#cmd-palette`): la plantilla
+  `buscador.html`, su modal, el atajo de teclado y todo su JS en `vicafbase.js`.
+  Solo filtraba 5 enlaces fijos, nunca consultaba la base de datos.
+- Endpoints de búsqueda por JSON que solo usaban sus propias listas y quedaron
+  sin uso: `buscar_servicios_api` y `buscar_trabajadores_api` ya no se invocan
+  desde las plantillas (se pueden borrar junto con `buscar_clientes_api` y
+  `buscar_cotizaciones_api`, que nunca se usaron).
+
+### Fixed
+
+- La búsqueda de la lista general de recepciones de muestra tiraba `FieldError`
+  (`cotizacion__cliente__nombre`, campo inexistente); ahora filtra por
+  `razon_social` / procedencia / responsable.
 
 ---
 

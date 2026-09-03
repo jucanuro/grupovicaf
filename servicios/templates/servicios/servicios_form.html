@@ -59,8 +59,15 @@
     </div>
 
     <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <form method="post" class="p-8">
+        <form method="post" class="p-8" novalidate>
             {% csrf_token %}
+
+            {% if error %}
+            <div class="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3 text-rose-700 text-xs font-bold">
+                <i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0"></i>
+                {{ error }}
+            </div>
+            {% endif %}
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
                 
@@ -72,15 +79,25 @@
                     
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Código Facturación</label>
-                            <input type="text" name="codigo_facturacion" value="{{ servicio.codigo_facturacion|default:'' }}" 
-                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono-tech font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" placeholder="Ej: M-001">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Código Facturación <span class="text-red-500">*</span></label>
+                            <input type="text" name="codigo_facturacion" value="{{ servicio.codigo_facturacion|default:'' }}"
+                                data-validar data-label="Código de facturación" required data-min="2" maxlength="50"
+                                class="js-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono-tech font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" placeholder="Ej: M-001">
+                            <div class="campo-estado" data-for="codigo_facturacion">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
-                        
+
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombre del Servicio</label>
-                            <input type="text" name="nombre" value="{{ servicio.nombre|default:'' }}" 
-                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" required>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombre del Servicio <span class="text-red-500">*</span></label>
+                            <input type="text" name="nombre" value="{{ servicio.nombre|default:'' }}"
+                                data-validar data-label="Nombre del servicio" required data-min="2" maxlength="200"
+                                class="js-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            <div class="campo-estado" data-for="nombre">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -146,8 +163,13 @@
 
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Unidad de Medida</label>
-                            <input type="text" name="unidad_base" value="{{ servicio.unidad_base|default:'ENSAYO' }}" 
-                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 uppercase focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            <input type="text" name="unidad_base" value="{{ servicio.unidad_base|default:'ENSAYO' }}"
+                                data-validar data-label="Unidad de medida" maxlength="50"
+                                class="js-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 uppercase focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            <div class="campo-estado" data-for="unidad_base">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
                     </div>
                 </div>
