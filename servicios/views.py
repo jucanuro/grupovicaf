@@ -305,7 +305,74 @@ def crear_metodo_ajax(request):
             logger.error(f"Error al crear método por usuario {request.user.username}: {str(e)}")
             return JsonResponse({'success': False, 'error': 'Error interno del servidor.'})
     return JsonResponse({'success': False, 'error': 'Método no permitido.'})
-    
+
+
+@require_POST
+@login_required
+@permiso_requerido('servicios.crear')
+def crear_servicio_ajax(request):
+    """Alta rápida de un Servicio desde el panel de la cotización / plantilla."""
+    try:
+        import re
+
+        codigo = request.POST.get('codigo_facturacion', '').strip()
+        nombre = request.POST.get('nombre', '').strip()
+        unidad = request.POST.get('unidad_base', '').strip() or 'Ensayo'
+        norma_id = request.POST.get('norma') or None
+        metodo_id = request.POST.get('metodo') or None
+        precio_str = (request.POST.get('precio_base', '0') or '0').strip().replace(',', '.')
+
+        if not codigo or len(codigo) < 2 or len(codigo) > 50:
+            return JsonResponse({'status': 'error', 'message': 'El código de facturación debe tener entre 2 y 50 caracteres.'}, status=400)
+
+        if not nombre or len(nombre) < 2 or len(nombre) > 200:
+            return JsonResponse({'status': 'error', 'message': 'El nombre debe tener entre 2 y 200 caracteres.'}, status=400)
+
+        if len(unidad) > 50:
+            return JsonResponse({'status': 'error', 'message': 'La unidad no puede exceder 50 caracteres.'}, status=400)
+
+        if re.search(r'[<>]', codigo) or re.search(r'[<>]', nombre) or re.search(r'[<>]', unidad):
+            logger.warning(f"Intento de XSS en crear_servicio_ajax por usuario {request.user.username}")
+            return JsonResponse({'status': 'error', 'message': 'Caracteres no permitidos detectados.'}, status=400)
+
+        try:
+            precio = Decimal(precio_str)
+            if precio < 0 or precio > Decimal('999999.99'):
+                raise InvalidOperation
+        except (InvalidOperation, ValueError):
+            return JsonResponse({'status': 'error', 'message': 'El precio base no es un número válido.'}, status=400)
+
+        if Servicio.objects.filter(codigo_facturacion=codigo).exists():
+            return JsonResponse({'status': 'error', 'message': 'Ya existe un servicio con este código de facturación.'}, status=400)
+
+        servicio = Servicio.objects.create(
+            codigo_facturacion=codigo,
+            nombre=nombre,
+            unidad_base=unidad[:50],
+            precio_base=precio,
+            norma_id=norma_id,
+            metodo_id=metodo_id,
+        )
+
+        logger.info(f"Servicio creado vía AJAX: {codigo} por usuario {request.user.username}")
+
+        return JsonResponse({
+            'status': 'success',
+            'pk': servicio.pk,
+            'nombre': servicio.nombre,
+            'unidad_base': servicio.unidad_base,
+            'precio_base': str(servicio.precio_base),
+            'norma_codigo': servicio.norma.codigo if servicio.norma_id else 'N/A',
+            'metodo_codigo': servicio.metodo.codigo if servicio.metodo_id else 'N/A',
+            'norma_pk': servicio.norma_id,
+            'metodo_pk': servicio.metodo_id,
+        })
+
+    except Exception as e:
+        logger.error(f"Error en crear_servicio_ajax: {str(e)}", exc_info=True)
+        return JsonResponse({'status': 'error', 'message': 'Error interno del servidor.'}, status=500)
+
+
 class NormaListView(HeaderSearchMixin, LoginRequiredMixin, PermisoModuloMixin, ListView):
     permiso_requerido_codigo = 'servicios.ver'
     model = Norma
@@ -804,6 +871,8 @@ def crear_editar_cotizacion(request, pk=None):
         'servicios': servicios_queryset,
         'servicio_grupos': categorias_principales,
         'subcategorias': subcategorias_list,
+        'normas': Norma.objects.all().order_by('codigo'),
+        'metodos': Metodo.objects.all().order_by('codigo'),
         'servicios_con_detalles_json': json.dumps(servicios_list),
         'detalles_cotizacion_json': json.dumps(detalles_list),
         'condiciones_cotizacion_json': json.dumps(condiciones_list),

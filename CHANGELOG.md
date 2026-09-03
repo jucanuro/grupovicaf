@@ -28,12 +28,19 @@ Cambios notables de **GRUPO VICAF** (LIMS + web institucional).
   a la pestaña del primer campo inválido cuando el módulo frena el envío.
 - Carpeta `docs/` con notas de desarrollo; primera nota: `docs/form-validador.md`
   (cómo funciona y dónde está aplicado el módulo de validación de formularios).
+- En el formulario de cotización, el campo "Buscar Servicio (Ensayo)" tiene un
+  botón "+" que abre un modal de alta rápida de servicio (código de facturación,
+  nombre, norma, método, unidad y precio). Al guardar, el servicio nuevo se
+  selecciona en el buscador y autocompleta norma/método/precio. Endpoint
+  `servicios:crear_servicio_ajax`, modal `servicios/modals/servicio_modal.html`.
 
 ### Fixed
 
 - El formulario de servicio (`servicios/servicios_form.html`) no mostraba el
   mensaje de error cuando el guardado fallaba en el servidor; ahora lo muestra
   arriba del formulario.
+- `servicios/modals/all_modals.html` incluía dos veces el modal de subcategoría
+  y dejaba un `|` suelto visible en la página.
 
 ## [2026-09-01 - 2026-09-02]
 

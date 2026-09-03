@@ -210,6 +210,16 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.overflow = 'auto';
     };
 
+    window.openServicioModal = () => {
+        document.getElementById('modalServicio')?.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    };
+
+    window.closeServicioModal = () => {
+        document.getElementById('modalServicio')?.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    };
+
     window.editItem = (index) => {
         const item = DATA_ARRAY[index];
         if (!item) return;
@@ -519,6 +529,29 @@ document.addEventListener('DOMContentLoaded', () => {
         tsRegSubcategoria?.addOption({ value: name, text: name });
         tsRegSubcategoria?.setValue(name);
         window.closeSubcategoriaModal();
+    });
+
+    handleAjaxForm('formNuevoServicioAjax', config.urlCrearServicio, (data) => {
+        // Sumar el servicio nuevo al catálogo en memoria para que el onChange de
+        // #reg_servicio autocomplete norma / método / precio.
+        ALL_SERVICES.push({
+            pk: data.pk,
+            nombre: data.nombre,
+            unidad_base: data.unidad_base,
+            precio_base: data.precio_base,
+            norma_codigo: data.norma_codigo,
+            metodo_codigo: data.metodo_codigo,
+            norma_pk: data.norma_pk,
+            metodo_pk: data.metodo_pk,
+        });
+
+        if (tsServicio) {
+            tsServicio.addOption({ value: data.pk, text: data.nombre });
+            tsServicio.refreshOptions(false);
+            tsServicio.setValue(String(data.pk));
+        }
+
+        window.closeServicioModal();
     });
 
     window.cargarPlantillaAjax = async (plantillaId) => {

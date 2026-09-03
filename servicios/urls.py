@@ -22,6 +22,7 @@ urlpatterns = [
 
     path('categoria/crear-ajax/', views.crear_categoria_ajax, name='crear_categoria_ajax'),
     path('subcategoria/crear-ajax/', views.crear_subcategoria_ajax, name='crear_subcategoria_ajax'),
+    path('servicio/crear-ajax/', views.crear_servicio_ajax, name='crear_servicio_ajax'),
 
     path('cotizaciones/', views.lista_cotizaciones, name='lista_cotizaciones'),
     path('cotizaciones/crear/', views.crear_cotizacion, name='crear_cotizacion'),

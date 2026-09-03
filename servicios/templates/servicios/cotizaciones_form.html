@@ -701,7 +701,18 @@
 
                             <div class="md:col-span-4 relative">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Buscar Servicio (Ensayo)</label>
-                                <select id="reg_servicio" class="vicaf-search-select"></select>
+                                <div class="grid grid-cols-12 gap-2">
+                                    <div class="col-span-10">
+                                        <select id="reg_servicio" class="vicaf-search-select"></select>
+                                    </div>
+                                    <div class="col-span-2 flex justify-end">
+                                        <div onclick="event.stopPropagation(); openServicioModal()"
+                                            class="w-full h-[38px] cursor-pointer group relative flex items-center justify-center rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-white shadow-sm transition-all hover:border-blue-400 hover:shadow-md active:scale-95"
+                                            title="Registrar nuevo servicio">
+                                            <i data-lucide="plus-circle" class="w-4 h-4 text-blue-600 group-hover:text-blue-700 transition-transform group-hover:scale-110"></i>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="md:col-span-2">
@@ -1030,6 +1041,7 @@
         urlCrearCliente: "{% url 'clientes:crear_cliente_ajax' %}",
         urlCrearCategoria: "{% url 'servicios:crear_categoria_ajax' %}",
         urlCrearSubcategoria: "{% url 'servicios:crear_subcategoria_ajax' %}",
+        urlCrearServicio: "{% url 'servicios:crear_servicio_ajax' %}",
         urlPlantillaBase: "/servicios/api/plantilla/",
         csrfToken: "{{ csrf_token }}"
     };
