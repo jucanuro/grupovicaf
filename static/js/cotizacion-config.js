@@ -8,6 +8,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const INITIAL_DATA = JSON.parse(document.getElementById('initial-detalles-json')?.textContent || '[]');
     const INITIAL_CONDICIONES = JSON.parse(document.getElementById('initial-condiciones-json')?.textContent || '[]');
 
+    // Normas presentes en el catálogo de servicios (para el buscador por norma).
+    const NORMAS_LIST = (() => {
+        const vistas = new Set();
+        const lista = [];
+        ALL_SERVICES.forEach(s => {
+            const pk = s.norma_pk;
+            if (pk && !vistas.has(String(pk))) {
+                vistas.add(String(pk));
+                lista.push({ value: String(pk), text: s.norma_codigo || String(pk) });
+            }
+        });
+        return lista.sort((a, b) => a.text.localeCompare(b.text));
+    })();
+
     let DATA_ARRAY = INITIAL_DATA;
 
     window.CondicionesCotizacionState = {
@@ -133,48 +147,100 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const regServicioEl = document.getElementById('reg_servicio');
+    // Buscador por servicio y buscador por norma: cualquiera de los dos completa
+    // el panel. Elegir un servicio setea su norma; elegir una norma filtra el
+    // buscador de servicios y, si queda uno solo, lo selecciona.
     let tsServicio = null;
+    let tsRegNorma = null;
+
+    const _setMetodoPrecio = (s) => {
+        const metodoDiv = document.getElementById('reg_metodo_txt');
+        const precioEl = document.getElementById('reg_precio');
+        if (s) {
+            if (metodoDiv) {
+                metodoDiv.textContent = s.metodo_codigo || 'N/A';
+                metodoDiv.classList.remove('text-slate-400', 'italic');
+                metodoDiv.classList.add('text-slate-700', 'font-bold');
+            }
+            if (precioEl) precioEl.value = s.precio_base;
+        } else {
+            if (metodoDiv) {
+                metodoDiv.textContent = 'Auto...';
+                metodoDiv.classList.remove('text-slate-700', 'font-bold');
+                metodoDiv.classList.add('text-slate-400', 'italic');
+            }
+            if (precioEl) precioEl.value = '';
+        }
+    };
+
+    // Refleja en el select de norma la norma del servicio elegido (sin disparar el filtro).
+    const _syncNormaDesdeServicio = (s) => {
+        if (!tsRegNorma) return;
+        tsRegNorma.isUpdating = true;
+        if (s && s.norma_pk) {
+            if (!tsRegNorma.options[String(s.norma_pk)]) {
+                tsRegNorma.addOption({ value: String(s.norma_pk), text: s.norma_codigo || String(s.norma_pk) });
+            }
+            tsRegNorma.setValue(String(s.norma_pk), true);
+        } else {
+            tsRegNorma.clear(true);
+        }
+        tsRegNorma.isUpdating = false;
+    };
+
+    const aplicarServicio = (s) => {
+        _setMetodoPrecio(s || null);
+        _syncNormaDesdeServicio(s || null);
+    };
+
+    // Deja en #reg_servicio solo los servicios de esa norma (o todos si no hay norma).
+    const filtrarServiciosPorNorma = (normaPk) => {
+        if (!tsServicio) return;
+        const lista = normaPk
+            ? ALL_SERVICES.filter(s => String(s.norma_pk) === String(normaPk))
+            : ALL_SERVICES;
+
+        tsServicio.isUpdating = true;
+        tsServicio.clear(true);
+        tsServicio.clearOptions();
+        lista.forEach(s => tsServicio.addOption({ value: String(s.pk), text: s.nombre }));
+        tsServicio.refreshOptions(false);
+        tsServicio.isUpdating = false;
+
+        if (normaPk && lista.length === 1) {
+            tsServicio.setValue(String(lista[0].pk));   // dispara onChange -> método + precio
+        } else {
+            _setMetodoPrecio(null);
+        }
+    };
+
+    const regServicioEl = document.getElementById('reg_servicio');
     if (regServicioEl) {
         tsServicio = new TomSelect('#reg_servicio', {
-            options: ALL_SERVICES.map(s => ({ value: s.pk, text: s.nombre })),
+            options: ALL_SERVICES.map(s => ({ value: String(s.pk), text: s.nombre })),
             placeholder: 'BUSCAR SERVICIO...',
             onInitialize: function () {
                 this.wrapper.classList.add('vicaf-search');
             },
             onChange: function (val) {
                 if (this.isUpdating) return;
-
                 const s = ALL_SERVICES.find(x => String(x.pk) === String(val));
-                const normaDiv = document.getElementById('reg_norma_txt');
-                const metodoDiv = document.getElementById('reg_metodo_txt');
-                const precioEl = document.getElementById('reg_precio');
+                aplicarServicio(s || null);
+            }
+        });
+    }
 
-                if (s) {
-                    if (normaDiv) {
-                        normaDiv.textContent = s.norma_codigo || 'N/A';
-                        normaDiv.classList.remove('text-slate-400', 'italic');
-                        normaDiv.classList.add('text-slate-700', 'font-bold');
-                    }
-                    if (metodoDiv) {
-                        metodoDiv.textContent = s.metodo_codigo || 'N/A';
-                        metodoDiv.classList.remove('text-slate-400', 'italic');
-                        metodoDiv.classList.add('text-slate-700', 'font-bold');
-                    }
-                    if (precioEl) precioEl.value = s.precio_base;
-                } else {
-                    if (normaDiv) {
-                        normaDiv.textContent = 'Auto...';
-                        normaDiv.classList.remove('text-slate-700', 'font-bold');
-                        normaDiv.classList.add('text-slate-400', 'italic');
-                    }
-                    if (metodoDiv) {
-                        metodoDiv.textContent = 'Auto...';
-                        metodoDiv.classList.remove('text-slate-700', 'font-bold');
-                        metodoDiv.classList.add('text-slate-400', 'italic');
-                    }
-                    if (precioEl) precioEl.value = '';
-                }
+    const regNormaEl = document.getElementById('reg_norma');
+    if (regNormaEl) {
+        tsRegNorma = new TomSelect('#reg_norma', {
+            options: NORMAS_LIST,
+            placeholder: 'BUSCAR POR NORMA...',
+            onInitialize: function () {
+                this.wrapper.classList.add('vicaf-search');
+            },
+            onChange: function (val) {
+                if (this.isUpdating) return;
+                filtrarServiciosPorNorma(val || null);
             }
         });
     }
@@ -257,7 +323,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             tsRegSubcategoria.setValue(item.descripcion_especifica);
         } else {
+            const sBase = ALL_SERVICES.find(x => String(x.pk) === String(item.servicio_id));
+            if (tsServicio && sBase && !tsServicio.options[String(sBase.pk)]) {
+                tsServicio.addOption({ value: String(sBase.pk), text: sBase.nombre });
+            }
             tsServicio?.setValue(item.servicio_id);
+            aplicarServicio(sBase || null);
             const cantidadEl = document.getElementById('reg_cantidad');
             const precioEl = document.getElementById('reg_precio');
             if (cantidadEl) cantidadEl.value = item.cantidad;
@@ -292,6 +363,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tsRegCategoria) tsRegCategoria.isUpdating = false;
         if (tsRegSubcategoria) tsRegSubcategoria.isUpdating = false;
         if (tsServicio) tsServicio.isUpdating = false;
+
+        if (tsRegNorma) {
+            tsRegNorma.isUpdating = true;
+            tsRegNorma.clear(true);
+            tsRegNorma.isUpdating = false;
+        }
+        filtrarServiciosPorNorma(null);
 
         const cantidadEl = document.getElementById('reg_cantidad');
         const precioEl = document.getElementById('reg_precio');
@@ -544,7 +622,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Sumar el servicio nuevo al catálogo en memoria para que el onChange de
         // #reg_servicio autocomplete norma / método / precio.
         ALL_SERVICES.push({
-            pk: data.pk,
+            pk: String(data.pk),
             nombre: data.nombre,
             unidad_base: data.unidad_base,
             precio_base: data.precio_base,
@@ -554,11 +632,20 @@ document.addEventListener('DOMContentLoaded', () => {
             metodo_pk: data.metodo_pk,
         });
 
-        if (tsServicio) {
-            tsServicio.addOption({ value: data.pk, text: data.nombre });
-            tsServicio.refreshOptions(false);
-            tsServicio.setValue(String(data.pk));
+        // Si trae norma, sumarla al buscador por norma.
+        if (data.norma_pk && tsRegNorma && !tsRegNorma.options[String(data.norma_pk)]) {
+            tsRegNorma.addOption({ value: String(data.norma_pk), text: data.norma_codigo || String(data.norma_pk) });
+            NORMAS_LIST.push({ value: String(data.norma_pk), text: data.norma_codigo || String(data.norma_pk) });
         }
+
+        // Quitar cualquier filtro por norma y dejar el servicio nuevo seleccionado.
+        if (tsRegNorma) {
+            tsRegNorma.isUpdating = true;
+            tsRegNorma.clear(true);
+            tsRegNorma.isUpdating = false;
+        }
+        filtrarServiciosPorNorma(null);
+        tsServicio?.setValue(String(data.pk));
 
         window.closeServicioModal();
     });

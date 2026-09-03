@@ -33,7 +33,7 @@
                         <div>
                             <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Número de RUC <span class="text-red-500">*</span></label>
                             <input type="text" name="ruc" required maxlength="11" inputmode="numeric"
-                                data-validar data-label="RUC" data-patron="^\d{11}$" data-mensaje="El RUC debe tener 11 dígitos numéricos."
+                                data-validar data-label="RUC" data-patron="^\d{8,11}$" data-mensaje="El RUC debe tener entre 8 y 11 dígitos."
                                 class="js-input w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono-tech focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                                 placeholder="10XXXXXXXXX">
                             <div class="campo-estado" data-for="ruc">

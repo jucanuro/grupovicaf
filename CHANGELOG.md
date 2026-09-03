@@ -21,7 +21,9 @@ Cambios notables de **GRUPO VICAF** (LIMS + web institucional).
   de alta rápida de categoría, subcategoría, tipo de muestra y cliente. Todos
   los campos de texto ahora llevan `maxlength`, lo que evita el error
   `value too long for type character varying(N)` por la vía del formulario. El
-  RUC del cliente (formulario y modal) exige 11 dígitos numéricos.
+  RUC del cliente (formulario y modal) exige entre 8 y 11 dígitos numéricos; el
+  endpoint `crear_cliente_ajax` ahora valida ese mismo rango (antes aceptaba
+  hasta 20 caracteres, que reventaban contra la columna `varchar(11)`).
 - El modal de tipo de muestra limitaba la sigla a 10 caracteres cuando la
   columna admite 5; ahora limita a 5.
 - Los formularios con pestañas (recepción, cotización, plantilla) vuelven solos
@@ -44,6 +46,14 @@ Cambios notables de **GRUPO VICAF** (LIMS + web institucional).
 - En el panel de servicios de la cotización, al seleccionar categoría /
   subcategoría o agregar un ítem la fila se sumaba al final de la tabla fuera de
   pantalla; ahora la vista se desplaza sola hasta esa fila.
+
+### Changed
+
+- En el panel de servicios de la cotización, "Norma de Ensayo" pasó de ser un
+  texto de solo lectura a un buscador. Ahora se puede armar el ítem desde
+  cualquiera de los dos: elegir un servicio setea su norma, y elegir una norma
+  filtra el buscador de servicios (si queda uno solo, lo selecciona). Útil
+  cuando se conoce la norma pero no el código del ensayo.
 
 ## [2026-09-01 - 2026-09-02]
 
