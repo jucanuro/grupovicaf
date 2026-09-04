@@ -15,6 +15,48 @@ Cambios notables de **GRUPO VICAF** (LIMS + web institucional).
   secciones / 98 ítems). Sin esos datos, la pestaña "Contenido" de la cotización
   aparecía con secciones vacías (0/0).
 
+### Fixed
+
+- `django.contrib.messages` (`messages.success`/`messages.error`, usado en
+  decenas de vistas de clientes, trabajadores, servicios y proyectos) no se
+  renderizaba en ningún template del LIMS — solo en la web pública
+  (`templates/web/contacto.html`). Cualquier guardado, error o eliminación
+  quedaba sin feedback visible. Se agregó el bloque de mensajes en
+  `base_vicafpro.html`, arriba de `{% block content %}`, así que aplica a toda
+  la capa LIMS de una sola vez.
+- `servicios/cotizaciones_form.html` tampoco mostraba `{{ error }}` cuando el
+  guardado fallaba en el servidor (ej. enviar el formulario sin cliente); ahora
+  lo muestra arriba del formulario, igual que en `servicios_form.html`.
+- Se podía guardar una cotización con monto total S/ 0.00 (ítems sin precio o
+  con precio 0). `crear_editar_cotizacion` ahora rechaza el guardado si
+  `monto_total <= 0`, con el mismo mensaje de error visible arriba del
+  formulario.
+- Al crear una cotización y fallar la validación (ej. saltear el paso de
+  servicios), el formulario se re-renderizaba completamente vacío — se perdía
+  todo lo tipeado en Cliente/Condiciones. Ahora reconstruye (sin guardar) esos
+  campos a partir de lo enviado, así que sobreviven al error.
+
+### Changed
+
+- En el formulario de cotización no se veía qué campos son obligatorios. Se
+  marcó "Cliente" con asterisco y se conectó a `form_validador.js` (único
+  campo realmente exigido por el servidor); se agregó una nota junto al
+  detalle de servicios ("se requiere al menos 1 ítem con precio mayor a
+  S/ 0.00", la otra regla real). Se sacó el atributo `required` de "Categoría
+  General", que no reflejaba la realidad — el servidor nunca lo exigió.
+- `form_validador.js` ahora también escucha `change`, no solo
+  `focus`/`blur`/`input` — los `<select>` envueltos por TomSelect (como el
+  buscador de Cliente) no emiten focus/blur nativos en el elemento original,
+  así que sin esto no se validaban hasta el submit.
+- El guardado final de la cotización (botón "Guardar y Generar Oferta") ahora
+  se manda por AJAX en vez de un POST tradicional: la página ya no recarga. Si
+  el guardado falla, el error se muestra en el mismo banner sin perder nada de
+  lo tildado/agregado en la tabla de ítems (Paso 2) ni en las condiciones
+  (Paso 4), porque el DOM nunca se reinicia. `crear_editar_cotizacion` detecta
+  `X-Requested-With: XMLHttpRequest` y responde JSON (`status`, `message`,
+  `redirect_url` en éxito) en vez de `render()`/`redirect()`; sin JS, el POST
+  tradicional sigue funcionando igual que antes.
+
 ## [2026-09-03]
 
 ### Added

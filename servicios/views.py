@@ -614,6 +614,7 @@ def crear_editar_cotizacion(request, pk=None):
             return redirect('servicios:lista_cotizaciones')
 
     if request.method == 'POST':
+        es_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
         try:
             with transaction.atomic():
                 cliente_id = request.POST.get('cliente')
@@ -790,6 +791,13 @@ def crear_editar_cotizacion(request, pk=None):
                     )
 
                 cotizacion.calcular_totales()
+
+                if cotizacion.monto_total <= 0:
+                    raise ValueError(
+                        "El monto total de la cotización debe ser mayor a S/ 0.00. "
+                        "Revisá el precio de los ítems agregados."
+                    )
+
                 cotizacion.save()
 
                 if condiciones_data:
@@ -805,11 +813,24 @@ def crear_editar_cotizacion(request, pk=None):
                     ])
 
                 identificador = cotizacion.nombre_plantilla if cotizacion.es_plantilla else cotizacion.numero_oferta
-                messages.success(request, f"¡Cotización/Plantilla {identificador} procesada con éxito! ✅")
+                mensaje_exito = f"¡Cotización/Plantilla {identificador} procesada con éxito! ✅"
+                messages.success(request, mensaje_exito)
+
+                if es_ajax:
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': mensaje_exito,
+                        'redirect_url': redirect('servicios:lista_cotizaciones').url,
+                    })
+
                 return redirect('servicios:lista_cotizaciones')
 
         except Exception as e:
             error = f'Error al procesar: {str(e)}'
+
+            if es_ajax:
+                return JsonResponse({'status': 'error', 'message': error}, status=400)
+
             if is_editing and pk:
                 cotizacion = get_object_or_404(
                     Cotizacion.objects.prefetch_related(
@@ -818,6 +839,28 @@ def crear_editar_cotizacion(request, pk=None):
                     ),
                     pk=pk
                 )
+            else:
+                # Reconstruye (sin guardar) lo que el usuario ya había tipeado en
+                # Cliente/Condiciones, para no perder esos pasos al volver a
+                # mostrar el formulario por un error en otro paso.
+                cotizacion = Cotizacion(
+                    cliente_id=request.POST.get('cliente') or None,
+                    asunto_servicio=request.POST.get('asunto_servicio', ''),
+                    persona_contacto=request.POST.get('persona_contacto', ''),
+                    correo_contacto=request.POST.get('correo_contacto', ''),
+                    telefono_contacto=request.POST.get('telefono_contacto', ''),
+                    proyecto_asociado=request.POST.get('proyecto_asociado', ''),
+                    servicio_general_id=request.POST.get('servicio_general') or None,
+                    forma_pago=request.POST.get('forma_pago', ''),
+                )
+                try:
+                    cotizacion.validez_oferta_dias = int(request.POST.get('validez_dias') or 0)
+                except (TypeError, ValueError):
+                    pass
+                try:
+                    cotizacion.plazo_entrega_dias = int(request.POST.get('tiempo_entrega') or 0)
+                except (TypeError, ValueError):
+                    pass
 
     clientes = Cliente.objects.all().order_by('razon_social')
     servicios_queryset = Servicio.objects.all().select_related('norma', 'metodo')
@@ -840,7 +883,7 @@ def crear_editar_cotizacion(request, pk=None):
         })
 
     detalles_list = []
-    if cotizacion:
+    if cotizacion and cotizacion.pk:
         for grupo in cotizacion.grupos.all().order_by('orden'):
             if grupo.nombre_grupo != "ENSAYOS DE LABORATORIO":
                 detalles_list.append({
@@ -860,7 +903,7 @@ def crear_editar_cotizacion(request, pk=None):
                     'total_detalle': str(detalle.total_detalle)
                 })
 
-    if cotizacion and cotizacion.condiciones_secciones.exists():
+    if cotizacion and cotizacion.pk and cotizacion.condiciones_secciones.exists():
         condiciones_list = _obtener_condiciones_desde_snapshot(cotizacion)
     else:
         condiciones_list = _obtener_condiciones_desde_catalogo()

@@ -135,6 +135,13 @@
                 pintarContador(el);
                 if (el._tocado) pintarEstado(el);
             });
+            // Los <select> envueltos por TomSelect (buscadores tipo "Cliente")
+            // no reciben focus/blur nativos del elemento original — solo
+            // `change`. Sin esto, esos campos no se validan hasta el submit.
+            el.addEventListener('change', function () {
+                el._tocado = true;
+                pintarEstado(el);
+            });
         });
 
         form.addEventListener('submit', function (e) {

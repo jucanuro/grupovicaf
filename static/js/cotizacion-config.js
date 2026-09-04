@@ -1380,8 +1380,56 @@ document.addEventListener('DOMContentLoaded', () => {
         window.cerrarModalCondicionesCotizacion();
     };
 
-    document.getElementById('cotizacion-form')?.addEventListener('submit', () => {
+    // Guardado final por AJAX: evita el reload de la página. Si el guardado
+    // falla, la tabla de ítems (Paso 2) y las condiciones tildadas (Paso 4) no
+    // se pierden porque el DOM nunca se recarga.
+    document.getElementById('cotizacion-form')?.addEventListener('submit', async (event) => {
+        event.preventDefault();
         commitCondicionesDraft();
+
+        const form = event.target;
+        const errorBanner = document.getElementById('cotizacion-error-banner');
+        const errorText = document.getElementById('cotizacion-error-text');
+        const submitBtn = document.querySelector('button[type="submit"][form="cotizacion-form"]');
+
+        errorBanner?.classList.add('hidden');
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.dataset.originalHtml = submitBtn.dataset.originalHtml || submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> GUARDANDO...';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        const mostrarError = (mensaje) => {
+            if (errorText) errorText.textContent = mensaje;
+            errorBanner?.classList.remove('hidden');
+            errorBanner?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        };
+
+        try {
+            const response = await fetch(form.action || window.location.href, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                window.location.href = data.redirect_url;
+                return; // no reactivar el botón: la página ya está navegando
+            }
+
+            mostrarError(data.message || 'Ocurrió un error inesperado al guardar.');
+        } catch (err) {
+            mostrarError('No se pudo conectar con el servidor. Intentá de nuevo.');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = submitBtn.dataset.originalHtml;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        }
     });
 
     document.addEventListener('keydown', function (event) {
