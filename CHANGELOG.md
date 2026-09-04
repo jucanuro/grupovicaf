@@ -4,6 +4,17 @@ Cambios notables de **GRUPO VICAF** (LIMS + web institucional).
 
 ---
 
+## [2026-09-04]
+
+### Changed
+
+- El catálogo de condiciones de la oferta (`CatalogoCondicionSeccion` /
+  `CatalogoCondicionItem`, VCF-LAB-FOR-001) pasó a un módulo compartido
+  `servicios/seeds/condiciones.py`. `cargar_condiciones.py` quedó como wrapper
+  fino de CLI, y `python manage.py sembrar_demo` ahora también lo siembra (8
+  secciones / 98 ítems). Sin esos datos, la pestaña "Contenido" de la cotización
+  aparecía con secciones vacías (0/0).
+
 ## [2026-09-03]
 
 ### Added

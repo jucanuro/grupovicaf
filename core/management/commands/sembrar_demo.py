@@ -47,6 +47,7 @@ from proyectos.models import (
     SolicitudEnsayo, DetalleSolicitudEnsayo, IncidenciaSolicitud,
 )
 from actividades.models import CalendarioCategoria, CalendarioActividad
+from servicios.seeds.condiciones import sembrar_condiciones
 
 RNG = random.Random(20260902)
 
@@ -305,9 +306,11 @@ class Command(BaseCommand):
             CalendarioCategoria.objects.get_or_create(nombre=n, defaults={"color": col})[0]
             for n, col in CAL_CATEGORIAS
         ]
+        n_sec, n_item = sembrar_condiciones()
         self.stdout.write(
             f"Catálogos: {len(tipos)} tipos muestra, {len(unidades)} unidades, "
-            f"{len(cal_cats)} categorías calendario"
+            f"{len(cal_cats)} categorías calendario, "
+            f"{n_sec} secciones / {n_item} ítems de condiciones"
         )
         return {"tipos": tipos, "unidades": unidades, "cal_cats": cal_cats}
 
