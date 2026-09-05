@@ -6,6 +6,16 @@ Cambios notables de **GRUPO VICAF** (LIMS + web institucional).
 
 ## [2026-09-04]
 
+### Added
+
+- `docs/onboarding.md`: punto de partida para alguien nuevo en el repo — el
+  negocio (laboratorio acreditado INACAL), el flujo de trabajo real
+  (cliente → cotización → proyecto → recepción de muestras → solicitud de
+  ensayo → informe final), mapa de apps, cómo correr el proyecto en local y
+  las convenciones de código que sorprenden viniendo de otro proyecto Django
+  (sin `django.forms`, AWS como fuente de verdad del LIMS, permisos por
+  módulo/acción).
+
 ### Changed
 
 - El catálogo de condiciones de la oferta (`CatalogoCondicionSeccion` /
