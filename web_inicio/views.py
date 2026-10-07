@@ -18,11 +18,18 @@ def _metricas_credibilidad():
     """
     metricas = []
 
-    acreditados = Servicio.objects.filter(esta_acreditado=True).count()
+    config = NegocioConfig.objects.first()
+
+    # NegocioConfig.ensayos_acreditados manda si está definido: el conteo por
+    # Servicio.esta_acreditado no es confiable mientras ese flag siga mal
+    # poblado en el LIMS (ver el comentario del campo en siteconfig.models).
+    if config and config.ensayos_acreditados is not None:
+        acreditados = config.ensayos_acreditados
+    else:
+        acreditados = Servicio.objects.filter(esta_acreditado=True).count()
     if acreditados:
         metricas.append({'valor': str(acreditados), 'etiqueta': 'Ensayos acreditados'})
 
-    config = NegocioConfig.objects.first()
     if config and config.acreditacion_codigo:
         entidad = (config.acreditacion_entidad or '').strip()
         metricas.append({

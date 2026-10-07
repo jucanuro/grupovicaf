@@ -7,11 +7,21 @@
             <div class="col-span-2 xl:col-span-4">
                 <span class="text-[11px] font-black uppercase tracking-[0.3em] text-blue-700">Corporativo</span>
                 <div class="mt-5 flex items-center gap-5">
-                    <img class="h-14 object-contain" src="{% static 'web/img/LogoF.webp' %}"
-                         alt="Grupo Vicaf" width="843" height="351" loading="lazy" decoding="async">
-                    <div class="h-10 w-px bg-slate-200"></div>
-                    <img class="h-14 object-contain opacity-90" src="{% static 'web/img/LogoInacal.webp' %}"
-                         alt="Inacal" width="940" height="788" loading="lazy" decoding="async">
+                    {% comment %}
+                      Versiones recortadas al contenido: LogoF.webp tiene ~25% de margen
+                      transparente y LogoInacal.webp ~46%, así que con la misma clase de
+                      altura el sello salía a la mitad. El registro va como texto: dentro
+                      de la imagen medía ~5px a esta altura y no se leía.
+                    {% endcomment %}
+                    <img class="h-12 w-auto sm:h-16" src="{% static 'web/img/LogoF-footer.webp' %}"
+                         alt="Grupo VICAF" width="392" height="128" loading="lazy" decoding="async">
+                    <div class="h-10 w-px bg-slate-200 sm:h-14"></div>
+                    <div class="flex h-12 flex-col items-center justify-between sm:h-16">
+                        <img class="h-11 w-auto sm:h-11" src="{% static 'web/img/LogoInacal-sello.webp' %}"
+                             alt="{{ negocio.acreditacion_entidad|default:'INACAL' }} DA-Perú, laboratorio de ensayo acreditado"
+                             width="238" height="88" loading="lazy" decoding="async">
+                        <span class="whitespace-nowrap text-[10px] font-semibold leading-3 text-[#510b77] sm:text-[11px] sm:leading-4">Registro N° {{ negocio.acreditacion_codigo|default:"LE-230" }}</span>
+                    </div>
                 </div>
                 <p class="mt-6 max-w-sm text-sm leading-relaxed text-slate-500">
                     Laboratorio de ensayo de materiales y geotecnia acreditado por

@@ -40,6 +40,18 @@ class NegocioConfig(models.Model):
 
     acreditacion_entidad = models.CharField(max_length=100, default='INACAL')
     acreditacion_codigo = models.CharField(max_length=50, default='LE-230')
+    # Override manual de la métrica "Ensayos acreditados" de la home. Existe
+    # porque hoy el conteo automático no es confiable: Servicio.esta_acreditado
+    # está mal poblado en el LIMS (96 de 99 servicios marcados), pendiente de
+    # depurar con el cliente contra el alcance oficial de INACAL. Una vez
+    # depurado, basta con vaciar este campo para volver al conteo automático
+    # (web_inicio.views._metricas_credibilidad).
+    ensayos_acreditados = models.PositiveIntegerField(
+        null=True, blank=True,
+        verbose_name='Ensayos acreditados (número oficial)',
+        help_text='Número según el alcance de acreditación INACAL. Si se deja vacío, '
+                  'se calcula desde Servicio.esta_acreditado.',
+    )
 
     linkedin_url = models.URLField(blank=True)
     facebook_url = models.URLField(blank=True)
