@@ -1,0 +1,47 @@
+{% comment %}
+  Modal del detalle de un ensayo acreditado (specs/WEB v5, REQ-WEB-59).
+  Mismo marco y comportamiento que modal_certificacion.html. Llega vacío:
+  ensayos-acreditados.js lo llena con los datos de #ensayos-acreditados-datos
+  (lista blanca de la vista, REQ-WEB-60).
+{% endcomment %}
+<div id="modal-ensayo"
+     class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm"
+     role="dialog" aria-modal="true" aria-labelledby="modal-ensayo-titulo">
+    <div class="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div class="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+            <div>
+                <p data-ensayo-campo="linea" class="text-eyebrow uppercase text-blue-700"></p>
+                <h2 id="modal-ensayo-titulo" class="mt-1 text-lg font-black tracking-tight text-slate-900">Ensayo acreditado</h2>
+            </div>
+            <button type="button" data-ensayo-cerrar aria-label="Cerrar detalle del ensayo"
+                    class="rounded-full p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="overflow-auto px-5 py-5">
+            <p data-ensayo-campo="resumen" class="mb-5 text-sm leading-relaxed text-slate-700"></p>
+            {# Las filas se ocultan con la clase .hidden (va después de .grid en output.css), no con el atributo. #}
+            <dl class="space-y-4 text-sm">
+                <div data-ensayo-fila="norma" class="grid grid-cols-1 gap-1 sm:grid-cols-[9rem_1fr] sm:gap-4">
+                    <dt class="font-semibold text-slate-500">Norma</dt>
+                    <dd class="text-slate-900"><span data-ensayo-campo="norma" class="mono-tag font-semibold"></span> <span data-ensayo-campo="norma_nombre"></span></dd>
+                </div>
+                <div data-ensayo-fila="metodo" class="grid grid-cols-1 gap-1 sm:grid-cols-[9rem_1fr] sm:gap-4">
+                    <dt class="font-semibold text-slate-500">Método</dt>
+                    <dd data-ensayo-campo="metodo" class="text-slate-900"></dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 sm:grid-cols-[9rem_1fr] sm:gap-4">
+                    <dt class="font-semibold text-slate-500">Acreditación</dt>
+                    <dd data-ensayo-campo="acreditacion" class="text-slate-900"></dd>
+                </div>
+            </dl>
+        </div>
+        <div class="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 px-5 py-4">
+            <a data-ensayo-ficha href="#" class="btn-secondary !h-10 !px-4 !text-xs">Ver ficha del ensayo</a>
+            <a href="{% url 'web_contacto:solicitud_cotizacion' %}" class="btn-secondary !h-10 !px-4 !text-xs">Solicitar cotización</a>
+            <button type="button" data-ensayo-cerrar class="btn-primary !h-10 !px-4 !text-xs">Cerrar</button>
+        </div>
+    </div>
+</div>

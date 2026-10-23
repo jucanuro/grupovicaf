@@ -1,4 +1,4 @@
-"""Pruebas de las certificaciones (specs/WEB v4, T18-T20; cabeceras de v3, T15)."""
+"""Pruebas de las certificaciones (specs/WEB v4, T18-T20; cabeceras de v3, T15) y de los ensayos acreditados (v5, T21)."""
 import importlib
 import io
 import json
@@ -9,12 +9,17 @@ import tempfile
 from datetime import date, timedelta
 
 from django.core.cache import cache
+from django.db import connection
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory, TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import clear_url_caches, resolve, reverse
 from django.utils import timezone
 from PIL import Image
+
+from servicios.models import CategoriaServicio, Metodo, Norma, Servicio
+from web_catalogo.models import LineaServicio, ServicioPublicado
 
 from .models import Acreditacion, Certificacion, validar_archivo
 from .views import servir_certificado_dev
@@ -332,3 +337,171 @@ class JsonLdTests(MediaTemporalMixin, TestCase):
         # REQ-WEB-42: la semilla ISO sin PDF, una vencida e INACAL (hasCredential) no se declaran.
         self.crear_certificacion(vigencia_hasta=timezone.localdate() - timedelta(days=1))
         self.assertNotIn('hasCertification', self.local_business())
+
+
+class EnsayosAcreditadosTests(TestCase):
+    """Ensayos acreditados en cards por línea (specs/WEB v5, T21)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.categoria = CategoriaServicio.objects.create(nombre='Suelos T21')
+        cls.norma = Norma.objects.create(codigo='NTP 339.145', nombre='Suelos. Método de ensayo CBR')
+        cls.metodo = Metodo.objects.create(codigo='M-T21', nombre='Compactación en molde')
+
+        def servicio(codigo, nombre, **campos):
+            return Servicio.objects.create(
+                codigo_facturacion=codigo, nombre=nombre, precio_base='987.65', esta_acreditado=True, **campos,
+            )
+
+        def linea(slug, nombre, orden, activo=True):
+            return LineaServicio.objects.create(
+                slug=slug, nombre=nombre, titulo_h1=nombre, resumen='r', contenido='c', orden=orden, activo=activo,
+            )
+
+        cls.cbr = servicio('ZZT21-001', 'Relación de soporte de California', norma=cls.norma, metodo=cls.metodo)
+        cls.humedad = servicio('ZZT21-002', 'Contenido de humedad')
+        cls.ficha = servicio('ZZT21-003', 'Granulometría por tamizado')
+        cls.suelto = servicio('ZZT21-004', 'Ensayo sin línea')
+        cls.no_acreditado = servicio('ZZT21-005', 'Ensayo fuera del alcance')
+
+        cls.suelos = linea('suelos-t21', 'Suelos T21', orden=901)
+        cls.concreto = linea('concreto-t21', 'Concreto T21', orden=900)
+        cls.inactiva = linea('inactiva-t21', 'Inactiva T21', orden=0, activo=False)
+        cls.suelos.ensayos.add(cls.cbr, cls.humedad)
+        # El CBR también está en una línea anterior en el orden: va solo ahí (REQ-WEB-54).
+        cls.concreto.ensayos.add(cls.cbr)
+        cls.inactiva.ensayos.add(cls.suelto)
+        # Sin M2M: lo agrupa la línea de su ficha publicada.
+        ServicioPublicado.objects.create(
+            servicio=cls.ficha, categoria=cls.categoria, linea=cls.suelos, slug='granulometria-t21',
+            titulo_publico='Análisis granulométrico', resumen='Resumen público de granulometría.',
+            contenido='c', activo=True,
+        )
+
+        cls.inacal = Acreditacion.objects.create(
+            organismo='INACAL', numero_acreditacion='LE-230', alcance='Ensayos de suelos y concreto.', orden=0,
+        )
+        cls.inacal.servicios_acreditados.add(cls.cbr, cls.humedad, cls.ficha, cls.suelto)
+        otra = Acreditacion.objects.create(organismo='OTRO', numero_acreditacion='X-1', alcance='Otro alcance.', orden=1)
+        otra.servicios_acreditados.add(cls.cbr)
+        inactiva = Acreditacion.objects.create(
+            organismo='VIEJA', numero_acreditacion='V-0', alcance='Vencida.', activo=False,
+        )
+        inactiva.servicios_acreditados.add(cls.no_acreditado)
+
+    def setUp(self):
+        cache.clear()
+
+    def get(self):
+        respuesta = self.client.get(reverse('web_acreditacion:acreditacion'))
+        self.assertEqual(respuesta.status_code, 200)
+        return respuesta, respuesta.content.decode()
+
+    def datos(self, html):
+        bloque = re.search(r'<script id="ensayos-acreditados-datos" type="application/json">(.*?)</script>', html, re.S)
+        self.assertIsNotNone(bloque)
+        return json.loads(bloque.group(1))
+
+    def test_cards_agrupadas_por_linea_en_grilla_de_4_columnas(self):
+        # REQ-WEB-53 y 54
+        respuesta, html = self.get()
+        self.assertEqual(html.count('<h1'), 1)
+        self.assertIn('id="ensayos-acreditados-titulo" class="h2-section mt-4">Ensayos acreditados</h2>', html)
+        claves = [g['clave'] for g in respuesta.context['grupos_ensayos']]
+        self.assertLess(claves.index('concreto-t21'), claves.index('suelos-t21'))
+        self.assertEqual(claves[-1], 'otros')
+        grupos = {g['clave']: [e['nombre'] for e in g['ensayos']] for g in respuesta.context['grupos_ensayos']}
+        self.assertEqual(grupos['concreto-t21'], ['Relación de soporte de California'])
+        self.assertEqual(grupos['suelos-t21'], ['Análisis granulométrico', 'Contenido de humedad'])
+        # La línea inactiva no agrupa: su ensayo cae en "Otros".
+        self.assertIn('Ensayo sin línea', grupos['otros'])
+        self.assertNotIn('inactiva-t21', grupos)
+        self.assertEqual(respuesta.context['total_ensayos'], 4)
+        self.assertIn('Otros ensayos acreditados', html)
+        self.assertIn('<ul class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4" role="list">', html)
+        self.assertIn('id="ensayos-concreto-t21"', html)
+        # Ni la acreditación inactiva ni la lista de viñetas de v4.
+        self.assertNotIn('Ensayo fuera del alcance', html)
+        self.assertNotIn('h-[6px] w-[6px]', html)
+        # Ensayo de dos acreditaciones: una sola card, con las dos en el detalle.
+        self.assertEqual(html.count(f'data-ensayo-open="{self.cbr.id}"'), 1)
+        self.assertEqual(self.datos(html)[str(self.cbr.id)]['acreditacion'], 'INACAL · N.º LE-230; OTRO · N.º X-1')
+
+    def test_card_con_ficha_es_enlace_y_sin_ficha_es_boton(self):
+        # REQ-WEB-55 y 61
+        _, html = self.get()
+        self.assertIn(f'<a href="/servicios/granulometria-t21/" data-ensayo-open="{self.ficha.id}"', html)
+        self.assertIn(f'<button type="button" data-ensayo-open="{self.humedad.id}"', html)
+        self.assertIn('after:absolute after:inset-0', html)
+        self.assertIn('>NTP 339.145</span>', html)
+        self.assertIn('<h4', html)
+        # Ficha cuyo slug lo resuelve antes una línea activa: sin enlace (RN-14).
+        ServicioPublicado.objects.filter(servicio=self.ficha).update(slug='suelos-t21')
+        _, html = self.get()
+        self.assertNotIn('href="/servicios/suelos-t21/" data-ensayo-open', html)
+        self.assertIn(f'<button type="button" data-ensayo-open="{self.ficha.id}"', html)
+        self.assertIsNone(self.datos(html)[str(self.ficha.id)]['url'])
+
+    def test_buscador_y_filtro_ocultos_sin_js(self):
+        # REQ-WEB-56 a 58 y 61
+        _, html = self.get()
+        self.assertIn('<div data-ensayos-controles hidden>', html)
+        self.assertIn('<label for="buscar-ensayo"', html)
+        self.assertIn('id="buscar-ensayo" type="search" data-ensayos-buscar', html)
+        self.assertIn('role="group" aria-label="Filtrar por línea"', html)
+        self.assertIn('data-ensayos-linea="" aria-pressed="true"', html)
+        self.assertIn('data-ensayos-linea="suelos-t21" aria-pressed="false"', html)
+        self.assertIn('aria-live="polite"', html)
+        self.assertIn('<div data-ensayos-vacio hidden', html)
+        self.assertIn('No encontramos ensayos acreditados con ese criterio.', html)
+        self.assertIn('Limpiar búsqueda', html)
+        self.assertIn('web/js/ensayos-acreditados.js', html)
+        # Texto que usa el buscador: nombre, norma, método y línea.
+        self.assertIn(
+            'data-ensayo-buscar="Relación de soporte de California NTP 339.145 Compactación en molde Concreto T21"', html,
+        )
+
+    def test_modal_con_detalle_y_lista_blanca(self):
+        # REQ-WEB-59 y 60
+        _, html = self.get()
+        self.assertEqual(html.count('id="modal-ensayo"'), 1)
+        self.assertIn('role="dialog" aria-modal="true" aria-labelledby="modal-ensayo-titulo"', html)
+        self.assertEqual(html.count('data-ensayo-cerrar'), 2)
+        self.assertIn('Ver ficha del ensayo', html)
+        self.assertIn(f'href="{reverse("web_contacto:solicitud_cotizacion")}" class="btn-secondary', html)
+        datos = self.datos(html)
+        self.assertEqual(datos[str(self.cbr.id)], {
+            'nombre': 'Relación de soporte de California', 'linea': 'Concreto T21', 'norma': 'NTP 339.145',
+            'norma_nombre': 'Suelos. Método de ensayo CBR', 'metodo': 'Compactación en molde',
+            'acreditacion': 'INACAL · N.º LE-230; OTRO · N.º X-1', 'resumen': '', 'url': None,
+        })
+        self.assertEqual(datos[str(self.ficha.id)]['resumen'], 'Resumen público de granulometría.')
+        # Norma con el nombre igual al código: no se repite en el modal.
+        Norma.objects.filter(pk=self.norma.pk).update(nombre='NTP 339.145')
+        self.assertEqual(self.datos(self.get()[1])[str(self.cbr.id)]['norma_nombre'], '')
+        self.assertEqual(datos[str(self.ficha.id)]['url'], '/servicios/granulometria-t21/')
+        for prohibido in ('987.65', '987,65', 'ZZT21-', 'precio', 'esta_acreditado', 'codigo_facturacion'):
+            self.assertNotIn(prohibido, html)
+
+    def test_sin_ensayos_no_hay_controles_ni_modal_ni_js(self):
+        for acreditacion in Acreditacion.objects.all():
+            acreditacion.servicios_acreditados.clear()
+        _, html = self.get()
+        self.assertIn('Ensayos acreditados', html)  # el alcance sigue
+        self.assertIn('Ensayos de suelos y concreto.', html)
+        for texto in ('data-ensayos-controles', 'modal-ensayo', 'ensayos-acreditados-datos', 'ensayos-acreditados.js'):
+            self.assertNotIn(texto, html)
+
+    def test_consultas_acotadas(self):
+        # Sin N+1: la cantidad de consultas no crece con los ensayos.
+        antes = self._consultas()
+        extra = Servicio.objects.create(codigo_facturacion='ZZT21-006', nombre='Otro más')
+        self.inacal.servicios_acreditados.add(extra)
+        self.suelos.ensayos.add(extra)
+        self.assertEqual(self._consultas(), antes)
+
+    def _consultas(self):
+        cache.clear()
+        with CaptureQueriesContext(connection) as capturadas:
+            self.get()
+        return len(capturadas)

@@ -2,7 +2,7 @@
 
 | Versión | Fecha | Estado |
 |---|---|---|
-| v4 | 2026-10-23 | Aprobado por el Gerente (modo rápido) · cambios de alcance v1.5 y v1.7 y requerimiento nuevo v1.6 del HU |
+| v5 | 2026-10-23 | Aprobado por el Gerente (modo rápido) · cambios de alcance v1.5 y v1.7, requerimiento nuevo v1.6 y cambio de diseño v1.8 del HU |
 
 ## Componentes
 
@@ -228,7 +228,7 @@ flowchart LR
 - `partials/enlace_certificacion.html`: atributos del enlace (`href`, `target`, `rel`, `data-cert-open`, `data-cert-tipo`, `data-cert-titulo`), compartidos por la card y los accesos INACAL.
 - `partials/grilla_certificaciones.html`: `<ul class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">`, usada en las dos páginas.
 - `partials/modal_certificacion.html`: un solo modal por página (reemplaza `modal_certificado_pdf.html` y `modal_certificado_inacal.html`), con `<img data-cert-imagen>` y `<iframe data-cert-visor>` sin `src` hasta abrir, "Descargar" (`<a download>`) y "Cerrar".
-- `/acreditacion/`: hero → grilla (H2 "Acreditaciones y certificaciones") → sección de `Acreditacion` (alcance y ensayos) sin cambios.
+- `/acreditacion/`: hero → grilla (H2 "Acreditaciones y certificaciones") → sección de `Acreditacion` (alcance y ensayos) sin cambios. *(v5: la sección pasa a cards, ver abajo.)*
 - Home: la sección oscura de acreditación pierde la imagen grande; queda el texto y debajo la grilla (máx. 4) con "Ver todas".
 
 ### JavaScript (`static/web/js/certificaciones.js`)
@@ -249,3 +249,52 @@ Reemplaza `certificado-pdf.js` y `modal-certificado.js`. Funciones puras en `mod
 | La migración `0005` escribe en `/media/` (copia la imagen de INACAL) | Solo si el archivo no existe; si falta la imagen estática, la fila se crea sin archivo y no se publica |
 | Se pierden en la BD el N.º, el alcance, la sede y el sello del ISO 9001 | Quedan en el PDF y en la descripción corta; era el pedido del Gerente (campos explícitos) |
 | nginx sin actualizar | Igual que T15: el modal de PDF queda en blanco; las imágenes no dependen de `X-Frame-Options` |
+
+## v5 · Todo en cards: ensayos acreditados (REQ-WEB-53 a 61)
+
+```mermaid
+flowchart LR
+  ACR[(web_acreditacion.Acreditacion activa)] -->|servicios_acreditados| F[ensayos_acreditados_por_linea]
+  LS[(web_catalogo.LineaServicio activa)] -->|ensayos M2M, orden| F
+  SP[(web_catalogo.ServicioPublicado)] -->|linea, ficha RN-14| F
+  F -->|grupos + JSON lista blanca| T[web/acreditacion.html]
+  T --> P[partials/ensayos_acreditados.html]
+  P --> C[partials/card_ensayo.html]
+  P --> M[partials/modal_ensayo.html]
+  P --> JS[static/web/js/ensayos-acreditados.js]
+  JS -->|buscador + filtro| C
+  JS -->|clic en card| M
+```
+
+### Vista (`web_acreditacion/views.py`)
+- `ensayos_acreditados_por_linea(acreditaciones)` recibe las `Acreditacion` activas con `servicios_acreditados` precargados y devuelve `(grupos, detalle)`:
+  - `grupos`: `[{'clave', 'nombre', 'ensayos': [{'id', 'nombre', 'norma', 'linea', 'url', 'buscar'}]}]`, en el orden de las líneas y con "Otros ensayos acreditados" (`clave = 'otros'`) al final (REQ-WEB-54). `clave` es el slug de la línea.
+  - `detalle`: `{id: {'nombre', 'linea', 'norma', 'norma_nombre', 'metodo', 'acreditacion', 'resumen', 'url'}}`, que la plantilla pasa por `json_script` al modal. `acreditacion` = "INACAL · N.º LE-230" (todas las acreditaciones del ensayo, separadas por "; "); `norma_nombre` vacío si es igual al código.
+- Consultas: `Servicio.objects.select_related('norma', 'metodo', 'publicado').only(...)` con solo `nombre`, `norma__codigo`, `norma__nombre`, `metodo__nombre` y de `publicado` `slug`, `activo`, `titulo_publico`, `resumen`, `linea_id`, más `Prefetch('lineas_servicio', LineaServicio.objects.publicadas().only('id'))`. Las líneas activas se leen una vez (8 filas) para nombre, slug y orden. Nunca `precio_base`, `unidad_base`, `codigo_facturacion` ni `esta_acreditado` (REQ-WEB-60).
+- `url` de la ficha: `/servicios/<slug>/` solo si `publicado.activo` y su slug no es el de una línea activa (RN-14, igual que el asistente); si no, `None`.
+- `acreditacion_view` pasa `grupos_ensayos`, `ensayos_detalle` y `total_ensayos`.
+
+### Plantillas
+- `partials/ensayos_acreditados.html`: H2 "Ensayos acreditados" y, por cada `Acreditacion`, institución, N.º en `mono-tag`, vigencia y alcance (texto, no lista), con el enlace al PDF si lo tiene. Debajo, la barra de búsqueda (`<div data-ensayos-controles hidden>`: `<input type="search">` con `<label>`, botones de línea con `aria-pressed`, contador `aria-live="polite"`), el aviso sin resultados con "Limpiar búsqueda" (oculto) y un `<section data-ensayos-grupo="<clave>">` por grupo con H3, número de ensayos y `<ul class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">`. Al final, `{{ ensayos_detalle|json_script:"ensayos-acreditados-datos" }}` y el modal.
+- `partials/card_ensayo.html`: mismo esqueleto que `card_certificacion.html` (`card-tech`, `h-full`, control estirado `after:absolute after:inset-0`, `focus-within:ring`): norma en `mono-tag` arriba, nombre en H4 con `line-clamp-3`, línea al pie. El control es `<a href="/servicios/<slug>/">` si hay ficha y `<button type="button">` si no; los dos con `data-ensayo-open="<id>"`. El `<li>` lleva `data-ensayo-linea` y `data-ensayo-buscar` (texto para el buscador).
+- `partials/modal_ensayo.html`: `#modal-ensayo`, mismo marco que `modal_certificacion.html`; cuerpo con `<dl>` (Línea, Norma, Método, Acreditación) y el resumen; pie con "Ver ficha del ensayo" (oculto sin ficha), "Solicitar cotización" y "Cerrar".
+
+### JavaScript (`static/web/js/ensayos-acreditados.js`)
+Funciones puras en `module.exports`, probadas con `node --test`:
+- `normalizar(texto)`: minúsculas, sin tildes (`NFD` y quitar `\u0300-\u036f`), espacios colapsados.
+- `coincide(textoBuscable, consulta)`: todas las palabras de la consulta están en el texto normalizado; consulta vacía coincide siempre.
+- `visible(item, consulta, linea)`: `coincide` y (`linea` vacía o igual a la del item).
+- `textoResultados(n, total)`: "Se muestran los 99 ensayos acreditados." / "1 ensayo acreditado coincide." / "12 ensayos acreditados coinciden." / "Ningún ensayo acreditado coincide.".
+- `siguienteFoco`: misma lógica que `certificaciones.js` (copiada: la página puede no cargar ese archivo si no hay certificaciones publicadas).
+Comportamiento: quita `hidden` de los controles; en `input` filtra (sin debounce: ~100 nodos), oculta grupos vacíos, actualiza el número de ensayos de cada línea, el contador y el aviso. Clic en `[data-ensayo-open]`: `preventDefault` (también en los enlaces a la ficha) y abre el modal con los datos del JSON. Sin JS, los enlaces llevan a la ficha (REQ-WEB-61).
+
+### Reglas de `CLAUDE.md` que aplican
+- 1 a 3: sin modelos nuevos; lista blanca en la vista y en el JSON. 9: H1 único (hero); H2 de sección, H3 por línea, H4 por card. 17: sin imágenes en las cards; JS `defer`. Sin migraciones.
+
+### Riesgos (v5)
+| Riesgo | Mitigación |
+|---|---|
+| Líneas sin ensayos vinculados (dev, PM-12): todo cae en "Otros ensayos acreditados" | Se muestra igual; en producción, revisar `LineaServicio.ensayos` tras `revincular_catalogo` |
+| ~100 cards en una página | Sin imágenes; filtro en el cliente; el H3 por línea y el filtro reducen el recorrido |
+| Un ensayo en varias líneas solo aparece en la primera | Documentado (P-19); el buscador lo encuentra igual |
+

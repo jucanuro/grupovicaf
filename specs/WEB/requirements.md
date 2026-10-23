@@ -2,7 +2,7 @@
 
 | Módulo | Fuente | Versión | Fecha | Estado |
 |---|---|---|---|---|
-| VCF-WEB | `docs/proc/VCF-WEB_HU_CU_v1.md` v1.7 (G1 + cambio de alcance v1.5 + requerimiento nuevo v1.6 + cambio de alcance v1.7 [Decisión Gerente]) · D-VCF-002 · D-VCF-004 | v4 | 2026-10-23 | Aprobado por el Gerente (modo rápido) |
+| VCF-WEB | `docs/proc/VCF-WEB_HU_CU_v1.md` v1.8 (G1 + cambio de alcance v1.5 + requerimiento nuevo v1.6 + cambio de alcance v1.7 + cambio de diseño v1.8 [Decisión Gerente]) · D-VCF-002 · D-VCF-004 | v5 | 2026-10-23 | Aprobado por el Gerente (modo rápido) |
 
 Alcance: opción A de DP-WEB-01. Es un widget guiado que termina en `wa.me` con el mensaje armado y queda preparado para pasar a C (leads). HU-WEB-05 queda **fuera de alcance**.
 
@@ -82,12 +82,31 @@ Nota REQ-WEB-13: P-03 sigue abierta y la ubicación se pide como texto libre, as
 | REQ-WEB-51 | MIENTRAS haya certificaciones publicadas de tipo `iso` u `otro`, EL SISTEMA DEBE declararlas en `LocalBusiness.hasCertification` (tipo `Certification`: `name`, `description`, `issuedBy`, `expires` si hay vigencia, `certificationStatus`, `url` absoluta del archivo), sin tocar el `hasCredential` de INACAL. | HU-WEB-08 · CA-08.11 |
 | REQ-WEB-52 | EL SISTEMA NO DEBE mostrar "norte del Perú" en la home ni en `/acreditacion/` (H1, meta, incluida la `NegocioConfig.descripcion` que usa la home, y textos): el ámbito es Cajamarca. | HU-WEB-08 · CA-08.12, D-VCF-002 |
 
+### v5 · Todo en cards: ensayos acreditados [Decisión Gerente] (2026-10-23)
+
+> La home ya cumple "todo en cards" desde v4 (servicios y certificaciones, REQ-WEB-49). v5 cambia la última lista de `/acreditacion/`: la sección de `Acreditacion` (alcance y ensayos acreditados), que P-16 mantuvo aparte.
+
+| ID | Requisito | HU / CA |
+|---|---|---|
+| REQ-WEB-53 | MIENTRAS haya ensayos vinculados a una `Acreditacion` activa, EL SISTEMA DEBE mostrar en `/acreditacion/`, después de la grilla de certificaciones, la sección "Ensayos acreditados" (H2) con el alcance de cada acreditación y los ensayos como cards agrupadas por línea (H3 por línea, en el orden del admin), en una grilla de 1 columna por debajo de 640 px, 2 desde 640 px y 4 desde 1024 px. EL SISTEMA NO DEBE mostrar los ensayos como lista de viñetas. | HU-WEB-09 · CA-09.1 |
+| REQ-WEB-54 | EL SISTEMA DEBE ubicar cada ensayo en un solo grupo: la primera `LineaServicio` activa (por `orden`, `nombre`) cuyo M2M `ensayos` lo incluye; si ninguna, la `linea` activa de su `ServicioPublicado`; si tampoco, el grupo "Otros ensayos acreditados", al final. Un ensayo vinculado a varias acreditaciones se muestra una vez; dentro de cada grupo, por nombre. | HU-WEB-09 · CA-09.2, P-19 |
+| REQ-WEB-55 | EL SISTEMA DEBE mostrar en cada card del ensayo el nombre (H4; el título público si tiene ficha publicada), el código de la norma y la línea, con el mismo alto en cada fila. Toda la card es clicable con un único control (botón, o enlace a la ficha si existe), operable con teclado y con foco visible. | HU-WEB-09 · CA-09.3 |
+| REQ-WEB-56 | CUANDO el visitante escriba en el buscador, EL SISTEMA DEBE mostrar solo las cards cuyo nombre, norma, método o línea contengan todas las palabras escritas, sin distinguir mayúsculas ni tildes; ocultar los grupos sin cards visibles y anunciar en una región `aria-live="polite"` cuántos ensayos se muestran. | HU-WEB-09 · CA-09.4 |
+| REQ-WEB-57 | CUANDO el visitante pulse una línea en el filtro (botones "Todas" y uno por línea con ensayos, con `aria-pressed`), EL SISTEMA DEBE mostrar solo esa línea, combinada con el texto del buscador; "Todas" quita el filtro. | HU-WEB-09 · CA-09.5 |
+| REQ-WEB-58 | SI el buscador y el filtro no dejan ninguna card, ENTONCES EL SISTEMA DEBE mostrar "No encontramos ensayos acreditados con ese criterio." y el botón "Limpiar búsqueda", que vacía el buscador y vuelve a "Todas". | HU-WEB-09 · CA-09.6 |
+| REQ-WEB-59 | CUANDO el visitante abra una card de ensayo, EL SISTEMA DEBE abrir un modal (`role="dialog"`, `aria-modal="true"`, `aria-labelledby` con el nombre) con línea, norma (código y nombre), método, acreditación (institución y N.º) y, si tiene ficha publicada, su resumen y "Ver ficha del ensayo"; y siempre "Solicitar cotización" (`/contacto/cotizacion/`) y "Cerrar". El modal se comporta como en REQ-WEB-47 y 48: foco en ×, Tab y Shift+Tab atrapados, scroll bloqueado y cierre con Esc, fondo, × o "Cerrar" devolviendo el foco a la card. | HU-WEB-09 · CA-09.7, CA-09.8 |
+| REQ-WEB-60 | EL SISTEMA NO DEBE incluir en el HTML de `/acreditacion/` (cards, modal ni JSON de datos) precio, unidad, código de facturación ni `esta_acreditado` de `servicios.Servicio`; la vista arma los datos con lista blanca. | HU-WEB-09 · CA-09.9, RN-16 |
+| REQ-WEB-61 | DONDE el navegador no ejecute JavaScript, EL SISTEMA DEBE mostrar todas las cards con su información y sin buscador ni filtro (ocultos con `hidden` hasta que el JS los active); las cards con ficha publicada DEBEN ser un enlace a `/servicios/<slug>/`. "Ficha publicada" = `ServicioPublicado` activo cuyo slug no lo resuelve antes una línea activa (RN-14). | HU-WEB-09 · CA-09.10 |
+
 ## Fuera de alcance
 - Enlaces "Ver en la web" dentro de las listas de líneas y de ensayos: cada fila ya lleva a su detalle, y ahí está el enlace (REQ-WEB-20).
 - HU-WEB-05 (guardar leads, opción C). El JS deja todas las respuestas en un solo objeto para que agregarlo luego sea un `fetch`.
 - Configurar los mensajes de WhatsApp Business (T-50 y T-51): se hace a mano en la app.
 - ~~*(v3)* Mostrar el certificado ISO 9001 en la home o en el footer~~: *(v4)* la home sí muestra las cards (REQ-WEB-49). El footer sigue fuera de alcance.
 - *(v3)* Visor PDF propio (pdf.js): se usa el visor del navegador; en móvil, la pestaña nueva.
-- *(v4)* Fusionar `Acreditacion` (alcance y ensayos acreditados) con `Certificacion`: se mantiene aparte (P-16).
+- *(v4)* Fusionar `Acreditacion` (alcance y ensayos acreditados) con `Certificacion`: se mantiene aparte (P-16, cerrada en v1.8).
+- *(v5)* Guardar en la URL o en el navegador lo buscado y la línea elegida: el filtro empieza vacío en cada visita.
+- *(v5)* Precargar el ensayo en el formulario de `/contacto/cotizacion/` desde "Solicitar cotización": el enlace lleva al formulario vacío.
+- *(v5)* Mostrar un ensayo en todas sus líneas (P-19).
 - *(v4)* Corregir "norte del Perú" en `clientes.html` (PM-11).
 - *(v3)* Ocultar el archivo PDF vencido de `/media/`: la tarjeta desaparece, pero la URL directa sigue respondiendo mientras el archivo exista. Para retirarlo, el administrador borra el archivo desde el admin.
