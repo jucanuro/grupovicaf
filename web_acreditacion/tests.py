@@ -1,5 +1,6 @@
-"""Pruebas del certificado ISO 9001 en /acreditacion/ (specs/WEB v3, T13-T16)."""
+"""Pruebas de las certificaciones (specs/WEB v4, T18-T20; cabeceras de v3, T15)."""
 import importlib
+import io
 import json
 import os
 import re
@@ -13,15 +14,29 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import clear_url_caches, resolve, reverse
 from django.utils import timezone
+from PIL import Image
 
-from .models import Certificacion, validar_pdf
+from .models import Acreditacion, Certificacion, validar_archivo
 from .views import servir_certificado_dev
 
 PDF_MINIMO = b'%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n'
 
 
+def _png_minimo():
+    buffer = io.BytesIO()
+    Image.new('RGB', (2, 1), 'white').save(buffer, 'PNG')
+    return buffer.getvalue()
+
+
+PNG_MINIMO = _png_minimo()
+
+
 def pdf(nombre='certificado.pdf', contenido=PDF_MINIMO):
     return SimpleUploadedFile(nombre, contenido, content_type='application/pdf')
+
+
+def png(nombre='certificado.png', contenido=PNG_MINIMO):
+    return SimpleUploadedFile(nombre, contenido, content_type='image/png')
 
 
 class MediaTemporalMixin:
@@ -51,77 +66,104 @@ class MediaTemporalMixin:
 
     def crear_certificacion(self, **campos):
         datos = {
-            'norma': 'ISO 9001:2015',
-            'sistema': 'Sistema de Gestión de la Calidad',
-            'numero_certificado': 'ER-TEST/2026',
-            'organismo': 'AENOR CONFIA S.A.U.',
-            'alcance': 'Servicios de estudios de mecánica de suelos.',
-            'sede': 'Jr. Los Topacios 440, Cajamarca (Perú)',
-            'fecha_emision': date(2026, 4, 1),
+            'titulo': 'Certificación ISO 9001:2015',
+            'descripcion': 'Sistema de Gestión de la Calidad certificado por AENOR.',
+            'tipo': Certificacion.TIPO_ISO,
+            'institucion': 'AENOR CONFIA S.A.U.',
             'vigencia_hasta': timezone.localdate() + timedelta(days=365),
             'archivo': pdf(),
+            'orden': 10,
         }
         datos.update(campos)
         return Certificacion.objects.create(**datos)
 
 
 class CertificacionModelTests(MediaTemporalMixin, TestCase):
-    def setUp(self):
-        super().setUp()
-        # La migración 0003 siembra ER-0146/2026 sin PDF; no debe estar publicada.
-        self.semilla = Certificacion.objects.get(numero_certificado='ER-0146/2026')
+    def test_migracion_pasa_inacal_e_iso9001_al_modelo_unico(self):
+        # REQ-WEB-41: la 0005 convierte la semilla ISO 9001 de v3 y crea INACAL.
+        inacal = Certificacion.objects.get(tipo=Certificacion.TIPO_ACREDITACION)
+        self.assertEqual(inacal.titulo, 'Acreditación INACAL LE-230')
+        self.assertEqual(inacal.institucion, 'Instituto Nacional de Calidad (INACAL)')
+        self.assertIn('LE-230', inacal.descripcion)
+        self.assertEqual(inacal.vigencia_hasta, date(2027, 5, 27))
+        self.assertEqual(inacal.archivo.name, 'certificaciones/inacal-le-230.webp')
+        self.assertFalse(inacal.es_pdf)
+        self.assertEqual(inacal.orden, 0)
 
-    def test_semilla_con_los_datos_del_pdf_y_sin_publicar(self):
-        self.assertEqual(self.semilla.norma, 'ISO 9001:2015')
-        self.assertEqual(self.semilla.organismo, 'AENOR CONFIA S.A.U.')
-        self.assertEqual(self.semilla.vigencia_hasta, date(2029, 4, 1))
-        self.assertFalse(self.semilla.archivo)
-        self.assertNotIn(self.semilla, Certificacion.objects.publicadas())
+        iso = Certificacion.objects.get(tipo=Certificacion.TIPO_ISO)
+        self.assertEqual(iso.titulo, 'Certificación ISO 9001:2015')
+        self.assertEqual(iso.institucion, 'AENOR CONFIA S.A.U.')
+        self.assertEqual(
+            iso.descripcion,
+            'Sistema de Gestión de la Calidad certificado por AENOR CONFIA. Certificado N.º ER-0146/2026.',
+        )
+        self.assertEqual(iso.vigencia_hasta, date(2029, 4, 1))
+        self.assertEqual(iso.orden, 1)
+        # La semilla de v3 no traía PDF: no se publica hasta que se suba.
+        self.assertFalse(iso.archivo)
+        self.assertFalse(iso.publicada)
 
     def test_publicadas_aplica_rn15(self):
-        # REQ-WEB-31: activa + con PDF + vigencia sin pasar; el último día cuenta.
+        # REQ-WEB-42: activa + con archivo + vigencia vacía o sin pasar; el último día cuenta.
+        Certificacion.objects.all().delete()
         hoy = timezone.localdate()
-        vigente = self.crear_certificacion(numero_certificado='A')
-        ultimo_dia = self.crear_certificacion(numero_certificado='B', vigencia_hasta=hoy)
-        vencida = self.crear_certificacion(numero_certificado='C', vigencia_hasta=hoy - timedelta(days=1))
-        inactiva = self.crear_certificacion(numero_certificado='D', activo=False)
-        sin_pdf = self.crear_certificacion(numero_certificado='E', archivo='')
+        vigente = self.crear_certificacion(titulo='A')
+        sin_vigencia = self.crear_certificacion(titulo='B', vigencia_hasta=None)
+        ultimo_dia = self.crear_certificacion(titulo='C', vigencia_hasta=hoy)
+        vencida = self.crear_certificacion(titulo='D', vigencia_hasta=hoy - timedelta(days=1))
+        inactiva = self.crear_certificacion(titulo='E', activo=False)
+        sin_archivo = self.crear_certificacion(titulo='F', archivo='')
 
-        publicadas = set(Certificacion.objects.publicadas())
-        self.assertEqual(publicadas, {vigente, ultimo_dia})
-        self.assertTrue(ultimo_dia.publicada)
-        for certificacion in (vencida, inactiva, sin_pdf):
-            self.assertFalse(certificacion.publicada, certificacion.numero_certificado)
+        self.assertEqual(set(Certificacion.objects.publicadas()), {vigente, sin_vigencia, ultimo_dia})
+        for certificacion in (vigente, sin_vigencia, ultimo_dia):
+            self.assertTrue(certificacion.publicada, certificacion.titulo)
+        for certificacion in (vencida, inactiva, sin_archivo):
+            self.assertFalse(certificacion.publicada, certificacion.titulo)
 
     def test_publicadas_con_fecha_explicita(self):
         cert = self.crear_certificacion(vigencia_hasta=date(2029, 4, 1))
         self.assertIn(cert, Certificacion.objects.publicadas(hoy=date(2029, 4, 1)))
         self.assertNotIn(cert, Certificacion.objects.publicadas(hoy=date(2029, 4, 2)))
 
-    def test_validar_pdf_rechaza_lo_que_no_es_pdf(self):
-        # REQ-WEB-36: firma %PDF- y máximo 10 MB.
-        validar_pdf(pdf())
-        with self.assertRaises(ValidationError):
-            validar_pdf(pdf('falso.pdf', b'<html>no soy un pdf</html>'))
+    def test_es_pdf_por_extension(self):
+        self.assertTrue(self.crear_certificacion().es_pdf)
+        self.assertFalse(self.crear_certificacion(archivo=png()).es_pdf)
+        self.assertFalse(Certificacion(archivo='').es_pdf)
+
+    def test_validar_archivo_acepta_pdf_e_imagen_reales(self):
+        # REQ-WEB-40: firma %PDF-, imagen que Pillow abre y máximo 10 MB.
+        validar_archivo(pdf())
+        validar_archivo(png())
+        for archivo in (
+            pdf('falso.pdf', b'<html>no soy un pdf</html>'),
+            png('falso.png', b'%PDF-1.4 no soy una imagen'),
+            png('falso.webp', b'nada'),
+        ):
+            with self.subTest(archivo=archivo.name), self.assertRaises(ValidationError):
+                validar_archivo(archivo)
         grande = pdf()
         grande.size = 10 * 1024 * 1024 + 1
         with self.assertRaises(ValidationError):
-            validar_pdf(grande)
+            validar_archivo(grande)
 
-    def test_full_clean_exige_extension_pdf_y_alt_del_sello(self):
-        cert = Certificacion(
-            norma='ISO 9001:2015', numero_certificado='X', organismo='AENOR',
-            alcance='Alcance', vigencia_hasta=date(2029, 4, 1), archivo=pdf('certificado.exe'),
-        )
+    def test_full_clean_exige_campos_y_extension_permitida(self):
+        cert = Certificacion(archivo=png('certificado.gif'))
         with self.assertRaises(ValidationError) as error:
             cert.full_clean()
-        self.assertIn('archivo', error.exception.message_dict)
+        for campo in ('titulo', 'descripcion', 'institucion', 'archivo'):
+            self.assertIn(campo, error.exception.message_dict)
+        self.assertNotIn('vigencia_hasta', error.exception.message_dict)  # opcional
 
-        cert.archivo = pdf()
-        cert.sello = SimpleUploadedFile('sello.png', b'x', content_type='image/png')
-        with self.assertRaises(ValidationError) as error:
-            cert.clean()
-        self.assertIn('sello_alt', error.exception.message_dict)
+        cert = Certificacion(
+            titulo='Otro', descripcion='Corta.', tipo='otro', institucion='X', archivo=png(),
+        )
+        cert.full_clean()
+
+    def test_tipos_del_admin(self):
+        self.assertEqual(
+            [etiqueta for _, etiqueta in Certificacion.TIPOS],
+            ['Acreditación', 'Certificación ISO', 'Otro'],
+        )
 
 
 @override_settings(ROOT_URLCONF='grupovicaf.urls_web')
@@ -131,67 +173,79 @@ class AcreditacionPaginaTests(MediaTemporalMixin, TestCase):
         self.assertEqual(respuesta.status_code, 200)
         return respuesta.content.decode()
 
-    def test_tarjeta_con_los_datos_del_certificado(self):
-        # REQ-WEB-30
-        cert = self.crear_certificacion(vigencia_hasta=date(2099, 4, 1))
+    def test_grilla_debajo_del_hero_con_cards(self):
+        # REQ-WEB-43 y 44
+        cert = self.crear_certificacion(titulo='Certificación ISO 9001:2015')
+        Acreditacion.objects.create(numero_acreditacion='LE-230', alcance='Ensayos de suelos.')
         html = self.get_html()
+        self.assertEqual(html.count('<h1'), 1)
+        hero_fin = html.index('</h1>')
+        grilla = html.index('id="certificaciones"')
+        self.assertLess(hero_fin, grilla)
+        self.assertLess(grilla, html.index('Alcance de acreditación'))
+        self.assertIn('grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4', html)
         for texto in (
-            'Sistema de gestión certificado', 'ISO 9001:2015', 'Sistema de Gestión de la Calidad',
-            'N.º ER-TEST/2026', 'AENOR CONFIA S.A.U.', 'Servicios de estudios de mecánica de suelos.',
-            'Jr. Los Topacios 440, Cajamarca (Perú)', 'Emitido el 01/04/2026', 'vigente hasta el 01/04/2099',
+            'Acreditaciones y certificaciones', 'Certificación ISO 9001:2015',
+            'Sistema de Gestión de la Calidad certificado por AENOR.', 'AENOR CONFIA S.A.U.',
+            '>Certificación ISO</span>', 'Acreditación INACAL LE-230', '>Acreditación</span>',
         ):
             self.assertIn(texto, html)
-        self.assertEqual(html.count('<h1'), 1)
-
-        # REQ-WEB-35: el botón es un enlace real a pestaña nueva (sin JS y en móvil).
-        self.assertIn(f'href="{cert.archivo.url}" target="_blank" rel="noopener"', html)
-        self.assertIn('data-cert-pdf-open', html)
-
-    def test_modal_accesible_y_js_solo_con_certificaciones(self):
-        # REQ-WEB-32 y 34
-        self.crear_certificacion()
-        html = self.get_html()
-        self.assertEqual(html.count('id="modal-certificado-pdf"'), 1)
-        self.assertIn('role="dialog" aria-modal="true" aria-labelledby="modal-certificado-pdf-titulo"', html)
-        self.assertIn('data-cert-pdf-visor', html)
-        self.assertIn('data-cert-pdf-descargar', html)
-        self.assertEqual(html.count('data-cert-pdf-cerrar'), 2)  # × y "Cerrar"
-        self.assertIn('web/js/certificado-pdf.js', html)
-        # El iframe no carga el PDF con la página (regla 17).
-        self.assertNotIn('<iframe data-cert-pdf-visor title="Certificado (PDF)" class="w-full flex-1 bg-slate-100" src=', html)
-
-    def test_sello_con_alt_o_distintivo_de_texto(self):
-        cert = self.crear_certificacion()
-        html = self.get_html()
-        self.assertNotIn('<img src="/media/certificaciones/sellos/', html)
-        self.assertIn('<span class="mono-tag mt-1 text-xs font-bold">ISO 9001</span>', html)
-
-        # PNG 1x1 válido para que ImageField pueda leer ancho y alto.
-        png = (
-            b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00'
-            b'\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\xf8\x0f\x00\x00\x01\x01\x00\x05\x18\xd8N'
-            b'\x00\x00\x00\x00IEND\xaeB`\x82'
+        # Una card = un enlace real al archivo, en pestaña nueva sin JS (REQ-WEB-46).
+        self.assertIn(
+            f'href="{cert.archivo.url}" target="_blank" rel="noopener" data-cert-open '
+            f'data-cert-tipo="pdf" data-cert-titulo="Certificación ISO 9001:2015"', html,
         )
-        cert.sello = SimpleUploadedFile('sello.png', png, content_type='image/png')
-        cert.sello_alt = 'Sello AENOR Gestión de la Calidad ISO 9001'
-        cert.save()
-        html = self.get_html()
-        self.assertIn('alt="Sello AENOR Gestión de la Calidad ISO 9001"', html)
-        self.assertIn('loading="lazy"', html)
-        self.assertIn('width="1" height="1"', html)
+        self.assertIn('data-cert-tipo="imagen" data-cert-titulo="Acreditación INACAL LE-230"', html)
+        self.assertIn('after:absolute after:inset-0', html)
+        # Sin el certificado grande al lado: ninguna imagen de certificado en la página.
+        self.assertNotIn('GRUPO-VICAF-CERTIFICADO', html)
+        self.assertNotIn('<img src="/media/certificaciones/', html)
 
-    def test_vencida_inactiva_o_sin_pdf_no_se_muestran(self):
-        # REQ-WEB-31: ni tarjeta, ni modal, ni JS.
-        hoy = timezone.localdate()
-        self.crear_certificacion(numero_certificado='VENCIDA', vigencia_hasta=hoy - timedelta(days=1))
-        self.crear_certificacion(numero_certificado='INACTIVA', activo=False)
-        self.crear_certificacion(numero_certificado='SINPDF', archivo='')
+    def test_orden_del_admin(self):
+        self.crear_certificacion(titulo='Primero del admin', orden=0, tipo='otro')
         html = self.get_html()
-        for texto in ('VENCIDA', 'INACTIVA', 'SINPDF', 'ER-0146/2026', 'modal-certificado-pdf',
-                      'certificado-pdf.js', 'Sistema de gestión certificado'):
+        self.assertLess(html.index('Primero del admin'), html.index('Acreditación INACAL LE-230'))
+
+    def test_modal_unico_accesible_y_js_solo_con_certificaciones(self):
+        # REQ-WEB-47 y 48
+        html = self.get_html()
+        self.assertEqual(html.count('id="modal-certificacion"'), 1)
+        self.assertIn('role="dialog" aria-modal="true" aria-labelledby="modal-certificacion-titulo"', html)
+        self.assertIn('data-cert-contenido', html)
+        self.assertIn('data-cert-descargar href="#" download', html)
+        self.assertIn('Descargar', html)
+        self.assertEqual(html.count('data-cert-cerrar'), 2)  # × y "Cerrar"
+        self.assertIn('web/js/certificaciones.js', html)
+        # Nada se carga con la página (regla 17): el img/iframe lo crea el JS.
+        self.assertNotIn('<iframe', html)
+        # Los modales de v3 ya no existen.
+        for viejo in ('modal-certificado-inacal', 'modal-certificado-pdf', 'certificado-pdf.js', 'modal-certificado.js'):
+            self.assertNotIn(viejo, html)
+
+    def test_acceso_inacal_del_hero_abre_la_acreditacion(self):
+        # REQ-WEB-50
+        html = self.get_html()
+        hero = html[:html.index('id="certificaciones"')]
+        self.assertIn('data-cert-titulo="Acreditación INACAL LE-230"', hero)
+
+        Certificacion.objects.filter(tipo=Certificacion.TIPO_ACREDITACION).update(activo=False)
+        hero = self.get_html().split('</h1>')[1].split('</section>')[0]
+        self.assertIn('href="#certificaciones"', hero)
+        self.assertNotIn('data-cert-open', hero)
+
+    def test_vencidas_inactivas_o_sin_archivo_no_se_muestran(self):
+        # REQ-WEB-42: ni card, ni modal, ni JS.
+        Certificacion.objects.all().delete()
+        hoy = timezone.localdate()
+        self.crear_certificacion(titulo='VENCIDA', vigencia_hasta=hoy - timedelta(days=1))
+        self.crear_certificacion(titulo='INACTIVA', activo=False)
+        self.crear_certificacion(titulo='SINARCHIVO', archivo='')
+        html = self.get_html()
+        for texto in ('VENCIDA', 'INACTIVA', 'SINARCHIVO', 'id="certificaciones"', 'modal-certificacion',
+                      'certificaciones.js', 'data-cert-open'):
             self.assertNotIn(texto, html)
-        # La acreditación INACAL sigue ahí.
-        self.assertIn('modal-certificado-inacal', html)
+        # La sección de alcance (modelo Acreditacion) sigue ahí.
+        self.assertIn('href="#certificaciones"', html)
 
 
 class CabecerasPdfTests(MediaTemporalMixin, TestCase):
@@ -236,27 +290,38 @@ class JsonLdTests(MediaTemporalMixin, TestCase):
         self.fail('No hay JSON-LD LocalBusiness')
 
     def test_has_certification_en_todas_las_paginas(self):
-        # REQ-WEB-38
+        # REQ-WEB-51: ISO y Otro; INACAL sigue en hasCredential y no se repite.
+        Certificacion.objects.all().delete()
+        self.crear_certificacion(titulo='Acreditación INACAL', tipo='acreditacion')
         cert = self.crear_certificacion(
-            numero_certificado='ER-0146/2026-T', vigencia_hasta=date(2099, 4, 1),
-            organismo='AENOR </script> & CONFIA',
+            vigencia_hasta=date(2099, 4, 1), institucion='AENOR </script> & CONFIA',
         )
+        otro = self.crear_certificacion(titulo='Reconocimiento', tipo='otro', vigencia_hasta=None, archivo=png())
         for pagina in ('web_contacto:contacto', 'web_acreditacion:acreditacion'):
             with self.subTest(pagina=pagina):
                 negocio = self.local_business(pagina)
                 self.assertIn('hasCredential', negocio)  # INACAL intacto
-                self.assertEqual(negocio['hasCertification'], [{
-                    '@type': 'Certification',
-                    'name': 'ISO 9001:2015 · Sistema de Gestión de la Calidad',
-                    'certificationIdentification': 'ER-0146/2026-T',
-                    'issuedBy': {'@type': 'Organization', 'name': 'AENOR </script> & CONFIA'},
-                    'expires': '2099-04-01',
-                    'certificationStatus': 'https://schema.org/CertificationActive',
-                    'url': f'https://www.grupovicaf.com{cert.archivo.url}',
-                    'validFrom': '2026-04-01',
-                }])
+                self.assertEqual(negocio['hasCertification'], [
+                    {
+                        '@type': 'Certification',
+                        'name': 'Certificación ISO 9001:2015',
+                        'description': 'Sistema de Gestión de la Calidad certificado por AENOR.',
+                        'issuedBy': {'@type': 'Organization', 'name': 'AENOR </script> & CONFIA'},
+                        'certificationStatus': 'https://schema.org/CertificationActive',
+                        'url': f'https://www.grupovicaf.com{cert.archivo.url}',
+                        'expires': '2099-04-01',
+                    },
+                    {
+                        '@type': 'Certification',
+                        'name': 'Reconocimiento',
+                        'description': 'Sistema de Gestión de la Calidad certificado por AENOR.',
+                        'issuedBy': {'@type': 'Organization', 'name': 'AENOR CONFIA S.A.U.'},
+                        'certificationStatus': 'https://schema.org/CertificationActive',
+                        'url': f'https://www.grupovicaf.com{otro.archivo.url}',
+                    },
+                ])
 
     def test_sin_certificaciones_publicadas_no_hay_has_certification(self):
-        # REQ-WEB-31: la semilla sin PDF y una vencida no se declaran.
+        # REQ-WEB-42: la semilla ISO sin PDF, una vencida e INACAL (hasCredential) no se declaran.
         self.crear_certificacion(vigencia_hasta=timezone.localdate() - timedelta(days=1))
         self.assertNotIn('hasCertification', self.local_business())

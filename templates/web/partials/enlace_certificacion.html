@@ -1,0 +1,1 @@
+{# Atributos del enlace que abre una certificación (card y accesos INACAL). Sin JS abre el archivo en una pestaña nueva. #}href="{{ certificacion.archivo.url }}" target="_blank" rel="noopener" data-cert-open data-cert-tipo="{% if certificacion.es_pdf %}pdf{% else %}imagen{% endif %}" data-cert-titulo="{{ certificacion.titulo }}"

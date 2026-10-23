@@ -50,26 +50,22 @@ class AcreditacionAdmin(admin.ModelAdmin):
 @admin.register(Certificacion)
 class CertificacionAdmin(admin.ModelAdmin):
     list_display = (
-        'norma', 'numero_certificado', 'organismo', 'vigencia_hasta', 'publicada_display',
-        'activo', 'orden',
+        'titulo', 'tipo', 'institucion', 'vigencia_hasta', 'publicada_display', 'activo', 'orden',
     )
     list_editable = ('activo', 'orden')
-    list_filter = ('activo', 'organismo')
-    search_fields = ('norma', 'numero_certificado', 'organismo', 'alcance')
-    ordering = ('orden', '-vigencia_hasta')
-    readonly_fields = ('creado', 'actualizado', 'vista_previa_sello')
+    list_filter = ('tipo', 'activo')
+    search_fields = ('titulo', 'descripcion', 'institucion')
+    ordering = ('orden', 'titulo')
+    readonly_fields = ('creado', 'actualizado', 'vista_previa_archivo')
 
     fieldsets = (
-        ('Datos del certificado', {
-            'fields': (
-                'norma', 'sistema', 'numero_certificado', 'organismo', 'alcance', 'sede',
-                'fecha_emision', 'vigencia_hasta',
-            ),
+        ('Card', {
+            'fields': ('titulo', 'descripcion', 'tipo', 'institucion'),
         }),
-        ('Archivos', {
+        ('Documento', {
             'description': 'La certificación solo se muestra en la web si está activa, '
-                           'tiene PDF y su vigencia no ha pasado.',
-            'fields': ('archivo', 'sello', 'vista_previa_sello', 'sello_alt'),
+                           'tiene archivo y su vigencia (si tiene) no ha pasado.',
+            'fields': ('archivo', 'vista_previa_archivo', 'vigencia_hasta'),
         }),
         ('Configuración', {
             'fields': ('activo', 'orden'),
@@ -84,8 +80,10 @@ class CertificacionAdmin(admin.ModelAdmin):
     def publicada_display(self, obj):
         return obj.publicada
 
-    @admin.display(description='Vista previa del sello')
-    def vista_previa_sello(self, obj):
-        if not obj.sello:
-            return 'Sin sello: la web muestra un distintivo de texto con la norma.'
-        return format_html('<img src="{}" style="max-height:120px;width:auto;border-radius:8px;">', obj.sello.url)
+    @admin.display(description='Vista previa')
+    def vista_previa_archivo(self, obj):
+        if not obj.archivo:
+            return 'Sin archivo: no se muestra en la web.'
+        if obj.es_pdf:
+            return format_html('<a href="{}" target="_blank" rel="noopener">Abrir PDF</a>', obj.archivo.url)
+        return format_html('<img src="{}" style="max-height:160px;width:auto;border-radius:8px;">', obj.archivo.url)

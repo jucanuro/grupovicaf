@@ -63,70 +63,105 @@ class Acreditacion(models.Model):
         return True
 
 
-PDF_MAX_BYTES = 10 * 1024 * 1024
+ARCHIVO_MAX_BYTES = 10 * 1024 * 1024
+EXTENSIONES_IMAGEN = ('jpg', 'jpeg', 'png', 'webp')
+EXTENSIONES_ARCHIVO = ('pdf',) + EXTENSIONES_IMAGEN
+
+
+def validar_archivo(archivo):
+    """Acepta solo un PDF real (firma %PDF-) o una imagen que Pillow pueda abrir, de 10 MB como máximo.
+
+    La extensión sola no basta: el archivo se sirve tal cual desde /media/ y se
+    muestra en el modal de la propia web (REQ-WEB-40).
+    """
+    if archivo.size and archivo.size > ARCHIVO_MAX_BYTES:
+        raise ValidationError('El archivo no puede pesar más de 10 MB.')
+    posicion = archivo.tell() if hasattr(archivo, 'tell') else 0
+    archivo.seek(0)
+    try:
+        if archivo.name.lower().endswith('.pdf'):
+            if archivo.read(5) != b'%PDF-':
+                raise ValidationError('El archivo no es un PDF válido.')
+        else:
+            from PIL import Image
+            try:
+                Image.open(archivo).verify()
+            except Exception:
+                raise ValidationError('El archivo no es una imagen válida (JPG, PNG o WebP).')
+    finally:
+        archivo.seek(posicion)
 
 
 def validar_pdf(archivo):
-    """Rechaza lo que no sea un PDF real (firma %PDF-) o pese más de 10 MB.
-
-    La extensión sola no basta: el archivo se sirve tal cual desde /media/ y se
-    embebe en un <iframe> de la propia web (REQ-WEB-36 y 37).
-    """
-    if archivo.size and archivo.size > PDF_MAX_BYTES:
-        raise ValidationError('El PDF no puede pesar más de 10 MB.')
-    posicion = archivo.tell() if hasattr(archivo, 'tell') else 0
-    archivo.seek(0)
-    firma = archivo.read(5)
-    archivo.seek(posicion)
-    if firma != b'%PDF-':
-        raise ValidationError('El archivo no es un PDF válido.')
+    """Validador de v3; solo lo importa la migración 0002_certificacion."""
+    validar_archivo(archivo)
 
 
 class CertificacionQuerySet(models.QuerySet):
     def publicadas(self, hoy=None):
-        """Certificaciones que se muestran en la web (RN-15).
+        """Certificaciones que se muestran en la web (RN-15, REQ-WEB-42).
 
-        Activas, con PDF y con la vigencia sin pasar según la fecha de Lima. El
-        día del vencimiento todavía cuenta como vigente.
+        Activas, con archivo y, si tienen vigencia, sin pasar según la fecha de
+        Lima. El día del vencimiento todavía cuenta como vigente.
         """
         hoy = hoy or timezone.localdate()
-        return self.filter(activo=True, vigencia_hasta__gte=hoy).exclude(archivo='')
+        return (
+            self.filter(activo=True)
+            .filter(models.Q(vigencia_hasta__isnull=True) | models.Q(vigencia_hasta__gte=hoy))
+            .exclude(archivo='')
+        )
+
+
+    def para_card(self):
+        """Lista blanca de campos para las cards y el modal (regla 2 de CLAUDE.md)."""
+        return self.only('id', 'titulo', 'descripcion', 'tipo', 'institucion', 'archivo', 'vigencia_hasta', 'orden')
+
+
+def primera_acreditacion(certificaciones):
+    """Primera certificación de tipo Acreditación de una lista ya publicada.
+
+    Es la que abren los accesos "Ver certificado" de INACAL (REQ-WEB-50).
+    """
+    return next((c for c in certificaciones if c.tipo == Certificacion.TIPO_ACREDITACION), None)
 
 
 class Certificacion(models.Model):
-    """Certificación de un sistema de gestión (p. ej. ISO 9001) mostrada en /acreditacion/.
+    """Acreditación, certificación ISO u otro reconocimiento mostrado como card.
 
-    Aparte de Acreditacion: una certificación de sistema de gestión no tiene
-    ensayos acreditados y sí norma y sede. Sin SeoModel por el mismo motivo que
-    Acreditacion: no tiene página propia, se lista dentro de /acreditacion/.
+    Modelo único desde specs/WEB v4: la card de /acreditacion/ y de la home
+    muestra título, descripción, tipo e institución, y abre el archivo (imagen
+    o PDF) en un modal. Sin SeoModel: no tiene página propia.
     """
 
-    norma = models.CharField(max_length=60, help_text='Ej.: ISO 9001:2015')
-    sistema = models.CharField(
-        max_length=120, blank=True, verbose_name='Sistema de gestión',
-        help_text='Ej.: Sistema de Gestión de la Calidad',
-    )
-    numero_certificado = models.CharField(max_length=50, unique=True, verbose_name='N.º de certificado')
-    organismo = models.CharField(max_length=150, verbose_name='Organismo certificador')
-    alcance = models.TextField(help_text='Actividades que cubre el certificado, tal como figuran en el PDF.')
-    sede = models.CharField(max_length=200, blank=True, help_text='Dirección donde se realizan las actividades.')
+    TIPO_ACREDITACION = 'acreditacion'
+    TIPO_ISO = 'iso'
+    TIPO_OTRO = 'otro'
+    TIPOS = [
+        (TIPO_ACREDITACION, 'Acreditación'),
+        (TIPO_ISO, 'Certificación ISO'),
+        (TIPO_OTRO, 'Otro'),
+    ]
 
-    fecha_emision = models.DateField(blank=True, null=True, verbose_name='Fecha de emisión')
-    vigencia_hasta = models.DateField(
-        verbose_name='Vigente hasta',
-        help_text='Desde el día siguiente la certificación deja de mostrarse en la web.',
+    titulo = models.CharField(max_length=120, verbose_name='Título', help_text='Ej.: Acreditación INACAL LE-230')
+    descripcion = models.CharField(
+        max_length=200, verbose_name='Descripción corta',
+        help_text='Una o dos frases; la card muestra hasta 3 líneas.',
+    )
+    tipo = models.CharField(max_length=20, choices=TIPOS, default=TIPO_OTRO)
+    institucion = models.CharField(
+        max_length=150, verbose_name='Institución que la otorga',
+        help_text='Ej.: Instituto Nacional de Calidad (INACAL)',
     )
 
     archivo = models.FileField(
-        upload_to='certificaciones/', blank=True,
-        validators=[FileExtensionValidator(['pdf']), validar_pdf],
-        verbose_name='Certificado (PDF)',
-        help_text='Sin PDF la certificación no se muestra en la web. Máximo 10 MB.',
+        upload_to='certificaciones/',
+        validators=[FileExtensionValidator(EXTENSIONES_ARCHIVO), validar_archivo],
+        verbose_name='Archivo (imagen o PDF)',
+        help_text='JPG, PNG, WebP o PDF, máximo 10 MB. En móvil el PDF se abre en una pestaña nueva.',
     )
-    sello = models.ImageField(upload_to='certificaciones/sellos/', blank=True)
-    sello_alt = models.CharField(
-        max_length=125, blank=True, verbose_name='Texto alternativo del sello',
-        help_text='Obligatorio si se sube sello: describe el sello para accesibilidad y SEO.',
+    vigencia_hasta = models.DateField(
+        blank=True, null=True, verbose_name='Vigente hasta',
+        help_text='Opcional. Desde el día siguiente la certificación deja de mostrarse en la web.',
     )
 
     orden = models.PositiveIntegerField(default=0)
@@ -140,24 +175,18 @@ class Certificacion(models.Model):
     class Meta:
         verbose_name = 'Certificación'
         verbose_name_plural = 'Certificaciones'
-        ordering = ['orden', '-vigencia_hasta']
+        ordering = ['orden', 'titulo']
 
     def __str__(self):
-        return f'{self.norma} — {self.numero_certificado}'
-
-    def clean(self):
-        super().clean()
-        if self.sello and not self.sello_alt:
-            raise ValidationError({'sello_alt': 'Obligatorio cuando se sube un sello.'})
+        return self.titulo
 
     @property
-    def norma_corta(self):
-        """'ISO 9001:2015' -> 'ISO 9001', para el distintivo de la tarjeta sin sello."""
-        return self.norma.split(':')[0].strip()
+    def es_pdf(self):
+        return bool(self.archivo) and self.archivo.name.lower().endswith('.pdf')
 
     @property
     def vigente(self):
-        return self.vigencia_hasta >= timezone.localdate()
+        return self.vigencia_hasta is None or self.vigencia_hasta >= timezone.localdate()
 
     @property
     def publicada(self):

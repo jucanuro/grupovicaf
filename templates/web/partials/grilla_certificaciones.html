@@ -1,0 +1,10 @@
+{% comment %}
+  Grilla de cards de certificaciones (specs/WEB v4, REQ-WEB-43 y 49): 1
+  columna en móvil, 2 desde 640 px y 4 desde 1024 px. La usan /acreditacion/
+  (todas) y la home (máximo 4, cortadas en la vista).
+{% endcomment %}
+<ul class="reveal-group grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4" role="list">
+    {% for certificacion in certificaciones %}
+    <li class="reveal">{% include 'web/partials/card_certificacion.html' %}</li>
+    {% endfor %}
+</ul>

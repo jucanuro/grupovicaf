@@ -15,29 +15,30 @@ _ESCAPES_HTML = {ord('<'): '\\u003C', ord('>'): '\\u003E', ord('&'): '\\u0026'}
 
 @register.simple_tag
 def certificaciones_jsonld():
-    """Lista JSON de Certification para LocalBusiness.hasCertification (REQ-WEB-38).
+    """Lista JSON de Certification para LocalBusiness.hasCertification (REQ-WEB-51).
 
-    Devuelve '' si no hay ninguna publicada (RN-15), para que base.html omita la
-    propiedad entera.
+    Solo tipos ISO y Otro: la acreditación INACAL ya va como hasCredential en
+    base.html. Devuelve '' si no hay ninguna publicada (RN-15), para que
+    base.html omita la propiedad entera.
     """
-    certificaciones = Certificacion.objects.publicadas().only(
-        'norma', 'sistema', 'numero_certificado', 'organismo', 'fecha_emision',
-        'vigencia_hasta', 'archivo',
+    certificaciones = (
+        Certificacion.objects.publicadas()
+        .exclude(tipo=Certificacion.TIPO_ACREDITACION)
+        .only('titulo', 'descripcion', 'institucion', 'vigencia_hasta', 'archivo')
     )
     sitio = settings.SITE_URL.rstrip('/')
     datos = []
     for cert in certificaciones:
         item = {
             '@type': 'Certification',
-            'name': f'{cert.norma} · {cert.sistema}' if cert.sistema else cert.norma,
-            'certificationIdentification': cert.numero_certificado,
-            'issuedBy': {'@type': 'Organization', 'name': cert.organismo},
-            'expires': cert.vigencia_hasta.isoformat(),
+            'name': cert.titulo,
+            'description': cert.descripcion,
+            'issuedBy': {'@type': 'Organization', 'name': cert.institucion},
             'certificationStatus': 'https://schema.org/CertificationActive',
             'url': f'{sitio}{cert.archivo.url}',
         }
-        if cert.fecha_emision:
-            item['validFrom'] = cert.fecha_emision.isoformat()
+        if cert.vigencia_hasta:
+            item['expires'] = cert.vigencia_hasta.isoformat()
         datos.append(item)
     if not datos:
         return ''

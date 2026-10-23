@@ -55,15 +55,34 @@
             técnica peruana e internacional bajo la supervisión del {{ negocio.acreditacion_entidad }}.
         </p>
 
-        {% comment %} Abre el mismo modal del certificado que el badge INACAL de la home. {% endcomment %}
-        <button type="button" data-modal-cert-open class="mt-8 inline-flex items-center gap-3 rounded-btn border border-white/20 bg-white/10 py-2 pl-2 pr-5 text-sm font-bold text-white transition-colors duration-300 ease-in-out hover:border-white/40 hover:bg-white/15">
+        {% comment %}
+          Abre en el modal la certificación de tipo Acreditación (REQ-WEB-50);
+          sin ninguna publicada, baja a la grilla.
+        {% endcomment %}
+        <a {% if certificacion_acreditacion %}{% include 'web/partials/enlace_certificacion.html' with certificacion=certificacion_acreditacion %}{% else %}href="#certificaciones"{% endif %}
+           class="mt-8 inline-flex items-center gap-3 rounded-btn border border-white/20 bg-white/10 py-2 pl-2 pr-5 text-sm font-bold text-white transition-colors duration-300 ease-in-out hover:border-white/40 hover:bg-white/15">
             <img src="{% static 'web/img/LogoInacal1.webp' %}" alt=""
                  class="h-8 w-8 rounded bg-white object-contain p-0.5" width="400" height="400" decoding="async">
             Ver certificado ·
             <span class="mono-tag">{{ negocio.acreditacion_codigo|default:"LE-230" }}</span>
-        </button>
+        </a>
     </div>
 </section>
+
+{% if certificaciones %}
+{% comment %}
+  Grilla de acreditaciones y certificaciones (specs/WEB v4, REQ-WEB-43),
+  justo debajo del hero. H2: el único H1 es el del hero (regla 9). Las cards
+  abren el documento en el modal único (partials/modal_certificacion.html).
+{% endcomment %}
+<section id="certificaciones" class="mx-auto max-w-[1600px] scroll-mt-24 px-4 pt-24 sm:px-6 lg:px-8 lg:pt-32" aria-labelledby="certificaciones-titulo">
+    <span class="eyebrow">Respaldo independiente</span>
+    <h2 id="certificaciones-titulo" class="h2-section mt-4">Acreditaciones y certificaciones</h2>
+    <div class="mt-10">
+        {% include 'web/partials/grilla_certificaciones.html' %}
+    </div>
+</section>
+{% endif %}
 
 <section class="mx-auto max-w-[1600px] px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
     <div class="reveal-group grid grid-cols-1 gap-8">
@@ -126,30 +145,10 @@
     </div>
 </section>
 
-{% if certificaciones %}
-{% comment %}
-  Certificaciones de sistema de gestión (ISO 9001, specs/WEB v3), después de
-  la acreditación INACAL. H2: el único H1 de la página sigue siendo el de
-  INACAL (regla 9) y la keyword de la URL no cambia (regla 10).
-{% endcomment %}
-<section class="mx-auto max-w-[1600px] px-4 pb-24 sm:px-6 lg:px-8 lg:pb-32" aria-labelledby="certificaciones-titulo">
-    <span class="eyebrow">Gestión de la calidad</span>
-    <h2 id="certificaciones-titulo" class="h2-section mt-4">Sistema de gestión certificado</h2>
-    <div class="reveal-group mt-10 grid grid-cols-1 gap-8">
-        {% for certificacion in certificaciones %}
-        {% include 'web/partials/tarjeta_certificacion.html' %}
-        {% endfor %}
-    </div>
-</section>
-
-{% include 'web/partials/modal_certificado_pdf.html' %}
-{% endif %}
-
-{% include 'web/partials/modal_certificado_inacal.html' %}
+{% if certificaciones %}{% include 'web/partials/modal_certificacion.html' %}{% endif %}
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'web/js/modal-certificado.js' %}" defer></script>
-{% if certificaciones %}<script src="{% static 'web/js/certificado-pdf.js' %}" defer></script>{% endif %}
+{% if certificaciones %}<script src="{% static 'web/js/certificaciones.js' %}" defer></script>{% endif %}
 <script src="{% static 'web/js/scroll-reveal.js' %}" defer></script>
 {% endblock %}

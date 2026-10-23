@@ -6,7 +6,7 @@ from django.views.static import serve
 
 from servicios.models import Servicio
 
-from .models import Acreditacion, Certificacion
+from .models import Acreditacion, Certificacion, primera_acreditacion
 
 
 def acreditacion_view(request):
@@ -22,14 +22,11 @@ def acreditacion_view(request):
         .prefetch_related(Prefetch('servicios_acreditados', queryset=servicios_qs))
         .order_by('orden', '-vigencia_desde')
     )
-    # RN-15: solo activas, con PDF y vigentes en la fecha de Lima. Lista blanca de campos.
-    certificaciones = Certificacion.objects.publicadas().only(
-        'id', 'norma', 'sistema', 'numero_certificado', 'organismo', 'alcance', 'sede',
-        'fecha_emision', 'vigencia_hasta', 'archivo', 'sello', 'sello_alt',
-    )
+    certificaciones = Certificacion.objects.publicadas().para_card()
     return render(request, 'web/acreditacion.html', {
         'acreditaciones': acreditaciones,
         'certificaciones': certificaciones,
+        'certificacion_acreditacion': primera_acreditacion(certificaciones),
     })
 
 
