@@ -1,15 +1,18 @@
 """Pruebas del certificado ISO 9001 en /acreditacion/ (specs/WEB v3, T13-T16)."""
+import importlib
+import os
 import shutil
 import tempfile
 from datetime import date, timedelta
 
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, override_settings
-from django.urls import reverse
+from django.test import RequestFactory, TestCase, override_settings
+from django.urls import clear_url_caches, resolve, reverse
 from django.utils import timezone
 
 from .models import Certificacion, validar_pdf
+from .views import servir_certificado_dev
 
 PDF_MINIMO = b'%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n'
 
@@ -176,3 +179,33 @@ class AcreditacionPaginaTests(MediaTemporalMixin, TestCase):
             self.assertNotIn(texto, html)
         # La acreditación INACAL sigue ahí.
         self.assertIn('modal-certificado-inacal', html)
+
+
+class CabecerasPdfTests(MediaTemporalMixin, TestCase):
+    def test_pdf_de_certificaciones_embebible_solo_desde_el_mismo_origen(self):
+        # REQ-WEB-37: SAMEORIGIN para /media/certificaciones/ en dev.
+        os.makedirs(os.path.join(self._media, 'certificaciones'))
+        with open(os.path.join(self._media, 'certificaciones', 'cert.pdf'), 'wb') as archivo:
+            archivo.write(PDF_MINIMO)
+        respuesta = servir_certificado_dev(RequestFactory().get('/media/certificaciones/cert.pdf'), 'cert.pdf')
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta['X-Frame-Options'], 'SAMEORIGIN')
+        self.assertEqual(respuesta['Content-Type'], 'application/pdf')
+
+    def test_urls_web_enruta_certificaciones_antes_del_static_generico(self):
+        import grupovicaf.urls_web as urls_web
+        try:
+            with override_settings(DEBUG=True):
+                importlib.reload(urls_web)
+                clear_url_caches()
+                coincidencia = resolve('/media/certificaciones/cert.pdf', urlconf=urls_web)
+                self.assertEqual(coincidencia.func, servir_certificado_dev)
+                self.assertNotEqual(resolve('/media/acreditacion/x.png', urlconf=urls_web).func, servir_certificado_dev)
+        finally:
+            importlib.reload(urls_web)
+            clear_url_caches()
+
+    def test_el_resto_de_la_web_sigue_en_deny(self):
+        with override_settings(ROOT_URLCONF='grupovicaf.urls_web'):
+            respuesta = self.client.get(reverse('web_acreditacion:acreditacion'))
+        self.assertEqual(respuesta['X-Frame-Options'], 'DENY')
