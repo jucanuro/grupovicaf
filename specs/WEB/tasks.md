@@ -1,8 +1,8 @@
-# VCF-WEB · Tasks · Asistente de WhatsApp y certificado ISO 9001
+# VCF-WEB · Tasks · Asistente de WhatsApp y certificaciones
 
 | Versión | Fecha | Estado |
 |---|---|---|
-| v3 | 2026-10-23 | Implementado (T1-T6 en v1, T7-T11 en v2, T12-T16 en v3) |
+| v4 | 2026-10-23 | Implementado (T1-T6 en v1, T7-T11 en v2, T12-T16 en v3, T17-T20 en v4) |
 
 - [x] **T1 · Horario con receso y WhatsApp en dígitos** — `NegocioConfig`: campos de receso (migración 0008), datos 13:00 y 15:00 (migración 0009), `whatsapp_digitos`, `horario_texto()` y `esta_abierto()`. Cubre REQ-WEB-03, 18 y 19. Se verifica con `siteconfig/tests.py`.
 - [x] **T2 · Saludo y catálogo público** — `web_contacto/asistente.py`: `saludo_para()` y `catalogo_publico()` con lista blanca. Cubre REQ-WEB-05, 07 y 10. Se verifica con `web_contacto/test_asistente.py`.
@@ -25,6 +25,12 @@
 - [x] **T15 · PDF embebible** — `servir_certificado_dev` en `urls_web.py` y `location /media/certificaciones/` en nginx con `SAMEORIGIN`. Cubre REQ-WEB-37. Se verifica con `web_acreditacion/tests.py` (`CabecerasPdfTests`) y con el modal mostrando el PDF en dev. **Al desplegar:** copiar `deploy/nginx/grupovicaf.conf` al servidor, `sudo nginx -t` y `sudo systemctl reload nginx`.
 - [x] **T16 · JSON-LD** — templatetag `certificaciones_jsonld` y `hasCertification` en `web/base.html`. Cubre REQ-WEB-38 y 31. Se verifica con `web_acreditacion/tests.py` (`JsonLdTests`, JSON válido y ausente si vence).
 
+### v4 · Modelo único de certificaciones [Decisión Gerente] (2026-10-23)
+- [x] **T17 · Docs v4** — HU v1.7 (HU-WEB-08 y CU-WEB-04 reescritos, RN-15, §2.5, PM-11, P-16 a P-18) y specs v4. Sin código.
+- [x] **T18 · Modelo único, migración y cards con modal en Acreditación** — `Certificacion` con título, descripción, tipo, institución, archivo (imagen o PDF), vigencia opcional; migraciones `0004` (campos nuevos), `0005` (ISO 9001 convertido e INACAL LE-230 con la imagen del certificado) y `0006` (quita los campos de v3); admin; grilla de cards (`card_certificacion.html`), modal único de imagen o PDF (`modal_certificacion.html`, `certificaciones.js`, reemplaza a `certificado-pdf.js` y al modal INACAL) y JSON-LD. Reutiliza de T14 el modal, la trampa de foco y el criterio de escritorio; de T15 el `SAMEORIGIN`; de T16 el templatetag. Cubre REQ-WEB-37, 39 a 48, 50 y 51. Se verifica con `web_acreditacion/tests.py` y `node --test tests/js/certificaciones.test.js`.
+- [x] **T19 · Home resumida** — sección de certificaciones con hasta 4 cards y "Ver todas", sin la imagen grande del certificado; badges INACAL al modal único. Cubre REQ-WEB-49 y 50. Se verifica con `web_inicio/tests.py` y capturas.
+- [x] **T20 · Textos solo Cajamarca** — H1, meta de `/acreditacion/` y texto de la home sin "norte del Perú". Cubre REQ-WEB-52. Se verifica con `web_acreditacion/tests.py` y `web_inicio/tests.py`.
+
 ## Trazabilidad HU → REQ
 | HU | REQ |
 |---|---|
@@ -34,5 +40,5 @@
 | HU-WEB-04 | 02, 16, 18, 19 |
 | HU-WEB-06 | 17, 18 |
 | HU-WEB-07 | 04, 22, 23, 24, 25, 26, 27, 28, 29 |
-| HU-WEB-08 | 30, 31, 32, 33, 34, 35, 36, 37, 38 |
+| HU-WEB-08 | v3: 30 a 38 (reemplazados en v4 salvo 37) · v4: 37, 39 a 52 |
 | HU-WEB-05 | fuera de alcance (opción C) |

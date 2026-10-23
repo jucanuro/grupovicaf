@@ -1,8 +1,8 @@
-# VCF-WEB · Requirements · Asistente de WhatsApp y certificado ISO 9001
+# VCF-WEB · Requirements · Asistente de WhatsApp y certificaciones
 
 | Módulo | Fuente | Versión | Fecha | Estado |
 |---|---|---|---|---|
-| VCF-WEB | `docs/proc/VCF-WEB_HU_CU_v1.md` v1.6 (G1 + cambio de alcance v1.5 + requerimiento nuevo v1.6 [Decisión Gerente]) · D-VCF-004 | v3 | 2026-10-23 | Aprobado por el Gerente (modo rápido) |
+| VCF-WEB | `docs/proc/VCF-WEB_HU_CU_v1.md` v1.7 (G1 + cambio de alcance v1.5 + requerimiento nuevo v1.6 + cambio de alcance v1.7 [Decisión Gerente]) · D-VCF-002 · D-VCF-004 | v4 | 2026-10-23 | Aprobado por el Gerente (modo rápido) |
 
 Alcance: opción A de DP-WEB-01. Es un widget guiado que termina en `wa.me` con el mensaje armado y queda preparado para pasar a C (leads). HU-WEB-05 queda **fuera de alcance**.
 
@@ -49,6 +49,8 @@ Nota REQ-WEB-13: P-03 sigue abierta y la ubicación se pide como texto libre, as
 
 ### v3 · Certificado ISO 9001 [Decisión Gerente] (2026-10-23)
 
+> **v4:** REQ-WEB-30 a 36 y 38 quedan **reemplazados** por REQ-WEB-39 a 52. REQ-WEB-37 (SAMEORIGIN en `/media/certificaciones/`) sigue vigente.
+
 | ID | Requisito | HU / CA |
 |---|---|---|
 | REQ-WEB-30 | MIENTRAS exista una `Certificacion` publicada (activa, con PDF y `vigencia_hasta` ≥ fecha de Lima), EL SISTEMA DEBE mostrar en `/acreditacion/`, después de las acreditaciones INACAL, una tarjeta con el sello (o el distintivo de texto con la norma si no hay sello), la norma, el sistema de gestión, el N.º de certificado, el organismo certificador, el alcance, la sede, la fecha de emisión y la de vencimiento, y el botón "Ver certificado". | HU-WEB-08 · CA-08.1, RN-15 |
@@ -61,10 +63,31 @@ Nota REQ-WEB-13: P-03 sigue abierta y la ubicación se pide como texto libre, as
 | REQ-WEB-37 | EL SISTEMA DEBE servir los PDF de `/media/certificaciones/` con `X-Frame-Options: SAMEORIGIN` (en dev y en nginx) para que la propia web los pueda embeber, y mantener `DENY` en el resto de respuestas. | HU-WEB-08 · CA-08.2 |
 | REQ-WEB-38 | MIENTRAS haya certificaciones publicadas, EL SISTEMA DEBE declararlas en el JSON-LD `LocalBusiness` global como `hasCertification` (tipo `Certification`: `name`, `certificationIdentification`, `issuedBy`, `validFrom`, `expires`, `certificationStatus`, `url` del PDF), sin tocar el `hasCredential` de INACAL. | HU-WEB-08 · CA-08.7 |
 
+### v4 · Modelo único de certificaciones [Decisión Gerente] (2026-10-23)
+
+| ID | Requisito | HU / CA |
+|---|---|---|
+| REQ-WEB-39 | EL SISTEMA DEBE tener un solo modelo `Certificacion` con título, descripción corta (≤ 200 caracteres), tipo (`acreditacion` "Acreditación", `iso` "Certificación ISO", `otro` "Otro"), institución que la otorga, archivo, fecha de vigencia opcional, orden y activo, editable desde el admin de `laboratorio.grupovicaf.com`. | HU-WEB-08 · CA-08.10 |
+| REQ-WEB-40 | EL SISTEMA DEBE aceptar como archivo solo PDF (firma `%PDF-`) o imagen JPG, PNG o WebP que Pillow pueda abrir, de 10 MB como máximo, y rechazar lo demás con un aviso en el admin. | HU-WEB-08 · CA-08.10 |
+| REQ-WEB-41 | CUANDO se apliquen las migraciones, EL SISTEMA DEBE pasar el certificado ISO 9001 existente al modelo nuevo (conservando su archivo, institución y vigencia) y crear la acreditación INACAL LE-230 con la imagen del certificado que hoy muestra la web y vigencia 2027-05-27, sin duplicarla si ya existe. | HU-WEB-08 · §2.5 |
+| REQ-WEB-42 | EL SISTEMA DEBE publicar una certificación solo si está activa, tiene archivo y su vigencia está vacía o es ≥ la fecha de Lima, en las cards, el modal y el JSON-LD. | HU-WEB-08 · CA-08.7, RN-15 |
+| REQ-WEB-43 | MIENTRAS haya certificaciones publicadas, EL SISTEMA DEBE mostrar en `/acreditacion/`, justo debajo del hero, una grilla de cards en el orden del admin con 1 columna por debajo de 640 px, 2 desde 640 px y 4 desde 1024 px. | HU-WEB-08 · CA-08.1 |
+| REQ-WEB-44 | EL SISTEMA DEBE mostrar en cada card el tipo como etiqueta, el título (H3), la descripción corta y la institución, con el mismo alto para las cards de una fila y sin imagen del certificado. Toda la card es clicable mediante un único enlace (`<a href>` al archivo, `target="_blank"`), operable con teclado y con foco visible. | HU-WEB-08 · CA-08.2 |
+| REQ-WEB-45 | CUANDO el visitante abra una card cuyo archivo sea imagen, EL SISTEMA DEBE mostrarla en el modal en cualquier dispositivo; la imagen se carga al abrir, no con la página. | HU-WEB-08 · CA-08.3 |
+| REQ-WEB-46 | CUANDO el visitante abra una card cuyo archivo sea PDF y el navegador tenga pantalla de 768 px o más, puntero fino con hover y visor de PDF (`navigator.pdfViewerEnabled` distinto de `false`), EL SISTEMA DEBE mostrar el PDF embebido en un `<iframe>` del modal. DONDE no se cumplan esas condiciones, o no haya JavaScript, EL SISTEMA DEBE abrir el archivo en una pestaña nueva y no mostrar el modal. | HU-WEB-08 · CA-08.4 |
+| REQ-WEB-47 | MIENTRAS el modal esté abierto, EL SISTEMA DEBE mostrar el título, "Descargar" (`<a download>` al mismo archivo) y "Cerrar"; CUANDO el visitante pulse Esc, haga clic en el fondo o pulse "Cerrar" o ×, EL SISTEMA DEBE cerrarlo, liberar el archivo y devolver el foco a la card. | HU-WEB-08 · CA-08.5 |
+| REQ-WEB-48 | MIENTRAS el modal esté abierto, EL SISTEMA DEBE tener `role="dialog"`, `aria-modal="true"` y `aria-labelledby` con el título, poner el foco en ×, hacer que Tab y Shift+Tab ciclen solo entre los controles del modal y bloquear el desplazamiento de la página. | HU-WEB-08 · CA-08.6 |
+| REQ-WEB-49 | MIENTRAS haya certificaciones publicadas, EL SISTEMA DEBE mostrar en la home una sección con las mismas cards (como máximo 4, en el orden del admin) y el enlace "Ver todas" a `/acreditacion/`, y NO DEBE mostrar la imagen grande del certificado. | HU-WEB-08 · CA-08.8, CA-08.9 |
+| REQ-WEB-50 | CUANDO el visitante pulse los accesos "Ver certificado" de INACAL de la home o del hero de `/acreditacion/`, EL SISTEMA DEBE abrir el mismo modal con la primera certificación publicada de tipo Acreditación; SI no hay ninguna, ENTONCES el acceso DEBE llevar a `/acreditacion/`. | HU-WEB-08 · P-18 |
+| REQ-WEB-51 | MIENTRAS haya certificaciones publicadas de tipo `iso` u `otro`, EL SISTEMA DEBE declararlas en `LocalBusiness.hasCertification` (tipo `Certification`: `name`, `description`, `issuedBy`, `expires` si hay vigencia, `certificationStatus`, `url` absoluta del archivo), sin tocar el `hasCredential` de INACAL. | HU-WEB-08 · CA-08.11 |
+| REQ-WEB-52 | EL SISTEMA NO DEBE mostrar "norte del Perú" en la home ni en `/acreditacion/` (H1, meta y textos): el ámbito es Cajamarca. | HU-WEB-08 · CA-08.12, D-VCF-002 |
+
 ## Fuera de alcance
 - Enlaces "Ver en la web" dentro de las listas de líneas y de ensayos: cada fila ya lleva a su detalle, y ahí está el enlace (REQ-WEB-20).
 - HU-WEB-05 (guardar leads, opción C). El JS deja todas las respuestas en un solo objeto para que agregarlo luego sea un `fetch`.
 - Configurar los mensajes de WhatsApp Business (T-50 y T-51): se hace a mano en la app.
-- *(v3)* Mostrar el certificado ISO 9001 en la home o en el footer: el requerimiento lo pide solo en /acreditacion/.
+- ~~*(v3)* Mostrar el certificado ISO 9001 en la home o en el footer~~: *(v4)* la home sí muestra las cards (REQ-WEB-49). El footer sigue fuera de alcance.
 - *(v3)* Visor PDF propio (pdf.js): se usa el visor del navegador; en móvil, la pestaña nueva.
+- *(v4)* Fusionar `Acreditacion` (alcance y ensayos acreditados) con `Certificacion`: se mantiene aparte (P-16).
+- *(v4)* Corregir "norte del Perú" en `clientes.html` y en `NegocioConfig.descripcion` (PM-11).
 - *(v3)* Ocultar el archivo PDF vencido de `/media/`: la tarjeta desaparece, pero la URL directa sigue respondiendo mientras el archivo exista. Para retirarlo, el administrador borra el archivo desde el admin.

@@ -1,8 +1,8 @@
-# VCF-WEB · Design · Asistente de WhatsApp y certificado ISO 9001
+# VCF-WEB · Design · Asistente de WhatsApp y certificaciones
 
 | Versión | Fecha | Estado |
 |---|---|---|
-| v3 | 2026-10-23 | Aprobado por el Gerente (modo rápido) · cambio de alcance v1.5 y requerimiento nuevo v1.6 del HU |
+| v4 | 2026-10-23 | Aprobado por el Gerente (modo rápido) · cambios de alcance v1.5 y v1.7 y requerimiento nuevo v1.6 del HU |
 
 ## Componentes
 
@@ -114,6 +114,8 @@ Clave `sessionStorage['vicaf:asistente-wa']`, JSON versionado:
 
 ## v3 · Certificado ISO 9001 (REQ-WEB-30 a 38)
 
+> **Reemplazado por v4** (al final). Se conserva como historia; de aquí siguen vigentes las cabeceras (REQ-WEB-37) y el criterio de escritorio del visor.
+
 ```mermaid
 flowchart LR
   ADM[admin lab: CertificacionAdmin] --> M[(web_acreditacion.Certificacion)]
@@ -178,3 +180,72 @@ flowchart LR
 | Navegador de escritorio que bloquea PDF embebidos (plugin desactivado) | `pdfViewerEnabled === false` → pestaña nueva; si aun así falla, "Descargar" queda a mano en el modal |
 | Datos leídos de una imagen | Se corrigen desde el admin (P-12, P-13) |
 | El PDF vencido sigue accesible por URL directa | Fuera de alcance; el administrador puede borrar el archivo |
+
+## v4 · Modelo único de certificaciones (REQ-WEB-39 a 52)
+
+```mermaid
+flowchart LR
+  ADM[admin lab: CertificacionAdmin] --> M[(web_acreditacion.Certificacion)]
+  M -->|publicadas hoy Lima| VA[acreditacion_view]
+  M -->|publicadas hoy Lima, máx. 4| VH[inicio_view]
+  VA --> GA[web/acreditacion.html<br>grilla debajo del hero]
+  VH --> GH[web/home.html<br>sección resumida + Ver todas]
+  GA --> C[partials/card_certificacion.html]
+  GH --> C
+  C --> JS[static/web/js/certificaciones.js]
+  JS -->|imagen| MI[modal: img]
+  JS -->|PDF + escritorio| MP[modal: iframe]
+  JS -->|PDF en móvil / sin visor / sin JS| TAB[a target=_blank]
+  M -->|templatetag certificaciones_jsonld, tipo iso/otro| BASE[web/base.html hasCertification]
+```
+
+### Modelo de datos
+`web_acreditacion.Certificacion` se reescribe (sigue sin `SeoModel`: no tiene página propia). `Acreditacion` no cambia (P-16).
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `titulo` | `CharField(120)` | "Acreditación INACAL LE-230" |
+| `descripcion` | `CharField(200)` | Descripción corta; la card la recorta a 3 líneas |
+| `tipo` | `CharField(20, choices)` | `acreditacion` / `iso` / `otro`; índice compuesto no hace falta (pocas filas) |
+| `institucion` | `CharField(150)` | "Institución que la otorga" |
+| `archivo` | `FileField(upload_to='certificaciones/')` | Obligatorio en el admin. Validadores: extensión `pdf/jpg/jpeg/png/webp`, `validar_archivo` (≤ 10 MB; `.pdf` con firma `%PDF-`; imagen que Pillow pueda `verify()`) |
+| `vigencia_hasta` | `DateField`, null | Opcional: sin fecha no vence |
+| `orden`, `activo`, `creado`, `actualizado` | | Igual que v3 |
+
+- `es_pdf` (propiedad): por la extensión del archivo guardado. La card la pasa al JS como `data-cert-tipo="pdf|imagen"`.
+- `CertificacionQuerySet.publicadas(hoy=None)`: `activo`, archivo no vacío y (`vigencia_hasta` nula o ≥ hoy de Lima). Es la única puerta (vista de acreditación, vista de inicio, JSON-LD).
+- Migraciones (aditivas, porque `0002`/`0003` ya están aplicadas en bases de prueba):
+  - `0004`: agrega `titulo`, `descripcion`, `tipo`, `institucion`; `vigencia_hasta` pasa a null; validadores nuevos de `archivo`.
+  - `0005` (`RunPython`): cada fila de v3 → `titulo = "Certificación <norma>"`, `descripcion` con sistema y N.º, `tipo = iso` si la norma empieza con "ISO", `institucion = organismo`. Crea INACAL LE-230 (`get_or_create` por tipo y título): copia `static/web/img/certificaciones/GRUPO-VICAF-CERTIFICADO.webp` a `certificaciones/inacal-le-230.webp` en el storage si aún no existe, vigencia 2027-05-27, orden 0 (ISO queda en 1). Reversa: borra la fila INACAL creada (el archivo se deja).
+  - `0006`: quita `norma`, `sistema`, `numero_certificado`, `organismo`, `alcance`, `sede`, `fecha_emision`, `sello`, `sello_alt`.
+
+### Vistas
+- `acreditacion_view` e `inicio_view` usan `publicadas().only('id', 'titulo', 'descripcion', 'tipo', 'institucion', 'archivo', 'vigencia_hasta')` (regla 2). La home corta a `[:4]`.
+- Ambas pasan `certificacion_acreditacion` = la primera publicada de tipo `acreditacion` (REQ-WEB-50), para los accesos INACAL.
+
+### Plantillas
+- `partials/card_certificacion.html`: `<article class="relative flex h-full flex-col …">` con etiqueta de tipo, `<h3>` cuyo `<a>` lleva `after:absolute after:inset-0` (enlace estirado: toda la card es clicable con un solo enlace accesible), descripción con `line-clamp-3` e institución al pie (`mt-auto`). `focus-within:ring` para el foco visible.
+- `partials/enlace_certificacion.html`: atributos del enlace (`href`, `target`, `rel`, `data-cert-open`, `data-cert-tipo`, `data-cert-titulo`), compartidos por la card y los accesos INACAL.
+- `partials/grilla_certificaciones.html`: `<ul class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">`, usada en las dos páginas.
+- `partials/modal_certificacion.html`: un solo modal por página (reemplaza `modal_certificado_pdf.html` y `modal_certificado_inacal.html`), con `<img data-cert-imagen>` y `<iframe data-cert-visor>` sin `src` hasta abrir, "Descargar" (`<a download>`) y "Cerrar".
+- `/acreditacion/`: hero → grilla (H2 "Acreditaciones y certificaciones") → sección de `Acreditacion` (alcance y ensayos) sin cambios.
+- Home: la sección oscura de acreditación pierde la imagen grande; queda el texto y debajo la grilla (máx. 4) con "Ver todas".
+
+### JavaScript (`static/web/js/certificaciones.js`)
+Reemplaza `certificado-pdf.js` y `modal-certificado.js`. Funciones puras en `module.exports`:
+- `modoApertura(tipo, navigator, matchMedia)` → `'imagen'` (siempre modal), `'pdf'` (modal con iframe si `debeUsarModal`) o `'pestana'` (no intercepta el clic).
+- `debeUsarModal` y `siguienteFoco` sin cambios desde T14.
+- Abrir: título, `src` del `img` o del `iframe` (el otro queda oculto), `href` de "Descargar", `overflow: hidden` en `body`, foco en ×. Cerrar: oculta, vacía `src` (`about:blank` en el iframe, se quita en la imagen), restaura scroll y foco.
+
+### JSON-LD (REQ-WEB-51)
+`certificaciones_jsonld` filtra `publicadas().exclude(tipo='acreditacion')`; cada item: `{"@type": "Certification", "name": titulo, "description": descripcion, "issuedBy": {"@type": "Organization", "name": institucion}, "certificationStatus": "https://schema.org/CertificationActive", "url": SITE_URL + archivo.url}` y `expires` si hay vigencia.
+
+### Reglas de `CLAUDE.md` que aplican
+- 1 y 2 (sin modelos del LIMS, `.only()`), 9 (un H1 por página: los títulos de las cards son H3), 10 (la keyword de `/acreditacion/` sigue siendo "laboratorio acreditado INACAL", ahora con Cajamarca), 13 (JSON-LD), 17 (sin imágenes en las cards; el archivo se carga solo al abrir; JS `defer`).
+
+### Riesgos (v4)
+| Riesgo | Mitigación |
+|---|---|
+| La migración `0005` escribe en `/media/` (copia la imagen de INACAL) | Solo si el archivo no existe; si falta la imagen estática, la fila se crea sin archivo y no se publica |
+| Se pierden en la BD el N.º, el alcance, la sede y el sello del ISO 9001 | Quedan en el PDF y en la descripción corta; era el pedido del Gerente (campos explícitos) |
+| nginx sin actualizar | Igual que T15: el modal de PDF queda en blanco; las imágenes no dependen de `X-Frame-Options` |
