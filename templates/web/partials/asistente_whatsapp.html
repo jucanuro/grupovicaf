@@ -7,6 +7,8 @@
   static/web/js/asistente-whatsapp.js intercepta el clic, pide los datos a
   web_contacto:asistente_datos y arma la conversación dentro de #asistente-wa.
   Número y horario salen de siteconfig.NegocioConfig (nunca escritos aquí).
+
+  v2 (REQ-WEB-25): "Menú principal" en la cabecera.
 {% endcomment %}
 {% if negocio.whatsapp_digitos %}
 <div data-asistente-wa class="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3">
@@ -15,10 +17,16 @@
              class="hidden w-[min(22rem,calc(100vw-2.5rem))] overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/10">
         <header class="flex items-center justify-between gap-3 bg-emerald-600 px-4 py-3 text-white">
             <h2 id="asistente-wa-titulo" class="text-sm font-semibold">Grupo VICAF</h2>
-            <button type="button" data-asistente-cerrar aria-label="Cerrar asistente"
-                    class="rounded-full p-1 transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-            </button>
+            <div class="flex items-center gap-1">
+                <button type="button" data-asistente-menu
+                        class="hidden rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-white/60 transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                    Menú principal
+                </button>
+                <button type="button" data-asistente-cerrar aria-label="Cerrar asistente"
+                        class="rounded-full p-1 transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+            </div>
         </header>
         <div data-asistente-cuerpo aria-live="polite"
              class="max-h-[min(28rem,70vh)] space-y-3 overflow-y-auto bg-slate-50 px-4 py-4 text-sm text-slate-800"></div>
