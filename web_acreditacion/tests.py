@@ -1,10 +1,13 @@
 """Pruebas del certificado ISO 9001 en /acreditacion/ (specs/WEB v3, T13-T16)."""
 import importlib
+import json
 import os
+import re
 import shutil
 import tempfile
 from datetime import date, timedelta
 
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory, TestCase, override_settings
@@ -27,15 +30,24 @@ class MediaTemporalMixin:
     @classmethod
     def setUpClass(cls):
         cls._media = tempfile.mkdtemp()
-        cls._override_media = override_settings(MEDIA_ROOT=cls._media)
-        cls._override_media.enable()
+        override_media = override_settings(MEDIA_ROOT=cls._media)
+        override_media.enable()
+        # Como class cleanup y antes de super(): el override_settings de clase
+        # también se deshace con addClassCleanup y restaura los settings que vio
+        # al activarse; en orden LIFO se deshace primero el suyo y luego este.
+        cls.addClassCleanup(shutil.rmtree, cls._media, ignore_errors=True)
+        cls.addClassCleanup(override_media.disable)
         super().setUpClass()
 
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-        cls._override_media.disable()
-        shutil.rmtree(cls._media, ignore_errors=True)
+    # El footer cachea las líneas del catálogo (web_catalogo.context_processors);
+    # sin limpiar, otras pruebas heredan objetos leídos con este MEDIA_ROOT.
+    def setUp(self):
+        super().setUp()
+        cache.clear()
+
+    def tearDown(self):
+        cache.clear()
+        super().tearDown()
 
     def crear_certificacion(self, **campos):
         datos = {
@@ -55,6 +67,7 @@ class MediaTemporalMixin:
 
 class CertificacionModelTests(MediaTemporalMixin, TestCase):
     def setUp(self):
+        super().setUp()
         # La migración 0003 siembra ER-0146/2026 sin PDF; no debe estar publicada.
         self.semilla = Certificacion.objects.get(numero_certificado='ER-0146/2026')
 
@@ -209,3 +222,41 @@ class CabecerasPdfTests(MediaTemporalMixin, TestCase):
         with override_settings(ROOT_URLCONF='grupovicaf.urls_web'):
             respuesta = self.client.get(reverse('web_acreditacion:acreditacion'))
         self.assertEqual(respuesta['X-Frame-Options'], 'DENY')
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_web', SITE_URL='https://www.grupovicaf.com')
+class JsonLdTests(MediaTemporalMixin, TestCase):
+    def local_business(self, nombre_url='web_contacto:contacto'):
+        html = self.client.get(reverse(nombre_url)).content.decode()
+        bloques = re.findall(r'<script type="application/ld\+json">(.*?)</script>', html, re.S)
+        for bloque in bloques:
+            datos = json.loads(bloque)  # todo bloque debe seguir siendo JSON válido
+            if isinstance(datos, dict) and datos.get('@type') == 'LocalBusiness':
+                return datos
+        self.fail('No hay JSON-LD LocalBusiness')
+
+    def test_has_certification_en_todas_las_paginas(self):
+        # REQ-WEB-38
+        cert = self.crear_certificacion(
+            numero_certificado='ER-0146/2026-T', vigencia_hasta=date(2099, 4, 1),
+            organismo='AENOR </script> & CONFIA',
+        )
+        for pagina in ('web_contacto:contacto', 'web_acreditacion:acreditacion'):
+            with self.subTest(pagina=pagina):
+                negocio = self.local_business(pagina)
+                self.assertIn('hasCredential', negocio)  # INACAL intacto
+                self.assertEqual(negocio['hasCertification'], [{
+                    '@type': 'Certification',
+                    'name': 'ISO 9001:2015 · Sistema de Gestión de la Calidad',
+                    'certificationIdentification': 'ER-0146/2026-T',
+                    'issuedBy': {'@type': 'Organization', 'name': 'AENOR </script> & CONFIA'},
+                    'expires': '2099-04-01',
+                    'certificationStatus': 'https://schema.org/CertificationActive',
+                    'url': f'https://www.grupovicaf.com{cert.archivo.url}',
+                    'validFrom': '2026-04-01',
+                }])
+
+    def test_sin_certificaciones_publicadas_no_hay_has_certification(self):
+        # REQ-WEB-31: la semilla sin PDF y una vencida no se declaran.
+        self.crear_certificacion(vigencia_hasta=timezone.localdate() - timedelta(days=1))
+        self.assertNotIn('hasCertification', self.local_business())

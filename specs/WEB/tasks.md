@@ -23,7 +23,7 @@
 - [x] **T13 · Modelo, admin y datos del certificado** — `Certificacion` con `publicadas()`, validadores del PDF, `clean()` del sello, admin con estado "Publicada", migraciones `0002` (esquema) y `0003` (ER-0146/2026 sin archivo). Cubre REQ-WEB-31 y 36. Se verifica con `web_acreditacion/tests.py` (`CertificacionModelTests`).
 - [x] **T14 · Tarjeta ISO 9001 y visor del PDF** — vista, `tarjeta_certificacion.html`, `modal_certificado_pdf.html` y `certificado-pdf.js`. Cubre REQ-WEB-30 a 35. Se verifica con `web_acreditacion/tests.py` (`AcreditacionPaginaTests`), `node --test tests/js/certificado-pdf.test.js` y capturas en 1280 px (modal) y 390 px (pestaña nueva).
 - [x] **T15 · PDF embebible** — `servir_certificado_dev` en `urls_web.py` y `location /media/certificaciones/` en nginx con `SAMEORIGIN`. Cubre REQ-WEB-37. Se verifica con `web_acreditacion/tests.py` (`CabecerasPdfTests`) y con el modal mostrando el PDF en dev. **Al desplegar:** copiar `deploy/nginx/grupovicaf.conf` al servidor, `sudo nginx -t` y `sudo systemctl reload nginx`.
-- [ ] **T16 · JSON-LD** — templatetag `certificaciones_jsonld` y `hasCertification` en `web/base.html`. Cubre REQ-WEB-38 y 31. Se verifica con `web_acreditacion/tests.py` (`JsonLdTests`, JSON válido y ausente si vence).
+- [x] **T16 · JSON-LD** — templatetag `certificaciones_jsonld` y `hasCertification` en `web/base.html`. Cubre REQ-WEB-38 y 31. Se verifica con `web_acreditacion/tests.py` (`JsonLdTests`, JSON válido y ausente si vence).
 
 ## Trazabilidad HU → REQ
 | HU | REQ |
