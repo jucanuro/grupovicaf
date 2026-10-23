@@ -100,11 +100,39 @@ class AsistenteEndpointTests(TestCase):
         self.assertNotIn('/servicios/inactiva-asistente/', lineas)
         suelos = lineas['/servicios/suelos-asistente/']
         self.assertEqual(suelos['nombre'], 'Mecánica de Suelos')
+        self.assertEqual(suelos['slug'], 'suelos-asistente')
         self.assertEqual(suelos['ensayos'], [{
-            'titulo': 'Ensayo CBR', 'resumen': 'Capacidad de soporte.', 'url': '/servicios/ensayo-cbr-asistente/',
+            'titulo': 'Ensayo CBR', 'resumen': 'Capacidad de soporte.',
+            'slug': 'ensayo-cbr-asistente', 'url': '/servicios/ensayo-cbr-asistente/',
         }])
         self.assertEqual(lineas['/servicios/canteras-asistente/']['ensayos'], [])
-        self.assertEqual(set(suelos), {'nombre', 'resumen', 'url', 'ensayos'})
+        self.assertEqual(set(suelos), {'nombre', 'resumen', 'slug', 'url', 'ensayos'})
+
+    def test_url_de_cada_linea_y_ensayo_abre_su_pagina(self):
+        # REQ-WEB-20: la URL que da el asistente es la página real del elemento.
+        for linea in self._get(lima(10, 0)).json()['lineas']:
+            elementos = [(linea['url'], linea['nombre'])] + [(e['url'], e['titulo']) for e in linea['ensayos']]
+            for url, nombre in elementos:
+                if url is None:
+                    continue
+                with self.subTest(url=url):
+                    respuesta = self.client.get(url)
+                    self.assertEqual(respuesta.status_code, 200)
+                    self.assertIn(nombre, respuesta.content.decode())
+
+    def test_ensayo_sin_pagina_propia_va_sin_url(self):
+        # REQ-WEB-21: el slug lo resuelve la línea, así que el ensayo no tiene página.
+        ServicioPublicado.objects.create(
+            servicio=None, categoria=CategoriaServicio.objects.get(nombre='Suelos asistente'), linea=self.linea,
+            slug='canteras-asistente', titulo_publico='Ensayo tapado', resumen='r', contenido='c', activo=True,
+        )
+        ensayos = {e['titulo']: e for e in self._lineas()['/servicios/suelos-asistente/']['ensayos']}
+        self.assertIsNone(ensayos['Ensayo tapado']['url'])
+        self.assertEqual(ensayos['Ensayo tapado']['slug'], 'canteras-asistente')
+        self.assertEqual(ensayos['Ensayo CBR']['url'], '/servicios/ensayo-cbr-asistente/')
+
+    def _lineas(self):
+        return {l['url']: l for l in self._get(lima(10, 0)).json()['lineas']}
 
     def test_no_expone_campos_privados(self):
         cuerpo = self._get(lima(10, 0)).content.decode()
