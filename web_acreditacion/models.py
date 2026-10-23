@@ -151,6 +151,11 @@ class Certificacion(models.Model):
             raise ValidationError({'sello_alt': 'Obligatorio cuando se sube un sello.'})
 
     @property
+    def norma_corta(self):
+        """'ISO 9001:2015' -> 'ISO 9001', para el distintivo de la tarjeta sin sello."""
+        return self.norma.split(':')[0].strip()
+
+    @property
     def vigente(self):
         return self.vigencia_hasta >= timezone.localdate()
 

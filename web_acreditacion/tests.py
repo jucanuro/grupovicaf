@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
+from django.urls import reverse
 from django.utils import timezone
 
 from .models import Certificacion, validar_pdf
@@ -105,3 +106,73 @@ class CertificacionModelTests(MediaTemporalMixin, TestCase):
         with self.assertRaises(ValidationError) as error:
             cert.clean()
         self.assertIn('sello_alt', error.exception.message_dict)
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_web')
+class AcreditacionPaginaTests(MediaTemporalMixin, TestCase):
+    def get_html(self):
+        respuesta = self.client.get(reverse('web_acreditacion:acreditacion'))
+        self.assertEqual(respuesta.status_code, 200)
+        return respuesta.content.decode()
+
+    def test_tarjeta_con_los_datos_del_certificado(self):
+        # REQ-WEB-30
+        cert = self.crear_certificacion(vigencia_hasta=date(2099, 4, 1))
+        html = self.get_html()
+        for texto in (
+            'Sistema de gestión certificado', 'ISO 9001:2015', 'Sistema de Gestión de la Calidad',
+            'N.º ER-TEST/2026', 'AENOR CONFIA S.A.U.', 'Servicios de estudios de mecánica de suelos.',
+            'Jr. Los Topacios 440, Cajamarca (Perú)', 'Emitido el 01/04/2026', 'vigente hasta el 01/04/2099',
+        ):
+            self.assertIn(texto, html)
+        self.assertEqual(html.count('<h1'), 1)
+
+        # REQ-WEB-35: el botón es un enlace real a pestaña nueva (sin JS y en móvil).
+        self.assertIn(f'href="{cert.archivo.url}" target="_blank" rel="noopener"', html)
+        self.assertIn('data-cert-pdf-open', html)
+
+    def test_modal_accesible_y_js_solo_con_certificaciones(self):
+        # REQ-WEB-32 y 34
+        self.crear_certificacion()
+        html = self.get_html()
+        self.assertEqual(html.count('id="modal-certificado-pdf"'), 1)
+        self.assertIn('role="dialog" aria-modal="true" aria-labelledby="modal-certificado-pdf-titulo"', html)
+        self.assertIn('data-cert-pdf-visor', html)
+        self.assertIn('data-cert-pdf-descargar', html)
+        self.assertEqual(html.count('data-cert-pdf-cerrar'), 2)  # × y "Cerrar"
+        self.assertIn('web/js/certificado-pdf.js', html)
+        # El iframe no carga el PDF con la página (regla 17).
+        self.assertNotIn('<iframe data-cert-pdf-visor title="Certificado (PDF)" class="w-full flex-1 bg-slate-100" src=', html)
+
+    def test_sello_con_alt_o_distintivo_de_texto(self):
+        cert = self.crear_certificacion()
+        html = self.get_html()
+        self.assertNotIn('<img src="/media/certificaciones/sellos/', html)
+        self.assertIn('<span class="mono-tag mt-1 text-xs font-bold">ISO 9001</span>', html)
+
+        # PNG 1x1 válido para que ImageField pueda leer ancho y alto.
+        png = (
+            b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00'
+            b'\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\xf8\x0f\x00\x00\x01\x01\x00\x05\x18\xd8N'
+            b'\x00\x00\x00\x00IEND\xaeB`\x82'
+        )
+        cert.sello = SimpleUploadedFile('sello.png', png, content_type='image/png')
+        cert.sello_alt = 'Sello AENOR Gestión de la Calidad ISO 9001'
+        cert.save()
+        html = self.get_html()
+        self.assertIn('alt="Sello AENOR Gestión de la Calidad ISO 9001"', html)
+        self.assertIn('loading="lazy"', html)
+        self.assertIn('width="1" height="1"', html)
+
+    def test_vencida_inactiva_o_sin_pdf_no_se_muestran(self):
+        # REQ-WEB-31: ni tarjeta, ni modal, ni JS.
+        hoy = timezone.localdate()
+        self.crear_certificacion(numero_certificado='VENCIDA', vigencia_hasta=hoy - timedelta(days=1))
+        self.crear_certificacion(numero_certificado='INACTIVA', activo=False)
+        self.crear_certificacion(numero_certificado='SINPDF', archivo='')
+        html = self.get_html()
+        for texto in ('VENCIDA', 'INACTIVA', 'SINPDF', 'ER-0146/2026', 'modal-certificado-pdf',
+                      'certificado-pdf.js', 'Sistema de gestión certificado'):
+            self.assertNotIn(texto, html)
+        # La acreditación INACAL sigue ahí.
+        self.assertIn('modal-certificado-inacal', html)

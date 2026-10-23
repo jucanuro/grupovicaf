@@ -126,10 +126,30 @@
     </div>
 </section>
 
+{% if certificaciones %}
+{% comment %}
+  Certificaciones de sistema de gestión (ISO 9001, specs/WEB v3), después de
+  la acreditación INACAL. H2: el único H1 de la página sigue siendo el de
+  INACAL (regla 9) y la keyword de la URL no cambia (regla 10).
+{% endcomment %}
+<section class="mx-auto max-w-[1600px] px-4 pb-24 sm:px-6 lg:px-8 lg:pb-32" aria-labelledby="certificaciones-titulo">
+    <span class="eyebrow">Gestión de la calidad</span>
+    <h2 id="certificaciones-titulo" class="h2-section mt-4">Sistema de gestión certificado</h2>
+    <div class="reveal-group mt-10 grid grid-cols-1 gap-8">
+        {% for certificacion in certificaciones %}
+        {% include 'web/partials/tarjeta_certificacion.html' %}
+        {% endfor %}
+    </div>
+</section>
+
+{% include 'web/partials/modal_certificado_pdf.html' %}
+{% endif %}
+
 {% include 'web/partials/modal_certificado_inacal.html' %}
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'web/js/modal-certificado.js' %}" defer></script>
+{% if certificaciones %}<script src="{% static 'web/js/certificado-pdf.js' %}" defer></script>{% endif %}
 <script src="{% static 'web/js/scroll-reveal.js' %}" defer></script>
 {% endblock %}
