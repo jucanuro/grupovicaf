@@ -7,4 +7,5 @@ app_name = 'web_contacto'
 urlpatterns = [
     path('', views.contacto_view, name='contacto'),
     path('cotizacion/', views.solicitud_cotizacion_view, name='solicitud_cotizacion'),
+    path('asistente/', views.asistente_datos_view, name='asistente_datos'),
 ]

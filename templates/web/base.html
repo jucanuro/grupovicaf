@@ -71,12 +71,13 @@
         ],
         {% if negocio.horario_semana_apertura %}
         "openingHoursSpecification": [
-            {
+            {% for apertura, cierre in negocio.tramos_semana %}{
                 "@type": "OpeningHoursSpecification",
                 "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-                "opens": "{{ negocio.horario_semana_apertura|time:'H:i' }}",
-                "closes": "{{ negocio.horario_semana_cierre|time:'H:i' }}"
-            }{% if negocio.horario_sabado_apertura %},
+                "opens": "{{ apertura|time:'H:i' }}",
+                "closes": "{{ cierre|time:'H:i' }}"
+            }{% if not forloop.last %},
+            {% endif %}{% endfor %}{% if negocio.horario_sabado_apertura %},
             {
                 "@type": "OpeningHoursSpecification",
                 "dayOfWeek": ["Saturday"],
@@ -113,6 +114,7 @@
     {% include 'web/footer.html' %}
 
     <script src="{% static 'web/js/header.js' %}" defer></script>
+    {% include 'web/partials/asistente_whatsapp.html' %}
     {% block extra_js %}{% endblock %}
 </body>
 </html>

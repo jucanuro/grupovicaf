@@ -14,6 +14,7 @@ class NegocioConfigAdmin(admin.ModelAdmin):
         ('Contacto', {'fields': ('telefono', 'whatsapp', 'correo')}),
         ('Horario', {'fields': (
             'horario_semana_apertura', 'horario_semana_cierre',
+            'horario_semana_receso_inicio', 'horario_semana_receso_fin',
             'horario_sabado_apertura', 'horario_sabado_cierre',
         )}),
         ('Cobertura', {'fields': ('ciudades_cobertura',)}),
