@@ -1,3 +1,5 @@
+import re
+
 from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
 from django.db import models
@@ -61,3 +63,168 @@ class Acreditacion(models.Model):
         if self.vigencia_hasta and self.vigencia_hasta < hoy:
             return False
         return True
+
+
+ARCHIVO_MAX_BYTES = 10 * 1024 * 1024
+EXTENSIONES_IMAGEN = ('jpg', 'jpeg', 'png', 'webp')
+EXTENSIONES_ARCHIVO = ('pdf',) + EXTENSIONES_IMAGEN
+
+
+def validar_archivo(archivo):
+    """Acepta solo un PDF real (firma %PDF-) o una imagen que Pillow pueda abrir, de 10 MB como máximo.
+
+    La extensión sola no basta: el archivo se sirve tal cual desde /media/ y se
+    muestra en el modal de la propia web (REQ-WEB-40).
+    """
+    if archivo.size and archivo.size > ARCHIVO_MAX_BYTES:
+        raise ValidationError('El archivo no puede pesar más de 10 MB.')
+    posicion = archivo.tell() if hasattr(archivo, 'tell') else 0
+    archivo.seek(0)
+    try:
+        if archivo.name.lower().endswith('.pdf'):
+            if archivo.read(5) != b'%PDF-':
+                raise ValidationError('El archivo no es un PDF válido.')
+        else:
+            from PIL import Image
+            try:
+                Image.open(archivo).verify()
+            except Exception:
+                raise ValidationError('El archivo no es una imagen válida (JPG, PNG o WebP).')
+    finally:
+        archivo.seek(posicion)
+
+
+LOGO_MAX_BYTES = 2 * 1024 * 1024
+
+
+def validar_logo(imagen):
+    """El logo va en cada card de la home y de /acreditacion/: 2 MB como máximo (REQ-WEB-62)."""
+    if imagen.size and imagen.size > LOGO_MAX_BYTES:
+        raise ValidationError('El logo no puede pesar más de 2 MB.')
+
+
+def validar_pdf(archivo):
+    """Validador de v3; solo lo importa la migración 0002_certificacion."""
+    validar_archivo(archivo)
+
+
+class CertificacionQuerySet(models.QuerySet):
+    def publicadas(self, hoy=None):
+        """Certificaciones que se muestran en la web (RN-15, REQ-WEB-42).
+
+        Activas, con archivo y, si tienen vigencia, sin pasar según la fecha de
+        Lima. El día del vencimiento todavía cuenta como vigente.
+        """
+        hoy = hoy or timezone.localdate()
+        return (
+            self.filter(activo=True)
+            .filter(models.Q(vigencia_hasta__isnull=True) | models.Q(vigencia_hasta__gte=hoy))
+            .exclude(archivo='')
+        )
+
+
+    def para_card(self):
+        """Lista blanca de campos para las cards y el modal (regla 2 de CLAUDE.md)."""
+        return self.only(
+            'id', 'titulo', 'descripcion', 'tipo', 'institucion', 'logo', 'logo_ancho', 'logo_alto', 'archivo', 'vigencia_hasta', 'orden',
+        )
+
+
+# Código corto del panel de color de la card (specs/WEB v7, REQ-WEB-71): el
+# registro de acreditación (LE-230) o la norma ISO (ISO 9001:2015) tal como
+# vienen en el título. Sin coincidencia, la card no muestra código.
+CODIGO_CORTO_RE = re.compile(r'\b(?:L[EC]-\d+|ISO(?:/IEC)?\s+\d+(?:-\d+)?(?::\d{4})?)', re.IGNORECASE)
+
+
+def primera_acreditacion(certificaciones):
+    """Primera certificación de tipo Acreditación de una lista ya publicada.
+
+    Es la que abren los accesos "Ver certificado" de INACAL (REQ-WEB-50).
+    """
+    return next((c for c in certificaciones if c.tipo == Certificacion.TIPO_ACREDITACION), None)
+
+
+class Certificacion(models.Model):
+    """Acreditación, certificación ISO u otro reconocimiento mostrado como card.
+
+    Modelo único desde specs/WEB v4. Desde v7 la card de /acreditacion/ y de
+    la home es horizontal: panel de color con el tipo, el logo de la
+    institución (o un sello genérico) y el código corto; al lado la
+    institución, el título, la descripción, la vigencia y "Ver documento";
+    abre el archivo (imagen o PDF) en un modal. Sin SeoModel: no tiene página
+    propia.
+    """
+
+    TIPO_ACREDITACION = 'acreditacion'
+    TIPO_ISO = 'iso'
+    TIPO_OTRO = 'otro'
+    TIPOS = [
+        (TIPO_ACREDITACION, 'Acreditación'),
+        (TIPO_ISO, 'Certificación ISO'),
+        (TIPO_OTRO, 'Otro'),
+    ]
+
+    titulo = models.CharField(max_length=120, verbose_name='Título', help_text='Ej.: Acreditación INACAL LE-230')
+    descripcion = models.CharField(
+        max_length=200, verbose_name='Descripción corta',
+        help_text='Una o dos frases; la card muestra hasta 3 líneas.',
+    )
+    tipo = models.CharField(max_length=20, choices=TIPOS, default=TIPO_OTRO)
+    institucion = models.CharField(
+        max_length=150, verbose_name='Institución que la otorga',
+        help_text='Ej.: Instituto Nacional de Calidad (INACAL)',
+    )
+    logo = models.ImageField(
+        upload_to='certificaciones/logos/', blank=True, width_field='logo_ancho', height_field='logo_alto',
+        validators=[FileExtensionValidator(EXTENSIONES_IMAGEN), validar_logo],
+        verbose_name='Logo de la institución',
+        help_text='JPG, PNG o WebP, máximo 2 MB, de preferencia con fondo transparente o blanco. '
+                  'Sin logo, la card muestra un sello genérico.',
+    )
+    # Los llena Django al subir el logo: width/height del <img> sin abrir el archivo (regla 17).
+    logo_ancho = models.PositiveIntegerField(blank=True, null=True, editable=False)
+    logo_alto = models.PositiveIntegerField(blank=True, null=True, editable=False)
+
+    archivo = models.FileField(
+        upload_to='certificaciones/',
+        validators=[FileExtensionValidator(EXTENSIONES_ARCHIVO), validar_archivo],
+        verbose_name='Archivo (imagen o PDF)',
+        help_text='JPG, PNG, WebP o PDF, máximo 10 MB. En móvil el PDF se abre en una pestaña nueva.',
+    )
+    vigencia_hasta = models.DateField(
+        blank=True, null=True, verbose_name='Vigente hasta',
+        help_text='Opcional. Desde el día siguiente la certificación deja de mostrarse en la web.',
+    )
+
+    orden = models.PositiveIntegerField(default=0)
+    activo = models.BooleanField(default=True)
+
+    creado = models.DateTimeField(auto_now_add=True)
+    actualizado = models.DateTimeField(auto_now=True)
+
+    objects = CertificacionQuerySet.as_manager()
+
+    class Meta:
+        verbose_name = 'Certificación'
+        verbose_name_plural = 'Certificaciones'
+        ordering = ['orden', 'titulo']
+
+    def __str__(self):
+        return self.titulo
+
+    @property
+    def es_pdf(self):
+        return bool(self.archivo) and self.archivo.name.lower().endswith('.pdf')
+
+    @property
+    def vigente(self):
+        return self.vigencia_hasta is None or self.vigencia_hasta >= timezone.localdate()
+
+    @property
+    def codigo_corto(self):
+        coincidencia = CODIGO_CORTO_RE.search(self.titulo or '')
+        return coincidencia.group(0) if coincidencia else ''
+
+    @property
+    def publicada(self):
+        return self.activo and bool(self.archivo) and self.vigente

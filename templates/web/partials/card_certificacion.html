@@ -1,0 +1,43 @@
+{% comment %}
+  Card horizontal de una certificación (specs/WEB v7, REQ-WEB-71 a 73). Dos
+  paneles: a la izquierda (arriba en móvil) un panel de color por tipo con el
+  tipo en versalitas, el logo de la institución en un recuadro blanco y el
+  código corto (LE-230, ISO 9001:2015); a la derecha "Otorgada por", el
+  título (H3), la descripción (máx. 3 líneas), la vigencia y la pastilla
+  "Ver documento". La usan /acreditacion/ y la home (con `sobre_oscuro`,
+  borde y sombra claros sobre el fondo azul). Solo llega aquí lo que
+  Certificacion.objects.publicadas().para_card() deja pasar (RN-15).
+
+  Toda la card es clicable con un único enlace: el <a> del título se estira
+  sobre la card (after:absolute after:inset-0). Es un enlace real al archivo
+  en una pestaña nueva, así que sin JS también funciona; certificaciones.js
+  lo intercepta para abrir el modal (REQ-WEB-64). El foco con teclado se ve
+  como un anillo alrededor de toda la card (has-[:focus-visible]).
+{% endcomment %}
+<article class="group relative flex h-full w-full flex-col overflow-hidden rounded-card border bg-white transition-[transform,box-shadow] duration-200 ease-out motion-safe:hover:-translate-y-1 sm:min-h-[300px] sm:flex-row has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-offset-2 {% if sobre_oscuro %}border-white/25 shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_18px_40px_-16px_rgba(2,6,23,0.65)] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.18),0_28px_60px_-18px_rgba(2,6,23,0.8)] has-[:focus-visible]:ring-amber-400 has-[:focus-visible]:ring-offset-blue-950{% else %}border-slate-200 shadow-layered hover:shadow-layered-lg has-[:focus-visible]:ring-vicaf-primary{% endif %}">
+    {% include 'web/partials/logo_certificacion.html' %}
+
+    <div class="flex min-w-0 flex-1 flex-col px-6 pb-6 pt-5 sm:pb-7 sm:pt-6">
+        <p class="line-clamp-2 text-xs leading-snug text-slate-500">Otorgada por <span class="font-semibold text-slate-700">{{ certificacion.institucion }}</span></p>
+        <h3 class="mt-2 line-clamp-3 break-words text-xl [text-wrap:balance] font-extrabold leading-tight tracking-tight text-slate-900 sm:text-[1.375rem]">
+            <a {% include 'web/partials/enlace_certificacion.html' %}
+               class="after:absolute after:inset-0 after:rounded-card focus-visible:outline-none">{{ certificacion.titulo }}<span class="sr-only"> (ver el documento)</span></a>
+        </h3>
+        <p class="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-600">{{ certificacion.descripcion }}</p>
+
+        <div class="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-3 pt-5">
+            <p class="flex items-center gap-1.5 text-[13px] font-medium text-slate-700">
+                <svg class="h-4 w-4 shrink-0 text-emerald-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd"/>
+                </svg>
+                {% if certificacion.vigencia_hasta %}<span>Vigente hasta <time datetime="{{ certificacion.vigencia_hasta|date:'Y-m-d' }}">{{ certificacion.vigencia_hasta|date:'d/m/Y' }}</time></span>{% else %}<span>Vigente</span>{% endif %}
+            </p>
+            <span class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-gradient-to-r from-vicaf-primary to-blue-900 px-3.5 py-2 text-[13px] font-bold text-white shadow-btn-primary transition-shadow duration-200 group-hover:shadow-[0_10px_24px_-6px_rgba(29,78,216,0.6)]" aria-hidden="true">
+                Ver documento
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/>
+                </svg>
+            </span>
+        </div>
+    </div>
+</article>

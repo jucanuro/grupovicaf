@@ -15,11 +15,9 @@
     3. extiende templates/web/base.html (el original no extendía nada)
     4. el modal del certificado se abre por clic, no solo — como el original
        no tenía disparador (se auto-abría al cargar), se añadió el badge
-       INACAL con data-modal-cert-open. El modal en sí, su JS y el botón
-       flotante de WhatsApp de más abajo YA existen en esta plantilla más
-       adelante (partials/modal_certificado_inacal.html, modal-certificado.js,
-       sección #contacto) — no se duplican aquí para no repetir el modal ni
-       el botón de WhatsApp dos veces en la página.
+       INACAL. Desde specs/WEB v4 abre el modal único de certificaciones
+       (partials/modal_certificacion.html, certificaciones.js) con la
+       certificación de tipo Acreditación; sin ella lleva a /acreditacion/.
     5. botones amarillos -> azul de marca (bg-blue-700/hover:bg-blue-800,
        icono a fill-white en vez de fill-gray-900)
     6. WhatsApp sale de negocio.whatsapp (siteconfig.NegocioConfig)
@@ -54,7 +52,7 @@
     <div class="relative w-full h-screen">
 
         <div class="absolute rounded-lg px-4 lg:px-0 top-20 lg:left-12 z-20 w-full md:w-1/2 lg:w-1/3 pt-10 pb-6 px-4 sm:px-6 lg:px-8 flex flex-col items-start text-left border border-white/10 bg-blue-950/85 backdrop-blur-sm">
-            <button type="button" data-modal-cert-open
+            <a {% if certificacion_acreditacion %}{% include 'web/partials/enlace_certificacion.html' with certificacion=certificacion_acreditacion %}{% else %}href="{% url 'web_acreditacion:acreditacion' %}"{% endif %}
                     class="group inline-flex items-center gap-2.5 rounded-full border border-white/25 bg-slate-900/70 py-1.5 pl-1.5 pr-4 text-[11px] font-black uppercase tracking-[0.28em] text-white transition-colors hover:bg-slate-800/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
                 <img src="{% static 'web/img/LogoInacal1.webp' %}" alt=""
                      class="h-6 w-6 rounded-full bg-white object-contain p-0.5"
@@ -64,7 +62,7 @@
                     <span class="whitespace-nowrap">{{ negocio.acreditacion_entidad|default:"INACAL" }} · Registro {{ negocio.acreditacion_codigo|default:"LE-230" }}</span>
                     <span class="hidden whitespace-nowrap text-[10px] tracking-[0.2em] text-blue-200 group-hover:text-white sm:block">Ver certificado &rarr;</span>
                 </span>
-            </button>
+            </a>
 
             <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white mb-3 mt-5 leading-[1.05]" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.6);">
                 Laboratorio para la construcción en Cajamarca
@@ -153,7 +151,7 @@
     {% include 'web/partials/textura_tecnica.html' %}
     <div class="relative z-10 mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col items-center gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
-            <button type="button" data-modal-cert-open
+            <a {% if certificacion_acreditacion %}{% include 'web/partials/enlace_certificacion.html' with certificacion=certificacion_acreditacion %}{% else %}href="{% url 'web_acreditacion:acreditacion' %}"{% endif %}
                     class="group flex shrink-0 items-center gap-4 rounded-2xl border border-white/15 bg-white/5 px-6 py-5 text-left transition-colors duration-300 hover:border-blue-400 hover:bg-white/10">
                 <img src="{% static 'web/img/LogoInacal1.webp' %}" alt=""
                      class="h-14 w-14 shrink-0 rounded-full bg-white object-contain p-1"
@@ -164,7 +162,7 @@
                         {{ negocio.acreditacion_entidad|default:"INACAL" }} · {{ negocio.acreditacion_codigo|default:"LE-230" }}
                     </span>
                 </span>
-            </button>
+            </a>
 
             {% if metricas %}
             <dl class="reveal-group flex flex-1 flex-wrap justify-center gap-x-12 gap-y-8 lg:justify-end">
@@ -238,50 +236,44 @@
   Acreditación destacada: el activo más fuerte del negocio, tratado como tal.
   Capas de fondo (de atrás hacia adelante): degradado diagonal de dos azules
   -> retícula técnica (plano de ingeniería, 6% opacidad) -> ruido SVG
-  feTurbulence (3%, quita el plano digital) -> contenido. El certificado
-  lleva una perspectiva ligera (rotateY) para leerse como documento físico
-  apoyado, no como una imagen plana más. Reutiliza el mismo modal que el
-  badge INACAL del hero (partials/modal_certificado_inacal.html).
+  feTurbulence (3%, quita el plano digital) -> contenido.
+
+  specs/WEB v6 (REQ-WEB-65): versión resumida de /acreditacion/, máximo 4
+  cards (cortadas en inicio_view) y "Ver todas". Sin la imagen grande del
+  certificado: cada card abre su documento en el modal. v7 (REQ-WEB-73): las
+  mismas cards horizontales de /acreditacion/, con borde y sombra claros
+  sobre el azul, y "Ver todas" en la fila del título.
 {% endcomment %}
-<section class="reveal section-dark relative overflow-hidden py-20 text-white lg:py-28">
+<section class="reveal section-dark relative overflow-hidden py-20 text-white lg:py-28" aria-labelledby="acreditacion-titulo">
     {% include 'web/partials/textura_tecnica.html' %}
 
-    <div class="relative z-10 mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
-        <div class="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
-            <div>
-                <span class="eyebrow-inverse">
-                    Acreditación {{ negocio.acreditacion_entidad|default:"INACAL" }}
-                </span>
-                <h2 class="h2-section-inverse mt-6">
-                    Ensayos respaldados por acreditación oficial
-                </h2>
-                <p class="body-copy-inverse mt-4">
-                    Registro
-                    <span class="mono-tag rounded-md bg-white/10 px-1.5 py-0.5 font-semibold text-white">{{ negocio.acreditacion_codigo|default:"LE-230" }}</span>
-                    ante {{ negocio.acreditacion_entidad|default:"INACAL" }}: resultados imparciales, trazables y
-                    reconocidos por entidades públicas y privadas del norte del Perú.
-                </p>
-                <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-                    <button type="button" data-modal-cert-open class="btn-primary-inverse">
-                        Ver certificado
-                    </button>
-                    <a href="{% url 'web_acreditacion:acreditacion' %}" class="btn-secondary-inverse">
-                        Ver alcance completo
-                    </a>
-                </div>
-            </div>
-
-            <div style="perspective: 1600px;">
-                <button type="button" data-modal-cert-open
-                        style="transform: rotateY(-4deg) rotateX(1deg);"
-                        class="group block w-full origin-right overflow-hidden rounded-card border border-white/10 bg-white/5 p-3 shadow-certificate transition-transform duration-500 ease-in-out hover:[transform:rotateY(0deg)_rotateX(0deg)]">
-                    <img src="{% static 'web/img/certificaciones/GRUPO-VICAF-CERTIFICADO.webp' %}"
-                         alt="Certificado de acreditación {{ negocio.acreditacion_entidad|default:'INACAL' }} N.º {{ negocio.acreditacion_codigo|default:'LE-230' }} de Grupo VICAF"
-                         class="w-full rounded-btn"
-                         width="1754" height="1241" loading="lazy" decoding="async">
-                </button>
-            </div>
+    <div class="relative z-10 mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 xl:px-0">
+        <span class="eyebrow-inverse">
+            Acreditación {{ negocio.acreditacion_entidad|default:"INACAL" }}
+        </span>
+        <div class="mt-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-5">
+            <h2 id="acreditacion-titulo" class="h2-section-inverse max-w-2xl">
+                Ensayos respaldados por acreditación oficial
+            </h2>
+            <a href="{% url 'web_acreditacion:acreditacion' %}" class="btn-secondary-inverse shrink-0">
+                Ver todas<span class="sr-only"> las acreditaciones y certificaciones</span>
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
+                </svg>
+            </a>
         </div>
+        <p class="body-copy-inverse mt-4 max-w-2xl">
+            Registro
+            <span class="mono-tag rounded-md bg-white/10 px-1.5 py-0.5 font-semibold text-white">{{ negocio.acreditacion_codigo|default:"LE-230" }}</span>
+            ante {{ negocio.acreditacion_entidad|default:"INACAL" }}: resultados imparciales, trazables y
+            reconocidos por entidades públicas y privadas de Cajamarca.
+        </p>
+
+        {% if certificaciones %}
+        <div class="mt-12">
+            {% include 'web/partials/grilla_certificaciones.html' with sobre_oscuro=True %}
+        </div>
+        {% endif %}
     </div>
 </section>
 
@@ -462,11 +454,11 @@
 </a>
 {% endif %}
 
-{% include 'web/partials/modal_certificado_inacal.html' %}
+{% if certificaciones or certificacion_acreditacion %}{% include 'web/partials/modal_certificacion.html' %}{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'web/js/inicio.js' %}" defer></script>
-<script src="{% static 'web/js/modal-certificado.js' %}" defer></script>
+{% if certificaciones or certificacion_acreditacion %}<script src="{% static 'web/js/certificaciones.js' %}" defer></script>{% endif %}
 <script src="{% static 'web/js/scroll-reveal.js' %}" defer></script>
 {% endblock %}
