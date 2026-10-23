@@ -195,14 +195,14 @@
                     <p><a href="mailto:{{ negocio.correo }}" class="font-semibold text-blue-700 hover:underline">{{ negocio.correo }}</a></p>
                     {% if negocio.horario_semana_apertura %}
                     <p class="text-xs text-slate-500">
-                        Lun–Vie {{ negocio.horario_semana_apertura|time:'H:i' }}–{{ negocio.horario_semana_cierre|time:'H:i' }}
+                        Lun–Vie {{ negocio.horario_semana_rango }}
                         {% if negocio.horario_sabado_apertura %} · Sáb {{ negocio.horario_sabado_apertura|time:'H:i' }}–{{ negocio.horario_sabado_cierre|time:'H:i' }}{% endif %}
                     </p>
                     {% endif %}
                 </div>
 
                 {% if negocio.whatsapp %}
-                <a href="https://wa.me/{{ negocio.whatsapp|cut:'+'|cut:' '|cut:'-' }}" target="_blank" rel="noopener noreferrer"
+                <a href="https://wa.me/{{ negocio.whatsapp_digitos }}" target="_blank" rel="noopener noreferrer"
                    class="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-emerald-600 px-6 py-3 text-sm font-black uppercase tracking-[0.1em] text-white transition-all duration-300 hover:bg-emerald-700">
                     Escríbenos por WhatsApp
                 </a>

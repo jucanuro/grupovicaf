@@ -1,10 +1,13 @@
 from django.contrib import messages
 from django.db import transaction
+from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
+from siteconfig.models import NegocioConfig
 from web_catalogo.models import ServicioPublicado
 
+from .asistente import datos_asistente
 from .models import MensajeContacto, SolicitudCotizacionItem, SolicitudCotizacionWeb
 from .services import procesar_solicitud_cotizacion
 from .tasks import enviar_correo_mensaje_contacto, enviar_correo_solicitud_cotizacion
@@ -144,3 +147,15 @@ def solicitud_cotizacion_view(request):
         request, 'Gracias, recibimos tu solicitud de cotización. Nuestro equipo te contactará pronto.',
     )
     return redirect('web_contacto:contacto')
+
+
+@require_GET
+def asistente_datos_view(request):
+    """Datos del asistente de WhatsApp: saludo según la hora de Lima, si está
+    abierto, horario y catálogo público. Sin caché HTTP porque el saludo cambia."""
+    negocio = NegocioConfig.objects.first()
+    if not negocio or not negocio.whatsapp_digitos:
+        raise Http404
+    respuesta = JsonResponse(datos_asistente(negocio))
+    respuesta['Cache-Control'] = 'no-store'
+    return respuesta
