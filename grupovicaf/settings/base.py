@@ -22,6 +22,8 @@ if SITE_ROLE not in ('lab', 'web'):
 ROOT_URLCONF = f'grupovicaf.urls_{SITE_ROLE}'
 SESSION_COOKIE_NAME = f'gv_{SITE_ROLE}_sessionid'
 CSRF_COOKIE_NAME = f'gv_{SITE_ROLE}_csrftoken'
+# Los tests de las apps web_* usan urls_web.py con cualquier SITE_ROLE.
+TEST_RUNNER = 'grupovicaf.test_runner.SiteRoleTestRunner'
 SITE_URL = os.environ.get('SITE_URL', 'http://127.0.0.1:8000')
 
 # Interruptor de indexación para el rol 'web' (regla 15 + fase de

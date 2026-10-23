@@ -19,7 +19,7 @@ Patrones: **CUANDO** <evento> · **MIENTRAS** <estado> · **SI** <condición> **
 
 | ID | HU | Requisito | Verificable (sí/no) | Origen |
 |---|---|---|---|---|
-| REQ-INFRA-01 | HU-?? | CUANDO … EL SISTEMA DEBE … | — | — |
+| REQ-INFRA-01 | — | CUANDO se ejecute `python manage.py test` con `SITE_ROLE=lab` o `SITE_ROLE=web`, EL SISTEMA DEBE correr los tests de las apps `web_*` contra `grupovicaf/urls_web.py`, de modo que el resultado de la suite no dependa del rol. | Sí: la suite pasa con los dos roles | [Decisión Gerente] 2026-10-23 |
 
 ## 3. Trazabilidad HU → REQ
 
@@ -38,3 +38,4 @@ Patrones: **CUANDO** <evento> · **MIENTRAS** <estado> · **SI** <condición> **
 | Versión | Fecha | Autor | Cambio |
 |---|---|---|---|
 | v0 | 2026-10-12 | DLF | Plantilla inicial |
+| v0.1 | 2026-10-23 | DLF | REQ-INFRA-01 por [Decisión Gerente] (tests independientes del SITE_ROLE); el resto sigue en G0 |
