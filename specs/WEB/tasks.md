@@ -2,7 +2,7 @@
 
 | Versión | Fecha | Estado |
 |---|---|---|
-| v7 | 2026-10-23 | Implementado (T1-T6 en v1, T7-T11 en v2, T12-T16 en v3, T17-T20 en v4, T21 en v5, T22 en v6, T23 en v7) |
+| v7 | 2026-10-23 | Implementado (T1-T6 en v1, T7-T11 en v2, T12-T16 en v3, T17-T20 en v4, T21 en v5, T22 en v6, T23 en v7, T24 de integración) |
 
 - [x] **T1 · Horario con receso y WhatsApp en dígitos** — `NegocioConfig`: campos de receso (migración 0008), datos 13:00 y 15:00 (migración 0009), `whatsapp_digitos`, `horario_texto()` y `esta_abierto()`. Cubre REQ-WEB-03, 18 y 19. Se verifica con `siteconfig/tests.py`.
 - [x] **T2 · Saludo y catálogo público** — `web_contacto/asistente.py`: `saludo_para()` y `catalogo_publico()` con lista blanca. Cubre REQ-WEB-05, 07 y 10. Se verifica con `web_contacto/test_asistente.py`.
@@ -39,6 +39,9 @@
 
 ### v7 · Cards horizontales de certificaciones [Encargo de diseño] (2026-10-23)
 - [x] **T23 · Cards horizontales en Acreditación y en la home** — HU v1.10 (CA-08.1, 08.2, 08.8, 08.15) y specs v7; `Certificacion.codigo_corto`; `logo_certificacion.html` como panel de color por tipo, `card_certificacion.html` horizontal (vertical en móvil) con vigencia y pastilla, `grilla_certificaciones.html` de 1 o 2 por fila en 1200 px; home con las mismas cards (`sobre_oscuro`) y "Ver todas" en la fila del título. Sin migraciones. Cubre REQ-WEB-71 a 73. Se verifica con `web_acreditacion/tests.py`, `web_inicio/tests.py` y capturas a 1440, 1024 y 390 px.
+
+### Integración de ramas [Decisión Gerente] (2026-10-23)
+- [x] **T24 · Migración de merge siteconfig** — `siteconfig/0010_merge_20261023_1820` une `0008_descripcion_solo_cajamarca` (T20, rama `certificado-iso9001`) con `0008_negocioconfig_receso` y `0009_seed_receso_mediodia` (T1, rama `asistente-whatsapp`). Sin operaciones ni REQ nuevos. Se verifica con `migrate` y `python manage.py test` con `SITE_ROLE=lab` y `web`.
 
 ## Trazabilidad HU → REQ
 | HU | REQ |
