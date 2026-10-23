@@ -59,8 +59,11 @@
                 <img src="{% static 'web/img/LogoInacal1.webp' %}" alt=""
                      class="h-6 w-6 rounded-full bg-white object-contain p-0.5"
                      width="400" height="400" decoding="async">
-                <span>{{ negocio.acreditacion_entidad|default:"INACAL" }} · Registro {{ negocio.acreditacion_codigo|default:"LE-230" }}</span>
-                <span class="hidden text-blue-100 group-hover:text-white sm:inline">· Ver certificado</span>
+                {# Dos renglones fijos en vez de dejar que el texto quiebre solo: el hero ocupa 1/3 en escritorio y "LE-230" se partía por el guion. #}
+                <span class="flex flex-col leading-tight">
+                    <span class="whitespace-nowrap">{{ negocio.acreditacion_entidad|default:"INACAL" }} · Registro {{ negocio.acreditacion_codigo|default:"LE-230" }}</span>
+                    <span class="hidden whitespace-nowrap text-[10px] tracking-[0.2em] text-blue-200 group-hover:text-white sm:block">Ver certificado &rarr;</span>
+                </span>
             </button>
 
             <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white mb-3 mt-5 leading-[1.05]" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.6);">
@@ -77,7 +80,7 @@
                         <path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM144 256a144 144 0 1 1 288 0 144 144 0 1 1 -288 0zm144-64c0 35.3-28.7 64-64 64c-7.1 0-13.9-1.2-20.3-3.3c-5.5-1.8-11.9 1.6-11.7 7.4c.3 6.9 1.3 13.8 3.2 20.7c13.7 51.2 66.4 81.6 117.6 67.9s81.6-66.4 67.9-117.6c-11.1-41.5-47.8-69.4-88.6-71.1c-5.8-.2-9.2 6.1-7.4 11.7c2.1 6.4 3.3 13.2 3.3 20.3z"/>
                     </svg>
                 </a>
-                <a href="{% static 'web/pdf/brochure-grupo-vicaf-2025.pdf' %}" target="_blank" rel="noopener noreferrer"
+                <a href="{% static 'web/pdf/Brochure_2026c.pdf' %}" target="_blank" rel="noopener noreferrer"
                    class="btn-secondary-inverse w-full sm:w-auto">
                     Descargar Brochure
                     <svg class="h-4 w-4 fill-current transition-transform duration-300 ease-in-out group-hover:translate-x-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" aria-hidden="true">
