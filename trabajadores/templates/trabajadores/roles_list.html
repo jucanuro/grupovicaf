@@ -74,6 +74,7 @@
                         <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 mr-2"></i>
                         <input type="text"
                             name="q"
+                            data-lista-buscador
                             value="{{ query|default:'' }}"
                             class="bg-transparent border-none outline-none text-xs font-semibold text-slate-700 w-full"
                             placeholder="Buscar rol o descripción...">
@@ -83,7 +84,8 @@
         </div>
     </div>
 
-    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden"
+         data-lista-contenedor data-lista-url="{% url 'trabajadores:lista_roles' %}">
         <div class="overflow-x-auto">
             <table class="w-full border-collapse">
                 <thead class="bg-slate-50 border-b border-slate-200">
@@ -166,6 +168,7 @@
 
 {% block extra_scripts %}
 <script>
+    // El filtrado en vivo lo maneja static/js/lista_buscador.js.
     document.addEventListener('DOMContentLoaded', () => {
         if (typeof lucide !== 'undefined') lucide.createIcons();
     });

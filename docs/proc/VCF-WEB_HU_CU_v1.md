@@ -1,9 +1,19 @@
-# VCF-WEB · Asistente de WhatsApp en la web · HU / CU / RN
+# VCF-WEB · Web institucional (asistente de WhatsApp y certificaciones) · HU / CU / RN
 
 | Proyecto | Módulo | Doc | Versión | Fecha | Dueño (ASP) | Estado | Gate |
 |---|---|---|---|---|---|---|---|
-| Grupo VICAF (VCF) | VCF-WEB | VCF-WEB_HU_CU | v1.5 | 2026-10-23 | Fundador VQL | Aprobado | G1 aprobado por el Gerente (falta la confirmación de QA, ver PM-08); cambio de alcance v1.5 [Decisión Gerente] |
+| Grupo VICAF (VCF) | VCF-WEB | VCF-WEB_HU_CU | v1.10 | 2026-10-23 | Fundador VQL | Aprobado | G1 aprobado por el Gerente (falta la confirmación de QA, ver PM-08); cambios de alcance v1.5, v1.7, v1.8 y v1.9 y requerimiento nuevo v1.6 [Decisión Gerente]; cambio visual v1.10 [Encargo de diseño] |
 
+> **v1.10 (2026-10-23) · Cambio visual [Encargo de diseño]:** solo el aspecto de las cards de certificaciones, en la home y en `/acreditacion/`: pasan a cards horizontales estilo Material (panel de color con tipo, logo y código a la izquierda; institución, título, descripción, vigencia y "Ver documento" a la derecha), 2 por fila en escritorio y verticales en móvil; la home usa las mismas cards y "Ver todas" va en la fila del título. No cambian datos, comportamiento ni la lista de ensayos acreditados. Cambian CA-08.1, CA-08.2, CA-08.8 y CA-08.15.
+>
+> **v1.9 (2026-10-23) · Cambio de diseño [Decisión Gerente]:** rediseño de certificaciones según el boceto del Gerente. Las cards de certificaciones pasan a 3 franjas (logo de la institución arriba, sobre fondo claro; tipo, título y descripción al medio; "Ver documento" abajo), centradas si son menos de 4, y la certificación gana el campo "logo" (sello genérico si falta). Toda card abre el modal. La home muestra una versión compacta (logo y título, máximo 4). Los ensayos acreditados dejan de ser cards: lista ordenada por línea, plegable, en 2 o 3 columnas, con check verde y buscador; se quitan el filtro por línea y el modal del ensayo. HU-WEB-08 (CA-08.2, CA-08.4, CA-08.8 y CA-08.13 a 15) y HU-WEB-09 (CA-09.1, 09.3, 09.5, 09.7, 09.8 y 09.10) cambian; se agrega P-20.
+>
+> **v1.8 (2026-10-23) · Cambio de diseño [Decisión Gerente]:** todo en cards, en la home y en `/acreditacion/`. La sección "Ensayos acreditados" de `/acreditacion/` deja de ser una lista larga: pasa a cards agrupadas por línea de servicio (4 columnas en escritorio), con buscador y filtro por línea, y cada card abre un modal con el detalle del ensayo. Se agrega HU-WEB-09, CU-WEB-05, RN-16, PM-12 y P-19; P-16 se cierra.
+>
+> **v1.7 (2026-10-23) · Cambio de alcance [Decisión Gerente]:** cambia el concepto de certificaciones. Un solo modelo "Certificación" (acreditaciones, certificaciones ISO y otras) con título, descripción corta, tipo, institución, archivo (imagen o PDF), vigencia opcional, orden y activo; la acreditación INACAL LE-230 y el certificado ISO 9001 pasan a ese modelo. `/acreditacion/` muestra una grilla de cards debajo del hero y cada card abre el documento en un modal; la home muestra una versión resumida (máximo 4 cards y "Ver todas") y deja de mostrar la imagen grande del certificado. Se corrigen los textos "del norte del Perú" de la home y de Acreditación (D-VCF-002). HU-WEB-08 y CU-WEB-04 se reescriben; RN-15 cambia. Ver la sección 2.5 y P-16 a P-18.
+>
+> **v1.6 (2026-10-23) · Requerimiento nuevo [Decisión Gerente]:** mostrar el certificado ISO 9001 de Grupo VICAF (AENOR, ER-0146/2026) en /acreditacion/, junto a INACAL, con visor del PDF en un modal (pestaña nueva en móvil), PDF y vigencia cargados desde el admin y la certificación en el JSON-LD. Ver HU-WEB-08, CU-WEB-04, RN-15 y las preguntas P-12 a P-15.
+>
 > **v1.5 (2026-10-23) · Cambio de alcance [Decisión Gerente]:** enlaces "Ver en la web" desde el asistente, panel que sigue abierto al navegar, botón fijo al menú principal, cierre que no se reabre solo y panel usable en móvil. Ver HU-WEB-07, CA-02.3, CA-02.7, RN-12, RN-13 y la sección 8.1.
 >
 > Requerimiento nuevo pedido por Juan Carlos Núñez Rodrigo el 2026-10-15. Todavía sin código. Las reglas sin validar llevan **[Propuesto]** o **[Supuesto]**; nada de este doc está aprobado por el Gerente.
@@ -38,12 +48,44 @@ Alcance geográfico: solo Cajamarca (D-VCF-002). [Decisión Gerente]
 
 Regla del repo que aplica: toda vista pública usa **lista blanca de campos** (`CLAUDE.md`, reglas 1-3). [Propuesto]
 
+### 2.3 Página de acreditación (v1.6)
+| Hecho | Dónde | Origen |
+|---|---|---|
+| `/acreditacion/` lista los registros `Acreditacion` (INACAL) y abre por clic un modal con la **imagen** del certificado INACAL; no hay nada de ISO 9001 | `templates/web/acreditacion.html`, `web/partials/modal_certificado_inacal.html` | [Propuesto] (leído del código) |
+| `Acreditacion` modela una acreditación de laboratorio (organismo, N.º, alcance, ensayos acreditados); una certificación de sistema de gestión es otra cosa (norma, organismo certificador, sede) | `web_acreditacion/models.py` | [Propuesto] |
+| nginx manda `X-Frame-Options: DENY` en todo `www`, también en `/media/`, y Django hace lo mismo en dev: un PDF de `/media/` no se puede embeber en un `<iframe>` de la propia web | `deploy/nginx/grupovicaf.conf:82`, `XFrameOptionsMiddleware` | [Propuesto] (leído del código) |
+
+### 2.4 Datos del certificado ISO 9001 (leídos del PDF)
+*(v1.7: estos datos se resumen en el título y la descripción de la card; norma, N.º, alcance, sede, fecha de emisión y sello dejan de ser campos propios, ver 2.5.)*
+
+El PDF `CertificadoER-0146-2026_IN_2026-04-06.pdf` es una imagen sin texto extraíble; los datos se leyeron de la página renderizada y se cotejaron con la versión en español (`CertificadoER-0146-2026_ES_2026-04-06.pdf`).
+
+| Dato | Valor | Origen |
+|---|---|---|
+| Norma | ISO 9001:2015 · Sistema de Gestión de la Calidad | Leído del PDF |
+| N.º de certificado | ER-0146/2026 | Leído del PDF |
+| Organismo certificador | AENOR CONFIA S.A.U. (AENOR Perú) | Leído del PDF |
+| Organización | GRUPO VICAF S.A.C. | Leído del PDF |
+| Alcance | "Servicios de estudios de mecánica de suelos para proyectos de construcción e infraestructura." (versión ES). La versión EN dice "mechanical engineering studies", que no es lo mismo | Leído del PDF · ver P-13 |
+| Sede | Jr. Los Topacios 440, Cajamarca (Perú) | Leído del PDF |
+| Primera emisión | 2026-04-01 | Leído del PDF · ver P-12 (el requerimiento dice 2026-04-06) |
+| Vigencia (expiración) | 2029-04-01 | Leído del PDF |
+| Sello | Marca AENOR "Gestión de la Calidad · ISO 9001" | Leído del PDF · uso en la web [Supuesto], ver P-14 |
+
+### 2.5 Migración al modelo único (v1.7)
+| Registro | Título | Tipo | Institución | Archivo | Vigencia | Origen |
+|---|---|---|---|---|---|---|
+| INACAL | Acreditación INACAL LE-230 | Acreditación | Instituto Nacional de Calidad (INACAL) | Imagen del certificado que hoy muestra la web (`static/web/img/certificaciones/GRUPO-VICAF-CERTIFICADO.webp`), copiada a `/media/certificaciones/` | 2027-05-27 (leído de la imagen: "Fecha de Vencimiento: 27 de mayo de 2027") | [Decisión Gerente] (migrar) / Leído del certificado (vigencia) |
+| ISO 9001 | Certificación ISO 9001:2015 | Certificación ISO | AENOR CONFIA S.A.U. | El PDF ya cargado se conserva; si no hay PDF, la card no aparece hasta subirlo | 2029-04-01 | [Decisión Gerente] (migrar) / sección 2.4 |
+
+La descripción corta de cada uno se arma con los datos de 2.4 y del certificado INACAL (norma, N.º de registro o de certificado) [Propuesto]. El modelo `Acreditacion` (alcance y ensayos acreditados) no cambia: sigue alimentando la lista de ensayos de `/acreditacion/` y la revinculación del catálogo; solo deja de ser la fuente del certificado [Supuesto] (ver P-16).
+
 ## 3. Actores
 | Actor | Descripción | Origen |
 |---|---|---|
 | Visitante | Persona que entra a `www.grupovicaf.com`; puede ser cliente nuevo o recurrente | [Validado con usuario] |
 | Área comercial | Quien atiende el WhatsApp del laboratorio y prepara la oferta (FOR-001) | [Supuesto] |
-| Administrador web | Mantiene `NegocioConfig`, líneas y servicios publicados desde el admin | [Propuesto] |
+| Administrador web | Mantiene `NegocioConfig`, líneas y servicios publicados desde el admin; desde v1.6 también sube el PDF, el sello y la vigencia de las certificaciones; desde v1.7, el archivo (imagen o PDF), el tipo y la vigencia opcional de cada certificación | [Propuesto] |
 
 ## 4. Historias de usuario
 
@@ -116,6 +158,45 @@ Criterios de aceptación (EARS):
 - **CA-05.3** EL SISTEMA DEBE limitar el registro por IP con el mismo `rate_limit` y honeypot que `/contacto/cotizacion/`. [Propuesto]
 - **CA-05.4** EL SISTEMA NO DEBE crear un `Cliente` ni una `Cotizacion` real desde el lead sin que un usuario del LIMS lo revise. [Propuesto] — ver Observación PM-04
 
+### HU-WEB-08 · Ver las acreditaciones y certificaciones del laboratorio (v1.7)
+**Como** visitante que evalúa contratar al laboratorio, **quiero** ver en una grilla las acreditaciones y certificaciones de Grupo VICAF y abrir cada documento, **para** comprobar que sus ensayos y su gestión están respaldados por instituciones independientes. [Decisión Gerente]
+
+*(v1.7 reemplaza la versión v1.6 de esta HU: la tarjeta ISO 9001 con todos sus datos y el visor solo de PDF pasan a una card uniforme para cualquier certificación y un modal para imagen o PDF.)*
+
+Criterios de aceptación (EARS):
+- **CA-08.1** MIENTRAS existan certificaciones publicadas (RN-15), EL SISTEMA DEBE mostrar en `/acreditacion/`, debajo del hero, una grilla de cards en el orden del admin: ~~(v1.7) 4 columnas en escritorio, 2 en tablet y 1 en móvil~~ *(v1.10)* 2 cards por fila en escritorio (desde 1280 px) y 1 por fila en tablet y móvil, centradas y con un ancho máximo de 1200 px. [Decisión Gerente] / [Encargo de diseño] (v1.10) / [Propuesto] (1280 px: a 1024 px dos cards horizontales quedan apretadas)
+- **CA-08.2** ~~(v1.7) título, descripción, tipo e institución, sin imagen~~ ~~(v1.9) 3 franjas: logo arriba sobre fondo claro, tipo, título y descripción al medio, pie "Ver documento"~~ *(v1.10)* EL SISTEMA DEBE mostrar cada card en horizontal (unos 300 px de alto en escritorio) con dos paneles: a la izquierda, en un tercio del ancho, un panel con degradado por tipo (azul corporativo para Acreditación, azul con el dorado del logo de VICAF para Certificación ISO) con el tipo en versalitas arriba, el logo de la institución en un recuadro blanco con sombra al centro (o un sello genérico si no tiene logo) y el código corto abajo (LE-230, ISO 9001:2015, tomado del título); a la derecha, sobre blanco, "Otorgada por" y la institución, el título grande, la descripción corta (máx. 3 líneas), la vigencia ("Vigente hasta dd/mm/aaaa", o "Vigente" si no tiene fecha) con un check verde y una pastilla "Ver documento" con ícono. En móvil la card pasa a vertical, con el panel de color arriba. Todas las cards de una fila miden lo mismo, los títulos largos no se desbordan y toda la card es clicable, con foco visible alrededor de la card; no hay página de detalle. [Decisión Gerente] (card clicable, sin detalle) / [Encargo de diseño] (v1.10) / [Propuesto] (código tomado del título)
+- **CA-08.3** CUANDO el visitante haga clic en una card (o la active con el teclado) y su archivo sea una imagen, EL SISTEMA DEBE abrir un modal con la imagen. [Decisión Gerente]
+- **CA-08.4** CUANDO el visitante abra una card cuyo archivo sea PDF en un equipo de escritorio (pantalla de 768 px o más, puntero fino y visor de PDF del navegador), EL SISTEMA DEBE abrir el modal con el PDF embebido. ~~(v1.7) En móvil, pestaña nueva sin modal.~~ *(v1.9)* DONDE el equipo sea un móvil o tableta o el navegador no tenga visor de PDF, EL SISTEMA DEBE abrir igual el modal, con el título, "Abrir documento" (pestaña nueva), "Descargar" y "Cerrar". Sin JavaScript, el archivo se abre en una pestaña nueva. [Decisión Gerente] (toda card abre el modal) / [Propuesto] (el aviso con "Abrir documento" en móvil, ver P-20)
+- **CA-08.5** MIENTRAS el modal esté abierto, EL SISTEMA DEBE mostrar los botones "Descargar" (descarga el mismo archivo) y "Cerrar", y cerrarse con "Cerrar", ×, Esc o un clic fuera del contenido, devolviendo el foco a la card que lo abrió. [Decisión Gerente]
+- **CA-08.6** MIENTRAS el modal esté abierto, EL SISTEMA DEBE anunciarse como diálogo modal (`role="dialog"`, `aria-modal="true"`, título accesible), mantener el foco dentro del modal y bloquear el desplazamiento de la página. [Decisión Gerente] ("accesible")
+- **CA-08.7** SI una certificación está inactiva, venció (fecha de vigencia anterior a la fecha de Lima) o no tiene archivo, ENTONCES EL SISTEMA NO DEBE mostrar su card en ninguna página ni declararla en los datos estructurados. [Decisión Gerente]
+- **CA-08.8** MIENTRAS existan certificaciones publicadas, EL SISTEMA DEBE mostrar en la home una sección resumida, como máximo 4, y el enlace "Ver todas" a `/acreditacion/`. ~~(v1.9) Las cards de la home son compactas: logo y título.~~ *(v1.10)* La home usa las mismas cards de `/acreditacion/` (CA-08.2), con borde y sombra claros para contrastar con el fondo azul, y "Ver todas" alineado en la fila del título de la sección. [Decisión Gerente] / [Encargo de diseño] (v1.10)
+- **CA-08.9** EL SISTEMA NO DEBE mostrar en la home la imagen grande del certificado. [Decisión Gerente]
+- **CA-08.10** EL SISTEMA DEBE permitir al administrador web crear y editar certificaciones desde el admin con: título, descripción corta, tipo (Acreditación / Certificación ISO / Otro), institución que la otorga, archivo (imagen o PDF), fecha de vigencia opcional, orden y activo, sin cambios de código. [Decisión Gerente]
+- **CA-08.11** MIENTRAS haya certificaciones publicadas de tipo "Certificación ISO" u "Otro", EL SISTEMA DEBE declararlas en el JSON-LD de la organización (`LocalBusiness.hasCertification`); la acreditación INACAL sigue declarada como `hasCredential`. [Propuesto]
+- **CA-08.12** EL SISTEMA NO DEBE decir en la home ni en `/acreditacion/` que el laboratorio opera en el "norte del Perú": el alcance es solo Cajamarca. [Decisión Gerente] D-VCF-002
+- **CA-08.13** *(v1.9)* EL SISTEMA DEBE permitir al administrador web subir desde el admin el logo de la institución de cada certificación (imagen JPG, PNG o WebP de hasta 2 MB), con vista previa; SI no hay logo, ENTONCES la card DEBE mostrar un ícono genérico de sello. [Decisión Gerente] (campo y sello) / [Propuesto] (formatos y peso)
+- **CA-08.14** *(v1.9)* SI hay menos certificaciones publicadas que columnas en la fila, ENTONCES EL SISTEMA DEBE centrar las cards en vez de alinearlas a la izquierda. [Decisión Gerente]
+- **CA-08.15** *(v1.9)* EL SISTEMA DEBE dar a las cards un aspecto premium con la tipografía y los colores corporativos de la web: sombra suave, borde fino y, al pasar el mouse, la card se eleva y el logo se destaca. *(v1.10)* Esquinas de 16 px y sombra en capas; con hover la card sube 4 px, la sombra crece y el logo hace un leve zoom, con transiciones de 200 ms; DONDE el visitante pida reducir el movimiento (`prefers-reduced-motion`), la card y el logo no se mueven. Los textos cumplen contraste AA. [Decisión Gerente] / [Encargo de diseño] (v1.10)
+
+### HU-WEB-09 · Encontrar un ensayo acreditado (v1.8)
+**Como** visitante que necesita un ensayo con respaldo de acreditación, **quiero** ver los ensayos acreditados en cards agrupadas por línea, buscarlos o filtrarlos y abrir su detalle, **para** confirmar rápido que el ensayo que necesito está acreditado y bajo qué norma. [Decisión Gerente]
+
+*Todo en cards (v1.8): la home ya muestra servicios y certificaciones en cards (HU-WEB-08, CA-08.8); esta HU cambia la última lista que quedaba, la de ensayos acreditados de `/acreditacion/`.*
+
+Criterios de aceptación (EARS):
+- **CA-09.1** ~~(v1.8) cards en 4 columnas~~ *(v1.9)* MIENTRAS existan ensayos acreditados (los vinculados a una acreditación activa del admin), EL SISTEMA DEBE mostrarlos en `/acreditacion/`, debajo de la grilla de certificaciones, como una lista ordenada (no cards) agrupada por línea de servicio: un encabezado por línea con el número de ensayos, y cada grupo plegable, todos abiertos al cargar la página. Dentro de cada grupo, en orden alfabético, en 2 o 3 columnas en escritorio y 1 en móvil, con un check verde por ensayo y buena separación entre líneas. [Decisión Gerente]
+- **CA-09.2** EL SISTEMA DEBE ubicar cada ensayo en una sola línea: la primera línea activa (en el orden del admin) que lo incluye; si ninguna lo incluye, la línea de su ficha publicada; si tampoco tiene, el grupo "Otros ensayos acreditados", que va al final. Un ensayo de varias acreditaciones aparece una sola vez. [Supuesto] (ver P-19)
+- **CA-09.3** ~~(v1.8) card con nombre, norma y línea~~ *(v1.9)* EL SISTEMA DEBE mostrar en cada fila de la lista el nombre del ensayo y, debajo, el código de la norma; SI el ensayo tiene ficha publicada, ENTONCES el nombre DEBE ser un enlace a ella. [Propuesto]
+- **CA-09.4** CUANDO el visitante escriba en el buscador, EL SISTEMA DEBE mostrar solo los ensayos cuyo nombre, norma, método o línea contengan todas las palabras escritas, sin distinguir mayúsculas ni tildes, ocultar las líneas sin resultados y anunciar cuántos ensayos se muestran. [Decisión Gerente] (buscador) / [Propuesto] (criterio)
+- **CA-09.5** ~~(v1.8) Filtro por línea.~~ *(v1.9)* Se quita: los grupos plegables cumplen esa función. CUANDO el visitante busque, EL SISTEMA DEBE abrir los grupos que tengan resultados. [Decisión Gerente] (solo buscador) / [Propuesto] (abrir grupos)
+- **CA-09.6** SI la búsqueda o el filtro no dejan ningún ensayo, ENTONCES EL SISTEMA DEBE avisar que no hay ensayos acreditados con ese criterio y ofrecer "Limpiar búsqueda". [Propuesto]
+- **CA-09.7** ~~(v1.8, se quita en v1.9: la lista no abre modal)~~ CUANDO el visitante abra una card, EL SISTEMA DEBE abrir un modal con el nombre del ensayo, la línea, la norma (código y nombre), el método, la acreditación (institución y N.º) y, si el ensayo tiene ficha publicada, su resumen y el enlace "Ver ficha del ensayo"; siempre con "Solicitar cotización" y "Cerrar". [Decisión Gerente] (modal con detalle) / [Propuesto] (campos)
+- **CA-09.8** ~~(v1.8, se quita en v1.9)~~ MIENTRAS el modal del ensayo esté abierto, EL SISTEMA DEBE comportarse como el de certificaciones: diálogo modal accesible, foco en ×, foco atrapado, sin desplazamiento de la página, y cerrarse con "Cerrar", ×, Esc o un clic fuera, devolviendo el foco a la card. [Propuesto] (igual que CA-08.5 y CA-08.6)
+- **CA-09.9** EL SISTEMA NO DEBE mostrar en las cards, el modal ni los datos de la página precios, códigos de facturación ni la marca interna "acreditado" del LIMS (RN-16). [Propuesto] (CLAUDE.md reglas 2-3, PM-05)
+- **CA-09.10** DONDE el navegador no ejecute JavaScript, EL SISTEMA DEBE mostrar la lista completa, sin buscador, con los grupos plegables igual (nativos del navegador), y los ensayos con ficha publicada DEBEN llevar a esa ficha. [Propuesto]
+
 ## 5. Casos de uso
 
 ### CU-WEB-01 · Consultar un servicio
@@ -148,6 +229,26 @@ Criterios de aceptación (EARS):
 | Postcondición | WhatsApp abierto; con opción C, lead registrado |
 | HU | HU-WEB-01, 03, 04, 05 |
 
+### CU-WEB-04 · Ver una acreditación o certificación (v1.7)
+| Campo | Detalle |
+|---|---|
+| Actor | Visitante; Administrador web (precondición) |
+| Precondición | El administrador web cargó la certificación con su archivo, la dejó activa y su vigencia (si tiene) no ha pasado (RN-15) |
+| Flujo básico | 1. El visitante entra a `/acreditacion/` (o ve la sección resumida de la home). 2. El sistema muestra las cards. 3. El visitante hace clic en una card. 4. El sistema abre el modal con la imagen o el PDF y el foco en ×. 5. El visitante lo revisa, lo descarga con "Descargar" o cierra con "Cerrar", ×, Esc o clic fuera. 6. El sistema cierra el modal y devuelve el foco a la card |
+| Alternos | 1a. En la home hay más de 4 publicadas: se muestran las 4 primeras y "Ver todas" lleva a `/acreditacion/` (CA-08.8). 3a. *(v1.9)* PDF en móvil, tableta o navegador sin visor de PDF: el modal ofrece "Abrir documento" en una pestaña nueva (CA-08.4). 3b. Sin JavaScript: cualquier archivo se abre en una pestaña nueva. 1b. Ninguna publicada: no se muestra la grilla ni la sección de la home (CA-08.7) |
+| Postcondición | Nada se guarda |
+| HU | HU-WEB-08 |
+
+### CU-WEB-05 · Buscar un ensayo acreditado (v1.8)
+| Campo | Detalle |
+|---|---|
+| Actor | Visitante; Administrador web (precondición) |
+| Precondición | El administrador web vinculó los ensayos del LIMS a una acreditación activa y, para agruparlos, a las líneas de servicio |
+| Flujo básico | 1. El visitante entra a `/acreditacion/` y baja a "Ensayos acreditados". 2. El sistema muestra las cards agrupadas por línea. 3. El visitante escribe en el buscador o elige una línea. 4. El sistema deja solo las cards que coinciden y anuncia cuántas son. 5. El visitante abre una card. 6. El sistema abre el modal con el detalle. 7. El visitante elige "Ver ficha del ensayo", "Solicitar cotización" o cierra el modal |
+| Alternos | 4a. Ninguna coincide: aviso y "Limpiar búsqueda" (CA-09.6). 6a. *(v1.9)* El ensayo no tiene ficha publicada: su nombre es texto, sin enlace. 2a. Sin JavaScript: se ve la lista completa, sin buscador; las que tienen ficha llevan a ella (CA-09.10). 1a. Ningún ensayo acreditado: la sección no se muestra |
+| Postcondición | Nada se guarda |
+| HU | HU-WEB-09 |
+
 ## 6. Reglas de negocio
 | ID | Regla | Origen |
 |---|---|---|
@@ -165,6 +266,8 @@ Criterios de aceptación (EARS):
 | RN-12 | El estado del asistente (paso, panel abierto o cerrado y respuestas) se guarda solo en el navegador del visitante, en `sessionStorage`, y se borra al cerrar la pestaña. Nunca se envía al servidor (opción A) | [Decisión Gerente] (v1.5) |
 | RN-13 | El asistente solo se abre por acción del visitante. Al pasar de página se restaura abierto únicamente si el visitante lo dejó abierto; si lo cerró, sigue cerrado | [Decisión Gerente] (v1.5) |
 | RN-14 | "Ver en la web" se muestra solo si la línea o el ensayo tiene página publicada: activo y con su slug resolviendo a esa misma página en `/servicios/<slug>/` | [Decisión Gerente] (v1.5) |
+| RN-15 | Una certificación (de cualquier tipo) solo se publica en la web, en las cards, el modal y el JSON-LD, si está activa, tiene archivo cargado y, si tiene fecha de vigencia, esa fecha no ha pasado según la fecha de Lima. Sin fecha de vigencia no vence. El día del vencimiento todavía se muestra; desde el día siguiente desaparece sola, sin intervención del administrador | [Decisión Gerente] (v1.6, v1.7: vigencia opcional) / [Propuesto] (día de vencimiento inclusive, P-15) |
+| RN-16 | Los ensayos acreditados que muestra la web son los que el administrador vinculó a una acreditación activa (no la marca `esta_acreditado` del LIMS, PM-05). De cada uno solo se publica: nombre, línea, norma (código y nombre), método, institución y N.º de la acreditación y, si tiene ficha publicada, su título, resumen y enlace. Nunca precio ni código de facturación | [Propuesto] (CLAUDE.md reglas 2-3) |
 
 ## 7. Textos del asistente
 
@@ -334,6 +437,10 @@ Recomendación original del PM: **A ahora, diseñada para pasar a C** sin rehace
 | PM-06 | El botón flotante solo está en la home y la home no limpia el `+` del número | Inconsistencia entre páginas y posible enlace fallido | Mover el componente a `web/base.html` (o un partial) en la spec; normalizar dígitos en un solo lugar |
 | PM-07 | No pude leer la rama `dev` ni crear la rama y el commit: GitHub no está vinculado a la sesión | Puede haber cambios en `dev` que este análisis no ve | Vincular GitHub y repetir la revisión contra `dev` |
 
+| PM-09 | *(v1.6)* nginx (`deploy/nginx/grupovicaf.conf`) y Django mandan `X-Frame-Options: DENY`, así que el PDF no se puede embeber. Se cambia a `SAMEORIGIN` **solo** para `/media/certificaciones/` | Al desplegar hay que copiar la config de nginx al servidor y recargarlo; si no, el modal se ve en blanco | Paso manual en el despliegue (ver specs/WEB/tasks.md, T15) |
+| PM-10 | *(v1.6)* Las fechas y el alcance se leyeron de una imagen (el PDF no tiene texto). Hay discrepancias con el requerimiento (P-12, P-13) | Datos publicados con riesgo de error | El Gerente los confirma; se corrigen desde el admin sin código |
+| PM-11 | *(v1.7)* `NegocioConfig.descripcion` es la meta description de la home y decía "cobertura en el norte del Perú" (PM-03): se corrige con una migración de datos que solo cambia el texto de la semilla. Queda fuera de la home y de Acreditación `templates/web/clientes.html` | `clientes.html` sigue contradiciendo D-VCF-002 | Corregir `clientes.html` en otra tarea |
+| PM-12 | *(v1.8)* En la base de desarrollo las líneas de servicio no tienen ensayos vinculados (los IDs del catálogo no coinciden, ver `revincular_catalogo`), así que todos los ensayos caen en "Otros ensayos acreditados". En producción la agrupación depende de que `LineaServicio.ensayos` esté revinculado | Si no se revincula, la página muestra un solo grupo | Revisar en el admin de producción que cada línea tenga sus ensayos |
 | PM-08 | G1 exige que QA confirme que los EARS se pueden probar. QA no está asignado, así que esa evidencia falta; el Gerente aprobó igual. P-03 (forma de captura de la ubicación) también seguía abierta y bloqueaba: se implementa la opción por defecto, texto libre | G1 queda con evidencia incompleta | Asignar QA o registrar la excepción |
 
 ## 11. Preguntas abiertas
@@ -350,6 +457,15 @@ Recomendación original del PM: **A ahora, diseñada para pasar a C** sin rehace
 | P-09 | ~~¿Opción A, B o C?~~ **Cerrada:** A, preparada para C (D-VCF-004) [Decisión Gerente] | Gerente | No (cerrada) |
 | P-10 | Si se elige C: ¿quién atiende los leads en el LIMS y qué texto de privacidad/consentimiento se muestra? | Gerente / cliente | Sí, solo con C |
 | P-11 | En el flujo de servicio, ¿el primer nivel son las 8 líneas comerciales o las categorías del LIMS? (propuesta: líneas) | Gerente | No |
+| P-12 | *(v1.6)* El requerimiento dice "emitido el 2026-04-06", pero el PDF dice "Primera emisión: 2026-04-01" (el 06-04 es la fecha en que AENOR generó el PDF). ¿Qué fecha se publica? Se cargó 2026-04-01 [Supuesto] | Gerente | No |
+| P-13 | *(v1.6)* ¿Se publica el PDF en inglés (`_IN_`, pedido en el requerimiento) o el de español (`_ES_`)? La web está en español y el alcance en inglés dice "mechanical engineering studies" en vez de "mecánica de suelos". Propuesta: subir `_ES_`. El alcance de la tarjeta se cargó en español [Supuesto] | Gerente | No |
+| P-14 | *(v1.6)* ¿El reglamento de uso de la marca AENOR permite mostrar el sello en la web tal como está? No se incluye en el código; si no se sube sello, la tarjeta muestra un distintivo de texto "ISO 9001" [Supuesto] | Gerente | No |
+| P-15 | *(v1.6)* ¿El día del vencimiento (2029-04-01) todavía se muestra? Propuesta: sí, desaparece al día siguiente (RN-15) | Gerente | No |
+| P-16 | *(v1.7)* El modelo `Acreditacion` (alcance y lista de ensayos acreditados de `/acreditacion/`) no se fusiona con "Certificación": tiene la relación con el catálogo del LIMS que una card no necesita. ¿Se mantiene esa sección debajo de la grilla? Se mantuvo [Supuesto]. **Cerrada (v1.8):** se mantiene, en cards por línea con buscador (HU-WEB-09) [Decisión Gerente] | Gerente | No (cerrada) |
+| P-17 | *(v1.7)* Las descripciones cortas de INACAL e ISO 9001 se redactaron a partir de los certificados (sección 2.5). ¿Las valida el Gerente o las cambia desde el admin? [Propuesto] | Gerente | No |
+| P-18 | *(v1.7)* Los botones INACAL del hero y de la franja de credibilidad de la home ("Ver certificado") abren ahora el mismo modal con el archivo de la certificación de tipo Acreditación; si no hay ninguna publicada, llevan a `/acreditacion/` [Supuesto] | Gerente | No |
+| P-19 | *(v1.8)* Un ensayo puede estar en varias líneas. Se muestra en una sola, la primera en el orden del admin, para no repetir cards [Supuesto]. ¿Prefiere el Gerente repetirlo en cada línea? | Gerente | No |
+| P-20 | *(v1.9)* "Al hacer clic en cualquier parte de la card se abre el modal con el documento": en móvil un PDF embebido queda en blanco en muchos teléfonos. Se abre el modal con "Abrir documento" (pestaña nueva) y "Descargar" en lugar del PDF [Propuesto]. ¿Se acepta? | Gerente | No |
 
 ## 12. Trazabilidad
 | HU | CU | RN | Decisión |
@@ -361,6 +477,8 @@ Recomendación original del PM: **A ahora, diseñada para pasar a C** sin rehace
 | HU-WEB-05 | CU-WEB-02 | RN-08 | DP-WEB-01 (solo C) |
 | HU-WEB-06 | — | RN-09, RN-11 | — |
 | HU-WEB-07 | CU-WEB-01, CU-WEB-03 | RN-12, RN-13, RN-14 | Cambio de alcance v1.5 [Decisión Gerente] |
+| HU-WEB-08 | CU-WEB-04 | RN-15 | Requerimiento nuevo v1.6 y cambio de alcance v1.7 [Decisión Gerente]; D-VCF-002 (CA-08.12) |
+| HU-WEB-09 | CU-WEB-05 | RN-16 | Cambio de diseño v1.8 y v1.9 [Decisión Gerente] |
 
 Todos los criterios son verificables con prueba manual o E2E, salvo CA-02.5 y CA-04.2, que también requieren revisión de código.
 
@@ -373,3 +491,8 @@ Todos los criterios son verificables con prueba manual o E2E, salvo CA-02.5 y CA
 | v1.3 | 2026-10-15 | El ASP pidió los textos: sección 7 "Textos del asistente" (T-01 a T-51), menú de 3 opciones, HU-WEB-06 (asesor), RN-09 en "usted", RN-11 y P-08 cerrada. Todo [Propuesto] hasta G1 | Claude PM |
 | v1.4 | 2026-10-15 | G1: el Gerente aprueba las HU, la opción A (D-VCF-004) y los textos (se mantiene INACAL en T-01); cierra P-02, P-04, P-07 y P-09; se agrega PM-08 (falta QA y P-03 sigue abierta) | Claude PM |
 | v1.5 | 2026-10-23 | Cambio de alcance [Decisión Gerente]: HU-WEB-07 (CA-07.1 a CA-07.7) y CU-WEB-03; CA-02.3 ajustado ("Ver en la web" en líneas y ensayos) y CA-02.7 nuevo; RN-12, RN-13 y RN-14; T-11, T-12 y T-13 con el enlace; flujo 8.1 en Mermaid. CA-07.5 y CA-07.7 quedan [Propuesto] | Claude PM |
+| v1.6 | 2026-10-23 | Requerimiento nuevo [Decisión Gerente]: certificado ISO 9001 (AENOR, ER-0146/2026) en /acreditacion/. HU-WEB-08 (CA-08.1 a CA-08.7), CU-WEB-04, RN-15, secciones 2.3 y 2.4 (datos leídos del PDF), PM-09 y PM-10, P-12 a P-15. Supuestos marcados: fecha de emisión, idioma del PDF, uso del sello y día de vencimiento | Claude PM |
+| v1.7 | 2026-10-23 | Cambio de alcance [Decisión Gerente]: modelo único "Certificación" (sección 2.5: migración de INACAL LE-230 e ISO 9001), HU-WEB-08 reescrita (CA-08.1 a CA-08.12: grilla de cards, modal de imagen o PDF, home resumida sin el certificado grande, textos solo Cajamarca), CU-WEB-04 reescrito, RN-15 con vigencia opcional, PM-11 y P-16 a P-18 | Claude PM |
+| v1.8 | 2026-10-23 | Cambio de diseño [Decisión Gerente]: todo en cards. HU-WEB-09 (CA-09.1 a CA-09.10: ensayos acreditados en cards por línea, 4 columnas, buscador, filtro por línea y modal de detalle), CU-WEB-05, RN-16, PM-12, P-19; P-16 cerrada | Claude PM |
+| v1.10 | 2026-10-23 | Cambio visual [Encargo de diseño]: cards de certificaciones horizontales estilo Material con panel de color por tipo, código corto, vigencia y pastilla "Ver documento"; 2 por fila desde 1280 px, verticales en móvil; la home usa las mismas cards con "Ver todas" en la fila del título (CA-08.1, CA-08.2, CA-08.8, CA-08.15). Sin cambios de datos ni de comportamiento | Claude PM |
+| v1.9 | 2026-10-23 | Cambio de diseño [Decisión Gerente] según boceto: cards de certificaciones en 3 franjas con logo (CA-08.2, CA-08.4, CA-08.8; CA-08.13 a 15 nuevos), home compacta; ensayos acreditados en lista agrupada, plegable, alfabética y en columnas con buscador (CA-09.1, 09.3, 09.5, 09.10; CA-09.7 y 09.8 se quitan); CU-WEB-04 y 05 ajustados; P-20 | Claude PM |

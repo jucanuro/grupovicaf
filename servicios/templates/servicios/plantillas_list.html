@@ -124,6 +124,7 @@
                             <input type="text"
                                 name="q"
                                 id="searchInput"
+                                data-lista-buscador
                                 value="{{ query|default:'' }}"
                                 class="bg-transparent border-none outline-none text-[11px] font-semibold text-slate-700 w-full uppercase"
                                 placeholder="BUSCAR POR NOMBRE O ASUNTO...">
@@ -150,7 +151,8 @@
         </div>
     </div>
 
-    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden"
+         data-lista-contenedor data-lista-url="{% url 'servicios:lista_plantillas' %}">
         <div class="overflow-x-auto" id="table-container">
             <table class="w-full border-separate border-spacing-0 responsive-table">
                 <thead class="bg-slate-50">
@@ -248,70 +250,9 @@
 
 {% block extra_scripts %}
 <script>
+    // El filtrado en vivo lo maneja static/js/lista_buscador.js.
     document.addEventListener('DOMContentLoaded', () => {
         if (typeof lucide !== 'undefined') lucide.createIcons();
-
-        const searchInput = document.getElementById('searchInput');
-        const tableBody = document.getElementById('plantillas-table-body');
-        const noResults = document.getElementById('no-results-message');
-        const tableContainer = document.getElementById('table-container');
-        const pagination = document.querySelector('.bg-slate-50.border-t'); 
-
-        if (searchInput) {
-            searchInput.addEventListener('keyup', async (e) => {
-                const query = e.target.value.trim();
-                
-                if (e.key === 'Enter') {
-                    searchInput.closest('form').submit();
-                    return;
-                }
-
-                if (query.length > 2) {
-                    const url = `{% url 'servicios:lista_plantillas' %}?q=${query}&ajax=1`; 
-                    
-                    try {
-                        const response = await fetch(url);
-                        if (response.ok) {
-                        }
-                    } catch (err) { 
-                        console.error("Error en búsqueda de plantillas:", err); 
-                    }
-                } else if (query.length === 0) {
-                    if (e.key === 'Backspace' || e.key === 'Delete') {
-                        if (window.location.search.includes('q=')) {
-                            window.location.href = window.location.pathname;
-                        }
-                    }
-                }
-            });
-        }
-
-        const tableBodyElement = document.getElementById('plantillas-table-body');
-        if (tableBodyElement) {
-            tableBodyElement.addEventListener('click', (e) => {
-                const deleteBtn = e.target.closest('button[title="Eliminar"]');
-                if (deleteBtn) {
-                    if (!confirm("¿Estás seguro de que deseas eliminar esta plantilla? Los documentos generados anteriormente no se verán afectados.")) {
-                        e.preventDefault();
-                    } else {
-                        console.log("Eliminar plantilla");
-                    }
-                }
-            });
-        }
     });
-
-
-    async function fetchPlantillaData(id) {
-        const url = `/servicios/plantillas/api/detalle-json/${id}/`;
-        try {
-            const response = await fetch(url);
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error("Error:", error);
-            return null;
-        }
-    }
 </script>
 {% endblock %}

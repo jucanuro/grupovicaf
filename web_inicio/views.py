@@ -2,7 +2,7 @@ from django.shortcuts import render
 
 from servicios.models import Norma, Servicio
 from siteconfig.models import NegocioConfig
-from web_acreditacion.models import Acreditacion
+from web_acreditacion.models import Acreditacion, Certificacion, primera_acreditacion
 from web_catalogo.models import LineaServicio
 from web_catalogo.views import clientes_destacados
 
@@ -62,9 +62,13 @@ def inicio_view(request):
         .only('slug', 'nombre', 'resumen', 'imagen', 'imagen_alt')
         .order_by('orden', 'nombre')
     )
+    # Versión resumida de /acreditacion/ (REQ-WEB-49): una consulta, máximo 4 cards.
+    certificaciones = list(Certificacion.objects.publicadas().para_card())
     return render(request, 'web/home.html', {
         'slides': slides,
         'lineas': lineas,
         'metricas': _metricas_credibilidad(),
         'clientes_destacados': clientes_destacados(),
+        'certificaciones': certificaciones[:4],
+        'certificacion_acreditacion': primera_acreditacion(certificaciones),
     })

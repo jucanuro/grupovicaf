@@ -2,7 +2,9 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.sitemaps.views import sitemap
 from django.http import HttpResponse
-from django.urls import include, path
+from django.urls import include, path, re_path
+
+from web_acreditacion.views import servir_certificado_dev
 
 from .sitemaps import sitemaps
 
@@ -33,4 +35,9 @@ urlpatterns = [
 ]
 
 if settings.DEBUG:
+    # Antes del static() genérico: los PDF de certificaciones se embeben en el
+    # modal de /acreditacion/ y necesitan SAMEORIGIN en vez de DENY.
+    urlpatterns += [
+        re_path(rf'^{settings.MEDIA_URL.lstrip("/")}certificaciones/(?P<path>.+)$', servir_certificado_dev),
+    ]
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

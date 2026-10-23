@@ -19,13 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobileMenu = document.getElementById('mobile-menu');
     const closeMobile = document.getElementById('close-mobile');
 
-    // Command palette
-    const palette = document.getElementById('cmd-palette');
-    const panel = document.getElementById('cmd-panel');
-    const input = document.getElementById('cmd-input');
-    const trigger = document.getElementById('search-trigger');
-    const closeCmd = document.getElementById('cmd-close');
-
     // Año footer
     const yearEl = document.getElementById('year');
 
@@ -278,43 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function openCmd() {
-        if (!palette) return;
-
-        palette.classList.remove('hidden');
-
-        requestAnimationFrame(() => {
-            palette.classList.remove('opacity-0');
-            panel?.classList.remove('scale-95');
-            panel?.classList.add('scale-100');
-            input?.focus();
-            queueRefreshIcons();
-        });
-    }
-
-    function closeCmdFunc() {
-        if (!palette) return;
-
-        palette.classList.add('opacity-0');
-        panel?.classList.remove('scale-100');
-        panel?.classList.add('scale-95');
-
-        setTimeout(() => {
-            palette.classList.add('hidden');
-        }, 180);
-    }
-
-    function bindCommandPalette() {
-        if (trigger) trigger.addEventListener('click', openCmd);
-        if (closeCmd) closeCmd.addEventListener('click', closeCmdFunc);
-
-        if (palette) {
-            palette.addEventListener('click', (e) => {
-                if (e.target === palette) closeCmdFunc();
-            });
-        }
-    }
-
     window.initCommandHeaders = function initCommandHeaders() {
         const headers = document.querySelectorAll('[data-command-header]');
 
@@ -534,16 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-            e.preventDefault();
-            openCmd();
-        }
-
         if (e.key === 'Escape') {
-            if (palette && !palette.classList.contains('hidden')) {
-                closeCmdFunc();
-            }
-
             closeStartMenu();
 
             document.querySelectorAll('[data-command-header].is-open').forEach(header => {
@@ -564,7 +511,6 @@ document.addEventListener('DOMContentLoaded', () => {
     bindSidebarInteractions();
     bindProyectoMenu();
     bindMobileMenu();
-    bindCommandPalette();
     bindStartMenu();
     initCommandHeaders();
 

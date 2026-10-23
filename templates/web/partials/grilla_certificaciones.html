@@ -1,0 +1,14 @@
+{% comment %}
+  Grilla de cards horizontales de certificaciones (specs/WEB v7, REQ-WEB-72):
+  1 card por fila en móvil y tableta (hasta 672 px de ancho, centrada; a
+  1024 px dos cards horizontales quedan apretadas) y 2 desde 1280 px, en un contenedor de 1200 px como máximo. Es flex con wrap y
+  no grid para centrar una card sola en la última fila; las cards de una fila
+  miden lo mismo porque los <li> son flex y la card es h-full. La usan
+  /acreditacion/ (todas) y la home (máximo 4, cortadas en la vista, con
+  `sobre_oscuro`).
+{% endcomment %}
+<ul class="reveal-group mx-auto flex max-w-[1200px] flex-wrap justify-center gap-6" role="list">
+    {% for certificacion in certificaciones %}
+    <li class="reveal flex w-full max-w-2xl xl:w-[calc((100%-1.5rem)/2)] xl:max-w-none">{% include 'web/partials/card_certificacion.html' %}</li>
+    {% endfor %}
+</ul>

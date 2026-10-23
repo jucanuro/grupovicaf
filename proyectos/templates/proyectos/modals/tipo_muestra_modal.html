@@ -10,31 +10,39 @@
             </button>
         </div>
 
-        <form id="form-tipo-muestra" class="p-6 space-y-4">
+        <form id="form-tipo-muestra" class="p-6 space-y-4" novalidate>
             <div>
-                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombre</label>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombre <span class="text-red-500">*</span></label>
                 <input
                     type="text"
                     id="tipo_muestra_nombre"
                     name="nombre"
                     required
-                    minlength="2"
+                    data-validar data-label="Nombre" data-min="2"
                     maxlength="100"
-                    class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
+                    class="js-input w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
                     placeholder="Ej: Suelo natural">
+                <div class="campo-estado" data-for="nombre">
+                    <span class="campo-msg" data-msg></span>
+                    <span class="campo-contador" data-contador></span>
+                </div>
             </div>
 
             <div>
-                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sigla</label>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sigla <span class="text-red-500">*</span></label>
                 <input
                     type="text"
                     id="tipo_muestra_sigla"
                     name="sigla"
                     required
-                    minlength="1"
-                    maxlength="10"
-                    class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 uppercase"
+                    data-validar data-label="Sigla" data-min="1"
+                    maxlength="5"
+                    class="js-input w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 uppercase"
                     placeholder="Ej: SN">
+                <div class="campo-estado" data-for="sigla">
+                    <span class="campo-msg" data-msg></span>
+                    <span class="campo-contador" data-contador></span>
+                </div>
             </div>
 
             <div id="tipo-muestra-modal-message" class="hidden rounded-xl border px-4 py-3 text-xs font-bold"></div>
