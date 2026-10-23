@@ -1,3 +1,5 @@
+import re
+
 from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
 from django.db import models
@@ -128,6 +130,12 @@ class CertificacionQuerySet(models.QuerySet):
         )
 
 
+# Código corto del panel de color de la card (specs/WEB v7, REQ-WEB-71): el
+# registro de acreditación (LE-230) o la norma ISO (ISO 9001:2015) tal como
+# vienen en el título. Sin coincidencia, la card no muestra código.
+CODIGO_CORTO_RE = re.compile(r'\b(?:L[EC]-\d+|ISO(?:/IEC)?\s+\d+(?:-\d+)?(?::\d{4})?)', re.IGNORECASE)
+
+
 def primera_acreditacion(certificaciones):
     """Primera certificación de tipo Acreditación de una lista ya publicada.
 
@@ -139,11 +147,12 @@ def primera_acreditacion(certificaciones):
 class Certificacion(models.Model):
     """Acreditación, certificación ISO u otro reconocimiento mostrado como card.
 
-    Modelo único desde specs/WEB v4. Desde v6 la card de /acreditacion/ y de
-    la home lleva arriba el logo de la institución (o un sello genérico si no
-    tiene), al medio el tipo, el título y la descripción, y abajo "Ver
-    documento"; abre el archivo (imagen o PDF) en un modal. Sin SeoModel: no
-    tiene página propia.
+    Modelo único desde specs/WEB v4. Desde v7 la card de /acreditacion/ y de
+    la home es horizontal: panel de color con el tipo, el logo de la
+    institución (o un sello genérico) y el código corto; al lado la
+    institución, el título, la descripción, la vigencia y "Ver documento";
+    abre el archivo (imagen o PDF) en un modal. Sin SeoModel: no tiene página
+    propia.
     """
 
     TIPO_ACREDITACION = 'acreditacion'
@@ -210,6 +219,11 @@ class Certificacion(models.Model):
     @property
     def vigente(self):
         return self.vigencia_hasta is None or self.vigencia_hasta >= timezone.localdate()
+
+    @property
+    def codigo_corto(self):
+        coincidencia = CODIGO_CORTO_RE.search(self.titulo or '')
+        return coincidencia.group(0) if coincidencia else ''
 
     @property
     def publicada(self):

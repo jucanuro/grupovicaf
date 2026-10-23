@@ -84,6 +84,18 @@ class MediaTemporalMixin:
 
 
 class CertificacionModelTests(MediaTemporalMixin, TestCase):
+    def test_codigo_corto_sale_del_titulo(self):
+        # REQ-WEB-71: código del panel de color, sin campo nuevo.
+        casos = {
+            'Acreditación INACAL LE-230': 'LE-230',
+            'Certificación ISO 9001:2015': 'ISO 9001:2015',
+            'Certificado ISO/IEC 17025:2017': 'ISO/IEC 17025:2017',
+            'ISO 45001': 'ISO 45001',
+            'Reconocimiento municipal': '',
+        }
+        for titulo, codigo in casos.items():
+            self.assertEqual(Certificacion(titulo=titulo).codigo_corto, codigo, titulo)
+
     def test_migracion_pasa_inacal_e_iso9001_al_modelo_unico(self):
         # REQ-WEB-41: la 0005 convierte la semilla ISO 9001 de v3 y crea INACAL.
         inacal = Certificacion.objects.get(tipo=Certificacion.TIPO_ACREDITACION)
@@ -188,14 +200,22 @@ class AcreditacionPaginaTests(MediaTemporalMixin, TestCase):
         grilla = html.index('id="certificaciones"')
         self.assertLess(hero_fin, grilla)
         self.assertLess(grilla, html.index('Alcance de acreditación'))
-        # REQ-WEB-63: 1, 2 y 4 columnas, centradas si la fila no se llena.
-        self.assertIn('<ul class="reveal-group flex flex-wrap justify-center gap-6" role="list">', html)
-        self.assertIn('w-full sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-4.5rem)/4)]', html)
-        self.assertIn('card-tech relative flex h-full flex-col', html)
+        # REQ-WEB-72: 1 card por fila por debajo de 1280 px y 2 desde ahí, centradas, máx. 1200 px.
+        self.assertIn('<ul class="reveal-group mx-auto flex max-w-[1200px] flex-wrap justify-center gap-6" role="list">', html)
+        self.assertIn('reveal flex w-full max-w-2xl xl:w-[calc((100%-1.5rem)/2)] xl:max-w-none', html)
+        # REQ-WEB-71: card horizontal (vertical en móvil) con panel de color por tipo.
+        self.assertIn('group relative flex h-full w-full flex-col overflow-hidden rounded-card', html)
+        self.assertIn('sm:min-h-[300px] sm:flex-row', html)
+        self.assertIn('from-blue-950 via-blue-800 to-amber-600', html)  # ISO
+        self.assertIn('from-blue-950 via-blue-800 to-vicaf-primary', html)  # Acreditación
+        self.assertIn('motion-safe:hover:-translate-y-1', html)
+        self.assertIn('has-[:focus-visible]:ring-[3px]', html)
         for texto in (
             'Acreditaciones y certificaciones', 'Certificación ISO 9001:2015',
-            'Sistema de Gestión de la Calidad certificado por AENOR.', 'AENOR CONFIA S.A.U.',
+            'Sistema de Gestión de la Calidad certificado por AENOR.',
+            'Otorgada por <span class="font-semibold text-slate-700">AENOR CONFIA S.A.U.</span>',
             '>Certificación ISO</span>', 'Acreditación INACAL LE-230', '>Acreditación</span>',
+            '>ISO 9001:2015</span>', '>LE-230</span>',
         ):
             self.assertIn(texto, html)
         # Una card = un enlace real al archivo, en pestaña nueva sin JS (REQ-WEB-46).
@@ -205,8 +225,15 @@ class AcreditacionPaginaTests(MediaTemporalMixin, TestCase):
         )
         self.assertIn('data-cert-tipo="imagen" data-cert-titulo="Acreditación INACAL LE-230"', html)
         self.assertIn('after:absolute after:inset-0', html)
-        # Tres franjas: logo (aquí el sello genérico), cuerpo y pie "Ver documento".
-        self.assertEqual(html.count('>Ver documento</span>'), 2)
+        # Pastilla "Ver documento" y vigencia con check (sin fecha: "Vigente").
+        self.assertEqual(html.count('Ver documento\n'), 2)
+        vence = cert.vigencia_hasta
+        self.assertIn(
+            f'<span>Vigente hasta <time datetime="{vence:%Y-%m-%d}">{vence:%d/%m/%Y}</time></span>', html,
+        )
+        self.assertIn('<span>Vigente hasta <time datetime="2027-05-27">27/05/2027</time></span>', html)
+        Certificacion.objects.filter(pk=cert.pk).update(vigencia_hasta=None)
+        self.assertIn('<span>Vigente</span>', self.get_html())
         self.assertIn('Sin logo, la card muestra un sello genérico', Certificacion._meta.get_field('logo').help_text)
         # Sin el certificado grande al lado: ninguna imagen de certificado en la página.
         self.assertNotIn('GRUPO-VICAF-CERTIFICADO', html)
@@ -219,11 +246,11 @@ class AcreditacionPaginaTests(MediaTemporalMixin, TestCase):
         html = self.get_html()
         self.assertIn(
             f'<img src="{cert.logo.url}" alt="Logo de AENOR CONFIA S.A.U."\n'
-            f'         width="2" height="1"\n         loading="lazy" decoding="async"', html,
+            f'             width="2" height="1"\n             loading="lazy" decoding="async"', html,
         )
-        self.assertIn('group-hover:scale-105', html)
+        self.assertIn('motion-safe:group-hover:scale-105', html)
         # La card sin logo (INACAL de la migración) muestra el sello genérico.
-        self.assertEqual(html.count('rounded-full border border-blue-100 bg-blue-50 text-blue-700'), 1)
+        self.assertEqual(html.count('data-sello-generico'), 1)
 
     def test_validar_logo(self):
         # REQ-WEB-62: solo imagen, 2 MB como máximo.

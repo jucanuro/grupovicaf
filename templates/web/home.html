@@ -238,41 +238,40 @@
   -> retícula técnica (plano de ingeniería, 6% opacidad) -> ruido SVG
   feTurbulence (3%, quita el plano digital) -> contenido.
 
-  specs/WEB v6 (REQ-WEB-65): versión resumida de /acreditacion/, con las
-  cards compactas (logo y título, máximo 4, cortadas en inicio_view) y "Ver
-  todas". Sin la imagen grande del certificado: cada card abre su documento
-  en el modal.
+  specs/WEB v6 (REQ-WEB-65): versión resumida de /acreditacion/, máximo 4
+  cards (cortadas en inicio_view) y "Ver todas". Sin la imagen grande del
+  certificado: cada card abre su documento en el modal. v7 (REQ-WEB-73): las
+  mismas cards horizontales de /acreditacion/, con borde y sombra claros
+  sobre el azul, y "Ver todas" en la fila del título.
 {% endcomment %}
 <section class="reveal section-dark relative overflow-hidden py-20 text-white lg:py-28" aria-labelledby="acreditacion-titulo">
     {% include 'web/partials/textura_tecnica.html' %}
 
-    <div class="relative z-10 mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-            <div class="max-w-2xl">
-                <span class="eyebrow-inverse">
-                    Acreditación {{ negocio.acreditacion_entidad|default:"INACAL" }}
-                </span>
-                <h2 id="acreditacion-titulo" class="h2-section-inverse mt-6">
-                    Ensayos respaldados por acreditación oficial
-                </h2>
-                <p class="body-copy-inverse mt-4">
-                    Registro
-                    <span class="mono-tag rounded-md bg-white/10 px-1.5 py-0.5 font-semibold text-white">{{ negocio.acreditacion_codigo|default:"LE-230" }}</span>
-                    ante {{ negocio.acreditacion_entidad|default:"INACAL" }}: resultados imparciales, trazables y
-                    reconocidos por entidades públicas y privadas de Cajamarca.
-                </p>
-            </div>
-            <a href="{% url 'web_acreditacion:acreditacion' %}" class="btn-secondary-inverse shrink-0 self-start lg:self-auto">
+    <div class="relative z-10 mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 xl:px-0">
+        <span class="eyebrow-inverse">
+            Acreditación {{ negocio.acreditacion_entidad|default:"INACAL" }}
+        </span>
+        <div class="mt-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-5">
+            <h2 id="acreditacion-titulo" class="h2-section-inverse max-w-2xl">
+                Ensayos respaldados por acreditación oficial
+            </h2>
+            <a href="{% url 'web_acreditacion:acreditacion' %}" class="btn-secondary-inverse shrink-0">
                 Ver todas<span class="sr-only"> las acreditaciones y certificaciones</span>
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
                 </svg>
             </a>
         </div>
+        <p class="body-copy-inverse mt-4 max-w-2xl">
+            Registro
+            <span class="mono-tag rounded-md bg-white/10 px-1.5 py-0.5 font-semibold text-white">{{ negocio.acreditacion_codigo|default:"LE-230" }}</span>
+            ante {{ negocio.acreditacion_entidad|default:"INACAL" }}: resultados imparciales, trazables y
+            reconocidos por entidades públicas y privadas de Cajamarca.
+        </p>
 
         {% if certificaciones %}
         <div class="mt-12">
-            {% include 'web/partials/grilla_certificaciones.html' with compacta=True %}
+            {% include 'web/partials/grilla_certificaciones.html' with sobre_oscuro=True %}
         </div>
         {% endif %}
     </div>

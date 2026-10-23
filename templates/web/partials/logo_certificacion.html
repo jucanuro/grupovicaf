@@ -1,21 +1,33 @@
 {% comment %}
-  Franja del logo de una card de certificación (specs/WEB v6, REQ-WEB-62).
-  Logo de la institución centrado sobre fondo claro; sin logo, un sello
-  genérico. El logo es decorativo para el lector de pantalla cuando el título
-  y la institución ya están en la card, pero lleva alt para SEO de imágenes.
-  `alto` ajusta la franja: la home usa la versión compacta.
+  Panel de color de una card de certificación (specs/WEB v7, REQ-WEB-71):
+  un tercio del ancho en la card horizontal y franja superior en móvil. Degradado
+  por tipo: azul corporativo para Acreditación, azul con el dorado del logo
+  de VICAF para ISO, azul pizarra para Otro. Arriba el tipo en versalitas, al
+  centro el logo de la institución en un recuadro blanco con sombra (o un
+  sello genérico) y abajo el código corto (Certificacion.codigo_corto) en una
+  pastilla oscura, que mantiene el contraste AA sobre el dorado. El logo es
+  decorativo para el lector de pantalla cuando el título y la institución ya
+  están en la card, pero lleva alt para SEO de imágenes.
 {% endcomment %}
-<div class="relative flex {{ alto|default:'h-40' }} items-center justify-center border-b border-slate-200/80 bg-gradient-to-b from-white to-slate-50 px-8">
-    {% if certificacion.logo %}
-    <img src="{{ certificacion.logo.url }}" alt="Logo de {{ certificacion.institucion }}"
-         width="{{ certificacion.logo_ancho|default:240 }}" height="{{ certificacion.logo_alto|default:120 }}"
-         loading="lazy" decoding="async"
-         class="max-h-[62%] w-auto max-w-[78%] object-contain opacity-90 transition duration-300 ease-out group-hover:scale-105 group-hover:opacity-100">
-    {% else %}
-    <span class="flex h-16 w-16 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-blue-700 transition duration-300 ease-out group-hover:scale-105 group-hover:bg-blue-100" aria-hidden="true">
-        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z"/>
-        </svg>
+<div class="relative flex shrink-0 flex-col items-center justify-between gap-4 px-5 py-6 text-center text-white sm:w-1/3 {% if certificacion.tipo == 'acreditacion' %}bg-gradient-to-br from-blue-950 via-blue-800 to-vicaf-primary{% elif certificacion.tipo == 'iso' %}bg-gradient-to-b from-blue-950 via-blue-800 to-amber-600{% else %}bg-gradient-to-br from-slate-800 to-blue-900{% endif %}">
+    <span class="text-[11px] font-bold uppercase leading-tight tracking-[0.18em] text-white">{{ certificacion.get_tipo_display }}</span>
+
+    <span class="flex h-28 w-full max-w-[176px] items-center justify-center rounded-xl bg-white p-4 shadow-[0_12px_28px_-10px_rgba(2,6,23,0.55)] ring-1 ring-black/5">
+        {% if certificacion.logo %}
+        <img src="{{ certificacion.logo.url }}" alt="Logo de {{ certificacion.institucion }}"
+             width="{{ certificacion.logo_ancho|default:240 }}" height="{{ certificacion.logo_alto|default:120 }}"
+             loading="lazy" decoding="async"
+             class="h-auto max-h-full w-auto max-w-full object-contain transition-transform duration-200 ease-out motion-safe:group-hover:scale-105">
+        {% else %}
+        <span class="flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-700 transition-transform duration-200 ease-out motion-safe:group-hover:scale-105" aria-hidden="true" data-sello-generico>
+            <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z"/>
+            </svg>
+        </span>
+        {% endif %}
     </span>
-    {% endif %}
+
+    {% with codigo=certificacion.codigo_corto %}
+    {% if codigo %}<span class="max-w-full truncate whitespace-nowrap rounded-full bg-blue-950/55 px-3 py-1 text-sm font-extrabold tracking-wide text-white ring-1 ring-white/20">{{ codigo }}</span>{% else %}<span class="h-7" aria-hidden="true"></span>{% endif %}
+    {% endwith %}
 </div>

@@ -2,7 +2,7 @@
 
 | Versión | Fecha | Estado |
 |---|---|---|
-| v6 | 2026-10-23 | Aprobado por el Gerente (modo rápido) · cambios de alcance v1.5 y v1.7, requerimiento nuevo v1.6 y cambios de diseño v1.8 y v1.9 del HU |
+| v7 | 2026-10-23 | Aprobado por el Gerente (modo rápido) · cambios de alcance v1.5 y v1.7, requerimiento nuevo v1.6, cambios de diseño v1.8 y v1.9 y cambio visual v1.10 del HU |
 
 ## Componentes
 
@@ -344,3 +344,23 @@ flowchart LR
 | Logos con mucho margen transparente se ven chicos | Recortar antes de subir (en dev se recortó el de INACAL); la ayuda del campo lo pide |
 | En móvil el modal de un PDF no muestra el documento | Aviso con "Abrir documento" y "Descargar" (P-20) |
 | 97 de 99 ensayos en "Otros" en dev (PM-12) | Igual que v5: en producción revisar `LineaServicio.ensayos` |
+
+## v7 · Cards horizontales de certificaciones (REQ-WEB-71 a 73)
+
+Solo plantillas y una propiedad de solo lectura: sin migraciones, sin cambios en `para_card()`, en el modal ni en `certificaciones.js`.
+
+### Modelo
+- `Certificacion.codigo_corto` (propiedad): primera coincidencia de `CODIGO_CORTO_RE` (`LE-nnn`/`LC-nnn` o `ISO[/IEC] nnnn[-n][:aaaa]`) en el título; `''` si no hay. Se deriva del título para no agregar un campo que el admin tenga que mantener en paralelo.
+
+### Plantillas
+- `partials/logo_certificacion.html`: deja de ser una franja y pasa a ser el panel de color (`sm:w-1/3`, arriba en móvil), `flex-col justify-between`: tipo (`text-[11px] uppercase tracking-[0.18em]`), recuadro blanco `h-28 max-w-[176px] rounded-xl` con sombra y el `<img>` (`object-contain`, `motion-safe:group-hover:scale-105`) o el sello (`data-sello-generico`), y el código en pastilla `bg-blue-950/55` (contraste ≥ 7:1 también sobre el dorado). Degradados: Acreditación `from-blue-950 via-blue-800 to-vicaf-primary`; ISO `from-blue-950 via-blue-800 to-amber-600` (el dorado del logo de VICAF); Otro `from-slate-800 to-blue-900`.
+- `partials/card_certificacion.html`: deja `card-tech` por clases propias (`rounded-card`, `shadow-layered` → `hover:shadow-layered-lg`, `transition-[transform,box-shadow] duration-200`, `motion-safe:hover:-translate-y-1`, `sm:flex-row sm:min-h-[300px]`). Foco: `has-[:focus-visible]:ring-[3px] ring-offset-2` en el `<article>` y `focus-visible:outline-none` en el `<a>` (el `a:focus-visible` global de `input.css` gana por especificidad a `outline-none`). Panel derecho: "Otorgada por" (`line-clamp-2`), H3 `text-xl sm:text-[1.375rem] line-clamp-3 break-words [text-wrap:balance]`, descripción `line-clamp-3` y pie `mt-auto flex-wrap` con la vigencia (`<time datetime>`) y la pastilla `bg-gradient-to-r from-vicaf-primary to-blue-900` (`aria-hidden`). Con `sobre_oscuro` (home): `border-white/25`, sombra con un anillo blanco tenue y anillo de foco `amber-400` con offset `blue-950`. Se quita `compacta`.
+- `partials/grilla_certificaciones.html`: `<ul class="mx-auto flex max-w-[1200px] flex-wrap justify-center gap-6">`; `<li class="flex w-full max-w-2xl xl:w-[calc((100%-1.5rem)/2)] xl:max-w-none">`. Dos columnas desde `xl` (1280 px) y no desde `lg`: a 1024 px cada card mediría ~470 px y el título y el código se parten.
+- `home.html`: contenedor de la sección de 1200 px; eyebrow, luego una fila `flex-wrap items-center justify-between` con el H2 y "Ver todas", y el párrafo debajo; `grilla_certificaciones.html with sobre_oscuro=True`.
+
+### Riesgos (v7)
+| Riesgo | Mitigación |
+|---|---|
+| Un título sin `LE-nnn` ni `ISO nnnn` no muestra código | El panel deja el hueco y la card sigue completa; si hace falta otro formato se amplía `CODIGO_CORTO_RE` |
+| `:has()` no existe en navegadores muy viejos | Sin `:has()` no se ve el anillo de foco de la card; todos los navegadores actuales lo soportan |
+

@@ -1,13 +1,14 @@
 {% comment %}
-  Grilla de cards de certificaciones (specs/WEB v6, REQ-WEB-63 y 65): 1
-  columna en móvil, 2 desde 640 px y 4 desde 1024 px. Es flex con wrap y no
-  grid para poder centrar las filas incompletas (con menos de 4 cards no
-  quedan pegadas a la izquierda); las cards de una fila miden lo mismo porque
-  los <li> se estiran y la card es h-full. La usan /acreditacion/ (todas) y
-  la home (máximo 4, cortadas en la vista, con `compacta`).
+  Grilla de cards horizontales de certificaciones (specs/WEB v7, REQ-WEB-72):
+  1 card por fila en móvil y tableta (hasta 672 px de ancho, centrada; a
+  1024 px dos cards horizontales quedan apretadas) y 2 desde 1280 px, en un contenedor de 1200 px como máximo. Es flex con wrap y
+  no grid para centrar una card sola en la última fila; las cards de una fila
+  miden lo mismo porque los <li> son flex y la card es h-full. La usan
+  /acreditacion/ (todas) y la home (máximo 4, cortadas en la vista, con
+  `sobre_oscuro`).
 {% endcomment %}
-<ul class="reveal-group flex flex-wrap justify-center gap-6" role="list">
+<ul class="reveal-group mx-auto flex max-w-[1200px] flex-wrap justify-center gap-6" role="list">
     {% for certificacion in certificaciones %}
-    <li class="reveal w-full sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-4.5rem)/4)]">{% include 'web/partials/card_certificacion.html' %}</li>
+    <li class="reveal flex w-full max-w-2xl xl:w-[calc((100%-1.5rem)/2)] xl:max-w-none">{% include 'web/partials/card_certificacion.html' %}</li>
     {% endfor %}
 </ul>
