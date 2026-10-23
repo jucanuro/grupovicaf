@@ -162,6 +162,14 @@ class BotonEnTodasLasPaginasTests(TestCase):
                 self.assertIn('href="https://wa.me/51964326364"', html)
                 self.assertIn('web/js/asistente-whatsapp.js', html)
 
+    def test_panel_con_menu_principal_y_marcado_movil(self):
+        # REQ-WEB-25 y 28: botón Menú principal en la cabecera y panel a lo ancho en móvil.
+        html = self.client.get(reverse('web_home')).content.decode()
+        self.assertEqual(html.count('data-asistente-menu'), 1)
+        self.assertIn('max-sm:group-data-[abierto=true]:hidden', html)
+        self.assertIn('max-h-[40vh]', html)
+        self.assertIn('inset-x-4', html)
+
     def test_sin_whatsapp_no_hay_boton(self):
         self.negocio.whatsapp = ''
         self.negocio.save()
