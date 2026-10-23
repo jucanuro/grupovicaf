@@ -1,3 +1,5 @@
+import unicodedata
+
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Prefetch
@@ -22,14 +24,19 @@ def _ficha(servicio):
         return None
 
 
-def ensayos_acreditados_por_linea(acreditaciones):
-    """Ensayos de las acreditaciones activas agrupados por línea (specs/WEB v5, REQ-WEB-53 a 61).
+def _orden_alfabetico(texto):
+    """Clave de orden sin tildes ni mayúsculas: "Ánálisis" va con la A, no después de la Z."""
+    return unicodedata.normalize('NFD', texto).encode('ascii', 'ignore').decode().casefold()
 
-    Devuelve (grupos, detalle). Solo salen los campos de la lista blanca
-    (REQ-WEB-60): nunca precio, unidad, código de facturación ni
-    esta_acreditado. Cada ensayo va en un solo grupo (REQ-WEB-54): la primera
-    línea activa que lo incluye, si no la línea de su ficha publicada, si no
-    "Otros ensayos acreditados" al final.
+
+def ensayos_acreditados_por_linea(acreditaciones):
+    """Ensayos de las acreditaciones activas agrupados por línea (specs/WEB v6, REQ-WEB-66 a 70).
+
+    Devuelve la lista de grupos, cada uno con sus ensayos en orden alfabético.
+    Solo salen los campos de la lista blanca (REQ-WEB-69): nunca precio,
+    unidad, código de facturación ni esta_acreditado. Cada ensayo va en un
+    solo grupo (REQ-WEB-67): la primera línea activa que lo incluye, si no la
+    línea de su ficha publicada, si no "Otros ensayos acreditados" al final.
     """
     lineas = {
         linea.id: linea
@@ -38,20 +45,14 @@ def ensayos_acreditados_por_linea(acreditaciones):
     slugs_lineas = {linea.slug for linea in lineas.values()}
     posicion = {linea_id: indice for indice, linea_id in enumerate(lineas)}
 
-    ensayos = {}
+    # Un ensayo vinculado a varias acreditaciones se muestra una vez.
+    servicios = {}
     for acreditacion in acreditaciones:
-        etiqueta = f'{acreditacion.organismo} · N.º {acreditacion.numero_acreditacion}'
         for servicio in acreditacion.servicios_acreditados.all():
-            if servicio.id in ensayos:
-                if etiqueta not in ensayos[servicio.id]['acreditaciones']:
-                    ensayos[servicio.id]['acreditaciones'].append(etiqueta)
-                continue
-            ensayos[servicio.id] = {'servicio': servicio, 'acreditaciones': [etiqueta]}
+            servicios.setdefault(servicio.id, servicio)
 
     grupos = {}
-    detalle = {}
-    for servicio_id, datos in ensayos.items():
-        servicio = datos['servicio']
+    for servicio in servicios.values():
         ficha = _ficha(servicio)
         # lineas_servicio viene prefetcheado y filtrado a las activas.
         candidatas = sorted((l.id for l in servicio.lineas_servicio.all()), key=posicion.get)
@@ -69,40 +70,26 @@ def ensayos_acreditados_por_linea(acreditaciones):
         metodo = servicio.metodo.nombre if servicio.metodo else ''
 
         grupos.setdefault(grupo['clave'], {**grupo, 'ensayos': []})['ensayos'].append({
-            'id': servicio_id,
             'nombre': nombre,
             'norma': norma,
-            'linea': grupo['nombre'],
             'url': url,
             # Con ficha también busca por el nombre del LIMS ("Proctor" vs. título público).
             'buscar': ' '.join(dict.fromkeys(filter(None, (nombre, servicio.nombre, norma, metodo, grupo['nombre'])))),
         })
-        detalle[servicio_id] = {
-            'nombre': nombre,
-            'linea': grupo['nombre'],
-            'norma': norma,
-            # En el LIMS hay normas con el nombre igual al código: no se repite.
-            'norma_nombre': servicio.norma.nombre if servicio.norma and servicio.norma.nombre != norma else '',
-            'metodo': metodo,
-            'acreditacion': '; '.join(datos['acreditaciones']),
-            'resumen': ficha.resumen if url else '',
-            'url': url,
-        }
 
     orden = {linea.slug: posicion[linea.id] for linea in lineas.values()}
     lista = sorted(grupos.values(), key=lambda g: orden.get(g['clave'], len(orden)))
     for grupo in lista:
-        grupo['ensayos'].sort(key=lambda e: e['nombre'].casefold())
-    return lista, detalle
+        grupo['ensayos'].sort(key=lambda e: _orden_alfabetico(e['nombre']))
+    return lista
 
 
 def acreditacion_view(request):
     servicios_qs = (
         Servicio.objects.select_related('norma', 'metodo', 'publicado')
         .only(
-            'id', 'nombre', 'norma__codigo', 'norma__nombre', 'metodo__nombre',
-            'publicado__slug', 'publicado__activo', 'publicado__titulo_publico',
-            'publicado__resumen', 'publicado__linea',
+            'id', 'nombre', 'norma__codigo', 'metodo__nombre',
+            'publicado__slug', 'publicado__activo', 'publicado__titulo_publico', 'publicado__linea',
         )
         .prefetch_related(Prefetch('lineas_servicio', queryset=LineaServicio.objects.publicadas().only('id')))
     )
@@ -112,13 +99,12 @@ def acreditacion_view(request):
         .prefetch_related(Prefetch('servicios_acreditados', queryset=servicios_qs))
         .order_by('orden', '-vigencia_desde')
     )
-    grupos_ensayos, ensayos_detalle = ensayos_acreditados_por_linea(acreditaciones)
+    grupos_ensayos = ensayos_acreditados_por_linea(acreditaciones)
     certificaciones = Certificacion.objects.publicadas().para_card()
     return render(request, 'web/acreditacion.html', {
         'acreditaciones': acreditaciones,
         'grupos_ensayos': grupos_ensayos,
-        'ensayos_detalle': ensayos_detalle,
-        'total_ensayos': len(ensayos_detalle),
+        'total_ensayos': sum(len(grupo['ensayos']) for grupo in grupos_ensayos),
         'certificaciones': certificaciones,
         'certificacion_acreditacion': primera_acreditacion(certificaciones),
     })

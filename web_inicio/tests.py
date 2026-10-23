@@ -35,7 +35,7 @@ class MetricaEnsayosAcreditadosTestCase(TestCase):
 
 @override_settings(ROOT_URLCONF='grupovicaf.urls_web')
 class HomeCertificacionesTests(TestCase):
-    """Sección resumida de certificaciones en la home (specs/WEB v4, T19)."""
+    """Sección resumida de certificaciones en la home (specs/WEB v4, T19; v6 compacta, T22)."""
 
     def setUp(self):
         cache.clear()
@@ -59,17 +59,26 @@ class HomeCertificacionesTests(TestCase):
             self.assertIn(f'data-cert-titulo="{titulo}"', html)
         self.assertNotIn('data-cert-titulo="Extra 3"', html)  # 'Extra 3' sí va en el JSON-LD
         self.assertLess(html.index('data-cert-titulo="Extra 0"'), html.index('data-cert-titulo="Extra 2"'))
-        self.assertIn('grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4', html)
+        self.assertIn('<ul class="reveal-group flex flex-wrap justify-center gap-6" role="list">', html)
         self.assertIn(f'href="{reverse("web_acreditacion:acreditacion")}" class="btn-secondary-inverse', html)
         self.assertIn('Ver todas<span class="sr-only"> las acreditaciones y certificaciones</span>', html)
         self.assertEqual(html.count('id="modal-certificacion"'), 1)
         self.assertIn('web/js/certificaciones.js', html)
 
+    def test_cards_compactas_logo_y_titulo(self):
+        # REQ-WEB-65: logo (aquí el sello genérico) y título, sin tipo ni descripción.
+        html = self.get_html()
+        seccion = html[html.index('id="acreditacion-titulo"'):html.index('id="modal-certificacion"')]
+        self.assertEqual(seccion.count('h-28 items-center justify-center'), 4)
+        self.assertEqual(seccion.count('>Ver documento</span>'), 4)
+        self.assertNotIn('Corta.', seccion)
+        self.assertNotIn('>Otro</span>', seccion)
+
     def test_sin_la_imagen_grande_del_certificado(self):
         # REQ-WEB-49 / CA-08.9
         html = self.get_html()
         self.assertNotIn('GRUPO-VICAF-CERTIFICADO', html)
-        self.assertNotIn('<img src="/media/certificaciones/', html)
+        self.assertNotIn('<img src="/media/certificaciones/inacal', html)
         for viejo in ('modal-certificado-inacal', 'modal-certificado.js', 'data-modal-cert-open'):
             self.assertNotIn(viejo, html)
 

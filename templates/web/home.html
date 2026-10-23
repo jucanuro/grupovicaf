@@ -238,9 +238,10 @@
   -> retícula técnica (plano de ingeniería, 6% opacidad) -> ruido SVG
   feTurbulence (3%, quita el plano digital) -> contenido.
 
-  specs/WEB v4 (REQ-WEB-49): versión resumida de /acreditacion/, con las
-  mismas cards (máximo 4, cortadas en inicio_view) y "Ver todas". Sin la
-  imagen grande del certificado: cada card abre su documento en el modal.
+  specs/WEB v6 (REQ-WEB-65): versión resumida de /acreditacion/, con las
+  cards compactas (logo y título, máximo 4, cortadas en inicio_view) y "Ver
+  todas". Sin la imagen grande del certificado: cada card abre su documento
+  en el modal.
 {% endcomment %}
 <section class="reveal section-dark relative overflow-hidden py-20 text-white lg:py-28" aria-labelledby="acreditacion-titulo">
     {% include 'web/partials/textura_tecnica.html' %}
@@ -271,7 +272,7 @@
 
         {% if certificaciones %}
         <div class="mt-12">
-            {% include 'web/partials/grilla_certificaciones.html' %}
+            {% include 'web/partials/grilla_certificaciones.html' with compacta=True %}
         </div>
         {% endif %}
     </div>

@@ -56,11 +56,11 @@ class CertificacionAdmin(admin.ModelAdmin):
     list_filter = ('tipo', 'activo')
     search_fields = ('titulo', 'descripcion', 'institucion')
     ordering = ('orden', 'titulo')
-    readonly_fields = ('creado', 'actualizado', 'vista_previa_archivo')
+    readonly_fields = ('creado', 'actualizado', 'vista_previa_logo', 'vista_previa_archivo')
 
     fieldsets = (
         ('Card', {
-            'fields': ('titulo', 'descripcion', 'tipo', 'institucion'),
+            'fields': ('titulo', 'descripcion', 'tipo', 'institucion', 'logo', 'vista_previa_logo'),
         }),
         ('Documento', {
             'description': 'La certificación solo se muestra en la web si está activa, '
@@ -79,6 +79,15 @@ class CertificacionAdmin(admin.ModelAdmin):
     @admin.display(description='Publicada en la web', boolean=True)
     def publicada_display(self, obj):
         return obj.publicada
+
+    @admin.display(description='Vista previa del logo')
+    def vista_previa_logo(self, obj):
+        if not obj.logo:
+            return 'Sin logo: la card muestra un sello genérico.'
+        return format_html(
+            '<img src="{}" alt="" style="max-height:96px;width:auto;padding:8px;background:#f8fafc;border-radius:8px;">',
+            obj.logo.url,
+        )
 
     @admin.display(description='Vista previa')
     def vista_previa_archivo(self, obj):

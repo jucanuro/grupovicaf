@@ -2,7 +2,7 @@
 
 | Versión | Fecha | Estado |
 |---|---|---|
-| v5 | 2026-10-23 | Aprobado por el Gerente (modo rápido) · cambios de alcance v1.5 y v1.7, requerimiento nuevo v1.6 y cambio de diseño v1.8 del HU |
+| v6 | 2026-10-23 | Aprobado por el Gerente (modo rápido) · cambios de alcance v1.5 y v1.7, requerimiento nuevo v1.6 y cambios de diseño v1.8 y v1.9 del HU |
 
 ## Componentes
 
@@ -298,3 +298,49 @@ Comportamiento: quita `hidden` de los controles; en `input` filtra (sin debounce
 | ~100 cards en una página | Sin imágenes; filtro en el cliente; el H3 por línea y el filtro reducen el recorrido |
 | Un ensayo en varias líneas solo aparece en la primera | Documentado (P-19); el buscador lo encuentra igual |
 
+## v6 · Rediseño de certificaciones y lista de ensayos (REQ-WEB-62 a 70)
+
+Reemplaza las cards de v4 y la sección de ensayos de v5. `card_ensayo.html` y `modal_ensayo.html` se borran.
+
+### Modelo de datos (migración `web_acreditacion/0007_certificacion_logo`)
+- `Certificacion.logo = ImageField(upload_to='certificaciones/logos/', blank=True, width_field='logo_ancho', height_field='logo_alto')`, validadores `FileExtensionValidator(jpg, jpeg, png, webp)` y `validar_logo` (≤ 2 MB).
+- `logo_ancho` y `logo_alto`: `PositiveIntegerField(null=True, editable=False)`; Django los llena al subir el logo y la plantilla los usa como `width`/`height` sin abrir el archivo (regla 17).
+- `para_card()` agrega `logo`, `logo_ancho` y `logo_alto` a la lista blanca. Admin: `logo` y `vista_previa_logo` en el fieldset "Card".
+- Sin migración de datos: los logos se suben desde el admin.
+
+### Plantillas
+- `partials/logo_certificacion.html` (nuevo): franja superior (`h-40`, o `h-28` en la home) con degradado blanco → `slate-50`; `<img>` con `max-h-[62%] max-w-[78%] object-contain` y `group-hover:scale-105`; sin logo, el ícono "check-badge" en un círculo `blue-50`.
+- `partials/card_certificacion.html`: `card-tech` (sombra `layered`, borde `slate-200`, hover `-translate-y-1` y `shadow-layered-lg`) + `overflow-hidden`; franja del logo, cuerpo (tipo en versalitas de color por tipo, H3 con el enlace estirado, descripción `line-clamp-3`) y pie "Ver documento" (`aria-hidden`, el enlace ya lleva el nombre accesible). Con `compacta` (home) no muestra tipo ni descripción.
+- `partials/grilla_certificaciones.html`: `<ul class="flex flex-wrap justify-center gap-6">` con `<li>` de `w-full`, `sm:w-[calc((100%-1.5rem)/2)]` y `lg:w-[calc((100%-4.5rem)/4)]`. Flex en vez de grid para centrar las filas incompletas; los `<li>` se estiran a la altura de la fila y la card es `h-full`.
+- `partials/modal_certificacion.html`: agrega `[data-cert-alterno]` (oculto con la clase `hidden`) con el aviso y `<a data-cert-abrir target="_blank">Abrir documento</a>`.
+- `home.html`: `{% include 'web/partials/grilla_certificaciones.html' with compacta=True %}`.
+- `partials/ensayos_acreditados.html`: alcance de cada acreditación (igual que v5); buscador con ícono y contador `aria-live` en `<div data-ensayos-controles hidden>`; aviso sin resultados; un `<details data-ensayos-grupo="<clave>" open class="card-flat">` por grupo con `<summary>` (H3, contador en pastilla `blue-50`, chevron que gira con `group-open/linea`) y `<ul class="columns-1 md:columns-2 lg:columns-3">` de `<li class="break-inside-avoid" data-ensayo-buscar>` con el check `emerald-600`, el nombre (enlace si hay ficha) y la norma en `mono-tag`. El `<li>` no lleva clase de display para que el atributo `hidden` funcione.
+
+### Vista
+- `ensayos_acreditados_por_linea()` devuelve solo `grupos` (`[{'clave', 'nombre', 'ensayos': [{'nombre', 'norma', 'url', 'buscar'}]}]`); ya no arma el JSON del modal. Orden dentro del grupo con `_orden_alfabetico()` (NFD sin marcas + `casefold`). La consulta deja de leer `norma__nombre` y `publicado__resumen`. `total_ensayos` se suma de los grupos.
+
+```mermaid
+flowchart LR
+  ACR[(Acreditacion activa)] -->|servicios_acreditados| F[ensayos_acreditados_por_linea]
+  LS[(LineaServicio activa)] --> F
+  SP[(ServicioPublicado)] -->|linea, ficha RN-14| F
+  F -->|grupos, lista blanca| P[partials/ensayos_acreditados.html]
+  P --> JS[ensayos-acreditados.js: buscador]
+  C[(Certificacion publicada)] -->|para_card| G[grilla_certificaciones.html]
+  G --> K[card_certificacion.html + logo_certificacion.html]
+  K -->|clic| M[modal_certificacion.html + certificaciones.js]
+```
+
+### JavaScript
+- `certificaciones.js`: `modoApertura()` devuelve `'imagen'`, `'pdf'` o `'enlace'` (antes `'pestana'`); siempre hace `preventDefault` y abre el modal. En `'enlace'` oculta `[data-cert-contenido]`, muestra `[data-cert-alterno]` y apunta "Abrir documento" y "Descargar" al archivo; al usar "Abrir documento" el modal se cierra.
+- `ensayos-acreditados.js`: quedan `normalizar`, `coincide`, `textoResultados` y `textoCuenta` (nuevo); se quitan `visible`, `siguienteFoco` y el modal. En `input` oculta ensayos y grupos sin resultados, abre (`open = true`) los grupos con resultados mientras haya consulta y actualiza contadores; sin consulta respeta lo que el visitante plegó.
+
+### Reglas de `CLAUDE.md` que aplican
+- 1 a 3: sin modelos nuevos del LIMS; lista blanca (`para_card()`, grupos sin precio ni código). 9: H1 único; H2 de sección; H3 en cards y en cada línea. 17: logos con `width`/`height` y `loading="lazy"`; JS `defer`. Migración revisada: solo `AddField`.
+
+### Riesgos (v6)
+| Riesgo | Mitigación |
+|---|---|
+| Logos con mucho margen transparente se ven chicos | Recortar antes de subir (en dev se recortó el de INACAL); la ayuda del campo lo pide |
+| En móvil el modal de un PDF no muestra el documento | Aviso con "Abrir documento" y "Descargar" (P-20) |
+| 97 de 99 ensayos en "Otros" en dev (PM-12) | Igual que v5: en producción revisar `LineaServicio.ensayos` |

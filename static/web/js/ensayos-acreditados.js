@@ -1,13 +1,12 @@
 // Ensayos acreditados de /acreditacion/ (templates/web/partials/ensayos_acreditados.html,
-// specs/WEB v5): buscador, filtro por línea y modal con el detalle.
+// specs/WEB v6): buscador sobre la lista agrupada por línea.
 //
-// Sin JavaScript se ven todas las cards y las que tienen ficha llevan a ella
-// (REQ-WEB-61). Con JavaScript:
-//   - se muestran el buscador y el filtro (llegan con `hidden`);
+// Sin JavaScript se ve la lista entera y los grupos se pliegan igual, porque
+// son <details> nativos (REQ-WEB-70). Con JavaScript:
+//   - se muestra el buscador (llega con `hidden`);
 //   - cada tecla filtra por nombre, norma, método o línea, sin tildes ni
-//     mayúsculas, oculta las líneas vacías y anuncia el conteo (REQ-WEB-56 a 58);
-//   - el clic en una card abre el modal con los datos de
-//     #ensayos-acreditados-datos (REQ-WEB-59).
+//     mayúsculas, oculta los grupos vacíos, abre los que tienen resultados,
+//     actualiza su contador y anuncia el total (REQ-WEB-68).
 //
 // Las funciones puras se exportan en module.exports para probarlas con
 // `node --test tests/js/ensayos-acreditados.test.js`.
@@ -33,13 +32,6 @@
         return palabras.every(function (palabra) { return base.indexOf(palabra) !== -1; });
     }
 
-    // Una card se ve si coincide con la consulta y, con una línea elegida,
-    // si es de esa línea ('' = todas).
-    function visible(item, consulta, linea) {
-        if (linea && item.linea !== linea) return false;
-        return coincide(item.buscar, consulta);
-    }
-
     function textoResultados(n, total) {
         if (n === total) return 'Se muestran los ' + total + ' ensayos acreditados.';
         if (n === 0) return 'Ningún ensayo acreditado coincide.';
@@ -47,21 +39,15 @@
         return n + ' ensayos acreditados coinciden.';
     }
 
-    // Igual que en certificaciones.js; se repite porque esta página puede no
-    // cargar ese archivo (sin certificaciones publicadas).
-    function siguienteFoco(total, actual, haciaAtras) {
-        if (total <= 0) return -1;
-        if (actual < 0 || actual >= total) return haciaAtras ? total - 1 : 0;
-        if (haciaAtras) return actual === 0 ? total - 1 : actual - 1;
-        return actual === total - 1 ? 0 : actual + 1;
+    function textoCuenta(n) {
+        return n + (n === 1 ? ' ensayo' : ' ensayos');
     }
 
     var api = {
         normalizar: normalizar,
         coincide: coincide,
-        visible: visible,
         textoResultados: textoResultados,
-        siguienteFoco: siguienteFoco,
+        textoCuenta: textoCuenta,
     };
 
     if (typeof module !== 'undefined' && module.exports) {
@@ -70,158 +56,56 @@
     if (!raiz || !raiz.document) return;
 
     raiz.document.addEventListener('DOMContentLoaded', function () {
-        var doc = raiz.document;
-        var seccion = doc.getElementById('ensayos-acreditados');
-        var fuente = doc.getElementById('ensayos-acreditados-datos');
-        if (!seccion || !fuente) return;
+        var seccion = raiz.document.getElementById('ensayos-acreditados');
+        if (!seccion) return;
 
-        var datos = {};
-        try {
-            datos = JSON.parse(fuente.textContent) || {};
-        } catch (error) {
-            datos = {};
-        }
-
-        // --- Buscador y filtro ---------------------------------------------
         var controles = seccion.querySelector('[data-ensayos-controles]');
         var buscador = seccion.querySelector('[data-ensayos-buscar]');
         var contador = seccion.querySelector('[data-ensayos-contador]');
         var vacio = seccion.querySelector('[data-ensayos-vacio]');
-        var botonesLinea = seccion.querySelectorAll('[data-ensayos-linea]');
-        var grupos = seccion.querySelectorAll('[data-ensayos-grupo]');
-        var items = Array.prototype.map.call(seccion.querySelectorAll('li[data-ensayo-linea]'), function (li) {
-            return { el: li, linea: li.getAttribute('data-ensayo-linea'), buscar: li.getAttribute('data-ensayo-buscar') };
+        var grupos = Array.prototype.map.call(seccion.querySelectorAll('[data-ensayos-grupo]'), function (el) {
+            return {
+                el: el,
+                cuenta: el.querySelector('[data-ensayos-cuenta]'),
+                items: Array.prototype.map.call(el.querySelectorAll('li[data-ensayo-buscar]'), function (li) {
+                    return { el: li, buscar: li.getAttribute('data-ensayo-buscar') };
+                }),
+            };
         });
-        var lineaActiva = '';
+        var total = grupos.reduce(function (suma, grupo) { return suma + grupo.items.length; }, 0);
+        if (!buscador || !total) return;
 
         function aplicar() {
-            var consulta = buscador ? buscador.value : '';
+            var consulta = buscador.value;
+            var buscando = normalizar(consulta) !== '';
             var mostrados = 0;
-            items.forEach(function (item) {
-                var ver = visible(item, consulta, lineaActiva);
-                item.el.hidden = !ver;
-                if (ver) mostrados += 1;
-            });
             grupos.forEach(function (grupo) {
-                var enGrupo = grupo.querySelectorAll('li[data-ensayo-linea]:not([hidden])').length;
-                grupo.hidden = enGrupo === 0;
-                var cuenta = grupo.querySelector('[data-ensayos-cuenta]');
-                if (cuenta) cuenta.textContent = enGrupo + (enGrupo === 1 ? ' ensayo' : ' ensayos');
+                var enGrupo = 0;
+                grupo.items.forEach(function (item) {
+                    var ver = coincide(item.buscar, consulta);
+                    item.el.hidden = !ver;
+                    if (ver) enGrupo += 1;
+                });
+                grupo.el.hidden = enGrupo === 0;
+                // Al buscar se abren los grupos con resultados; sin búsqueda se
+                // respeta lo que el visitante plegó.
+                if (buscando && enGrupo) grupo.el.open = true;
+                if (grupo.cuenta) grupo.cuenta.textContent = textoCuenta(enGrupo);
+                mostrados += enGrupo;
             });
-            if (contador) contador.textContent = textoResultados(mostrados, items.length);
+            if (contador) contador.textContent = textoResultados(mostrados, total);
             if (vacio) vacio.hidden = mostrados !== 0;
         }
 
-        function elegirLinea(clave) {
-            lineaActiva = clave;
-            botonesLinea.forEach(function (boton) {
-                boton.setAttribute('aria-pressed', String(boton.getAttribute('data-ensayos-linea') === clave));
-            });
-            aplicar();
-        }
-
         if (controles) controles.hidden = false;
-        if (buscador) buscador.addEventListener('input', aplicar);
-        botonesLinea.forEach(function (boton) {
-            boton.addEventListener('click', function () { elegirLinea(boton.getAttribute('data-ensayos-linea')); });
-        });
+        buscador.addEventListener('input', aplicar);
         var limpiar = seccion.querySelector('[data-ensayos-limpiar]');
         if (limpiar) {
             limpiar.addEventListener('click', function () {
-                if (buscador) buscador.value = '';
-                elegirLinea('');
-                if (buscador) buscador.focus();
+                buscador.value = '';
+                aplicar();
+                buscador.focus();
             });
         }
-
-        // --- Modal ---------------------------------------------------------
-        var modal = doc.getElementById('modal-ensayo');
-        if (!modal) return;
-        var titulo = modal.querySelector('#modal-ensayo-titulo');
-        var ficha = modal.querySelector('[data-ensayo-ficha]');
-        var disparador = null;
-
-        function poner(campo, valor) {
-            modal.querySelectorAll('[data-ensayo-campo="' + campo + '"]').forEach(function (el) {
-                el.textContent = valor || '';
-                if (campo === 'resumen' || campo === 'linea') el.hidden = !valor;
-            });
-        }
-
-        function fila(nombre, mostrar) {
-            var el = modal.querySelector('[data-ensayo-fila="' + nombre + '"]');
-            if (el) el.classList.toggle('hidden', !mostrar);
-        }
-
-        function controlesModal() {
-            return Array.prototype.filter.call(
-                modal.querySelectorAll('a[href], button:not([disabled])'),
-                function (el) { return el.offsetParent !== null; }
-            );
-        }
-
-        function abrir(control, ensayo) {
-            disparador = control;
-            titulo.textContent = ensayo.nombre || 'Ensayo acreditado';
-            ['linea', 'norma', 'norma_nombre', 'metodo', 'acreditacion', 'resumen'].forEach(function (campo) {
-                poner(campo, ensayo[campo]);
-            });
-            fila('norma', ensayo.norma || ensayo.norma_nombre);
-            fila('metodo', ensayo.metodo);
-            // Clase y no atributo hidden: .btn-secondary define su display.
-            if (ensayo.url) {
-                ficha.href = ensayo.url;
-                ficha.classList.remove('hidden');
-            } else {
-                ficha.setAttribute('href', '#');
-                ficha.classList.add('hidden');
-            }
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            doc.body.style.overflow = 'hidden';
-            var primero = modal.querySelector('[data-ensayo-cerrar]');
-            if (primero) primero.focus();
-        }
-
-        function cerrar() {
-            if (modal.classList.contains('hidden')) return;
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            doc.body.style.overflow = '';
-            if (disparador && typeof disparador.focus === 'function') disparador.focus();
-            disparador = null;
-        }
-
-        seccion.querySelectorAll('[data-ensayo-open]').forEach(function (control) {
-            control.addEventListener('click', function (evento) {
-                var ensayo = datos[control.getAttribute('data-ensayo-open')];
-                if (!ensayo) return;  // Sin datos: el enlace sigue a la ficha.
-                evento.preventDefault();
-                abrir(control, ensayo);
-            });
-        });
-
-        modal.querySelectorAll('[data-ensayo-cerrar]').forEach(function (boton) {
-            boton.addEventListener('click', cerrar);
-        });
-
-        modal.addEventListener('click', function (evento) {
-            if (evento.target === modal) cerrar();
-        });
-
-        doc.addEventListener('keydown', function (evento) {
-            if (modal.classList.contains('hidden')) return;
-            if (evento.key === 'Escape') {
-                evento.preventDefault();
-                cerrar();
-                return;
-            }
-            if (evento.key !== 'Tab') return;
-            var lista = controlesModal();
-            var siguiente = siguienteFoco(lista.length, lista.indexOf(doc.activeElement), evento.shiftKey);
-            if (siguiente < 0) return;
-            evento.preventDefault();
-            lista[siguiente].focus();
-        });
     });
 })(typeof window !== 'undefined' ? window : null);

@@ -1,4 +1,4 @@
-"""Pruebas de las certificaciones (specs/WEB v4, T18-T20; cabeceras de v3, T15) y de los ensayos acreditados (v5, T21)."""
+"""Pruebas de las certificaciones (specs/WEB v4, T18-T20; v6, T22; cabeceras de v3, T15) y de los ensayos acreditados (v6, T22)."""
 import importlib
 import io
 import json
@@ -22,7 +22,7 @@ from servicios.models import CategoriaServicio, Metodo, Norma, Servicio
 from web_catalogo.models import LineaServicio, ServicioPublicado
 
 from .models import Acreditacion, Certificacion, validar_archivo
-from .views import servir_certificado_dev
+from .views import _orden_alfabetico, servir_certificado_dev
 
 PDF_MINIMO = b'%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n'
 
@@ -188,7 +188,10 @@ class AcreditacionPaginaTests(MediaTemporalMixin, TestCase):
         grilla = html.index('id="certificaciones"')
         self.assertLess(hero_fin, grilla)
         self.assertLess(grilla, html.index('Alcance de acreditación'))
-        self.assertIn('grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4', html)
+        # REQ-WEB-63: 1, 2 y 4 columnas, centradas si la fila no se llena.
+        self.assertIn('<ul class="reveal-group flex flex-wrap justify-center gap-6" role="list">', html)
+        self.assertIn('w-full sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-4.5rem)/4)]', html)
+        self.assertIn('card-tech relative flex h-full flex-col', html)
         for texto in (
             'Acreditaciones y certificaciones', 'Certificación ISO 9001:2015',
             'Sistema de Gestión de la Calidad certificado por AENOR.', 'AENOR CONFIA S.A.U.',
@@ -202,9 +205,33 @@ class AcreditacionPaginaTests(MediaTemporalMixin, TestCase):
         )
         self.assertIn('data-cert-tipo="imagen" data-cert-titulo="Acreditación INACAL LE-230"', html)
         self.assertIn('after:absolute after:inset-0', html)
+        # Tres franjas: logo (aquí el sello genérico), cuerpo y pie "Ver documento".
+        self.assertEqual(html.count('>Ver documento</span>'), 2)
+        self.assertIn('Sin logo, la card muestra un sello genérico', Certificacion._meta.get_field('logo').help_text)
         # Sin el certificado grande al lado: ninguna imagen de certificado en la página.
         self.assertNotIn('GRUPO-VICAF-CERTIFICADO', html)
         self.assertNotIn('<img src="/media/certificaciones/', html)
+
+    def test_card_con_logo_de_la_institucion(self):
+        # REQ-WEB-62: el logo arriba, con alt, medidas y carga diferida (regla 17).
+        cert = self.crear_certificacion(logo=png('aenor.png'))
+        self.assertEqual((cert.logo_ancho, cert.logo_alto), (2, 1))
+        html = self.get_html()
+        self.assertIn(
+            f'<img src="{cert.logo.url}" alt="Logo de AENOR CONFIA S.A.U."\n'
+            f'         width="2" height="1"\n         loading="lazy" decoding="async"', html,
+        )
+        self.assertIn('group-hover:scale-105', html)
+        # La card sin logo (INACAL de la migración) muestra el sello genérico.
+        self.assertEqual(html.count('rounded-full border border-blue-100 bg-blue-50 text-blue-700'), 1)
+
+    def test_validar_logo(self):
+        # REQ-WEB-62: solo imagen, 2 MB como máximo.
+        grande = png('grande.png', PNG_MINIMO + b'0' * (2 * 1024 * 1024))
+        with self.assertRaisesMessage(ValidationError, 'El logo no puede pesar más de 2 MB.'):
+            Certificacion._meta.get_field('logo').run_validators(grande)
+        with self.assertRaises(ValidationError):
+            Certificacion._meta.get_field('logo').run_validators(pdf('logo.pdf'))
 
     def test_textos_solo_cajamarca(self):
         # REQ-WEB-52 (D-VCF-002): H1, meta y textos sin "norte del Perú".
@@ -225,6 +252,9 @@ class AcreditacionPaginaTests(MediaTemporalMixin, TestCase):
         self.assertIn('role="dialog" aria-modal="true" aria-labelledby="modal-certificacion-titulo"', html)
         self.assertIn('data-cert-contenido', html)
         self.assertIn('data-cert-descargar href="#" download', html)
+        # REQ-WEB-64: PDF que no se puede embeber (móvil) -> aviso con "Abrir documento".
+        self.assertIn('<div data-cert-alterno class="hidden', html)
+        self.assertIn('data-cert-abrir href="#" target="_blank" rel="noopener"', html)
         self.assertIn('Descargar', html)
         self.assertEqual(html.count('data-cert-cerrar'), 2)  # × y "Cerrar"
         self.assertIn('web/js/certificaciones.js', html)
@@ -340,7 +370,7 @@ class JsonLdTests(MediaTemporalMixin, TestCase):
 
 
 class EnsayosAcreditadosTests(TestCase):
-    """Ensayos acreditados en cards por línea (specs/WEB v5, T21)."""
+    """Ensayos acreditados en lista por línea (specs/WEB v6, T22; en v5 eran cards, T21)."""
 
     @classmethod
     def setUpTestData(cls):
@@ -397,13 +427,8 @@ class EnsayosAcreditadosTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         return respuesta, respuesta.content.decode()
 
-    def datos(self, html):
-        bloque = re.search(r'<script id="ensayos-acreditados-datos" type="application/json">(.*?)</script>', html, re.S)
-        self.assertIsNotNone(bloque)
-        return json.loads(bloque.group(1))
-
-    def test_cards_agrupadas_por_linea_en_grilla_de_4_columnas(self):
-        # REQ-WEB-53 y 54
+    def test_lista_agrupada_por_linea_y_no_cards(self):
+        # REQ-WEB-66 y 67
         respuesta, html = self.get()
         self.assertEqual(html.count('<h1'), 1)
         self.assertIn('id="ensayos-acreditados-titulo" class="h2-section mt-4">Ensayos acreditados</h2>', html)
@@ -412,46 +437,61 @@ class EnsayosAcreditadosTests(TestCase):
         self.assertEqual(claves[-1], 'otros')
         grupos = {g['clave']: [e['nombre'] for e in g['ensayos']] for g in respuesta.context['grupos_ensayos']}
         self.assertEqual(grupos['concreto-t21'], ['Relación de soporte de California'])
+        # Orden alfabético sin tildes: "Análisis" va antes que "Contenido".
         self.assertEqual(grupos['suelos-t21'], ['Análisis granulométrico', 'Contenido de humedad'])
         # La línea inactiva no agrupa: su ensayo cae en "Otros".
         self.assertIn('Ensayo sin línea', grupos['otros'])
         self.assertNotIn('inactiva-t21', grupos)
         self.assertEqual(respuesta.context['total_ensayos'], 4)
         self.assertIn('Otros ensayos acreditados', html)
-        self.assertIn('<ul class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4" role="list">', html)
-        self.assertIn('id="ensayos-concreto-t21"', html)
-        # Ni la acreditación inactiva ni la lista de viñetas de v4.
+        # Ni la acreditación inactiva ni duplicados del ensayo de dos acreditaciones.
         self.assertNotIn('Ensayo fuera del alcance', html)
-        self.assertNotIn('h-[6px] w-[6px]', html)
-        # Ensayo de dos acreditaciones: una sola card, con las dos en el detalle.
-        self.assertEqual(html.count(f'data-ensayo-open="{self.cbr.id}"'), 1)
-        self.assertEqual(self.datos(html)[str(self.cbr.id)]['acreditacion'], 'INACAL · N.º LE-230; OTRO · N.º X-1')
+        self.assertEqual(html.count('data-ensayo-buscar="Relación de soporte'), 1)
+        # Lista, no cards ni modal (v5).
+        for viejo in ('data-ensayo-open', 'modal-ensayo', 'ensayos-acreditados-datos', 'data-ensayos-linea', '<h4'):
+            self.assertNotIn(viejo, html)
 
-    def test_card_con_ficha_es_enlace_y_sin_ficha_es_boton(self):
-        # REQ-WEB-55 y 61
+    def test_orden_alfabetico_sin_tildes(self):
+        self.assertEqual(
+            sorted(['Zeta', 'Ábaco', 'abrasión', 'Éter'], key=_orden_alfabetico),
+            ['Ábaco', 'abrasión', 'Éter', 'Zeta'],
+        )
+
+    def test_grupos_plegables_abiertos_con_contador_y_columnas(self):
+        # REQ-WEB-66
         _, html = self.get()
-        self.assertIn(f'<a href="/servicios/granulometria-t21/" data-ensayo-open="{self.ficha.id}"', html)
-        self.assertIn(f'<button type="button" data-ensayo-open="{self.humedad.id}"', html)
-        self.assertIn('after:absolute after:inset-0', html)
+        self.assertEqual(html.count('<details data-ensayos-grupo='), 3)
+        self.assertIn('<details data-ensayos-grupo="suelos-t21" open', html)
+        self.assertIn('<summary', html)
+        self.assertIn('<h3 id="ensayos-suelos-t21"', html)
+        self.assertIn('text-blue-800">2 ensayos</span>', html)
+        self.assertIn('text-blue-800">1 ensayo</span>', html)
+        self.assertIn('columns-1 gap-x-10', html)
+        self.assertIn('md:columns-2 lg:columns-3', html)
+        self.assertIn('break-inside-avoid', html)
+        self.assertIn('text-emerald-600', html)  # check verde
+
+    def test_ensayo_con_ficha_enlaza_y_sin_ficha_es_texto(self):
+        # REQ-WEB-70 y RN-14
+        _, html = self.get()
+        self.assertIn('<a href="/servicios/granulometria-t21/" class="font-medium', html)
+        self.assertIn('>Análisis granulométrico</a>', html)
         self.assertIn('>NTP 339.145</span>', html)
-        self.assertIn('<h4', html)
+        self.assertNotIn('>Contenido de humedad</a>', html)
         # Ficha cuyo slug lo resuelve antes una línea activa: sin enlace (RN-14).
         ServicioPublicado.objects.filter(servicio=self.ficha).update(slug='suelos-t21')
         _, html = self.get()
-        self.assertNotIn('href="/servicios/suelos-t21/" data-ensayo-open', html)
-        self.assertIn(f'<button type="button" data-ensayo-open="{self.ficha.id}"', html)
-        self.assertIsNone(self.datos(html)[str(self.ficha.id)]['url'])
+        self.assertNotIn('href="/servicios/suelos-t21/" class="font-medium', html)
+        self.assertIn('Granulometría por tamizado', html)
 
-    def test_buscador_y_filtro_ocultos_sin_js(self):
-        # REQ-WEB-56 a 58 y 61
+    def test_buscador_oculto_sin_js(self):
+        # REQ-WEB-68 y 70
         _, html = self.get()
         self.assertIn('<div data-ensayos-controles hidden>', html)
         self.assertIn('<label for="buscar-ensayo"', html)
         self.assertIn('id="buscar-ensayo" type="search" data-ensayos-buscar', html)
-        self.assertIn('role="group" aria-label="Filtrar por línea"', html)
-        self.assertIn('data-ensayos-linea="" aria-pressed="true"', html)
-        self.assertIn('data-ensayos-linea="suelos-t21" aria-pressed="false"', html)
         self.assertIn('aria-live="polite"', html)
+        self.assertIn('Se muestran los 4 ensayos acreditados.', html)
         self.assertIn('<div data-ensayos-vacio hidden', html)
         self.assertIn('No encontramos ensayos acreditados con ese criterio.', html)
         self.assertIn('Limpiar búsqueda', html)
@@ -461,35 +501,19 @@ class EnsayosAcreditadosTests(TestCase):
             'data-ensayo-buscar="Relación de soporte de California NTP 339.145 Compactación en molde Concreto T21"', html,
         )
 
-    def test_modal_con_detalle_y_lista_blanca(self):
-        # REQ-WEB-59 y 60
+    def test_lista_blanca(self):
+        # REQ-WEB-69
         _, html = self.get()
-        self.assertEqual(html.count('id="modal-ensayo"'), 1)
-        self.assertIn('role="dialog" aria-modal="true" aria-labelledby="modal-ensayo-titulo"', html)
-        self.assertEqual(html.count('data-ensayo-cerrar'), 2)
-        self.assertIn('Ver ficha del ensayo', html)
-        self.assertIn(f'href="{reverse("web_contacto:solicitud_cotizacion")}" class="btn-secondary', html)
-        datos = self.datos(html)
-        self.assertEqual(datos[str(self.cbr.id)], {
-            'nombre': 'Relación de soporte de California', 'linea': 'Concreto T21', 'norma': 'NTP 339.145',
-            'norma_nombre': 'Suelos. Método de ensayo CBR', 'metodo': 'Compactación en molde',
-            'acreditacion': 'INACAL · N.º LE-230; OTRO · N.º X-1', 'resumen': '', 'url': None,
-        })
-        self.assertEqual(datos[str(self.ficha.id)]['resumen'], 'Resumen público de granulometría.')
-        # Norma con el nombre igual al código: no se repite en el modal.
-        Norma.objects.filter(pk=self.norma.pk).update(nombre='NTP 339.145')
-        self.assertEqual(self.datos(self.get()[1])[str(self.cbr.id)]['norma_nombre'], '')
-        self.assertEqual(datos[str(self.ficha.id)]['url'], '/servicios/granulometria-t21/')
         for prohibido in ('987.65', '987,65', 'ZZT21-', 'precio', 'esta_acreditado', 'codigo_facturacion'):
             self.assertNotIn(prohibido, html)
 
-    def test_sin_ensayos_no_hay_controles_ni_modal_ni_js(self):
+    def test_sin_ensayos_no_hay_buscador_ni_js(self):
         for acreditacion in Acreditacion.objects.all():
             acreditacion.servicios_acreditados.clear()
         _, html = self.get()
         self.assertIn('Ensayos acreditados', html)  # el alcance sigue
         self.assertIn('Ensayos de suelos y concreto.', html)
-        for texto in ('data-ensayos-controles', 'modal-ensayo', 'ensayos-acreditados-datos', 'ensayos-acreditados.js'):
+        for texto in ('data-ensayos-controles', 'data-ensayos-grupo', 'ensayos-acreditados.js'):
             self.assertNotIn(texto, html)
 
     def test_consultas_acotadas(self):

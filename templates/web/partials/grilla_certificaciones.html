@@ -1,10 +1,13 @@
 {% comment %}
-  Grilla de cards de certificaciones (specs/WEB v4, REQ-WEB-43 y 49): 1
-  columna en móvil, 2 desde 640 px y 4 desde 1024 px. La usan /acreditacion/
-  (todas) y la home (máximo 4, cortadas en la vista).
+  Grilla de cards de certificaciones (specs/WEB v6, REQ-WEB-63 y 65): 1
+  columna en móvil, 2 desde 640 px y 4 desde 1024 px. Es flex con wrap y no
+  grid para poder centrar las filas incompletas (con menos de 4 cards no
+  quedan pegadas a la izquierda); las cards de una fila miden lo mismo porque
+  los <li> se estiran y la card es h-full. La usan /acreditacion/ (todas) y
+  la home (máximo 4, cortadas en la vista, con `compacta`).
 {% endcomment %}
-<ul class="reveal-group grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4" role="list">
+<ul class="reveal-group flex flex-wrap justify-center gap-6" role="list">
     {% for certificacion in certificaciones %}
-    <li class="reveal">{% include 'web/partials/card_certificacion.html' %}</li>
+    <li class="reveal w-full sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-4.5rem)/4)]">{% include 'web/partials/card_certificacion.html' %}</li>
     {% endfor %}
 </ul>

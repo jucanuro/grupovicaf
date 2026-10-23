@@ -92,6 +92,15 @@ def validar_archivo(archivo):
         archivo.seek(posicion)
 
 
+LOGO_MAX_BYTES = 2 * 1024 * 1024
+
+
+def validar_logo(imagen):
+    """El logo va en cada card de la home y de /acreditacion/: 2 MB como máximo (REQ-WEB-62)."""
+    if imagen.size and imagen.size > LOGO_MAX_BYTES:
+        raise ValidationError('El logo no puede pesar más de 2 MB.')
+
+
 def validar_pdf(archivo):
     """Validador de v3; solo lo importa la migración 0002_certificacion."""
     validar_archivo(archivo)
@@ -114,7 +123,9 @@ class CertificacionQuerySet(models.QuerySet):
 
     def para_card(self):
         """Lista blanca de campos para las cards y el modal (regla 2 de CLAUDE.md)."""
-        return self.only('id', 'titulo', 'descripcion', 'tipo', 'institucion', 'archivo', 'vigencia_hasta', 'orden')
+        return self.only(
+            'id', 'titulo', 'descripcion', 'tipo', 'institucion', 'logo', 'logo_ancho', 'logo_alto', 'archivo', 'vigencia_hasta', 'orden',
+        )
 
 
 def primera_acreditacion(certificaciones):
@@ -128,9 +139,11 @@ def primera_acreditacion(certificaciones):
 class Certificacion(models.Model):
     """Acreditación, certificación ISO u otro reconocimiento mostrado como card.
 
-    Modelo único desde specs/WEB v4: la card de /acreditacion/ y de la home
-    muestra título, descripción, tipo e institución, y abre el archivo (imagen
-    o PDF) en un modal. Sin SeoModel: no tiene página propia.
+    Modelo único desde specs/WEB v4. Desde v6 la card de /acreditacion/ y de
+    la home lleva arriba el logo de la institución (o un sello genérico si no
+    tiene), al medio el tipo, el título y la descripción, y abajo "Ver
+    documento"; abre el archivo (imagen o PDF) en un modal. Sin SeoModel: no
+    tiene página propia.
     """
 
     TIPO_ACREDITACION = 'acreditacion'
@@ -152,6 +165,16 @@ class Certificacion(models.Model):
         max_length=150, verbose_name='Institución que la otorga',
         help_text='Ej.: Instituto Nacional de Calidad (INACAL)',
     )
+    logo = models.ImageField(
+        upload_to='certificaciones/logos/', blank=True, width_field='logo_ancho', height_field='logo_alto',
+        validators=[FileExtensionValidator(EXTENSIONES_IMAGEN), validar_logo],
+        verbose_name='Logo de la institución',
+        help_text='JPG, PNG o WebP, máximo 2 MB, de preferencia con fondo transparente o blanco. '
+                  'Sin logo, la card muestra un sello genérico.',
+    )
+    # Los llena Django al subir el logo: width/height del <img> sin abrir el archivo (regla 17).
+    logo_ancho = models.PositiveIntegerField(blank=True, null=True, editable=False)
+    logo_alto = models.PositiveIntegerField(blank=True, null=True, editable=False)
 
     archivo = models.FileField(
         upload_to='certificaciones/',

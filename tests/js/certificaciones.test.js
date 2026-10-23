@@ -62,13 +62,13 @@ test('imagen siempre en el modal, también en móvil y sin visor de PDF (REQ-WEB
     assert.equal(visor.modoApertura('imagen', {}, undefined), 'imagen');
 });
 
-test('PDF en el modal solo en escritorio con visor (REQ-WEB-46)', () => {
+test('PDF embebido solo en escritorio con visor; si no, aviso con Abrir documento (REQ-WEB-64)', () => {
     assert.equal(visor.modoApertura('pdf', { pdfViewerEnabled: true }, medios(true)), 'pdf');
-    assert.equal(visor.modoApertura('pdf', { pdfViewerEnabled: true }, medios(false)), 'pestana');
-    assert.equal(visor.modoApertura('pdf', { pdfViewerEnabled: false }, medios(true)), 'pestana');
+    assert.equal(visor.modoApertura('pdf', { pdfViewerEnabled: true }, medios(false)), 'enlace');
+    assert.equal(visor.modoApertura('pdf', { pdfViewerEnabled: false }, medios(true)), 'enlace');
 });
 
-test('tipo desconocido o vacío no intercepta el enlace', () => {
-    assert.equal(visor.modoApertura('', {}, medios(true)), 'pestana');
-    assert.equal(visor.modoApertura(null, {}, medios(true)), 'pestana');
+test('tipo desconocido o vacío: el modal ofrece Abrir documento', () => {
+    assert.equal(visor.modoApertura('', {}, medios(true)), 'enlace');
+    assert.equal(visor.modoApertura(null, {}, medios(true)), 'enlace');
 });

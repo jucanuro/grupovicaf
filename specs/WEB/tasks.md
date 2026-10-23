@@ -2,7 +2,7 @@
 
 | Versión | Fecha | Estado |
 |---|---|---|
-| v5 | 2026-10-23 | Implementado (T1-T6 en v1, T7-T11 en v2, T12-T16 en v3, T17-T20 en v4, T21 en v5) |
+| v6 | 2026-10-23 | Implementado (T1-T6 en v1, T7-T11 en v2, T12-T16 en v3, T17-T20 en v4, T21 en v5, T22 en v6) |
 
 - [x] **T1 · Horario con receso y WhatsApp en dígitos** — `NegocioConfig`: campos de receso (migración 0008), datos 13:00 y 15:00 (migración 0009), `whatsapp_digitos`, `horario_texto()` y `esta_abierto()`. Cubre REQ-WEB-03, 18 y 19. Se verifica con `siteconfig/tests.py`.
 - [x] **T2 · Saludo y catálogo público** — `web_contacto/asistente.py`: `saludo_para()` y `catalogo_publico()` con lista blanca. Cubre REQ-WEB-05, 07 y 10. Se verifica con `web_contacto/test_asistente.py`.
@@ -34,6 +34,9 @@
 ### v5 · Todo en cards: ensayos acreditados [Decisión Gerente] (2026-10-23)
 - [x] **T21 · Ensayos acreditados en cards por línea, buscador, filtro y modal** — HU v1.8 (HU-WEB-09, CU-WEB-05, RN-16, PM-12, P-19) y specs v5; `ensayos_acreditados_por_linea()` en `web_acreditacion/views.py` (lista blanca, agrupación de REQ-WEB-54, URL de ficha con RN-14); `partials/ensayos_acreditados.html`, `card_ensayo.html` y `modal_ensayo.html`; `static/web/js/ensayos-acreditados.js` (búsqueda sin tildes, filtro por línea, conteo `aria-live` y modal accesible). Sin migraciones. Cubre REQ-WEB-53 a 61. Se verifica con `web_acreditacion/tests.py` (`EnsayosAcreditadosTests`) y `node --test tests/js/ensayos-acreditados.test.js`.
 
+### v6 · Rediseño de certificaciones y lista de ensayos [Decisión Gerente] (2026-10-23)
+- [x] **T22 · Cards con logo, home compacta y ensayos en lista** — HU v1.9 (CA-08.2, 08.4, 08.8, 08.13 a 15; CA-09.1, 09.3, 09.5, 09.10; P-20) y specs v6; `Certificacion.logo` (migración 0007) y admin con vista previa; `logo_certificacion.html`, `card_certificacion.html` en 3 franjas (y `compacta`), grilla flex centrada, modal con "Abrir documento"; `ensayos_acreditados.html` en lista plegable por línea, alfabética y en columnas; `ensayos-acreditados.js` solo buscador; se borran `card_ensayo.html` y `modal_ensayo.html`. Cubre REQ-WEB-62 a 70. Se verifica con `web_acreditacion/tests.py`, `web_inicio/tests.py` y `node --test 'tests/js/*.test.js'`.
+
 ## Trazabilidad HU → REQ
 | HU | REQ |
 |---|---|
@@ -43,6 +46,6 @@
 | HU-WEB-04 | 02, 16, 18, 19 |
 | HU-WEB-06 | 17, 18 |
 | HU-WEB-07 | 04, 22, 23, 24, 25, 26, 27, 28, 29 |
-| HU-WEB-08 | v3: 30 a 38 (reemplazados en v4 salvo 37) · v4: 37, 39 a 52 |
-| HU-WEB-09 | v5: 53 a 61 |
+| HU-WEB-08 | v3: 30 a 38 (reemplazados en v4 salvo 37) · v4: 37, 39 a 52 (43, 44, 46 y 49 reemplazados en v6) · v6: 62 a 65 |
+| HU-WEB-09 | v5: 53 a 61 (reemplazados en v6) · v6: 66 a 70 |
 | HU-WEB-05 | fuera de alcance (opción C) |

@@ -3,11 +3,12 @@
 // certificado-pdf.js (PDF ISO 9001) de v3.
 //
 // Cada card es un <a href="archivo" target="_blank" data-cert-open> real: sin
-// JavaScript abre el archivo en una pestaña nueva. Con JavaScript:
+// JavaScript abre el archivo en una pestaña nueva. Con JavaScript toda card
+// abre el modal (specs/WEB v6, REQ-WEB-64):
 //   - imagen: se muestra en el modal en cualquier dispositivo (REQ-WEB-45);
 //   - PDF: se embebe en el modal solo en escritorio con visor de PDF; en
-//     móvil, tableta o sin visor el clic sigue a la pestaña nueva (REQ-WEB-46),
-//     porque los PDF embebidos fallan en muchos teléfonos.
+//     móvil, tableta o sin visor el modal muestra "Abrir documento" (pestaña
+//     nueva), porque los PDF embebidos quedan en blanco en muchos teléfonos.
 //
 // Las funciones puras se exportan en module.exports para probarlas con
 // `node --test tests/js/certificaciones.test.js`.
@@ -26,12 +27,12 @@
         return Boolean(matchMedia(CONSULTA_ESCRITORIO).matches);
     }
 
-    // Cómo se abre una card: 'imagen' o 'pdf' (en el modal) o 'pestana' (no se
-    // intercepta el clic y el enlace abre la pestaña nueva).
+    // Qué muestra el modal: 'imagen', 'pdf' (embebido) o 'enlace' (el aviso
+    // con "Abrir documento" en una pestaña nueva).
     function modoApertura(tipo, nav, matchMedia) {
         if (tipo === 'imagen') return 'imagen';
         if (tipo === 'pdf' && debeUsarModal(nav, matchMedia)) return 'pdf';
-        return 'pestana';
+        return 'enlace';
     }
 
     // Índice del control que recibe el foco al pulsar Tab (o Shift+Tab) dentro
@@ -65,6 +66,8 @@
         var titulo = modal.querySelector('#modal-certificacion-titulo');
         var contenido = modal.querySelector('[data-cert-contenido]');
         var descargar = modal.querySelector('[data-cert-descargar]');
+        var alterno = modal.querySelector('[data-cert-alterno]');
+        var abrirPestana = modal.querySelector('[data-cert-abrir]');
         var disparador = null;
 
         function controles() {
@@ -79,8 +82,14 @@
             var nombre = enlace.getAttribute('data-cert-titulo') || 'Certificado';
             titulo.textContent = nombre;
 
-            var elemento;
-            if (modo === 'pdf') {
+            var elemento = null;
+            alterno.classList.toggle('hidden', modo !== 'enlace');
+            alterno.classList.toggle('flex', modo === 'enlace');
+            contenido.classList.toggle('hidden', modo === 'enlace');
+            panel.classList.remove('h-[90vh]');
+            if (modo === 'enlace') {
+                abrirPestana.href = enlace.href;
+            } else if (modo === 'pdf') {
                 elemento = doc.createElement('iframe');
                 elemento.title = nombre + ' (PDF)';
                 elemento.className = 'h-full w-full';
@@ -90,10 +99,11 @@
                 elemento.alt = nombre;
                 elemento.className = 'mx-auto h-auto max-w-full self-start object-contain p-3 sm:p-5';
                 elemento.decoding = 'async';
-                panel.classList.remove('h-[90vh]');
             }
-            elemento.src = enlace.href;
-            contenido.replaceChildren(elemento);
+            if (elemento) {
+                elemento.src = enlace.href;
+                contenido.replaceChildren(elemento);
+            }
             descargar.href = enlace.href;
 
             modal.classList.remove('hidden');
@@ -110,6 +120,7 @@
             // Quitar el <img>/<iframe> libera el archivo (y detiene el visor de PDF).
             contenido.replaceChildren();
             descargar.setAttribute('href', '#');
+            abrirPestana.setAttribute('href', '#');
             doc.body.style.overflow = '';
             if (disparador && typeof disparador.focus === 'function') disparador.focus();
             disparador = null;
@@ -122,7 +133,6 @@
                     raiz.navigator,
                     raiz.matchMedia && raiz.matchMedia.bind(raiz)
                 );
-                if (modo === 'pestana') return;
                 evento.preventDefault();
                 abrir(enlace, modo);
             });
@@ -131,6 +141,9 @@
         modal.querySelectorAll('[data-cert-cerrar]').forEach(function (boton) {
             boton.addEventListener('click', cerrar);
         });
+
+        // "Abrir documento" deja el modal listo para volver: se cierra al usarlo.
+        abrirPestana.addEventListener('click', function () { raiz.setTimeout(cerrar, 0); });
 
         // Clic fuera del panel: el propio contenedor oscuro es el fondo.
         modal.addEventListener('click', function (evento) {
