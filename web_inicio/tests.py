@@ -73,6 +73,16 @@ class HomeCertificacionesTests(TestCase):
         for viejo in ('modal-certificado-inacal', 'modal-certificado.js', 'data-modal-cert-open'):
             self.assertNotIn(viejo, html)
 
+    def test_textos_solo_cajamarca(self):
+        # REQ-WEB-52 (D-VCF-002): ni el texto de la sección ni la meta description.
+        html = self.get_html()
+        self.assertNotIn('norte del per', html.lower())
+        self.assertIn('reconocidos por entidades públicas y privadas de Cajamarca.', html)
+        self.assertIn(
+            '<meta name="description" content="Laboratorio de ensayo de materiales y geotecnia '
+            'acreditado por INACAL, con sede en Cajamarca.">', html,
+        )
+
     def test_accesos_inacal_abren_la_acreditacion_en_el_modal(self):
         # REQ-WEB-50: badge del hero, franja de credibilidad y la card.
         html = self.get_html()

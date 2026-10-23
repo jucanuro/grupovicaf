@@ -402,7 +402,7 @@ Recomendación original del PM: **A ahora, diseñada para pasar a C** sin rehace
 
 | PM-09 | *(v1.6)* nginx (`deploy/nginx/grupovicaf.conf`) y Django mandan `X-Frame-Options: DENY`, así que el PDF no se puede embeber. Se cambia a `SAMEORIGIN` **solo** para `/media/certificaciones/` | Al desplegar hay que copiar la config de nginx al servidor y recargarlo; si no, el modal se ve en blanco | Paso manual en el despliegue (ver specs/WEB/tasks.md, T15) |
 | PM-10 | *(v1.6)* Las fechas y el alcance se leyeron de una imagen (el PDF no tiene texto). Hay discrepancias con el requerimiento (P-12, P-13) | Datos publicados con riesgo de error | El Gerente los confirma; se corrigen desde el admin sin código |
-| PM-11 | *(v1.7)* Quedan textos "norte del Perú" fuera de la home y de Acreditación: `templates/web/clientes.html` y `NegocioConfig.descripcion` (meta description de la home, ver PM-03) | Siguen contradiciendo D-VCF-002 | Corregir `clientes.html` en otra tarea y la descripción desde el admin |
+| PM-11 | *(v1.7)* `NegocioConfig.descripcion` es la meta description de la home y decía "cobertura en el norte del Perú" (PM-03): se corrige con una migración de datos que solo cambia el texto de la semilla. Queda fuera de la home y de Acreditación `templates/web/clientes.html` | `clientes.html` sigue contradiciendo D-VCF-002 | Corregir `clientes.html` en otra tarea |
 | PM-08 | G1 exige que QA confirme que los EARS se pueden probar. QA no está asignado, así que esa evidencia falta; el Gerente aprobó igual. P-03 (forma de captura de la ubicación) también seguía abierta y bloqueaba: se implementa la opción por defecto, texto libre | G1 queda con evidencia incompleta | Asignar QA o registrar la excepción |
 
 ## 11. Preguntas abiertas

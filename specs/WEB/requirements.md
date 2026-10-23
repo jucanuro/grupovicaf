@@ -80,7 +80,7 @@ Nota REQ-WEB-13: P-03 sigue abierta y la ubicación se pide como texto libre, as
 | REQ-WEB-49 | MIENTRAS haya certificaciones publicadas, EL SISTEMA DEBE mostrar en la home una sección con las mismas cards (como máximo 4, en el orden del admin) y el enlace "Ver todas" a `/acreditacion/`, y NO DEBE mostrar la imagen grande del certificado. | HU-WEB-08 · CA-08.8, CA-08.9 |
 | REQ-WEB-50 | CUANDO el visitante pulse los accesos "Ver certificado" de INACAL de la home o del hero de `/acreditacion/`, EL SISTEMA DEBE abrir el mismo modal con la primera certificación publicada de tipo Acreditación; SI no hay ninguna, ENTONCES el acceso DEBE llevar a `/acreditacion/`. | HU-WEB-08 · P-18 |
 | REQ-WEB-51 | MIENTRAS haya certificaciones publicadas de tipo `iso` u `otro`, EL SISTEMA DEBE declararlas en `LocalBusiness.hasCertification` (tipo `Certification`: `name`, `description`, `issuedBy`, `expires` si hay vigencia, `certificationStatus`, `url` absoluta del archivo), sin tocar el `hasCredential` de INACAL. | HU-WEB-08 · CA-08.11 |
-| REQ-WEB-52 | EL SISTEMA NO DEBE mostrar "norte del Perú" en la home ni en `/acreditacion/` (H1, meta y textos): el ámbito es Cajamarca. | HU-WEB-08 · CA-08.12, D-VCF-002 |
+| REQ-WEB-52 | EL SISTEMA NO DEBE mostrar "norte del Perú" en la home ni en `/acreditacion/` (H1, meta, incluida la `NegocioConfig.descripcion` que usa la home, y textos): el ámbito es Cajamarca. | HU-WEB-08 · CA-08.12, D-VCF-002 |
 
 ## Fuera de alcance
 - Enlaces "Ver en la web" dentro de las listas de líneas y de ensayos: cada fila ya lleva a su detalle, y ahí está el enlace (REQ-WEB-20).
@@ -89,5 +89,5 @@ Nota REQ-WEB-13: P-03 sigue abierta y la ubicación se pide como texto libre, as
 - ~~*(v3)* Mostrar el certificado ISO 9001 en la home o en el footer~~: *(v4)* la home sí muestra las cards (REQ-WEB-49). El footer sigue fuera de alcance.
 - *(v3)* Visor PDF propio (pdf.js): se usa el visor del navegador; en móvil, la pestaña nueva.
 - *(v4)* Fusionar `Acreditacion` (alcance y ensayos acreditados) con `Certificacion`: se mantiene aparte (P-16).
-- *(v4)* Corregir "norte del Perú" en `clientes.html` y en `NegocioConfig.descripcion` (PM-11).
+- *(v4)* Corregir "norte del Perú" en `clientes.html` (PM-11).
 - *(v3)* Ocultar el archivo PDF vencido de `/media/`: la tarjeta desaparece, pero la URL directa sigue respondiendo mientras el archivo exista. Para retirarlo, el administrador borra el archivo desde el admin.

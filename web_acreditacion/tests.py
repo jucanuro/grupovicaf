@@ -201,6 +201,13 @@ class AcreditacionPaginaTests(MediaTemporalMixin, TestCase):
         self.assertNotIn('GRUPO-VICAF-CERTIFICADO', html)
         self.assertNotIn('<img src="/media/certificaciones/', html)
 
+    def test_textos_solo_cajamarca(self):
+        # REQ-WEB-52 (D-VCF-002): H1, meta y textos sin "norte del Perú".
+        html = self.get_html()
+        self.assertNotIn('norte del per', html.lower())
+        self.assertIn('Laboratorio acreditado INACAL en Cajamarca\n        </h1>', html)
+        self.assertIn('<title>Laboratorio acreditado INACAL en Cajamarca', html)
+
     def test_orden_del_admin(self):
         self.crear_certificacion(titulo='Primero del admin', orden=0, tipo='otro')
         html = self.get_html()
