@@ -2,8 +2,10 @@
 
 | Proyecto | Módulo | Doc | Versión | Fecha | Dueño (ASP) | Estado | Gate |
 |---|---|---|---|---|---|---|---|
-| Grupo VICAF (VCF) | VCF-WEB | VCF-WEB_HU_CU | v1.4 | 2026-10-15 | Fundador VQL | Aprobado | G1 aprobado por el Gerente (falta la confirmación de QA, ver PM-08) |
+| Grupo VICAF (VCF) | VCF-WEB | VCF-WEB_HU_CU | v1.5 | 2026-10-23 | Fundador VQL | Aprobado | G1 aprobado por el Gerente (falta la confirmación de QA, ver PM-08); cambio de alcance v1.5 [Decisión Gerente] |
 
+> **v1.5 (2026-10-23) · Cambio de alcance [Decisión Gerente]:** enlaces "Ver en la web" desde el asistente, panel que sigue abierto al navegar, botón fijo al menú principal, cierre que no se reabre solo y panel usable en móvil. Ver HU-WEB-07, CA-02.3, CA-02.7, RN-12, RN-13 y la sección 8.1.
+>
 > Requerimiento nuevo pedido por Juan Carlos Núñez Rodrigo el 2026-10-15. Todavía sin código. Las reglas sin validar llevan **[Propuesto]** o **[Supuesto]**; nada de este doc está aprobado por el Gerente.
 >
 > Fuente técnica: snapshot del repo `grupovicaf-main.zip` (rama `main`, 7 oct 2026). No se pudo leer la rama `dev` porque GitHub no está vinculado a la sesión; lo que diga `dev` puede diferir.
@@ -63,12 +65,24 @@ Criterios de aceptación (EARS):
 - **CA-06.1** CUANDO el visitante elija "Conversar con un asesor", EL SISTEMA DEBE mostrar el texto T-30 y un botón que abra WhatsApp al número de `NegocioConfig.whatsapp` con el mensaje de asesor de la sección 7.5. [Propuesto]
 - **CA-06.2** CUANDO el visitante elija "Conversar con un asesor" fuera del horario de atención, EL SISTEMA DEBE mostrar antes el aviso T-40. [Propuesto]
 
+### HU-WEB-07 · Seguir con el asistente mientras navego la web
+**Como** visitante, **quiero** abrir la página de un servicio desde el asistente y que el panel siga abierto donde lo dejé, **para** leer el detalle sin perder la conversación ni tener que empezar de nuevo. [Decisión Gerente] (v1.5)
+
+- **CA-07.1** MIENTRAS el panel esté abierto, CUANDO el visitante pase a otra página de la web (por "Ver en la web" o por el menú del sitio), EL SISTEMA DEBE mostrar el panel abierto en la nueva página, en el mismo paso de la conversación y con las respuestas ya dadas. [Decisión Gerente]
+- **CA-07.2** MIENTRAS el panel muestre un paso distinto del menú, EL SISTEMA DEBE mostrar siempre el botón "Menú principal", que vuelve al saludo T-01 con las opciones Servicios / Cotización / Asesor. [Decisión Gerente]
+- **CA-07.3** CUANDO el visitante elija "Sí, cotizar" en el detalle de un servicio, también después de haber navegado, EL SISTEMA DEBE iniciar la cotización con ese servicio ya elegido (se salta T-23). [Decisión Gerente]
+- **CA-07.4** CUANDO el visitante cierre el panel (botón × o Esc), EL SISTEMA NO DEBE volver a abrirlo por su cuenta ni en esa página ni en las siguientes; solo se abre al pulsar el botón flotante. [Decisión Gerente]
+- **CA-07.5** CUANDO el visitante vuelva a abrir el panel durante la misma sesión, EL SISTEMA DEBE retomar el último paso en el que estaba. [Propuesto] (ASP, deriva de CA-07.1)
+- **CA-07.6** DONDE la pantalla tenga menos de 640 px de ancho, EL SISTEMA DEBE mostrar el panel a lo ancho con márgenes de 16 px, con altura máxima cercana a la mitad de la pantalla, sin capa que bloquee la página, y dejar desplazar la página para leer todo su contenido por encima del panel. En escritorio el comportamiento es el mismo, con el panel en la esquina inferior derecha. [Decisión Gerente]
+- **CA-07.7** SI el navegador no permite guardar el estado (modo privado estricto, almacenamiento bloqueado), ENTONCES EL SISTEMA DEBE seguir funcionando como en v1.4, sin restaurar el panel entre páginas. [Propuesto]
+
 ### HU-WEB-02 · Información de servicios
 **Como** visitante, **quiero** ver los servicios del laboratorio dentro del asistente, **para** saber si hacen lo que necesito antes de escribir. [Validado con usuario]
 
 - **CA-02.1** CUANDO el visitante elija "Información de un servicio", EL SISTEMA DEBE listar las líneas de servicio publicadas (`LineaServicio.activo=True`) en el orden configurado. [Validado con usuario] (fuente LIMS) / [Propuesto] (usar líneas como primer nivel)
 - **CA-02.2** CUANDO el visitante elija una línea, EL SISTEMA DEBE listar sus ensayos con nombre público y resumen, tomando solo `ServicioPublicado` activos. [Propuesto]
-- **CA-02.3** CUANDO el visitante elija un ensayo, EL SISTEMA DEBE ofrecer "Ver página del servicio" (enlace al slug) y "Consultar por WhatsApp". [Propuesto]
+- **CA-02.3** CUANDO el visitante elija una línea o un ensayo, EL SISTEMA DEBE ofrecer el enlace "Ver en la web" a su página real en `/servicios/<slug>/` (URL de `LineaServicio` o de `ServicioPublicado`), que se abre en la misma pestaña, y en el ensayo también "Consultar por WhatsApp". [Decisión Gerente] (v1.5; antes "Ver página del servicio", solo en ensayos)
+- **CA-02.7** SI una línea o un ensayo no tiene página publicada, ENTONCES EL SISTEMA NO DEBE mostrar el enlace "Ver en la web" y DEBE mantener las demás opciones. [Decisión Gerente] (v1.5)
 - **CA-02.4** CUANDO el visitante elija "Consultar por WhatsApp", EL SISTEMA DEBE abrir WhatsApp con un mensaje que nombre el servicio elegido. [Validado con usuario]
 - **CA-02.5** EL SISTEMA NO DEBE mostrar precios, códigos de facturación ni la marca de acreditado en el asistente. [Propuesto] — ver RN-04 y P-06
 - **CA-02.6** SI una línea no tiene ensayos publicados, ENTONCES EL SISTEMA DEBE mostrar la línea con su resumen y la opción de consultar por WhatsApp. [Propuesto]
@@ -110,9 +124,19 @@ Criterios de aceptación (EARS):
 | Actor | Visitante |
 | Precondición | `NegocioConfig.whatsapp` configurado; hay líneas publicadas |
 | Flujo básico | 1. Clic en el botón flotante. 2. El sistema saluda y ofrece dos opciones. 3. Elige "Información de un servicio". 4. El sistema lista líneas. 5. Elige una línea. 6. El sistema lista sus ensayos. 7. Elige un ensayo. 8. Elige "Consultar por WhatsApp". 9. El sistema abre WhatsApp con el mensaje armado |
-| Alternos | 6a. Línea sin ensayos publicados: ofrece consultar la línea (CA-02.6). 8a. Elige "Ver página del servicio": navega al slug. *a. Cierra el panel en cualquier paso |
+| Alternos | 6a. Línea sin ensayos publicados: ofrece consultar la línea (CA-02.6). 5a/7a. Elige "Ver en la web": navega a la página de la línea o del ensayo y el panel sigue abierto en el mismo paso (CU-WEB-03). *a. Cierra el panel en cualquier paso; no se reabre solo. *b. "Menú principal" en cualquier paso: vuelve a T-01 |
 | Postcondición | WhatsApp abierto con el mensaje; nada se guarda (opción A) |
-| HU | HU-WEB-01, 02, 04 |
+| HU | HU-WEB-01, 02, 04, 07 |
+
+### CU-WEB-03 · Ver un servicio en la web sin perder el asistente
+| Campo | Detalle |
+|---|---|
+| Actor | Visitante |
+| Precondición | Panel abierto en el detalle de una línea o de un ensayo con página publicada |
+| Flujo básico | 1. Elige "Ver en la web". 2. El navegador abre `/servicios/<slug>/` en la misma pestaña. 3. El sistema recupera el estado guardado en la sesión del navegador. 4. El sistema vuelve a pedir saludo, horario y catálogo al endpoint. 5. El sistema muestra el panel abierto en el mismo paso, sin mover el foco ni el desplazamiento de la página. 6. El visitante lee la página y sigue con "Sí, cotizar", "Consultar por WhatsApp", "Volver" o "Menú principal" |
+| Alternos | 3a. No hay estado o el panel estaba cerrado: el panel queda cerrado (CA-07.4). 3b. El almacenamiento no está disponible: se comporta como v1.4 (CA-07.7). 4a. La línea o el ensayo ya no está publicado: el sistema muestra el paso válido más cercano (lista de líneas o menú). 4b. Falla el endpoint: muestra el aviso de carga y el enlace directo a WhatsApp |
+| Postcondición | Panel abierto en el mismo paso, en la página del servicio |
+| HU | HU-WEB-02, 07 |
 
 ### CU-WEB-02 · Solicitar una cotización
 | Campo | Detalle |
@@ -138,6 +162,9 @@ Criterios de aceptación (EARS):
 | RN-10 | La franja del saludo se calcula con la hora de Lima, no con la del servidor, para que coincida con la del visitante en Cajamarca | [Propuesto] |
 | RN-09 | Los textos del asistente tratan al visitante de "usted", con tono profesional y cordial, a nombre de Grupo VICAF | [Propuesto] (ASP) |
 | RN-11 | Cada mensaje del asistente tiene 3 líneas como máximo, sin precios, sin zonas fuera de Cajamarca y con un emoji como máximo | [Propuesto] (ASP) |
+| RN-12 | El estado del asistente (paso, panel abierto o cerrado y respuestas) se guarda solo en el navegador del visitante, en `sessionStorage`, y se borra al cerrar la pestaña. Nunca se envía al servidor (opción A) | [Decisión Gerente] (v1.5) |
+| RN-13 | El asistente solo se abre por acción del visitante. Al pasar de página se restaura abierto únicamente si el visitante lo dejó abierto; si lo cerró, sigue cerrado | [Decisión Gerente] (v1.5) |
+| RN-14 | "Ver en la web" se muestra solo si la línea o el ensayo tiene página publicada: activo y con su slug resolviendo a esa misma página en `/servicios/<slug>/` | [Decisión Gerente] (v1.5) |
 
 ## 7. Textos del asistente
 
@@ -152,14 +179,16 @@ Reglas de redacción, propuestas por el ASP: mensajes de 3 líneas como máximo,
 | T-02 | Menú (botones) | **1) Ver nuestros servicios** · **2) Solicitar una cotización** · **3) Conversar con un asesor** |
 
 ### 7.2 Opción 1 · Ver nuestros servicios
+En todos los pasos salvo el menú, la cabecera del panel muestra el botón **Menú principal** (v1.5, CA-07.2).
+
 | ID | Momento | Texto |
 |---|---|---|
 | T-10 | Introducción | Con gusto le mostramos nuestros servicios.<br>Elija una línea para ver los ensayos que realizamos. |
 | — | Lista de líneas | Botón por cada `LineaServicio` activa, en el orden del admin: **nombre** + `resumen` en una línea. Sin precios ni códigos (RN-04) |
-| T-11 | Tras elegir una línea | Estos son los ensayos de {línea}.<br>Toque uno para ver su detalle. |
+| T-11 | Tras elegir una línea | Estos son los ensayos de {línea}.<br>Toque uno para ver su detalle.<br>Botón: **Ver en la web** (página de la línea, si está publicada, v1.5) |
 | — | Lista de ensayos | Botón por cada `ServicioPublicado` activo de esa línea: **titulo_publico** + `resumen` |
-| T-12 | Detalle del ensayo | {titulo_publico}: {resumen}<br>Botones: **Ver página del servicio** · **Solicitar una cotización** |
-| T-13 | Línea sin ensayos publicados | Pronto publicaremos el detalle de esta línea.<br>Mientras tanto, puede consultarnos directamente. |
+| T-12 | Detalle del ensayo | {titulo_publico}: {resumen}<br>Botones: **Ver en la web** (solo si tiene página publicada, v1.5) · **Consultar por WhatsApp** |
+| T-13 | Línea sin ensayos publicados | Pronto publicaremos el detalle de esta línea.<br>Mientras tanto, puede consultarnos directamente.<br>Botones: **Ver en la web** (si la línea tiene página, v1.5) · **Consultar por WhatsApp** · **Solicitar una cotización** |
 | T-14 | Cierre | ¿Desea que le preparemos una cotización para este servicio?<br>Solo le tomará un minuto.<br>Botones: **Sí, cotizar** · **Volver a servicios** |
 
 ### 7.3 Opción 2 · Solicitar una cotización
@@ -254,6 +283,33 @@ flowchart TD
   H -- Sí --> W[Abrir wa.me con mensaje armado]
 ```
 
+### 8.1 Navegación entre páginas con el asistente abierto (v1.5) [Decisión Gerente]
+
+```mermaid
+flowchart TD
+  L[Detalle de línea T-11/T-13] --> E[Detalle de ensayo T-12/T-14]
+  L -->|¿Página publicada?| LW{RN-14}
+  E -->|¿Página publicada?| EW{RN-14}
+  LW -- Sí --> VW[Botón Ver en la web]
+  EW -- Sí --> VW
+  LW -- No --> SL[Sin enlace; siguen las demás opciones]
+  EW -- No --> SL
+  VW --> G[Guardar estado en sessionStorage: paso, abierto, respuestas]
+  G --> N[Navegar a /servicios/slug/ en la misma pestaña]
+  N --> R{¿Estado guardado y panel abierto?}
+  R -- No --> C([Panel cerrado; solo se abre con el botón flotante])
+  R -- Sí --> D[Pedir saludo, horario y catálogo al endpoint]
+  D --> V{¿El paso sigue publicado?}
+  V -- Sí --> P[Panel abierto en el mismo paso, sin robar el foco]
+  V -- No --> PV[Paso válido más cercano: líneas o menú]
+  P --> O{¿Qué hace el visitante?}
+  PV --> O
+  O -->|Sí, cotizar| Q[Cotización con el servicio ya elegido]
+  O -->|Menú principal| M[T-01 + menú Servicios / Cotización / Asesor]
+  O -->|Cerrar| X[Guardar abierto = no] --> C
+  O -->|Otra página del sitio| G
+```
+
 ## 9. Decisión propuesta DP-WEB-01 · Tipo de asistente
 Propuesta por Claude PM a pedido de Juan Carlos Núñez Rodrigo. **La decide el Gerente**; no está en REGISTRO_DECISIONES.
 
@@ -304,6 +360,7 @@ Recomendación original del PM: **A ahora, diseñada para pasar a C** sin rehace
 | HU-WEB-04 | CU-WEB-01, CU-WEB-02 | RN-03, RN-07 | DP-WEB-01 |
 | HU-WEB-05 | CU-WEB-02 | RN-08 | DP-WEB-01 (solo C) |
 | HU-WEB-06 | — | RN-09, RN-11 | — |
+| HU-WEB-07 | CU-WEB-01, CU-WEB-03 | RN-12, RN-13, RN-14 | Cambio de alcance v1.5 [Decisión Gerente] |
 
 Todos los criterios son verificables con prueba manual o E2E, salvo CA-02.5 y CA-04.2, que también requieren revisión de código.
 
@@ -315,3 +372,4 @@ Todos los criterios son verificables con prueba manual o E2E, salvo CA-02.5 y CA
 | v1.2 | 2026-10-15 | Saludo según el horario y bienvenida a Grupo VICAF [Validado con usuario]: CA-01.6, CA-01.7, RN-10 y textos de la sección 7.1 [Propuesto] | Claude PM |
 | v1.3 | 2026-10-15 | El ASP pidió los textos: sección 7 "Textos del asistente" (T-01 a T-51), menú de 3 opciones, HU-WEB-06 (asesor), RN-09 en "usted", RN-11 y P-08 cerrada. Todo [Propuesto] hasta G1 | Claude PM |
 | v1.4 | 2026-10-15 | G1: el Gerente aprueba las HU, la opción A (D-VCF-004) y los textos (se mantiene INACAL en T-01); cierra P-02, P-04, P-07 y P-09; se agrega PM-08 (falta QA y P-03 sigue abierta) | Claude PM |
+| v1.5 | 2026-10-23 | Cambio de alcance [Decisión Gerente]: HU-WEB-07 (CA-07.1 a CA-07.7) y CU-WEB-03; CA-02.3 ajustado ("Ver en la web" en líneas y ensayos) y CA-02.7 nuevo; RN-12, RN-13 y RN-14; T-11, T-12 y T-13 con el enlace; flujo 8.1 en Mermaid. CA-07.5 y CA-07.7 quedan [Propuesto] | Claude PM |
