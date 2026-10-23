@@ -1,0 +1,38 @@
+# VCF-WEB · Tasks · Asistente de WhatsApp y certificado ISO 9001
+
+| Versión | Fecha | Estado |
+|---|---|---|
+| v3 | 2026-10-23 | Implementado (T1-T6 en v1, T7-T11 en v2, T12-T16 en v3) |
+
+- [x] **T1 · Horario con receso y WhatsApp en dígitos** — `NegocioConfig`: campos de receso (migración 0008), datos 13:00 y 15:00 (migración 0009), `whatsapp_digitos`, `horario_texto()` y `esta_abierto()`. Cubre REQ-WEB-03, 18 y 19. Se verifica con `siteconfig/tests.py`.
+- [x] **T2 · Saludo y catálogo público** — `web_contacto/asistente.py`: `saludo_para()` y `catalogo_publico()` con lista blanca. Cubre REQ-WEB-05, 07 y 10. Se verifica con `web_contacto/test_asistente.py`.
+- [x] **T3 · Endpoint JSON** — `GET /contacto/asistente/`, sin caché para el saludo y 404 sin WhatsApp. Cubre REQ-WEB-02, 05, 07, 10, 18 y 19. Se verifica con `web_contacto/test_asistente.py`.
+- [x] **T4 · Botón en todas las páginas** — partial incluido en `web/base.html`, botón de la home quitado, contacto con `whatsapp_digitos` y horario con receso en la home. Cubre REQ-WEB-01, 02 y 03. Se verifica con `web_contacto/test_asistente.py` (una sola aparición en /, /servicios/ y /contacto/).
+- [x] **T5 · Asistente guiado (JS)** — `static/web/js/asistente-whatsapp.js` con los textos aprobados, el menú de 3 opciones, servicios, cotización paso a paso, asesor, aviso fuera de horario y wa.me. Cubre REQ-WEB-04, 06, 08, 09, 11 a 17. Se verifica con `node --test 'tests/js/*.test.js'` y una prueba E2E manual (ver README de pruebas en el reporte del hilo).
+- [x] **T6 · Docs** — `docs/proc/VCF-WEB_HU_CU_v1.md` v1.4 y specs.
+
+### v2 · Cambio de alcance [Decisión Gerente] (2026-10-23)
+- [x] **T7 · Docs v2** — HU v1.5 (HU-WEB-07, CU-WEB-03, CA-02.3/02.7, RN-12 a 14, flujo 8.1) y specs v2. Sin código.
+- [x] **T8 · Endpoint con slug y URL solo si hay página** — `web_contacto/asistente.py`: `slug` en líneas y ensayos, y `url: null` si el ensayo no tiene página propia (slug resuelto por una línea). Cubre REQ-WEB-20 y 21. Se verifica con `web_contacto/test_asistente.py`.
+- [x] **T9 · Estado persistente y navegación** — `static/web/js/asistente-whatsapp.js`: pila serializable, `sessionStorage`, restauración sin robar el foco, poda de pasos despublicados, "Ver en la web" en líneas y ensayos, botón "Menú principal", "Sí, cotizar" con el servicio elegido y cierre que no se reabre. Cubre REQ-WEB-04, 08, 20, 22 a 27 y 29. Se verifica con `tests/js/asistente-whatsapp.test.js` y con el recorrido E2E (capturas).
+- [x] **T10 · Panel en móvil** — `templates/web/partials/asistente_whatsapp.html` y JS: panel a lo ancho con 16 px de margen, área de mensajes a 40 % del alto, botón flotante oculto con el panel abierto y `padding-bottom` en `body`. Cubre REQ-WEB-25 y 28. Se verifica con `web_contacto/test_asistente.py` (marcado del partial) y con capturas a 390 px y 1280 px.
+- [x] **T11 · Defecto: botón flotante fuera de pantalla con CSS anterior** — la posición base vuelve a las clases de v1 (`bottom-5 right-5`) y lo de v2 pasa a variantes `max-sm:`, incluido `pointer-events`. Cubre REQ-WEB-01 y 28. Se verifica con `test_boton_flotante_visible_en_escritorio_y_movil` (home, /servicios/, detalle de línea y contacto) y con el recorrido en navegador con el `output.css` actual y con uno anterior a v2, en escritorio y móvil, y con cada estado de `sessionStorage`.
+
+### v3 · Certificado ISO 9001 [Decisión Gerente] (2026-10-23)
+- [x] **T12 · Docs v3** — HU v1.6 (HU-WEB-08, CU-WEB-04, RN-15, P-12 a P-15) y specs v3. Sin código.
+- [ ] **T13 · Modelo, admin y datos del certificado** — `Certificacion` con `publicadas()`, validadores del PDF, `clean()` del sello, admin con estado "Publicada", migraciones `0002` (esquema) y `0003` (ER-0146/2026 sin archivo). Cubre REQ-WEB-31 y 36. Se verifica con `web_acreditacion/tests.py` (`CertificacionModelTests`).
+- [ ] **T14 · Tarjeta ISO 9001 y visor del PDF** — vista, `tarjeta_certificacion.html`, `modal_certificado_pdf.html` y `certificado-pdf.js`. Cubre REQ-WEB-30 a 35. Se verifica con `web_acreditacion/tests.py` (`AcreditacionPaginaTests`), `node --test tests/js/certificado-pdf.test.js` y capturas en 1280 px (modal) y 390 px (pestaña nueva).
+- [ ] **T15 · PDF embebible** — `servir_certificado_dev` en `urls_web.py` y `location /media/certificaciones/` en nginx con `SAMEORIGIN`. Cubre REQ-WEB-37. Se verifica con `web_acreditacion/tests.py` (`CabecerasPdfTests`) y con el modal mostrando el PDF en dev. **Al desplegar:** copiar `deploy/nginx/grupovicaf.conf` al servidor, `sudo nginx -t` y `sudo systemctl reload nginx`.
+- [ ] **T16 · JSON-LD** — templatetag `certificaciones_jsonld` y `hasCertification` en `web/base.html`. Cubre REQ-WEB-38 y 31. Se verifica con `web_acreditacion/tests.py` (`JsonLdTests`, JSON válido y ausente si vence).
+
+## Trazabilidad HU → REQ
+| HU | REQ |
+|---|---|
+| HU-WEB-01 | 01, 03, 04, 05, 06 |
+| HU-WEB-02 | 07, 08, 09, 10, 20, 21 |
+| HU-WEB-03 | 11, 12, 13, 14, 15 |
+| HU-WEB-04 | 02, 16, 18, 19 |
+| HU-WEB-06 | 17, 18 |
+| HU-WEB-07 | 04, 22, 23, 24, 25, 26, 27, 28, 29 |
+| HU-WEB-08 | 30, 31, 32, 33, 34, 35, 36, 37, 38 |
+| HU-WEB-05 | fuera de alcance (opción C) |
