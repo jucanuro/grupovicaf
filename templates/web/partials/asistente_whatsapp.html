@@ -11,14 +11,19 @@
   v2 (REQ-WEB-25 y 28): "Menú principal" en la cabecera; en < 640 px el panel
   va a lo ancho con 16 px de margen, mensajes a 40 % del alto y el botón
   flotante se oculta mientras está abierto. pointer-events-none en la raíz
-  para que la franja vacía no tape toques sobre la página.
+  (solo en móvil) para que la franja vacía no tape toques sobre la página.
+
+  T11: la posición base (escritorio) usa las mismas clases que v1 y todo lo
+  de v2 va en variantes max-sm:. Así, si el navegador conserva un output.css
+  anterior, el botón sigue en su esquina y clicable, en vez de quedar con
+  `fixed` sin bottom/right (debajo del footer, fuera de pantalla).
 {% endcomment %}
 {% if negocio.whatsapp_digitos %}
 <div data-asistente-wa data-abierto="false"
-     class="group pointer-events-none fixed inset-x-4 bottom-4 z-40 flex flex-col items-end gap-3 sm:inset-x-auto sm:bottom-5 sm:right-5">
+     class="group fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3 max-sm:pointer-events-none max-sm:inset-x-4 max-sm:bottom-4">
     <section id="asistente-wa" role="dialog" aria-modal="false" aria-labelledby="asistente-wa-titulo"
              data-endpoint="{% url 'web_contacto:asistente_datos' %}"
-             class="pointer-events-auto hidden w-full overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/10 sm:w-[22rem]">
+             class="hidden w-[min(22rem,calc(100vw-2.5rem))] overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/10 max-sm:pointer-events-auto max-sm:w-full">
         <header class="flex items-center justify-between gap-3 bg-emerald-600 px-4 py-3 text-white">
             <h2 id="asistente-wa-titulo" class="text-sm font-semibold">Grupo VICAF</h2>
             <div class="flex items-center gap-1">
@@ -33,13 +38,13 @@
             </div>
         </header>
         <div data-asistente-cuerpo aria-live="polite"
-             class="max-h-[40vh] space-y-3 overflow-y-auto overscroll-contain bg-slate-50 px-4 py-4 text-sm text-slate-800 sm:max-h-[min(28rem,70vh)]"></div>
+             class="max-h-[min(28rem,70vh)] space-y-3 overflow-y-auto overscroll-contain bg-slate-50 px-4 py-4 text-sm text-slate-800 max-sm:max-h-[40vh]"></div>
     </section>
 
     <a href="https://wa.me/{{ negocio.whatsapp_digitos }}" target="_blank" rel="noopener noreferrer"
        data-asistente-abrir aria-controls="asistente-wa" aria-expanded="false"
        aria-label="Escríbanos por WhatsApp"
-       class="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg transition-all duration-300 hover:scale-105 hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 max-sm:group-data-[abierto=true]:hidden">
+       class="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg transition-all duration-300 hover:scale-105 hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 max-sm:pointer-events-auto max-sm:group-data-[abierto=true]:hidden">
         <svg class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12.04 1.999c-5.523 0-10 4.477-10 10 0 1.767.463 3.47 1.338 4.98l-1.39 5.071 5.196-1.363c1.449.79 3.081 1.212 4.856 1.212 5.523 0 10-4.477 10-10s-4.477-10-10-10zm0 17.5c-1.553 0-3.064-.405-4.394-1.17l-.314-.177-3.085.81.828-3.028-.195-.314c-.835-1.345-1.276-2.894-1.276-4.46 0-4.408 3.592-8 8-8 4.408 0 8 3.592 8 8s-3.592 8-8 8zm4.5-5.95c-.247-.123-1.462-.722-1.69-.803-.228-.081-.395-.123-.561.123-.164.247-.643.802-.787.967-.145.164-.29.184-.538.062-.247-.123-1.042-.383-1.984-1.222-.733-.653-1.228-1.457-1.372-1.704-.144-.247-.015-.38.108-.503.111-.111.247-.29.37-.436.123-.145.164-.247.247-.41.082-.164.041-.308-.02-.431-.061-.123-.538-1.296-.736-1.773-.194-.477-.391-.412-.561-.42-.145-.007-.308-.009-.472-.009-.164 0-.431.062-.654.308-.223.247-.853.832-.853 2.034 0 1.203.874 2.366.996 2.529.123.164 1.715 2.617 4.158 3.674.58.25 1.031.398 1.382.508.581.184 1.109.158 1.526.096.465-.07 1.462-.597 1.668-1.174.205-.576.205-1.071.144-1.175-.06-.103-.226-.164-.472-.287z"/>
         </svg>

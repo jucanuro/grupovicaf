@@ -1,5 +1,6 @@
 """Pruebas del asistente de WhatsApp (specs/WEB, T2-T4)."""
 from datetime import datetime
+from html.parser import HTMLParser
 from decimal import Decimal
 from unittest import mock
 from zoneinfo import ZoneInfo
@@ -167,11 +168,66 @@ class BotonEnTodasLasPaginasTests(TestCase):
         html = self.client.get(reverse('web_home')).content.decode()
         self.assertEqual(html.count('data-asistente-menu'), 1)
         self.assertIn('max-sm:group-data-[abierto=true]:hidden', html)
-        self.assertIn('max-h-[40vh]', html)
-        self.assertIn('inset-x-4', html)
+        self.assertIn('max-sm:max-h-[40vh]', html)
+        self.assertIn('max-sm:inset-x-4', html)
+
+    def test_boton_flotante_visible_en_escritorio_y_movil(self):
+        # T11 (REQ-WEB-01): la posición base del contenedor usa las mismas
+        # clases que v1 (bottom-5 right-5). Si el navegador aún tiene el
+        # output.css anterior a v2, las clases nuevas no existen y, sin
+        # bottom/right, el `fixed` caía en su posición estática: debajo del
+        # footer, fuera de pantalla. Lo de móvil va solo en variantes max-sm:.
+        paginas = (
+            reverse('web_home'),
+            reverse('web_catalogo:servicios_list'),
+            reverse('web_catalogo:servicio_detalle', kwargs={'slug': 'mecanica-de-suelos'}),
+            reverse('web_contacto:contacto'),
+        )
+        for url in paginas:
+            with self.subTest(pagina=url):
+                respuesta = self.client.get(url)
+                self.assertEqual(respuesta.status_code, 200)
+                partes = _clases_asistente(respuesta.content.decode())
+                contenedor, panel, boton = partes['contenedor'], partes['panel'], partes['boton']
+                base = {c for c in contenedor['class'] if ':' not in c}
+                # Escritorio (y cualquier CSS compilado desde v1).
+                self.assertTrue({'fixed', 'bottom-5', 'right-5', 'z-40'} <= base, base)
+                self.assertFalse(base & {'inset-x-4', 'bottom-4', 'left-4', 'pointer-events-none'}, base)
+                # Móvil: a lo ancho con 16 px, solo bajo max-sm:.
+                self.assertTrue({'max-sm:inset-x-4', 'max-sm:bottom-4'} <= set(contenedor['class']))
+                # El botón nunca nace oculto: solo se oculta en móvil con el panel abierto.
+                self.assertEqual(contenedor['data-abierto'], 'false')
+                self.assertIn('hidden', panel['class'])
+                self.assertNotIn('hidden', boton['class'])
+                self.assertEqual(
+                    [c for c in boton['class'] if c.endswith('hidden')], ['max-sm:group-data-[abierto=true]:hidden'],
+                )
 
     def test_sin_whatsapp_no_hay_boton(self):
         self.negocio.whatsapp = ''
         self.negocio.save()
         html = self.client.get(reverse('web_catalogo:servicios_list')).content.decode()
         self.assertNotIn('data-asistente-wa', html)
+
+
+class _LectorAsistente(HTMLParser):
+    MARCAS = {'data-asistente-wa': 'contenedor', 'data-asistente-abrir': 'boton'}
+
+    def __init__(self):
+        super().__init__()
+        self.partes = {}
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        nombre = next((v for k, v in self.MARCAS.items() if k in attrs), None)
+        if attrs.get('id') == 'asistente-wa':
+            nombre = 'panel'
+        if nombre:
+            attrs['class'] = (attrs.get('class') or '').split()
+            self.partes[nombre] = attrs
+
+
+def _clases_asistente(html):
+    lector = _LectorAsistente()
+    lector.feed(html)
+    return lector.partes

@@ -89,8 +89,9 @@ Clave `sessionStorage['vicaf:asistente-wa']`, JSON versionado:
 5. "Menú principal" (`[data-asistente-menu]`, en la cabecera) se oculta en el paso `menu` y en los demás lleva a `menu` vaciando la pila (REQ-WEB-25).
 
 ### Móvil (REQ-WEB-28)
-- El contenedor pasa a `fixed inset-x-4 bottom-4` en `< sm` (16 px de margen) y a `bottom-5 right-5` desde `sm`. Lleva `pointer-events-none` y sus hijos `pointer-events-auto`, para que la franja vacía no tape toques sobre la página.
-- El área de mensajes: `max-h-[40vh]` en móvil y `sm:max-h-[min(28rem,70vh)]` en escritorio. `overscroll-contain`, para que el scroll del panel no arrastre a la página.
+- El contenedor mantiene la posición de v1 (`fixed bottom-5 right-5`) y en `< sm` pasa a `max-sm:inset-x-4 max-sm:bottom-4` (16 px de margen), con `max-sm:pointer-events-none` y sus hijos `max-sm:pointer-events-auto`, para que la franja vacía no tape toques sobre la página.
+- *(T11)* Todo lo nuevo de v2 va en variantes `max-sm:` sobre las clases base de v1. Si el navegador conserva un `output.css` anterior (el `runserver` de dev no manda `Cache-Control`), el botón sigue visible y clicable en su esquina; antes quedaba `fixed` sin `bottom`/`right`, debajo del footer.
+- El área de mensajes: `max-h-[min(28rem,70vh)]` (v1) y `max-sm:max-h-[40vh]` en móvil. `overscroll-contain`, para que el scroll del panel no arrastre a la página.
 - Con el panel abierto en móvil, el contenedor lleva `data-abierto="true"` y el botón flotante se oculta (`max-sm:group-data-[abierto=true]:hidden`). La cabecera ya tiene ×.
 - `body.style.paddingBottom` = alto del panel + 16 px mientras está abierto en `< 640 px` (`matchMedia`, recalculado con `ResizeObserver`). Así el final de cualquier página se puede leer por encima del panel. Se restaura al cerrar.
 - No hay capa ni `aria-modal`: la página sigue siendo usable con el panel abierto.
