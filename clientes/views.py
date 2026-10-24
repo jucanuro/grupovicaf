@@ -37,7 +37,16 @@ def lista_clientes(request):
     context = {
         'clientes': page_obj,
         'query': query,
+        # Activa el buscador acotado en el encabezado (cabecera_base.html).
+        'header_search': {
+            'id': 'buscar-clientes',
+            'placeholder': 'Buscar cliente por nombre, RUC o código...',
+        },
     }
+
+    # Filtrado en vivo (lista_buscador.js): devolver solo el parcial de la tabla.
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return render(request, 'clientes/includes/clientes_tabla.html', context)
 
     return render(request, 'clientes/clientes_list.html', context)
 
@@ -258,8 +267,8 @@ def crear_cliente_ajax(request):
         celular_contacto = request.POST.get('celular_contacto', '').strip()
         correo_contacto = request.POST.get('correo_contacto', '').strip()
 
-        if not ruc or len(ruc) < 8 or len(ruc) > 20:
-            return JsonResponse({'status': 'error', 'message': 'RUC debe tener entre 8 y 20 caracteres.'}, status=400)
+        if not ruc or len(ruc) < 8 or len(ruc) > 11:
+            return JsonResponse({'status': 'error', 'message': 'El RUC debe tener entre 8 y 11 dígitos.'}, status=400)
 
         if not razon_social or len(razon_social) < 2 or len(razon_social) > 200:
             return JsonResponse({'status': 'error', 'message': 'Razón social debe tener entre 2 y 200 caracteres.'}, status=400)

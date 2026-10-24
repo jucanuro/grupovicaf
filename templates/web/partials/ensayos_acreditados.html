@@ -1,0 +1,90 @@
+{% comment %}
+  Ensayos acreditados de /acreditacion/ (specs/WEB v6, REQ-WEB-66 a 70).
+
+  Arriba, el alcance de cada Acreditacion activa como texto; debajo, una
+  lista ordenada (no cards): un grupo plegable por línea (<details open>, con
+  H3 y contador), y dentro los ensayos en orden alfabético con un check verde,
+  en 1 columna en móvil, 2 desde 768 px y 3 desde 1024 px. Los datos los arma
+  ensayos_acreditados_por_linea en web_acreditacion/views.py con lista blanca
+  (REQ-WEB-69). El buscador llega con `hidden`: sin JS se ve la lista entera,
+  que se pliega igual porque <details> es nativo (REQ-WEB-70).
+{% endcomment %}
+<section id="ensayos-acreditados" class="mx-auto max-w-[1600px] scroll-mt-24 px-4 py-24 sm:px-6 lg:px-8 lg:py-32" aria-labelledby="ensayos-acreditados-titulo">
+    <span class="eyebrow">Alcance de acreditación</span>
+    <h2 id="ensayos-acreditados-titulo" class="h2-section mt-4">Ensayos acreditados</h2>
+
+    {% for acreditacion in acreditaciones %}
+    <div class="mt-6 max-w-4xl">
+        <p class="text-sm font-semibold text-slate-800">
+            {{ acreditacion.organismo }} · <span class="mono-tag text-blue-700">N.º {{ acreditacion.numero_acreditacion }}</span>
+            {% if acreditacion.vigencia_desde or acreditacion.vigencia_hasta %}
+            <span class="font-normal text-slate-500">· Vigencia
+                {% if acreditacion.vigencia_desde %}{{ acreditacion.vigencia_desde|date:'d/m/Y' }}{% endif %}{% if acreditacion.vigencia_hasta %} — {{ acreditacion.vigencia_hasta|date:'d/m/Y' }}{% endif %}
+            </span>
+            {% endif %}
+            {% if acreditacion.documento %}
+            · <a href="{{ acreditacion.documento.url }}" target="_blank" rel="noopener noreferrer" class="font-semibold text-blue-700 underline-offset-4 hover:underline">Ver certificado (PDF)</a>
+            {% endif %}
+        </p>
+        <p class="mt-2 text-slate-700">{{ acreditacion.alcance }}</p>
+    </div>
+    {% empty %}
+    <div class="mt-10 rounded-card border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
+        Aún no se han publicado registros de acreditación.
+    </div>
+    {% endfor %}
+
+    {% if grupos_ensayos %}
+    {# El atributo hidden va en un div sin clase de display: .flex le ganaría. #}
+    <div data-ensayos-controles hidden>
+        <div class="mt-10 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div class="w-full sm:max-w-md">
+                <label for="buscar-ensayo" class="text-eyebrow uppercase text-slate-500">Buscar un ensayo acreditado</label>
+                <div class="relative mt-2">
+                    <svg class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
+                    </svg>
+                    <input id="buscar-ensayo" type="search" data-ensayos-buscar autocomplete="off"
+                           placeholder="Ej.: CBR, proctor, NTP 339.141"
+                           class="h-12 w-full rounded-btn border border-slate-300 bg-white pl-10 pr-4 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-700/30">
+                </div>
+            </div>
+            <p data-ensayos-contador aria-live="polite" class="text-sm text-slate-500">Se muestran los {{ total_ensayos }} ensayos acreditados.</p>
+        </div>
+    </div>
+
+    <div data-ensayos-vacio hidden class="mt-8 rounded-card border border-dashed border-slate-300 bg-slate-50 p-10 text-center">
+        <p class="text-slate-600">No encontramos ensayos acreditados con ese criterio.</p>
+        <button type="button" data-ensayos-limpiar class="btn-secondary mt-4 !h-10 !px-4 !text-xs">Limpiar búsqueda</button>
+    </div>
+
+    <div class="mt-8 space-y-4">
+        {% for grupo in grupos_ensayos %}
+        <details data-ensayos-grupo="{{ grupo.clave }}" open class="group/linea card-flat overflow-hidden">
+            <summary class="flex cursor-pointer list-none items-center gap-4 px-5 py-4 transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-700 sm:px-6 [&::-webkit-details-marker]:hidden">
+                <h3 id="ensayos-{{ grupo.clave }}" class="flex-1 text-lg font-extrabold leading-snug text-slate-900">{{ grupo.nombre }}</h3>
+                <span data-ensayos-cuenta class="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800">{{ grupo.ensayos|length }} ensayo{{ grupo.ensayos|length|pluralize }}</span>
+                <svg class="h-5 w-5 shrink-0 text-slate-400 transition-transform duration-200 group-open/linea:rotate-180" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+                </svg>
+            </summary>
+            <ul class="columns-1 gap-x-10 border-t border-slate-100 px-5 py-4 sm:px-6 md:columns-2 lg:columns-3" role="list" aria-labelledby="ensayos-{{ grupo.clave }}">
+                {% for ensayo in grupo.ensayos %}
+                <li data-ensayo-buscar="{{ ensayo.buscar }}" class="break-inside-avoid">
+                    <div class="flex gap-3 py-2.5">
+                        <svg class="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-[15px] leading-snug text-slate-800">
+                            {% if ensayo.url %}<a href="{{ ensayo.url }}" class="font-medium text-slate-900 underline-offset-4 hover:text-blue-700 hover:underline">{{ ensayo.nombre }}</a>{% else %}{{ ensayo.nombre }}{% endif %}
+                            {% if ensayo.norma %}<span class="mono-tag mt-0.5 block text-xs text-slate-500">{{ ensayo.norma }}</span>{% endif %}
+                        </span>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </details>
+        {% endfor %}
+    </div>
+    {% endif %}
+</section>

@@ -97,7 +97,7 @@
                     <a href="mailto:{{ negocio.correo }}" class="block break-words font-medium transition-colors duration-300 hover:text-blue-700">{{ negocio.correo }}</a>
                     {% if negocio.horario_semana_apertura %}
                     <p class="font-medium leading-relaxed">
-                        Lun a Vie {{ negocio.horario_semana_apertura|time:'H:i' }}–{{ negocio.horario_semana_cierre|time:'H:i' }}
+                        Lun a Vie {{ negocio.horario_semana_rango }}
                         {% if negocio.horario_sabado_apertura %}<br>Sáb {{ negocio.horario_sabado_apertura|time:'H:i' }}–{{ negocio.horario_sabado_cierre|time:'H:i' }}{% endif %}
                     </p>
                     {% endif %}

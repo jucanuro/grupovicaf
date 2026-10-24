@@ -485,7 +485,13 @@
         </div>
     </div>
 
-    <form method="post" id="cotizacion-form">
+    <div id="cotizacion-error-banner"
+         class="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3 text-rose-700 text-xs font-bold {% if not error %}hidden{% endif %}">
+        <i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0"></i>
+        <span id="cotizacion-error-text">{{ error|default:'' }}</span>
+    </div>
+
+    <form method="post" id="cotizacion-form" novalidate>
         {% csrf_token %}
 
         <div id="tab-panel-cliente" class="cot-tab-panel active cot-tab-panel-enter">
@@ -508,13 +514,15 @@
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         
                         <div class="md:col-span-2 relative">
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">RUC o Nombre del Cliente</label>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">RUC o Nombre del Cliente <span class="text-red-500">*</span></label>
                             <div class="grid grid-cols-12 gap-2">
                                 <div class="col-span-10">
-                                    <select name="cliente" id="id_cliente_ruc" required class="vicaf-search-select">
+                                    <select name="cliente" id="id_cliente_ruc" required
+                                        data-validar data-label="Cliente"
+                                        class="js-input vicaf-search-select">
                                         <option value="">SELECCIONAR O BUSCAR CLIENTE...</option>
                                         {% for cliente in clientes %}
-                                        <option value="{{ cliente.pk }}" 
+                                        <option value="{{ cliente.pk }}"
                                                 {% if cotizacion.cliente.pk == cliente.pk %}selected{% endif %}
                                                 data-razon-social="{{ cliente.razon_social|default:'' }}"
                                                 data-contacto="{{ cliente.persona_contacto|default:'' }}"
@@ -526,7 +534,7 @@
                                     </select>
                                 </div>
                                 <div class="col-span-2">
-                                    <div onclick="event.stopPropagation(); openClienteModal()" 
+                                    <div onclick="event.stopPropagation(); openClienteModal()"
                                         class="w-full h-[38px] cursor-pointer group relative flex items-center justify-center rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-white shadow-sm transition-all hover:border-blue-400 hover:shadow-md active:scale-95">
                                         <i data-lucide="user-plus" class="w-4 h-4 text-blue-600"></i>
                                         <span class="absolute -top-1 -right-1 flex h-2 w-2">
@@ -535,6 +543,10 @@
                                         </span>
                                     </div>
                                 </div>
+                            </div>
+                            <div class="campo-estado" data-for="cliente">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
                             </div>
                         </div>
 
@@ -547,30 +559,45 @@
 
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Atención</label>
-                            <input type="text" name="persona_contacto" id="id_persona_contacto" 
-                                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                            <input type="text" name="persona_contacto" id="id_persona_contacto"
+                                data-validar data-label="Atención" maxlength="200"
+                                class="js-input w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                                 value="{{ cotizacion.persona_contacto|default:'' }}">
+                            <div class="campo-estado" data-for="persona_contacto">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
 
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Correo Electrónico</label>
-                            <input type="email" name="correo_contacto" id="id_correo_contacto" 
-                                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                            <input type="email" name="correo_contacto" id="id_correo_contacto"
+                                data-validar data-label="Correo" data-tipo="email" maxlength="254"
+                                class="js-input w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                                 value="{{ cotizacion.correo_contacto|default:'' }}">
+                            <div class="campo-estado" data-for="correo_contacto">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
 
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Teléfono</label>
-                            <input type="text" name="telefono_contacto" id="id_telefono_contacto" 
-                                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                            <input type="text" name="telefono_contacto" id="id_telefono_contacto"
+                                data-validar data-label="Teléfono" maxlength="20"
+                                class="js-input w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                                 value="{{ cotizacion.telefono_contacto|default:'' }}">
+                            <div class="campo-estado" data-for="telefono_contacto">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
 
                         <div class="md:col-span-2 relative">
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Categoría General</label>
                             <div class="grid grid-cols-12 gap-2">
                                 <div class="col-span-10">
-                                    <select name="servicio_general" id="id_servicio_general" required class="vicaf-search-select">
+                                    <select name="servicio_general" id="id_servicio_general" class="vicaf-search-select">
                                         <option value="">SELECCIONAR O BUSCAR CATEGORÍA...</option>
                                         {% for grupo in servicio_grupos %}
                                             <option value="{{ grupo.pk }}" 
@@ -597,9 +624,14 @@
 
                         <div class="md:col-span-2">
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Asunto / Proyecto</label>
-                            <input type="text" name="asunto_servicio" id="id_asunto_servicio" 
-                                class="w-full px-4 py-2.5 bg-white border border-blue-100 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                            <input type="text" name="asunto_servicio" id="id_asunto_servicio"
+                                data-validar data-label="Asunto" maxlength="255"
+                                class="js-input w-full px-4 py-2.5 bg-white border border-blue-100 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                                 value="{{ cotizacion.asunto_servicio|default:'' }}">
+                            <div class="campo-estado" data-for="asunto_servicio">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
 
                     </div>
@@ -621,8 +653,9 @@
                 <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-3">
                     <div class="flex items-center gap-2">
                         <i data-lucide="list-plus" class="w-4 h-4 text-blue-500"></i>
-                        <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Detalle de cotización</h3>
+                        <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Detalle de cotización <span class="text-red-500">*</span></h3>
                     </div>
+                    <span class="text-[9px] font-bold text-slate-400 uppercase">Se requiere al menos 1 ítem con precio mayor a S/ 0.00</span>
                 </div>
 
                 <div class="bg-white border border-slate-200 rounded-2xl shadow-sm mb-4 relative">
@@ -681,12 +714,23 @@
 
                             <div class="md:col-span-4 relative">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Buscar Servicio (Ensayo)</label>
-                                <select id="reg_servicio" class="vicaf-search-select"></select>
+                                <div class="grid grid-cols-12 gap-2">
+                                    <div class="col-span-10">
+                                        <select id="reg_servicio" class="vicaf-search-select"></select>
+                                    </div>
+                                    <div class="col-span-2 flex justify-end">
+                                        <div onclick="event.stopPropagation(); openServicioModal()"
+                                            class="w-full h-[38px] cursor-pointer group relative flex items-center justify-center rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-white shadow-sm transition-all hover:border-blue-400 hover:shadow-md active:scale-95"
+                                            title="Registrar nuevo servicio">
+                                            <i data-lucide="plus-circle" class="w-4 h-4 text-blue-600 group-hover:text-blue-700 transition-transform group-hover:scale-110"></i>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="md:col-span-2">
+                            <div class="md:col-span-2 relative">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Norma de Ensayo</label>
-                                <div id="reg_norma_txt" class="text-xs font-mono-tech p-2.5 bg-white border border-slate-200 rounded-lg text-slate-400 italic">Auto...</div>
+                                <select id="reg_norma" class="vicaf-search-select"></select>
                             </div>
 
                             <div class="md:col-span-2">
@@ -1010,6 +1054,7 @@
         urlCrearCliente: "{% url 'clientes:crear_cliente_ajax' %}",
         urlCrearCategoria: "{% url 'servicios:crear_categoria_ajax' %}",
         urlCrearSubcategoria: "{% url 'servicios:crear_subcategoria_ajax' %}",
+        urlCrearServicio: "{% url 'servicios:crear_servicio_ajax' %}",
         urlPlantillaBase: "/servicios/api/plantilla/",
         csrfToken: "{{ csrf_token }}"
     };
@@ -1040,6 +1085,15 @@
             behavior: 'smooth'
         });
     }
+
+    // form_validador.js frena el envío si un campo es inválido; si ese campo está
+    // en otra pestaña, cambiar a ella para que el foco caiga sobre algo visible.
+    document.getElementById('cotizacion-form').addEventListener('validador:rechazado', function (e) {
+        var panel = e.detail.campo.closest('.cot-tab-panel');
+        if (panel && !panel.classList.contains('active')) {
+            switchCotizacionTab(panel.id.replace('tab-panel-', ''));
+        }
+    });
 </script>
 
 <script src="{% static 'js/cotizacion-partial.js' %}"></script>

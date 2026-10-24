@@ -221,6 +221,7 @@ def lista_trabajadores(request):
     context = {
         'trabajadores': page_obj,
         'query': query,
+        'header_search': {'id': 'buscar-trabajadores', 'placeholder': 'Buscar por nombre, rol o usuario...'},
     }
 
     return render(request, 'trabajadores/trabajadores_list.html', context)
@@ -337,6 +338,7 @@ def lista_roles(request):
     context = {
         'roles': page_obj,
         'query': query,
+        'header_search': {'id': 'buscar-roles', 'placeholder': 'Buscar rol por nombre o descripción...'},
     }
 
     return render(request, 'trabajadores/roles_list.html', context)
@@ -457,6 +459,7 @@ def lista_permisos(request):
     context = {
         'permisos': permisos,
         'query': query,
+        'header_search': {'id': 'buscar-permisos', 'placeholder': 'Buscar permiso por módulo, acción o código...'},
     }
 
     return render(request, 'trabajadores/permisos_list.html', context)

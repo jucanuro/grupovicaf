@@ -158,6 +158,52 @@
     </script>
 
     <style>
+        /* Estado de carga del contenedor de lista mientras se filtra (lista_buscador.js) */
+        .lista-cargando {
+            opacity: 0.5;
+            pointer-events: none;
+            transition: opacity 0.15s ease;
+        }
+
+        /* Contador de caracteres + validación en vivo de formularios (form_validador.js) */
+        .campo-estado {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            min-height: 13px;          /* altura reservada: la grilla no salta */
+            margin-top: 3px;
+        }
+        .campo-msg {
+            font-size: 9px;
+            font-weight: 700;
+            line-height: 1.2;
+            color: #ef4444;            /* rojo por defecto: cubre el error server-rendered sin JS */
+        }
+        .campo-estado[data-tono="ok"] .campo-msg { color: #10b981; }
+        .campo-contador {
+            font-size: 9px;
+            font-weight: 600;
+            color: #94a3b8;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            opacity: 0;                /* oculto salvo con el campo enfocado */
+            transition: opacity .12s ease;
+        }
+        .campo-estado[data-focus="1"] .campo-contador { opacity: 1; }
+        .campo-contador[data-nivel="warn"] { color: #f59e0b; }
+        .campo-contador[data-nivel="over"] { color: #ef4444; }
+        .js-input.is-invalid { border-color: #ef4444 !important; }
+        .js-input.is-invalid:focus {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, .18) !important;
+        }
+        .js-input.is-valid { border-color: #10b981 !important; }
+        .js-input.is-valid:focus {
+            border-color: #10b981 !important;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, .18) !important;
+        }
+
         .command-header {
             position: relative;
             z-index: 80;
@@ -562,6 +608,22 @@
             {% include 'cabecera_base.html' %}
 
             <main class="app-main-scroll flex-1 px-4 py-4 lg:px-4 lg:py-6 animate-fade-in-up">
+                {% if messages %}
+                <div class="space-y-2 mb-4">
+                    {% for message in messages %}
+                    <div class="flex items-center gap-3 rounded-xl border px-4 py-3 text-xs font-bold
+                        {% if message.tags == 'success' %}bg-emerald-50 border-emerald-100 text-emerald-700
+                        {% elif message.tags == 'error' %}bg-rose-50 border-rose-100 text-rose-700
+                        {% elif message.tags == 'warning' %}bg-amber-50 border-amber-100 text-amber-700
+                        {% else %}bg-blue-50 border-blue-100 text-blue-700{% endif %}">
+                        <i data-lucide="{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}alert-circle{% elif message.tags == 'warning' %}alert-triangle{% else %}info{% endif %}"
+                           class="w-4 h-4 flex-shrink-0"></i>
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
                 {% block content %}
                 {% endblock content %}
             </main>
@@ -570,10 +632,11 @@
         </div>
     </div>
 
-    {% include 'buscador.html' %}
     {% block modals %}{% endblock %}
     <script src="https://unpkg.com/lucide@latest" defer></script>
     <script src="{% static 'js/vicafbase.js' %}"></script>
+    <script src="{% static 'js/lista_buscador.js' %}"></script>
+    <script src="{% static 'js/form_validador.js' %}"></script>
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

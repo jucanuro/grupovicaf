@@ -70,7 +70,7 @@
     </div>
 
     <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <form id="trabajador-form" method="post" class="p-8">
+        <form id="trabajador-form" method="post" class="p-8" novalidate>
             {% csrf_token %}
 
             {% if error %}
@@ -90,15 +90,25 @@
                     
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Usuario Login</label>
-                            <input type="text" name="username" value="{% if trabajador %}{{ trabajador.user.username }}{% else %}{{ user_username|default:'' }}{% endif %}" 
-                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" required>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Usuario Login <span class="text-red-500">*</span></label>
+                            <input type="text" name="username" value="{% if trabajador %}{{ trabajador.user.username }}{% else %}{{ user_username|default:'' }}{% endif %}"
+                                data-validar data-label="Usuario" required data-min="3" maxlength="150"
+                                class="js-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            <div class="campo-estado" data-for="username">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
-                        
+
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Email Corporativo</label>
-                            <input type="email" name="email" value="{% if trabajador %}{{ trabajador.user.email }}{% else %}{{ user_email|default:'' }}{% endif %}" 
-                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono-tech text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" required>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Email Corporativo <span class="text-red-500">*</span></label>
+                            <input type="email" name="email" value="{% if trabajador %}{{ trabajador.user.email }}{% else %}{{ user_email|default:'' }}{% endif %}"
+                                data-validar data-label="Email" data-tipo="email" required maxlength="254"
+                                class="js-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono-tech text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            <div class="campo-estado" data-for="email">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
                         
                         <div>
@@ -120,15 +130,25 @@
                     
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombre Completo</label>
-                            <input type="text" name="nombre_completo" value="{% if trabajador %}{{ trabajador.nombre_completo }}{% else %}{{ form_nombre_completo|default:'' }}{% endif %}" 
-                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" required>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombre Completo <span class="text-red-500">*</span></label>
+                            <input type="text" name="nombre_completo" value="{% if trabajador %}{{ trabajador.nombre_completo }}{% else %}{{ form_nombre_completo|default:'' }}{% endif %}"
+                                data-validar data-label="Nombre completo" required data-min="3" maxlength="255"
+                                class="js-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            <div class="campo-estado" data-for="nombre_completo">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
-                        
+
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Título / Grado Académico</label>
                             <input type="text" name="titulo_profesional" value="{% if trabajador %}{{ trabajador.titulo_profesional|default:'' }}{% else %}{{ form_titulo_profesional|default:'' }}{% endif %}" placeholder="Ej. Ing. Civil"
-                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                                data-validar data-label="Título profesional" maxlength="50"
+                                class="js-input w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                            <div class="campo-estado" data-for="titulo_profesional">
+                                <span class="campo-msg" data-msg></span>
+                                <span class="campo-contador" data-contador></span>
+                            </div>
                         </div>
 
                         <div>

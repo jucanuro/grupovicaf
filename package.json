@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build:css": "tailwindcss -i ./static/web/css/input.css -o ./static/web/css/output.css --minify",
-    "watch:css": "tailwindcss -i ./static/web/css/input.css -o ./static/web/css/output.css --watch"
+    "watch:css": "tailwindcss -i ./static/web/css/input.css -o ./static/web/css/output.css --watch",
+    "test:js": "node --test 'tests/js/*.test.js'"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.21",
