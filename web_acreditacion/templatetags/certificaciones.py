@@ -13,13 +13,11 @@ register = template.Library()
 _ESCAPES_HTML = {ord('<'): '\\u003C', ord('>'): '\\u003E', ord('&'): '\\u0026'}
 
 
-@register.simple_tag
-def certificaciones_jsonld():
-    """Lista JSON de Certification para LocalBusiness.hasCertification (REQ-WEB-51).
+def certificaciones_schema():
+    """Lista de Certification para LocalBusiness.hasCertification (REQ-WEB-51).
 
     Solo tipos ISO y Otro: la acreditación INACAL ya va como hasCredential en
-    base.html. Devuelve '' si no hay ninguna publicada (RN-15), para que
-    base.html omita la propiedad entera.
+    el LocalBusiness. Lista vacía si no hay ninguna publicada (RN-15).
     """
     certificaciones = (
         Certificacion.objects.publicadas()
@@ -40,6 +38,18 @@ def certificaciones_jsonld():
         if cert.vigencia_hasta:
             item['expires'] = cert.vigencia_hasta.isoformat()
         datos.append(item)
+    return datos
+
+
+def json_para_script(datos):
+    """json.dumps seguro dentro de <script> (mismo escape que json_script)."""
+    return mark_safe(json.dumps(datos, ensure_ascii=False).translate(_ESCAPES_HTML))
+
+
+@register.simple_tag
+def certificaciones_jsonld():
+    """JSON de certificaciones_schema(), o '' si no hay ninguna (RN-15)."""
+    datos = certificaciones_schema()
     if not datos:
         return ''
-    return mark_safe(json.dumps(datos, ensure_ascii=False).translate(_ESCAPES_HTML))
+    return json_para_script(datos)
