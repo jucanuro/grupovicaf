@@ -8,6 +8,7 @@ from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.template.loader import render_to_string
 from django.test import TestCase, override_settings
+from django.urls import reverse
 from django.utils import timezone
 from weasyprint import HTML
 
@@ -24,6 +25,7 @@ from proyectos.models import (
 from proyectos.tasks import notificar_proyectos_vencidos
 from servicios.models import Cotizacion, CotizacionDetalle, CotizacionGrupo, Servicio
 from trabajadores.models import RolTrabajador, TrabajadorProfile
+from trabajadores.testing import crear_trabajador, rol_con_permisos
 
 
 class SolicitudBaseMixin:
@@ -230,3 +232,66 @@ class NumeracionInformeTest(SolicitudBaseMixin, TestCase):
         anio = timezone.now().year
         self.assertEqual(segundo.codigo_informe, f'INF-{anio}-0002')
         self.assertEqual(tercero.codigo_informe, f'INF-{anio}-0003')
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab')
+class TecnicoRestringidoTest(SolicitudBaseMixin, TestCase):
+    """L3: sin ensayos.ver_todos solo se ven las solicitudes asignadas y sin cliente."""
+
+    def setUp(self):
+        super().setUp()
+        rol_tecnico = rol_con_permisos('Técnico restringido', 'ensayos.ver', 'calendario.ver', 'gantt.ver')
+        self.user_asignado, perfil = crear_trabajador('tecnico.asignado', rol_tecnico)
+        self.solicitud.detalles.update(tecnico_asignado=perfil)
+        self.user_otro, _ = crear_trabajador('tecnico.otro', rol_tecnico)
+        rol_supervisor = rol_con_permisos('Supervisor', 'ensayos.ver', 'ensayos.ver_todos')
+        self.user_supervisor, _ = crear_trabajador('supervisor', rol_supervisor)
+        self.cliente = self.solicitud.cotizacion.cliente
+
+    def test_tecnico_ve_su_solicitud_con_codigo_confidencial_y_sin_razon_social(self):
+        self.client.force_login(self.user_asignado)
+
+        respuesta = self.client.get(reverse('proyectos:lista_solicitudes'))
+
+        self.assertContains(respuesta, 'SOL-2026-0001')
+        self.assertContains(respuesta, self.cliente.codigo_confidencial)
+        self.assertNotContains(respuesta, 'Constructora de Prueba SAC')
+
+    def test_tecnico_no_ve_solicitudes_ajenas(self):
+        self.client.force_login(self.user_otro)
+
+        respuesta = self.client.get(reverse('proyectos:lista_solicitudes'))
+
+        self.assertNotContains(respuesta, 'SOL-2026-0001')
+
+    def test_tecnico_no_puede_bajar_el_pdf_de_una_solicitud_ajena(self):
+        self.client.force_login(self.user_otro)
+
+        respuesta = self.client.get(reverse('proyectos:generar_pdf_ensayo', args=[self.solicitud.pk]))
+
+        self.assertEqual(respuesta.status_code, 403)
+
+    def test_supervisor_ve_todo_con_razon_social(self):
+        self.client.force_login(self.user_supervisor)
+
+        respuesta = self.client.get(reverse('proyectos:lista_solicitudes'))
+
+        self.assertContains(respuesta, 'Constructora de Prueba SAC')
+
+    def test_calendario_del_tecnico_sin_razon_social(self):
+        self.client.force_login(self.user_asignado)
+
+        respuesta = self.client.get(reverse('actividades:calendario_eventos_json'))
+
+        self.assertEqual(respuesta.status_code, 200)
+        contenido = respuesta.content.decode()
+        self.assertIn('SOL-2026-0001', contenido)
+        self.assertIn(self.cliente.codigo_confidencial, contenido)
+        self.assertNotIn('Constructora de Prueba SAC', contenido)
+
+    def test_calendario_de_otro_tecnico_no_incluye_el_ensayo(self):
+        self.client.force_login(self.user_otro)
+
+        respuesta = self.client.get(reverse('actividades:calendario_eventos_json'))
+
+        self.assertNotIn('SOL-2026-0001', respuesta.content.decode())

@@ -26,3 +26,21 @@ def permiso_requerido(codigo_permiso):
             return view_func(request, *args, **kwargs)
         return _wrapped_view
     return decorator
+
+# Sin este permiso el trabajador (p. ej. el técnico) solo ve las solicitudes
+# de ensayo donde tiene algún ensayo asignado y nunca el nombre del cliente:
+# en su lugar ve el código confidencial (CLI-AA-NNNN), como en el FOR-068.
+PERMISO_VER_TODOS_ENSAYOS = 'ensayos.ver_todos'
+
+
+def ve_todos_los_ensayos(user):
+    return trabajador_tiene_permiso(user, PERMISO_VER_TODOS_ENSAYOS)
+
+
+def nombre_cliente_visible(user, cliente, ve_todos=None):
+    """Razón social o código confidencial según el permiso del usuario."""
+    if cliente is None:
+        return ''
+    if ve_todos is None:
+        ve_todos = ve_todos_los_ensayos(user)
+    return cliente.razon_social if ve_todos else (cliente.codigo_confidencial or '')

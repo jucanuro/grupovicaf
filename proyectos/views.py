@@ -21,7 +21,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso
+from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso, ve_todos_los_ensayos
 from .tasks import procesar_informe_final
 
 from .models import (
@@ -958,6 +958,9 @@ def gestionar_solicitud_ensayo(request, pk=None):
 def cambiar_estado_solicitud(request, pk, nuevo_estado):
     solicitud = get_object_or_404(SolicitudEnsayo, pk=pk)
 
+    if not _puede_ver_solicitud(request.user, solicitud):
+        return HttpResponseForbidden("No tienes asignado ningún ensayo de esta solicitud.")
+
     estados_validos = ['pendiente', 'proceso', 'finalizado']
 
     if nuevo_estado not in estados_validos:
@@ -989,21 +992,32 @@ def lista_solicitudes(request):
         'elaborado_por'
     ).all().order_by('-fecha_solicitud', '-id')
 
+    ve_todos = ve_todos_los_ensayos(request.user)
+    if not ve_todos:
+        solicitudes = solicitudes.filter(detalles__tecnico_asignado__user=request.user).distinct()
+
     q = request.GET.get('q', '').strip()
 
     if q:
-        solicitudes = solicitudes.filter(
-            Q(codigo_solicitud__icontains=q) |
-            Q(cotizacion__cliente__razon_social__icontains=q) |
-            Q(cotizacion__numero_oferta__icontains=q)
-        ).distinct()
+        filtro = Q(codigo_solicitud__icontains=q) | Q(cotizacion__numero_oferta__icontains=q)
+        if ve_todos:
+            filtro |= Q(cotizacion__cliente__razon_social__icontains=q)
+        else:
+            filtro |= Q(cotizacion__cliente__codigo_confidencial__icontains=q)
+        solicitudes = solicitudes.filter(filtro).distinct()
 
+    placeholder = 'Buscar por N° solicitud, cliente o cotización...' if ve_todos else 'Buscar por N° solicitud, código de cliente o cotización...'
     return render(request, 'proyectos/ensayos_list.html', {
         'solicitudes': solicitudes,
         'q': q,
         'query': q,
-        'header_search': {'id': 'buscar-solicitudes', 'placeholder': 'Buscar por N° solicitud, cliente o cotización...'},
+        'ocultar_cliente': not ve_todos,
+        'header_search': {'id': 'buscar-solicitudes', 'placeholder': placeholder},
     })
+
+
+def _puede_ver_solicitud(user, solicitud):
+    return ve_todos_los_ensayos(user) or solicitud.detalles.filter(tecnico_asignado__user=user).exists()
 
 
 @login_required
@@ -1013,6 +1027,9 @@ def generar_pdf_ensayo(request, solicitud_id):
         SolicitudEnsayo.objects.select_related('cotizacion__cliente'),
         id=solicitud_id
     )
+
+    if not _puede_ver_solicitud(request.user, solicitud):
+        return HttpResponseForbidden("No tienes asignado ningún ensayo de esta solicitud.")
 
     proyecto = Proyecto.objects.filter(cotizacion=solicitud.cotizacion).first()
 
