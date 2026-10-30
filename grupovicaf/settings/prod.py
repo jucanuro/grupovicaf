@@ -8,13 +8,12 @@ DEBUG = False
 
 ALLOWED_HOSTS = os.environ.get(
     'ALLOWED_HOSTS',
-    'laboratorio.grupovicaf.com,grupovicaf.com,www.grupovicaf.com,35.153.197.74,localhost,127.0.0.1'
+    'laboratorio.grupovicaf.com,grupovicaf.com,www.grupovicaf.com,localhost,127.0.0.1'
 ).split(',')
 
 CSRF_TRUSTED_ORIGINS = os.environ.get(
     'CSRF_TRUSTED_ORIGINS',
-    'https://laboratorio.grupovicaf.com,https://grupovicaf.com,https://www.grupovicaf.com,'
-    'http://laboratorio.grupovicaf.com,http://35.153.197.74'
+    'https://laboratorio.grupovicaf.com,https://grupovicaf.com,https://www.grupovicaf.com'
 ).split(',')
 
 MIDDLEWARE = [
@@ -32,15 +31,21 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False') == 'True'
-SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'False') == 'True'
-CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'False') == 'True'
+# Seguros por defecto: si el .env no los define, producción queda en HTTPS.
+# Requiere que nginx mande X-Forwarded-Proto (deploy/nginx/grupovicaf.conf);
+# sin esa cabecera SECURE_SSL_REDIRECT entra en bucle de redirecciones.
+SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'True') == 'True'
+SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'True') == 'True'
+CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'True') == 'True'
 
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
-SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', '0'))
+# HSTS se sube por etapas desde el .env: 3600 (1 h) → 86400 (1 día) →
+# 31536000 (1 año) cuando todo responda bien por HTTPS. Bajarlo después no
+# borra lo que los navegadores ya guardaron.
+SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', '3600'))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
