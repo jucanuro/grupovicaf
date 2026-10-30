@@ -60,3 +60,55 @@ jobs:
       - run: npm audit --audit-level=high
       - run: npm run build:css
       - run: npm run test:js
+
+  # Pruebas E2E con Playwright (e2e/): levanta lab (:8000) y web (:8001) con
+  # runserver contra Postgres, siembra con `sembrar_e2e` y recorre los flujos
+  # en Chromium. Es la evidencia automática del gate G4 (QA).
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: grupovicaf
+          POSTGRES_PASSWORD: grupovicaf
+          POSTGRES_DB: grupovicaf
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U grupovicaf"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # Solo para CI: no es un secreto real.
+      SECRET_KEY: ci-solo-para-pruebas-no-es-un-secreto-real-0123456789-abcdefghij
+      DJANGO_SETTINGS_MODULE: grupovicaf.settings.test_local
+      DB_HOST: 127.0.0.1
+      DB_PORT: '5432'
+      DB_NAME: grupovicaf
+      DB_USER: grupovicaf
+      DB_PASSWORD: grupovicaf
+      E2E_PYTHON: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Librerías de sistema de WeasyPrint
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0
+      - run: pip install -r requirements.txt
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - name: Reporte de Playwright (trazas y capturas de los fallos)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

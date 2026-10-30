@@ -119,3 +119,7 @@ desktop.ini
 *.rej
 
 docker-compose.dev.local.yml
+
+# Playwright (e2e/)
+test-results/
+playwright-report/

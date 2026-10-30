@@ -5,9 +5,11 @@
   "scripts": {
     "build:css": "tailwindcss -i ./static/web/css/input.css -o ./static/web/css/output.css --minify",
     "watch:css": "tailwindcss -i ./static/web/css/input.css -o ./static/web/css/output.css --watch",
-    "test:js": "node --test 'tests/js/*.test.js'"
+    "test:js": "node --test 'tests/js/*.test.js'",
+    "test:e2e": "npm run build:css && playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.14"

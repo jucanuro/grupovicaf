@@ -141,6 +141,15 @@ Para entrar con un cliente psql/redis-cli desde el host, usa
 el entorno (así lo inyecta `docker-compose.dev.yml` vía `.env`); sin Docker,
 sigue cayendo a `db.sqlite3` como hasta ahora.
 
+### Pruebas E2E (Playwright)
+
+```bash
+E2E_PYTHON=venv/bin/python npm run test:e2e   # levanta lab y web, siembra y prueba
+```
+
+Detalle en `e2e/README.md`. Datos fijos con `python manage.py sembrar_e2e`
+(solo `DEBUG=True`). Job `e2e` en `.github/workflows/ci.yml`.
+
 ### Restaurar/migrar datos al Postgres del contenedor
 
 **Estado: hecho.** `db.sqlite3` (backup, no se borra) ya se migró al Postgres
