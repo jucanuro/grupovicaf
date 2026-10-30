@@ -1,0 +1,105 @@
+{% extends "base_vicafpro.html" %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto p-4 space-y-5">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-xl font-extrabold text-slate-900">Solicitudes de cotización desde la web</h1>
+            <p class="text-xs text-slate-500 mt-1">
+                Llegan del formulario público de contacto. Ninguna tiene número VCF-OTE hasta que la conviertes.
+            </p>
+        </div>
+        <a href="{% url 'servicios:lista_cotizaciones' %}"
+           class="inline-flex items-center gap-2 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-xl px-3 py-2 hover:bg-slate-50">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i> Volver a cotizaciones
+        </a>
+    </div>
+
+    <div class="flex gap-2 text-xs font-bold">
+        <a href="?ver=pendientes"
+           class="px-3 py-2 rounded-xl border {% if ver == 'pendientes' %}bg-slate-900 text-white border-slate-900{% else %}bg-white text-slate-600 border-slate-200{% endif %}">
+            Pendientes ({{ total_pendientes }})
+        </a>
+        <a href="?ver=convertidas"
+           class="px-3 py-2 rounded-xl border {% if ver == 'convertidas' %}bg-slate-900 text-white border-slate-900{% else %}bg-white text-slate-600 border-slate-200{% endif %}">
+            Convertidas
+        </a>
+    </div>
+
+    {% for solicitud in solicitudes %}
+    <article class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm">
+        <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div class="min-w-0 space-y-1">
+                <h2 class="text-sm font-extrabold text-slate-900">{{ solicitud.razon_social }}</h2>
+                <p class="text-xs text-slate-500">
+                    RUC {{ solicitud.ruc }} · {{ solicitud.persona_contacto }} ·
+                    <a class="underline" href="mailto:{{ solicitud.correo_contacto }}">{{ solicitud.correo_contacto }}</a> ·
+                    {{ solicitud.telefono_contacto }}
+                </p>
+                <p class="text-[11px] text-slate-400">
+                    Recibida el {{ solicitud.creado|date:"d/m/Y H:i" }}{% if solicitud.origen %} desde {{ solicitud.origen }}{% endif %}
+                </p>
+                {% if solicitud.cliente_existente %}
+                <p class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1">
+                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                    El RUC ya es del cliente «{{ solicitud.cliente_existente }}». Confirma que la solicitud es suya antes de convertirla.
+                </p>
+                {% endif %}
+            </div>
+
+            <div class="flex flex-wrap gap-2 shrink-0">
+                {% if solicitud.cotizacion %}
+                    <a href="{% url 'servicios:editar_cotizacion' solicitud.cotizacion.pk %}"
+                       class="inline-flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                        <i data-lucide="file-check" class="w-4 h-4"></i> {{ solicitud.cotizacion.numero_oferta }}
+                    </a>
+                {% else %}
+                    <form method="post" action="{% url 'servicios:convertir_solicitud_web' solicitud.pk %}">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="inline-flex items-center gap-2 text-xs font-bold text-white bg-slate-900 rounded-xl px-3 py-2 hover:bg-slate-700">
+                            <i data-lucide="file-plus" class="w-4 h-4"></i> Convertir en cotización
+                        </button>
+                    </form>
+                    <form method="post" action="{% url 'servicios:descartar_solicitud_web' solicitud.pk %}"
+                          onsubmit="return confirm('¿Descartar esta solicitud? No se puede deshacer.');">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="inline-flex items-center gap-2 text-xs font-bold text-rose-700 bg-white border border-rose-200 rounded-xl px-3 py-2 hover:bg-rose-50">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i> Descartar
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="mt-3 grid gap-3 md:grid-cols-2">
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Necesidad</p>
+                <p class="text-xs text-slate-700 whitespace-pre-line">{{ solicitud.necesidad }}</p>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Servicios</p>
+                <ul class="text-xs text-slate-700 list-disc pl-4">
+                    {% for item in solicitud.items.all %}
+                    <li>{{ item.servicio_publicado.titulo_publico }} × {{ item.cantidad_estimada }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </article>
+    {% empty %}
+    <p class="text-sm text-slate-500 bg-white border border-dashed border-slate-300 rounded-2xl p-8 text-center">
+        {% if ver == 'pendientes' %}No hay solicitudes pendientes.{% else %}Todavía no se ha convertido ninguna solicitud.{% endif %}
+    </p>
+    {% endfor %}
+
+    {% if solicitudes.has_other_pages %}
+    <nav class="flex justify-center gap-2 text-xs font-bold">
+        {% if solicitudes.has_previous %}<a class="px-3 py-2 bg-white border rounded-xl" href="?ver={{ ver }}&page={{ solicitudes.previous_page_number }}">Anterior</a>{% endif %}
+        <span class="px-3 py-2">Página {{ solicitudes.number }} de {{ solicitudes.paginator.num_pages }}</span>
+        {% if solicitudes.has_next %}<a class="px-3 py-2 bg-white border rounded-xl" href="?ver={{ ver }}&page={{ solicitudes.next_page_number }}">Siguiente</a>{% endif %}
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

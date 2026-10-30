@@ -46,6 +46,7 @@ from proyectos.models import Proyecto
 from trabajadores.models import TrabajadorProfile
 from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso
 from clientes.models import Cliente
+from web_contacto.models import SolicitudCotizacionWeb
 from .models import (
     Servicio,
     Norma,
@@ -540,6 +541,7 @@ def lista_cotizaciones(request):
         'estados_disponibles': Cotizacion.ESTADO_CHOICES,
         'get_params': get_params.urlencode(),
         'header_search': {'id': 'buscar-cotizaciones', 'placeholder': 'Buscar por N° oferta, cliente o asunto...'},
+        'solicitudes_web_pendientes': SolicitudCotizacionWeb.objects.filter(cotizacion__isnull=True).count(),
     }
 
     return render(request, 'servicios/cotizacion_list.html', context)

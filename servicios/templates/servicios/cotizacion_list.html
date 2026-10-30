@@ -101,6 +101,13 @@
                 <span class="command-header__trigger-label">Panel</span>
             </button>
 
+            <a href="{% url 'servicios:lista_solicitudes_web' %}"
+            class="command-header__action command-header__action--secondary"
+            title="Solicitudes de cotización recibidas desde la web">
+                <i data-lucide="globe" class="w-3.5 h-3.5"></i>
+                Web{% if solicitudes_web_pendientes %} ({{ solicitudes_web_pendientes }}){% endif %}
+            </a>
+
             <a href="{% url 'servicios:crear_cotizacion' %}"
             class="command-header__action">
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>

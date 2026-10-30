@@ -1,10 +1,14 @@
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.test import TestCase, override_settings
+from django.urls import reverse
 
 from clientes.models import Cliente
-from servicios.models import Cotizacion, CotizacionDetalle, CotizacionGrupo, Servicio
+from servicios.models import CategoriaServicio, Cotizacion, CotizacionDetalle, CotizacionGrupo, Servicio
+from trabajadores.testing import crear_trabajador, rol_con_permisos
+from web_catalogo.models import ServicioPublicado
+from web_contacto.models import SolicitudCotizacionItem, SolicitudCotizacionWeb
 
 
 class CotizacionTasaIgvTipoNumericoTests(TestCase):
@@ -118,3 +122,87 @@ class CotizacionDetallePrecioUnitarioTipoNumericoTests(TestCase):
     def test_tipo_no_soportado_lanza_validation_error_no_typeerror(self):
         with self.assertRaises(ValidationError):
             self._crear_detalle(object())
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab')
+class SolicitudesWebBandejaTests(TestCase):
+    """W1: la solicitud pública se convierte en cotización solo desde el LIMS."""
+
+    @classmethod
+    def setUpTestData(cls):
+        categoria = CategoriaServicio.objects.create(nombre='Suelos')
+        cls.servicio = Servicio.objects.create(
+            codigo_facturacion='ES011-TEST', nombre='CBR', precio_base=Decimal('150.00'), unidad_base='Ensayo',
+        )
+        publicado = ServicioPublicado.objects.create(
+            servicio=cls.servicio, categoria=categoria, slug='ensayo-cbr-test',
+            titulo_publico='Ensayo CBR', resumen='r', contenido='c', activo=True,
+        )
+        cls.solicitud = SolicitudCotizacionWeb.objects.create(
+            ruc='20123456789', razon_social='Constructora Test SAC', persona_contacto='Juan Perez',
+            correo_contacto='juan@example.com', telefono_contacto='999999999',
+            necesidad='CBR para vía.', origen='/servicios/ensayo-cbr-test/',
+        )
+        SolicitudCotizacionItem.objects.create(
+            solicitud=cls.solicitud, servicio_publicado=publicado, cantidad_estimada=2,
+        )
+        comercial = rol_con_permisos('Comercial', 'cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.eliminar')
+        cls.user_comercial, _ = crear_trabajador('comercial', comercial)
+        tecnico = rol_con_permisos('Técnico', 'cotizaciones.ver')
+        cls.user_tecnico, _ = crear_trabajador('tecnico', tecnico)
+
+    def _url(self, nombre, pk=None):
+        return reverse(f'servicios:{nombre}', args=[pk] if pk else [])
+
+    def test_bandeja_lista_pendientes_y_avisa_ruc_existente(self):
+        Cliente.objects.create(ruc='20123456789', razon_social='Cliente Real SAC')
+        self.client.force_login(self.user_comercial)
+
+        respuesta = self.client.get(self._url('lista_solicitudes_web'))
+
+        self.assertContains(respuesta, 'Constructora Test SAC')
+        self.assertContains(respuesta, 'Cliente Real SAC')
+
+    def test_convertir_crea_cliente_y_cotizacion_con_numero_vcf_ote(self):
+        self.client.force_login(self.user_comercial)
+
+        respuesta = self.client.post(self._url('convertir_solicitud_web', self.solicitud.pk))
+
+        self.solicitud.refresh_from_db()
+        cotizacion = self.solicitud.cotizacion
+        self.assertRedirects(respuesta, self._url('editar_cotizacion', cotizacion.pk), fetch_redirect_response=False)
+        self.assertTrue(cotizacion.numero_oferta.startswith('VCF-OTE-'))
+        self.assertEqual(cotizacion.cliente.origen, 'web')
+        self.assertFalse(cotizacion.cliente.activo)
+        detalle = cotizacion.detalles_cotizacion[0]
+        self.assertEqual(detalle.servicio, self.servicio)
+        self.assertEqual(detalle.cantidad, 2)
+
+    def test_convertir_dos_veces_no_duplica_la_cotizacion(self):
+        self.client.force_login(self.user_comercial)
+        self.client.post(self._url('convertir_solicitud_web', self.solicitud.pk))
+        self.client.post(self._url('convertir_solicitud_web', self.solicitud.pk))
+
+        self.assertEqual(Cotizacion.objects.count(), 1)
+
+    def test_sin_permiso_de_crear_no_puede_convertir(self):
+        self.client.force_login(self.user_tecnico)
+
+        respuesta = self.client.post(self._url('convertir_solicitud_web', self.solicitud.pk))
+
+        self.assertEqual(respuesta.status_code, 403)
+        self.assertFalse(Cotizacion.objects.exists())
+
+    def test_descartar_borra_la_solicitud_pendiente(self):
+        self.client.force_login(self.user_comercial)
+
+        self.client.post(self._url('descartar_solicitud_web', self.solicitud.pk))
+
+        self.assertFalse(SolicitudCotizacionWeb.objects.exists())
+
+    def test_convertir_por_get_no_esta_permitido(self):
+        self.client.force_login(self.user_comercial)
+
+        respuesta = self.client.get(self._url('convertir_solicitud_web', self.solicitud.pk))
+
+        self.assertEqual(respuesta.status_code, 405)

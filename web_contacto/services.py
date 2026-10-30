@@ -77,10 +77,18 @@ def _armar_observaciones(solicitud):
 def procesar_solicitud_cotizacion(solicitud):
     """Crea (o reutiliza) el Cliente y genera la Cotizacion pendiente + detalles.
 
+    La llama el laboratorio desde el LIMS al convertir una solicitud de la
+    bandeja (servicios.views_solicitudes_web), nunca el formulario público.
+    Idempotente: si la solicitud ya tiene cotización, la devuelve sin crear otra.
+
     Requiere que `solicitud` ya tenga sus SolicitudCotizacionItem guardados,
     cada uno con servicio_publicado.servicio no nulo (la vista filtra el
     selector público para no ofrecer ServicioPublicado sin vínculo al LIMS).
     """
+    solicitud = type(solicitud).objects.select_for_update().get(pk=solicitud.pk)
+    if solicitud.cotizacion_id:
+        return solicitud.cotizacion
+
     items = list(
         solicitud.items.select_related('servicio_publicado', 'servicio_publicado__servicio')
     )

@@ -50,29 +50,28 @@ def enviar_correo_mensaje_contacto(self, mensaje_id):
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def enviar_correo_solicitud_cotizacion(self, solicitud_id, cotizacion_id):
-    """Notifica al correo del negocio sobre una solicitud de cotización procesada."""
-    from servicios.models import Cotizacion
+def enviar_correo_solicitud_cotizacion(self, solicitud_id, cotizacion_id=None):
+    """Avisa al correo del negocio de una nueva solicitud web pendiente de revisar.
 
+    ``cotizacion_id`` ya no se usa (la cotización se crea al convertir desde el
+    LIMS); se conserva para no romper tareas encoladas antes del cambio.
+    """
     from .models import SolicitudCotizacionWeb
 
     try:
         solicitud = SolicitudCotizacionWeb.objects.get(pk=solicitud_id)
-        cotizacion = Cotizacion.objects.get(pk=cotizacion_id)
-    except (SolicitudCotizacionWeb.DoesNotExist, Cotizacion.DoesNotExist):
+    except SolicitudCotizacionWeb.DoesNotExist:
         logger.warning(
-            "SolicitudCotizacionWeb id=%s o Cotizacion id=%s ya no existe; se omite el correo.",
-            solicitud_id, cotizacion_id,
+            "SolicitudCotizacionWeb id=%s ya no existe; se omite el correo.", solicitud_id,
         )
         return
 
     cuerpo = render_to_string(
-        'web_contacto/email/solicitud_cotizacion.txt',
-        {'solicitud': solicitud, 'cotizacion': cotizacion},
+        'web_contacto/email/solicitud_cotizacion.txt', {'solicitud': solicitud},
     )
     try:
         EmailMessage(
-            subject=f'Nueva solicitud de cotización web: {cotizacion.numero_oferta}',
+            subject=f'Nueva solicitud de cotización web: {solicitud.razon_social}',
             body=cuerpo,
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[_correo_destino()],

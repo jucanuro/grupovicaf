@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import views, views_solicitudes_web
 
 app_name = 'servicios'
 
@@ -25,6 +25,9 @@ urlpatterns = [
     path('servicio/crear-ajax/', views.crear_servicio_ajax, name='crear_servicio_ajax'),
 
     path('cotizaciones/', views.lista_cotizaciones, name='lista_cotizaciones'),
+    path('cotizaciones/solicitudes-web/', views_solicitudes_web.lista_solicitudes_web, name='lista_solicitudes_web'),
+    path('cotizaciones/solicitudes-web/<int:pk>/convertir/', views_solicitudes_web.convertir_solicitud_web, name='convertir_solicitud_web'),
+    path('cotizaciones/solicitudes-web/<int:pk>/descartar/', views_solicitudes_web.descartar_solicitud_web, name='descartar_solicitud_web'),
     path('cotizaciones/crear/', views.crear_cotizacion, name='crear_cotizacion'),
     path('cotizaciones/editar/<int:pk>/', views.editar_cotizacion, name='editar_cotizacion'),
     path('cotizaciones/eliminar/<int:pk>/', views.eliminar_cotizacion, name='eliminar_cotizacion'),
