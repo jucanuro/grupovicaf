@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.core.cache import cache
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
 from clientes.models import Cliente
@@ -9,7 +9,7 @@ from servicios.models import CategoriaServicio, Cotizacion, Servicio
 from web_catalogo.models import LineaServicio, ServicioPublicado
 
 from .models import MensajeContacto, SolicitudCotizacionWeb
-from .utils import RATE_LIMIT_MAX_INTENTOS
+from .utils import RATE_LIMIT_MAX_INTENTOS, obtener_ip_cliente
 
 
 class SolicitudCotizacionTestCase(TestCase):
@@ -191,3 +191,32 @@ class MensajeContactoTestCase(TestCase):
         self.client.post(url, self._datos_validos())
 
         self.assertFalse(MensajeContacto.objects.exists())
+
+
+class ObtenerIpClienteTestCase(TestCase):
+    """La IP del rate limit es la que vio nginx, no la que declare el visitante."""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    def test_prefiere_x_real_ip_de_nginx(self):
+        request = self.factory.get('/', HTTP_X_REAL_IP='200.1.1.1', HTTP_X_FORWARDED_FOR='9.9.9.9, 200.1.1.1')
+        self.assertEqual(obtener_ip_cliente(request), '200.1.1.1')
+
+    def test_x_forwarded_for_falsificado_no_cambia_la_ip(self):
+        # nginx añade la IP real al final; la primera la escribe el visitante.
+        request = self.factory.get('/', HTTP_X_FORWARDED_FOR='9.9.9.9, 200.1.1.1')
+        self.assertEqual(obtener_ip_cliente(request), '200.1.1.1')
+
+    def test_sin_proxy_usa_remote_addr(self):
+        request = self.factory.get('/', REMOTE_ADDR='10.0.0.5')
+        self.assertEqual(obtener_ip_cliente(request), '10.0.0.5')
+
+    def test_rate_limit_no_se_salta_cambiando_x_forwarded_for(self):
+        cache.clear()
+        url = reverse('web_contacto:contacto')
+        datos = {'nombre': 'Bot', 'correo': 'b@example.com', 'asunto': 'x', 'mensaje': 'x'}
+        for i in range(RATE_LIMIT_MAX_INTENTOS + 1):
+            self.client.post(url, datos, HTTP_X_FORWARDED_FOR=f'1.1.1.{i}, 200.1.1.1')
+
+        self.assertEqual(MensajeContacto.objects.count(), RATE_LIMIT_MAX_INTENTOS)
