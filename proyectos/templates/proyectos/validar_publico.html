@@ -1,0 +1,65 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es-PE">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {# Regla 15: vista con datos de cliente, nunca indexable. #}
+    <meta name="robots" content="noindex,nofollow">
+    <title>Validación de informe {{ informe.codigo }} | Grupo VICAF</title>
+    <link rel="icon" href="{% static 'web/img/LogoF.webp' %}" type="image/webp">
+    <style>
+        :root { --azul: #172554; --verde: #15803d; --gris: #64748b; --borde: #e2e8f0; }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+               padding: 16px; background: #f1f5f9; color: #0f172a;
+               font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+        .tarjeta { width: 100%; max-width: 480px; background: #fff; border: 1px solid var(--borde);
+                   border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(15, 23, 42, .08); }
+        .cabecera { background: var(--azul); color: #fff; padding: 20px 24px; display: flex; align-items: center; gap: 12px; }
+        .cabecera img { background: #fff; border-radius: 8px; padding: 4px; }
+        .cabecera p { margin: 0; font-size: 13px; opacity: .8; }
+        .cabecera strong { font-size: 17px; }
+        .estado { display: flex; align-items: center; gap: 10px; margin: 20px 24px 8px; padding: 12px 14px;
+                  border-radius: 10px; background: #f0fdf4; color: var(--verde); font-weight: 700; }
+        h1 { font-size: 20px; margin: 12px 24px 4px; }
+        dl { margin: 8px 24px 20px; }
+        dt { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--gris); margin-top: 14px; }
+        dd { margin: 2px 0 0; font-size: 16px; font-weight: 600; }
+        .pie { border-top: 1px solid var(--borde); padding: 14px 24px; font-size: 13px; color: var(--gris); }
+        .pie a { color: var(--azul); }
+    </style>
+</head>
+<body>
+    <main class="tarjeta">
+        <div class="cabecera">
+            <img src="{% static 'web/img/LogoF.webp' %}" alt="Grupo VICAF" width="44" height="44">
+            <div>
+                <strong>Grupo VICAF</strong>
+                <p>Laboratorio de ensayo de materiales · Cajamarca</p>
+            </div>
+        </div>
+
+        <div class="estado" role="status">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            Informe válido emitido por el laboratorio
+        </div>
+
+        <h1>Informe {{ informe.codigo }}</h1>
+        <dl>
+            <dt>Fecha de emisión</dt>
+            <dd>{{ informe.fecha_emision|date:"d/m/Y" }}</dd>
+            <dt>Solicitud de ensayo</dt>
+            <dd>{{ informe.codigo_solicitud }}</dd>
+            <dt>Emitido para</dt>
+            <dd>{{ informe.cliente }}</dd>
+            <dt>Responsable</dt>
+            <dd>{{ informe.responsable }}</dd>
+        </dl>
+
+        <div class="pie">
+            Si los datos no coinciden con el informe impreso, comuníquese con el laboratorio en
+            <a href="https://www.grupovicaf.com/contacto/">grupovicaf.com/contacto</a>.
+        </div>
+    </main>
+</body>
+</html>

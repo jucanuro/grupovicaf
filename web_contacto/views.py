@@ -9,7 +9,6 @@ from web_catalogo.models import ServicioPublicado
 
 from .asistente import datos_asistente
 from .models import MensajeContacto, SolicitudCotizacionItem, SolicitudCotizacionWeb
-from .services import procesar_solicitud_cotizacion
 from .tasks import enviar_correo_mensaje_contacto, enviar_correo_solicitud_cotizacion
 from .utils import es_honeypot, obtener_ip_cliente, rate_limit_excedido
 
@@ -76,7 +75,13 @@ def _procesar_mensaje(request):
 
 @require_POST
 def solicitud_cotizacion_view(request):
-    """Crea SolicitudCotizacionWeb + ítems y dispara el flujo hacia el LIMS (web_contacto.services)."""
+    """Guarda SolicitudCotizacionWeb + ítems como bandeja de entrada del LIMS.
+
+    No crea Cliente ni Cotizacion: un formulario público no debe consumir la
+    numeración oficial VCF-OTE ni colgar cotizaciones de un cliente real con
+    solo conocer su RUC. La conversión la hace el laboratorio desde
+    /servicios/cotizaciones/solicitudes-web/ (web_contacto.services).
+    """
     if es_honeypot(request):
         messages.success(request, 'Gracias, recibimos tu solicitud. Te contactaremos pronto.')
         return redirect('web_contacto:contacto')
@@ -139,9 +144,7 @@ def solicitud_cotizacion_view(request):
                 cantidad_estimada=cantidad,
             )
 
-        cotizacion = procesar_solicitud_cotizacion(solicitud)
-
-    enviar_correo_solicitud_cotizacion.delay(solicitud.pk, cotizacion.pk)
+    enviar_correo_solicitud_cotizacion.delay(solicitud.pk)
 
     messages.success(
         request, 'Gracias, recibimos tu solicitud de cotización. Nuestro equipo te contactará pronto.',

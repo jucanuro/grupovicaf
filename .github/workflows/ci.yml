@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev, main]
+
+jobs:
+  django:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: grupovicaf
+          POSTGRES_PASSWORD: grupovicaf
+          POSTGRES_DB: grupovicaf
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U grupovicaf"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # Solo para CI: no es un secreto real.
+      SECRET_KEY: ci-solo-para-pruebas-no-es-un-secreto-real-0123456789-abcdefghij
+      DJANGO_SETTINGS_MODULE: grupovicaf.settings.test_local
+      DB_HOST: 127.0.0.1
+      DB_PORT: '5432'
+      DB_NAME: grupovicaf
+      DB_USER: grupovicaf
+      DB_PASSWORD: grupovicaf
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Librerías de sistema de WeasyPrint
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0
+      - run: pip install -r requirements.txt
+      - name: Migraciones al día
+        run: SITE_ROLE=lab python manage.py makemigrations --check --dry-run
+      - name: Tests (rol lab)
+        run: SITE_ROLE=lab python manage.py test --noinput
+      - name: Tests (rol web)
+        run: SITE_ROLE=web python manage.py test --noinput
+      - name: check --deploy con settings de producción (rol web)
+        run: SITE_ROLE=web DJANGO_SETTINGS_MODULE=grupovicaf.settings.prod python manage.py check --deploy --fail-level WARNING
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # 22+: node --test expande el glob 'tests/js/*.test.js' (Node 20 no).
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm audit --audit-level=high
+      - run: npm run build:css
+      - run: npm run test:js

@@ -4,14 +4,12 @@ Separado de la vista a propósito: la vista solo valida entrada HTTP: esta
 función encapsula la transacción que toca clientes.Cliente y servicios.Cotizacion.
 """
 from django.db import IntegrityError, transaction
-from django.db.models import Max
 from django.utils import timezone
 from django.utils.text import Truncator
 
 from clientes.models import Cliente
 from servicios.models import CotizacionDetalle, CotizacionGrupo, Cotizacion
-
-NUMERO_OFERTA_PREFIJO = 'VCF-OTE'
+from servicios.numeracion import siguiente_numero_oferta
 
 
 def _obtener_o_crear_cliente(solicitud):
@@ -41,25 +39,6 @@ def _obtener_o_crear_cliente(solicitud):
         return Cliente.objects.get(ruc=solicitud.ruc)
 
 
-def _siguiente_numero_oferta():
-    """Replica el esquema de numeración de servicios/views.py (VCF-OTE-<año>-NNN)."""
-    year_part = str(timezone.now().year)
-    prefix_year = f'{NUMERO_OFERTA_PREFIJO}-{year_part}-'
-
-    ultimo = (
-        Cotizacion.objects.select_for_update()
-        .filter(numero_oferta__startswith=prefix_year)
-        .aggregate(Max('numero_oferta'))['numero_oferta__max']
-    )
-    siguiente = 1
-    if ultimo:
-        try:
-            siguiente = int(ultimo.split('-')[-1]) + 1
-        except (IndexError, ValueError):
-            siguiente = 1
-    return f'{prefix_year}{str(siguiente).zfill(3)}'
-
-
 def _armar_asunto(items):
     titulos = [item.servicio_publicado.titulo_publico for item in items]
     asunto = 'Solicitud web: ' + ', '.join(titulos)
@@ -77,10 +56,18 @@ def _armar_observaciones(solicitud):
 def procesar_solicitud_cotizacion(solicitud):
     """Crea (o reutiliza) el Cliente y genera la Cotizacion pendiente + detalles.
 
+    La llama el laboratorio desde el LIMS al convertir una solicitud de la
+    bandeja (servicios.views_solicitudes_web), nunca el formulario público.
+    Idempotente: si la solicitud ya tiene cotización, la devuelve sin crear otra.
+
     Requiere que `solicitud` ya tenga sus SolicitudCotizacionItem guardados,
     cada uno con servicio_publicado.servicio no nulo (la vista filtra el
     selector público para no ofrecer ServicioPublicado sin vínculo al LIMS).
     """
+    solicitud = type(solicitud).objects.select_for_update().get(pk=solicitud.pk)
+    if solicitud.cotizacion_id:
+        return solicitud.cotizacion
+
     items = list(
         solicitud.items.select_related('servicio_publicado', 'servicio_publicado__servicio')
     )
@@ -89,7 +76,7 @@ def procesar_solicitud_cotizacion(solicitud):
 
     cotizacion = Cotizacion.objects.create(
         cliente=cliente,
-        numero_oferta=_siguiente_numero_oferta(),
+        numero_oferta=siguiente_numero_oferta(timezone.now().year),
         fecha_generacion=timezone.now().date(),
         asunto_servicio=_armar_asunto(items),
         persona_contacto=solicitud.persona_contacto,

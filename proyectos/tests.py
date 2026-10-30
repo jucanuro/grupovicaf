@@ -1,16 +1,21 @@
+import tempfile
+import uuid
 from datetime import date, timedelta
 from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.core import mail
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.template.loader import render_to_string
 from django.test import TestCase, override_settings
+from django.urls import reverse
 from django.utils import timezone
 from weasyprint import HTML
 
 from clientes.models import Cliente
 from proyectos.models import (
     DetalleSolicitudEnsayo,
+    InformeFinal,
     MuestraDetalle,
     Proyecto,
     RecepcionMuestra,
@@ -20,14 +25,11 @@ from proyectos.models import (
 from proyectos.tasks import notificar_proyectos_vencidos
 from servicios.models import Cotizacion, CotizacionDetalle, CotizacionGrupo, Servicio
 from trabajadores.models import RolTrabajador, TrabajadorProfile
+from trabajadores.testing import crear_trabajador, rol_con_permisos
 
 
-class InformePDFRenderTest(TestCase):
-    """
-    Verifica que WeasyPrint (y sus libs de sistema: Pango/Cairo/GDK-Pixbuf)
-    puedan renderizar la plantilla real de un informe/orden de ensayo del LIMS
-    dentro del contenedor.
-    """
+class SolicitudBaseMixin:
+    """Cliente → cotización → recepción → solicitud con un detalle asignado."""
 
     def setUp(self):
         user = User.objects.create_user('tecnico.lab', password='x')
@@ -96,6 +98,14 @@ class InformePDFRenderTest(TestCase):
             fecha_entrega_programada=date(2026, 9, 1),
         )
 
+
+class InformePDFRenderTest(SolicitudBaseMixin, TestCase):
+    """
+    Verifica que WeasyPrint (y sus libs de sistema: Pango/Cairo/GDK-Pixbuf)
+    puedan renderizar la plantilla real de un informe/orden de ensayo del LIMS
+    dentro del contenedor.
+    """
+
     def test_render_ensayos_pdf_produce_pdf_valido(self):
         context = {
             'solicitud': self.solicitud,
@@ -160,3 +170,128 @@ class NotificarProyectosVencidosTest(TestCase):
 
         self.assertEqual(total, 0)
         self.assertEqual(mail.outbox, [])
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab', MEDIA_ROOT=tempfile.mkdtemp())
+class ValidarInformePublicoTest(SolicitudBaseMixin, TestCase):
+    """Página pública a la que apunta el QR del informe (proyectos/v/<uuid>/)."""
+
+    def setUp(self):
+        super().setUp()
+        self.informe = InformeFinal.objects.create(
+            solicitud=self.solicitud,
+            archivo_pdf=SimpleUploadedFile('informe.pdf', b'%PDF-1.4 prueba', content_type='application/pdf'),
+            responsable_firma=self.trabajador,
+        )
+
+    def test_muestra_datos_del_informe_sin_campos_prohibidos(self):
+        respuesta = self.client.get(f'/proyectos/v/{self.informe.slug_validacion}/')
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, self.informe.codigo_informe)
+        self.assertContains(respuesta, 'SOL-2026-0001')
+        self.assertContains(respuesta, 'Constructora de Prueba SAC')
+        self.assertContains(respuesta, 'noindex')
+        self.assertNotContains(respuesta, '20123456789')  # RUC (regla 3)
+        self.assertNotContains(respuesta, 'informe.pdf')
+
+    def test_uuid_inexistente_da_404(self):
+        respuesta = self.client.get(f'/proyectos/v/{uuid.uuid4()}/')
+
+        self.assertEqual(respuesta.status_code, 404)
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+class NumeracionInformeTest(SolicitudBaseMixin, TestCase):
+    """L2: el código INF-AAAA-NNNN no se repite aunque se borre un informe."""
+
+    def _crear_informe(self, solicitud):
+        return InformeFinal.objects.create(
+            solicitud=solicitud,
+            archivo_pdf=SimpleUploadedFile('i.pdf', b'%PDF-1.4', content_type='application/pdf'),
+            responsable_firma=self.trabajador,
+        )
+
+    def _otra_solicitud(self, codigo):
+        recepcion = RecepcionMuestra.objects.create(
+            cotizacion=self.solicitud.cotizacion, procedencia='Cajamarca',
+            responsable_cliente='Ana', telefono='9', responsable_recepcion=self.trabajador.user,
+        )
+        return SolicitudEnsayo.objects.create(
+            codigo_solicitud=codigo, recepcion=recepcion, cotizacion=self.solicitud.cotizacion,
+            fecha_entrega_programada=date(2026, 9, 1), elaborado_por=self.trabajador,
+        )
+
+    def test_borrar_un_informe_no_repite_el_codigo_del_siguiente(self):
+        primero = self._crear_informe(self.solicitud)
+        segundo = self._crear_informe(self._otra_solicitud('SOL-2026-0002'))
+        primero.delete()
+
+        tercero = self._crear_informe(self._otra_solicitud('SOL-2026-0003'))
+
+        anio = timezone.now().year
+        self.assertEqual(segundo.codigo_informe, f'INF-{anio}-0002')
+        self.assertEqual(tercero.codigo_informe, f'INF-{anio}-0003')
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab')
+class TecnicoRestringidoTest(SolicitudBaseMixin, TestCase):
+    """L3: sin ensayos.ver_todos solo se ven las solicitudes asignadas y sin cliente."""
+
+    def setUp(self):
+        super().setUp()
+        rol_tecnico = rol_con_permisos('Técnico restringido', 'ensayos.ver', 'calendario.ver', 'gantt.ver')
+        self.user_asignado, perfil = crear_trabajador('tecnico.asignado', rol_tecnico)
+        self.solicitud.detalles.update(tecnico_asignado=perfil)
+        self.user_otro, _ = crear_trabajador('tecnico.otro', rol_tecnico)
+        rol_supervisor = rol_con_permisos('Supervisor', 'ensayos.ver', 'ensayos.ver_todos')
+        self.user_supervisor, _ = crear_trabajador('supervisor', rol_supervisor)
+        self.cliente = self.solicitud.cotizacion.cliente
+
+    def test_tecnico_ve_su_solicitud_con_codigo_confidencial_y_sin_razon_social(self):
+        self.client.force_login(self.user_asignado)
+
+        respuesta = self.client.get(reverse('proyectos:lista_solicitudes'))
+
+        self.assertContains(respuesta, 'SOL-2026-0001')
+        self.assertContains(respuesta, self.cliente.codigo_confidencial)
+        self.assertNotContains(respuesta, 'Constructora de Prueba SAC')
+
+    def test_tecnico_no_ve_solicitudes_ajenas(self):
+        self.client.force_login(self.user_otro)
+
+        respuesta = self.client.get(reverse('proyectos:lista_solicitudes'))
+
+        self.assertNotContains(respuesta, 'SOL-2026-0001')
+
+    def test_tecnico_no_puede_bajar_el_pdf_de_una_solicitud_ajena(self):
+        self.client.force_login(self.user_otro)
+
+        respuesta = self.client.get(reverse('proyectos:generar_pdf_ensayo', args=[self.solicitud.pk]))
+
+        self.assertEqual(respuesta.status_code, 403)
+
+    def test_supervisor_ve_todo_con_razon_social(self):
+        self.client.force_login(self.user_supervisor)
+
+        respuesta = self.client.get(reverse('proyectos:lista_solicitudes'))
+
+        self.assertContains(respuesta, 'Constructora de Prueba SAC')
+
+    def test_calendario_del_tecnico_sin_razon_social(self):
+        self.client.force_login(self.user_asignado)
+
+        respuesta = self.client.get(reverse('actividades:calendario_eventos_json'))
+
+        self.assertEqual(respuesta.status_code, 200)
+        contenido = respuesta.content.decode()
+        self.assertIn('SOL-2026-0001', contenido)
+        self.assertIn(self.cliente.codigo_confidencial, contenido)
+        self.assertNotIn('Constructora de Prueba SAC', contenido)
+
+    def test_calendario_de_otro_tecnico_no_incluye_el_ensayo(self):
+        self.client.force_login(self.user_otro)
+
+        respuesta = self.client.get(reverse('actividades:calendario_eventos_json'))
+
+        self.assertNotIn('SOL-2026-0001', respuesta.content.decode())
