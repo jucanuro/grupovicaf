@@ -22,7 +22,6 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso
-from .utils import enviar_whatsapp_pdf
 from .tasks import procesar_informe_final
 
 from .models import (
@@ -305,7 +304,7 @@ def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
                 return redirect('proyectos:lista_muestras_recepcion', recepcion_id=recepcion.id)
 
         except Exception as e:
-            print(f"Error Crítico: {e}")
+            logger.exception("Error al guardar la recepción de muestras")
             messages.error(request, f"Ocurrió un error al guardar: {str(e)}")
 
     tipos_qs = TipoMuestra.objects.all().order_by('nombre')
@@ -871,7 +870,7 @@ def gestionar_solicitud_ensayo(request, pk=None):
             return redirect('proyectos:lista_solicitudes')
 
         except Exception as e:
-            print("ERROR EN gestionar_solicitud_ensayo:", repr(e))
+            logger.exception("Error en gestionar_solicitud_ensayo")
             messages.error(request, f"Error: {str(e)}")
             return redirect(request.path)
 
@@ -1181,7 +1180,7 @@ def gestionar_informe_final(request, solicitud_id=None):
             return redirect('proyectos:lista_informes')
 
         except Exception as e:
-            print(f"DEBUG ERROR: {e}")
+            logger.exception("Error al procesar el informe final")
             messages.error(request, f"Error al procesar el informe: {e}")
 
     return render(request, 'proyectos/informes_form.html', {

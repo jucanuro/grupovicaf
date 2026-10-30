@@ -80,11 +80,17 @@ LOGGING = {
             'formatter': 'verbose',
         },
     },
+    # Root: los logger.exception() de las apps propias (proyectos.views,
+    # web_contacto.tasks...) llegan al mismo archivo y a journald.
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': 'WARNING',
+    },
     'loggers': {
         'django': {
             'handlers': ['console', 'file'],
             'level': 'WARNING',
-            'propagate': True,
+            'propagate': False,
         },
     },
 }
