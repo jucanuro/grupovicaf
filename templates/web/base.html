@@ -20,13 +20,14 @@
     <meta property="og:title" content="{% block og_title %}{{ negocio.nombre }}{% endblock %}">
     <meta property="og:description" content="{% block og_description %}{{ negocio.descripcion }}{% endblock %}">
     <meta property="og:url" content="{{ SITE_URL }}{{ request.path }}">
-    <meta property="og:image" content="{% block og_image %}{{ SITE_URL }}{% static 'web/img/LogoF.webp' %}{% endblock %}">
+    {# JPG 1200×630: WhatsApp y Facebook no siempre muestran vista previa con WebP. #}
+    <meta property="og:image" content="{% block og_image %}{{ SITE_URL }}{% static 'web/img/og-grupovicaf.jpg' %}{% endblock %}">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{% block twitter_title %}{{ negocio.nombre }}{% endblock %}">
     <meta name="twitter:description" content="{% block twitter_description %}{{ negocio.descripcion }}{% endblock %}">
-    <meta name="twitter:image" content="{% block twitter_image %}{{ SITE_URL }}{% static 'web/img/LogoF.webp' %}{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}{{ SITE_URL }}{% static 'web/img/og-grupovicaf.jpg' %}{% endblock %}">
 
     <link rel="icon" href="{% static 'web/img/LogoF.webp' %}" type="image/webp">
 
