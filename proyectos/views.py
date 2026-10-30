@@ -1212,9 +1212,36 @@ def descargar_pdf_informe(request, informe_id):
     )
 
 
-def validar_informe_publico(request, slug_validacion):
-    informe = get_object_or_404(InformeFinal, slug_validacion=slug_validacion)
+# Lista blanca de la página pública del QR (reglas 2 y 3): ni RUC, ni montos,
+# ni firma, ni el PDF. Solo lo que un tercero necesita para comprobar que el
+# informe impreso lo emitió el laboratorio.
+_INFORME_CAMPOS_PUBLICOS = (
+    'codigo_informe',
+    'fecha_emision',
+    'solicitud__codigo_solicitud',
+    'solicitud__cotizacion__cliente__razon_social',
+    'responsable_firma__titulo_profesional',
+    'responsable_firma__nombre_completo',
+)
 
+
+def validar_informe_publico(request, slug_validacion):
+    informe = (
+        InformeFinal.objects.filter(slug_validacion=slug_validacion)
+        .values(*_INFORME_CAMPOS_PUBLICOS)
+        .first()
+    )
+    if informe is None:
+        raise Http404("Informe no encontrado.")
+
+    titulo = informe['responsable_firma__titulo_profesional']
+    nombre = informe['responsable_firma__nombre_completo']
     return render(request, 'proyectos/validar_publico.html', {
-        'informe': informe
+        'informe': {
+            'codigo': informe['codigo_informe'],
+            'fecha_emision': informe['fecha_emision'],
+            'codigo_solicitud': informe['solicitud__codigo_solicitud'],
+            'cliente': informe['solicitud__cotizacion__cliente__razon_social'],
+            'responsable': f"{titulo}. {nombre}" if titulo else nombre,
+        },
     })

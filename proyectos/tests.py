@@ -1,8 +1,11 @@
+import tempfile
+import uuid
 from datetime import date, timedelta
 from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.core import mail
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.template.loader import render_to_string
 from django.test import TestCase, override_settings
 from django.utils import timezone
@@ -11,6 +14,7 @@ from weasyprint import HTML
 from clientes.models import Cliente
 from proyectos.models import (
     DetalleSolicitudEnsayo,
+    InformeFinal,
     MuestraDetalle,
     Proyecto,
     RecepcionMuestra,
@@ -22,12 +26,8 @@ from servicios.models import Cotizacion, CotizacionDetalle, CotizacionGrupo, Ser
 from trabajadores.models import RolTrabajador, TrabajadorProfile
 
 
-class InformePDFRenderTest(TestCase):
-    """
-    Verifica que WeasyPrint (y sus libs de sistema: Pango/Cairo/GDK-Pixbuf)
-    puedan renderizar la plantilla real de un informe/orden de ensayo del LIMS
-    dentro del contenedor.
-    """
+class SolicitudBaseMixin:
+    """Cliente → cotización → recepción → solicitud con un detalle asignado."""
 
     def setUp(self):
         user = User.objects.create_user('tecnico.lab', password='x')
@@ -96,6 +96,14 @@ class InformePDFRenderTest(TestCase):
             fecha_entrega_programada=date(2026, 9, 1),
         )
 
+
+class InformePDFRenderTest(SolicitudBaseMixin, TestCase):
+    """
+    Verifica que WeasyPrint (y sus libs de sistema: Pango/Cairo/GDK-Pixbuf)
+    puedan renderizar la plantilla real de un informe/orden de ensayo del LIMS
+    dentro del contenedor.
+    """
+
     def test_render_ensayos_pdf_produce_pdf_valido(self):
         context = {
             'solicitud': self.solicitud,
@@ -160,3 +168,32 @@ class NotificarProyectosVencidosTest(TestCase):
 
         self.assertEqual(total, 0)
         self.assertEqual(mail.outbox, [])
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab', MEDIA_ROOT=tempfile.mkdtemp())
+class ValidarInformePublicoTest(SolicitudBaseMixin, TestCase):
+    """Página pública a la que apunta el QR del informe (proyectos/v/<uuid>/)."""
+
+    def setUp(self):
+        super().setUp()
+        self.informe = InformeFinal.objects.create(
+            solicitud=self.solicitud,
+            archivo_pdf=SimpleUploadedFile('informe.pdf', b'%PDF-1.4 prueba', content_type='application/pdf'),
+            responsable_firma=self.trabajador,
+        )
+
+    def test_muestra_datos_del_informe_sin_campos_prohibidos(self):
+        respuesta = self.client.get(f'/proyectos/v/{self.informe.slug_validacion}/')
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, self.informe.codigo_informe)
+        self.assertContains(respuesta, 'SOL-2026-0001')
+        self.assertContains(respuesta, 'Constructora de Prueba SAC')
+        self.assertContains(respuesta, 'noindex')
+        self.assertNotContains(respuesta, '20123456789')  # RUC (regla 3)
+        self.assertNotContains(respuesta, 'informe.pdf')
+
+    def test_uuid_inexistente_da_404(self):
+        respuesta = self.client.get(f'/proyectos/v/{uuid.uuid4()}/')
+
+        self.assertEqual(respuesta.status_code, 404)
