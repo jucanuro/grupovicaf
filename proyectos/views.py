@@ -11,7 +11,7 @@ from urllib.parse import quote
 from decimal import Decimal, InvalidOperation
 
 from django.db import IntegrityError, transaction
-from django.db.models import Q, Max, Exists, OuterRef
+from django.db.models import Q, Exists, OuterRef
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, Http404, FileResponse
 from django.template.loader import render_to_string, get_template
 from django.shortcuts import render, redirect, get_object_or_404
@@ -46,6 +46,7 @@ from servicios.models import (
 )
 
 from trabajadores.models import TrabajadorProfile
+from core.models import siguiente_correlativo
 from weasyprint import HTML
 
 
@@ -54,39 +55,6 @@ logger = logging.getLogger(__name__)
 
 def get_date_or_none(date_string):
     return date_string if date_string and date_string.strip() else None
-
-
-def generar_correlativo_lote():
-    anio = timezone.now().year
-    ultimo = RecepcionMuestraLote.objects.filter(numero_registro__icontains=f"-{anio}-").order_by('-id').first()
-    numero = 1
-
-    if ultimo:
-        try:
-            numero = int(ultimo.numero_registro.split('-')[-1]) + 1
-        except (ValueError, IndexError):
-            pass
-
-    return f"REC-{anio}-{numero:04d}"
-
-
-def generar_codigo_vicaf(servicio_obj):
-    prefijo = "X"
-
-    if servicio_obj.subcategoria:
-        prefijo = servicio_obj.subcategoria.nombre[0].upper()
-
-    anio = timezone.now().year
-    ultimo = MuestraItem.objects.filter(codigo_vicaf__startswith=f"{prefijo}-{anio}").order_by('-id').first()
-    numero = 1
-
-    if ultimo:
-        try:
-            numero = int(ultimo.codigo_vicaf.split('-')[-1]) + 1
-        except (ValueError, IndexError):
-            pass
-
-    return f"{prefijo}-{anio}-{numero:03d}"
 
 
 @login_required
@@ -688,18 +656,12 @@ def gestionar_solicitud_ensayo(request, pk=None):
                     cot_num = cotizacion.numero_oferta.split('-')[-1] if cotizacion.numero_oferta else '000'
                     prefix_sol = f'SOL-{cot_num}-{year_part}'
 
-                    max_result = SolicitudEnsayo.objects.filter(
-                        codigo_solicitud__startswith=f'{prefix_sol}-'
-                    ).aggregate(Max('codigo_solicitud'))
-
-                    last_num_sol = max_result.get('codigo_solicitud__max')
-                    next_order_num = 1
-
-                    if last_num_sol:
-                        try:
-                            next_order_num = int(last_num_sol.split('-')[-1]) + 1
-                        except (IndexError, ValueError):
-                            next_order_num = 1
+                    next_order_num = siguiente_correlativo(
+                        prefix_sol,
+                        SolicitudEnsayo.objects.filter(
+                            codigo_solicitud__startswith=f'{prefix_sol}-'
+                        ).values_list('codigo_solicitud', flat=True),
+                    )
 
                     codigo_solicitud = f'{prefix_sol}-{str(next_order_num).zfill(3)}'
 

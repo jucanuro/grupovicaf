@@ -7,7 +7,6 @@ from django.core.paginator import Paginator
 from django.db.models import Q, Sum
 from django.db import transaction 
 from datetime import date
-from django.db.models import Max
 from django.contrib.auth.decorators import login_required
 from weasyprint import HTML
 from django.forms.models import model_to_dict
@@ -47,6 +46,7 @@ from trabajadores.models import TrabajadorProfile
 from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso
 from clientes.models import Cliente
 from web_contacto.models import SolicitudCotizacionWeb
+from .numeracion import siguiente_numero_oferta
 from .models import (
     Servicio,
     Norma,
@@ -712,20 +712,7 @@ def crear_editar_cotizacion(request, pk=None):
                 cotizacion.tasa_igv = Decimal(tasa_igv_str)
 
                 if not is_editing and not cotizacion.es_plantilla:
-                    prefix = 'VCF-OTE'
-                    year_part = str(cotizacion.fecha_generacion.year)
-                    max_result = Cotizacion.objects.filter(
-                        numero_oferta__startswith=f'{prefix}-{year_part}-'
-                    ).aggregate(Max('numero_oferta'))
-
-                    last_num_oferta = max_result.get('numero_oferta__max')
-                    next_order_num = 1
-                    if last_num_oferta:
-                        try:
-                            next_order_num = int(last_num_oferta.split('-')[-1]) + 1
-                        except (IndexError, ValueError):
-                            next_order_num = 1
-                    cotizacion.numero_oferta = f'{prefix}-{year_part}-{str(next_order_num).zfill(3)}'
+                    cotizacion.numero_oferta = siguiente_numero_oferta(cotizacion.fecha_generacion.year)
                 elif cotizacion.es_plantilla:
                     cotizacion.numero_oferta = None
 
@@ -1431,9 +1418,9 @@ def administracion_view(request):
     q = request.GET.get('q')
     if q:
         cotizaciones = cotizaciones.filter(
-            models.Q(numero_oferta__icontains=q) | 
-            models.Q(asunto_servicio__icontains=q) |
-            models.Q(cliente__razon_social__icontains=q)
+            Q(numero_oferta__icontains=q) | 
+            Q(asunto_servicio__icontains=q) |
+            Q(cliente__razon_social__icontains=q)
         )
 
     estado_filtro = request.GET.get('estado')

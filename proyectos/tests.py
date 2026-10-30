@@ -197,3 +197,36 @@ class ValidarInformePublicoTest(SolicitudBaseMixin, TestCase):
         respuesta = self.client.get(f'/proyectos/v/{uuid.uuid4()}/')
 
         self.assertEqual(respuesta.status_code, 404)
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+class NumeracionInformeTest(SolicitudBaseMixin, TestCase):
+    """L2: el código INF-AAAA-NNNN no se repite aunque se borre un informe."""
+
+    def _crear_informe(self, solicitud):
+        return InformeFinal.objects.create(
+            solicitud=solicitud,
+            archivo_pdf=SimpleUploadedFile('i.pdf', b'%PDF-1.4', content_type='application/pdf'),
+            responsable_firma=self.trabajador,
+        )
+
+    def _otra_solicitud(self, codigo):
+        recepcion = RecepcionMuestra.objects.create(
+            cotizacion=self.solicitud.cotizacion, procedencia='Cajamarca',
+            responsable_cliente='Ana', telefono='9', responsable_recepcion=self.trabajador.user,
+        )
+        return SolicitudEnsayo.objects.create(
+            codigo_solicitud=codigo, recepcion=recepcion, cotizacion=self.solicitud.cotizacion,
+            fecha_entrega_programada=date(2026, 9, 1), elaborado_por=self.trabajador,
+        )
+
+    def test_borrar_un_informe_no_repite_el_codigo_del_siguiente(self):
+        primero = self._crear_informe(self.solicitud)
+        segundo = self._crear_informe(self._otra_solicitud('SOL-2026-0002'))
+        primero.delete()
+
+        tercero = self._crear_informe(self._otra_solicitud('SOL-2026-0003'))
+
+        anio = timezone.now().year
+        self.assertEqual(segundo.codigo_informe, f'INF-{anio}-0002')
+        self.assertEqual(tercero.codigo_informe, f'INF-{anio}-0003')
