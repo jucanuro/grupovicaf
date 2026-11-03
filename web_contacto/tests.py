@@ -1,7 +1,8 @@
 from decimal import Decimal
 
+from django.core import mail
 from django.core.cache import cache
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
 from clientes.models import Cliente
@@ -9,7 +10,7 @@ from servicios.models import CategoriaServicio, Cotizacion, Servicio
 from web_catalogo.models import LineaServicio, ServicioPublicado
 
 from .models import MensajeContacto, SolicitudCotizacionWeb
-from .utils import RATE_LIMIT_MAX_INTENTOS
+from .utils import RATE_LIMIT_MAX_INTENTOS, obtener_ip_cliente
 
 
 class SolicitudCotizacionTestCase(TestCase):
@@ -46,49 +47,39 @@ class SolicitudCotizacionTestCase(TestCase):
         datos.update(overrides)
         return datos
 
-    def test_envio_crea_cliente_cotizacion_y_detalle(self):
+    def test_envio_solo_guarda_la_solicitud_sin_tocar_el_lims(self):
+        # W1: el formulario público no crea Cliente ni Cotizacion (ni consume
+        # la numeración VCF-OTE); eso lo hace el laboratorio al convertirla.
         response = self.client.post(
             reverse('web_contacto:solicitud_cotizacion'), self._datos_validos(), follow=True,
         )
         self.assertEqual(response.status_code, 200)
 
-        cliente = Cliente.objects.get(ruc='20123456789')
-        self.assertEqual(cliente.origen, 'web')
-        self.assertFalse(cliente.activo)
-        self.assertIsNone(cliente.creado_por)
-
         solicitud = SolicitudCotizacionWeb.objects.get(ruc='20123456789')
-        self.assertEqual(solicitud.cliente, cliente)
-        self.assertIsNotNone(solicitud.cotizacion)
+        self.assertIsNone(solicitud.cliente)
+        self.assertIsNone(solicitud.cotizacion)
         self.assertEqual(solicitud.origen, '/servicios/ensayo-cbr-test/')
+        self.assertEqual(solicitud.items.get().cantidad_estimada, 2)
+        self.assertFalse(Cliente.objects.exists())
+        self.assertFalse(Cotizacion.objects.exists())
 
-        cotizacion = solicitud.cotizacion
-        self.assertEqual(cotizacion.estado, 'Pendiente')
-        self.assertEqual(cotizacion.cliente, cliente)
-
-        detalles = list(cotizacion.detalles_cotizacion)
-        self.assertEqual(len(detalles), 1)
-        self.assertEqual(detalles[0].servicio, self.servicio)
-        self.assertEqual(detalles[0].cantidad, 2)
-        self.assertEqual(cotizacion.subtotal, Decimal('300.00'))
-
-    def test_cotizacion_queda_marcada_como_origen_web_con_pagina_de_origen(self):
-        self.client.post(reverse('web_contacto:solicitud_cotizacion'), self._datos_validos())
-
-        cotizacion = Cotizacion.objects.get()
-        self.assertEqual(cotizacion.cliente.origen, 'web')
-        self.assertEqual(cotizacion.solicitud_web.origen, '/servicios/ensayo-cbr-test/')
-
-    def test_dos_envios_con_mismo_ruc_no_duplican_cliente(self):
-        self.client.post(reverse('web_contacto:solicitud_cotizacion'), self._datos_validos())
-        self.client.post(
-            reverse('web_contacto:solicitud_cotizacion'),
-            self._datos_validos(razon_social='Constructora Test SAC (repetido)'),
+    def test_ruc_de_cliente_existente_no_le_cuelga_una_cotizacion(self):
+        Cliente.objects.create(
+            ruc='20123456789', razon_social='Cliente Real SAC', persona_contacto='X',
+            celular_contacto='1', correo_contacto='real@example.com',
         )
+        self.client.post(reverse('web_contacto:solicitud_cotizacion'), self._datos_validos())
 
-        self.assertEqual(Cliente.objects.filter(ruc='20123456789').count(), 1)
-        self.assertEqual(Cotizacion.objects.count(), 2)
-        self.assertEqual(SolicitudCotizacionWeb.objects.count(), 2)
+        self.assertFalse(Cotizacion.objects.exists())
+        self.assertEqual(Cliente.objects.get().correo_contacto, 'real@example.com')
+
+    def test_envio_avisa_por_correo_que_hay_una_solicitud_pendiente(self):
+        with self.settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend'):
+            self.client.post(reverse('web_contacto:solicitud_cotizacion'), self._datos_validos())
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('Constructora Test SAC', mail.outbox[0].subject)
+        self.assertIn('Solicitudes web', mail.outbox[0].body)
 
     def test_no_se_puede_cotizar_un_servicio_publicado_sin_vinculo_al_lims(self):
         response = self.client.post(
@@ -191,3 +182,32 @@ class MensajeContactoTestCase(TestCase):
         self.client.post(url, self._datos_validos())
 
         self.assertFalse(MensajeContacto.objects.exists())
+
+
+class ObtenerIpClienteTestCase(TestCase):
+    """La IP del rate limit es la que vio nginx, no la que declare el visitante."""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    def test_prefiere_x_real_ip_de_nginx(self):
+        request = self.factory.get('/', HTTP_X_REAL_IP='200.1.1.1', HTTP_X_FORWARDED_FOR='9.9.9.9, 200.1.1.1')
+        self.assertEqual(obtener_ip_cliente(request), '200.1.1.1')
+
+    def test_x_forwarded_for_falsificado_no_cambia_la_ip(self):
+        # nginx añade la IP real al final; la primera la escribe el visitante.
+        request = self.factory.get('/', HTTP_X_FORWARDED_FOR='9.9.9.9, 200.1.1.1')
+        self.assertEqual(obtener_ip_cliente(request), '200.1.1.1')
+
+    def test_sin_proxy_usa_remote_addr(self):
+        request = self.factory.get('/', REMOTE_ADDR='10.0.0.5')
+        self.assertEqual(obtener_ip_cliente(request), '10.0.0.5')
+
+    def test_rate_limit_no_se_salta_cambiando_x_forwarded_for(self):
+        cache.clear()
+        url = reverse('web_contacto:contacto')
+        datos = {'nombre': 'Bot', 'correo': 'b@example.com', 'asunto': 'x', 'mensaje': 'x'}
+        for i in range(RATE_LIMIT_MAX_INTENTOS + 1):
+            self.client.post(url, datos, HTTP_X_FORWARDED_FOR=f'1.1.1.{i}, 200.1.1.1')
+
+        self.assertEqual(MensajeContacto.objects.count(), RATE_LIMIT_MAX_INTENTOS)

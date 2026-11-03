@@ -13,7 +13,8 @@ Se ejecutan como **dos procesos gunicorn separados** con distinta variable de en
 `SITE_ROLE`, para que un informe PDF pesado del laboratorio nunca frene la web pública.
 
 El negocio: laboratorio de ensayo de materiales y geotecnia acreditado por INACAL, con
-sede en Cajamarca y cobertura en el norte del Perú.
+sede única en Cajamarca. Opera solo en Cajamarca (D-VCF-002): no se crean páginas
+ni contenido para otras ciudades.
 
 ## Stack
 
@@ -44,7 +45,7 @@ sede en Cajamarca y cobertura en el norte del Perú.
 | `web_nosotros` | Misión, visión, documentos |
 | `web_acreditacion` | Acreditación INACAL y alcance |
 | `web_catalogo` | Publicación sobre `servicios`, `clientes` y `trabajadores` |
-| `web_zonas` | Landing pages por ciudad de cobertura |
+| `web_zonas` | **Descartada** (D-VCF-002): no se crean landing pages por ciudad |
 | `web_contacto` | Mensajes y solicitud de cotización pública |
 | `web_empleo` | Convocatorias y postulaciones |
 | `web_portal` | Portal del cliente + validación pública de informes por QR |
@@ -140,6 +141,15 @@ Para entrar con un cliente psql/redis-cli desde el host, usa
 el entorno (así lo inyecta `docker-compose.dev.yml` vía `.env`); sin Docker,
 sigue cayendo a `db.sqlite3` como hasta ahora.
 
+### Pruebas E2E (Playwright)
+
+```bash
+E2E_PYTHON=venv/bin/python npm run test:e2e   # levanta lab y web, siembra y prueba
+```
+
+Detalle en `e2e/README.md`. Datos fijos con `python manage.py sembrar_e2e`
+(solo `DEBUG=True`). Job `e2e` en `.github/workflows/ci.yml`.
+
 ### Restaurar/migrar datos al Postgres del contenedor
 
 **Estado: hecho.** `db.sqlite3` (backup, no se borra) ya se migró al Postgres
@@ -194,7 +204,7 @@ docker compose exec lab python manage.py migrate   # por si el dump es de una re
 AWS es la fuente de verdad del LIMS (`clientes`, `trabajadores`, `servicios`,
 `proyectos`, `actividades`) y **nunca se sobrescribe** desde dev. Cuando lo
 que cambió en local es solo contenido web (`web_inicio`, `web_nosotros`,
-`web_acreditacion`, `web_catalogo`, `web_zonas`, `web_contacto`,
+`web_acreditacion`, `web_catalogo`, `web_contacto`,
 `siteconfig`), se sube con este procedimiento en vez de `pg_restore`.
 
 **El problema de fondo**: `LineaServicio.ensayos` (M2M), `Acreditacion.

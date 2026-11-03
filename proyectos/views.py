@@ -11,7 +11,7 @@ from urllib.parse import quote
 from decimal import Decimal, InvalidOperation
 
 from django.db import IntegrityError, transaction
-from django.db.models import Q, Max, Exists, OuterRef
+from django.db.models import Q, Exists, OuterRef
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, Http404, FileResponse
 from django.template.loader import render_to_string, get_template
 from django.shortcuts import render, redirect, get_object_or_404
@@ -21,8 +21,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso
-from .utils import enviar_whatsapp_pdf
+from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso, ve_todos_los_ensayos
 from .tasks import procesar_informe_final
 
 from .models import (
@@ -47,6 +46,7 @@ from servicios.models import (
 )
 
 from trabajadores.models import TrabajadorProfile
+from core.models import siguiente_correlativo
 from weasyprint import HTML
 
 
@@ -55,39 +55,6 @@ logger = logging.getLogger(__name__)
 
 def get_date_or_none(date_string):
     return date_string if date_string and date_string.strip() else None
-
-
-def generar_correlativo_lote():
-    anio = timezone.now().year
-    ultimo = RecepcionMuestraLote.objects.filter(numero_registro__icontains=f"-{anio}-").order_by('-id').first()
-    numero = 1
-
-    if ultimo:
-        try:
-            numero = int(ultimo.numero_registro.split('-')[-1]) + 1
-        except (ValueError, IndexError):
-            pass
-
-    return f"REC-{anio}-{numero:04d}"
-
-
-def generar_codigo_vicaf(servicio_obj):
-    prefijo = "X"
-
-    if servicio_obj.subcategoria:
-        prefijo = servicio_obj.subcategoria.nombre[0].upper()
-
-    anio = timezone.now().year
-    ultimo = MuestraItem.objects.filter(codigo_vicaf__startswith=f"{prefijo}-{anio}").order_by('-id').first()
-    numero = 1
-
-    if ultimo:
-        try:
-            numero = int(ultimo.codigo_vicaf.split('-')[-1]) + 1
-        except (ValueError, IndexError):
-            pass
-
-    return f"{prefijo}-{anio}-{numero:03d}"
 
 
 @login_required
@@ -305,7 +272,7 @@ def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
                 return redirect('proyectos:lista_muestras_recepcion', recepcion_id=recepcion.id)
 
         except Exception as e:
-            print(f"Error Crítico: {e}")
+            logger.exception("Error al guardar la recepción de muestras")
             messages.error(request, f"Ocurrió un error al guardar: {str(e)}")
 
     tipos_qs = TipoMuestra.objects.all().order_by('nombre')
@@ -689,18 +656,12 @@ def gestionar_solicitud_ensayo(request, pk=None):
                     cot_num = cotizacion.numero_oferta.split('-')[-1] if cotizacion.numero_oferta else '000'
                     prefix_sol = f'SOL-{cot_num}-{year_part}'
 
-                    max_result = SolicitudEnsayo.objects.filter(
-                        codigo_solicitud__startswith=f'{prefix_sol}-'
-                    ).aggregate(Max('codigo_solicitud'))
-
-                    last_num_sol = max_result.get('codigo_solicitud__max')
-                    next_order_num = 1
-
-                    if last_num_sol:
-                        try:
-                            next_order_num = int(last_num_sol.split('-')[-1]) + 1
-                        except (IndexError, ValueError):
-                            next_order_num = 1
+                    next_order_num = siguiente_correlativo(
+                        prefix_sol,
+                        SolicitudEnsayo.objects.filter(
+                            codigo_solicitud__startswith=f'{prefix_sol}-'
+                        ).values_list('codigo_solicitud', flat=True),
+                    )
 
                     codigo_solicitud = f'{prefix_sol}-{str(next_order_num).zfill(3)}'
 
@@ -871,7 +832,7 @@ def gestionar_solicitud_ensayo(request, pk=None):
             return redirect('proyectos:lista_solicitudes')
 
         except Exception as e:
-            print("ERROR EN gestionar_solicitud_ensayo:", repr(e))
+            logger.exception("Error en gestionar_solicitud_ensayo")
             messages.error(request, f"Error: {str(e)}")
             return redirect(request.path)
 
@@ -997,6 +958,9 @@ def gestionar_solicitud_ensayo(request, pk=None):
 def cambiar_estado_solicitud(request, pk, nuevo_estado):
     solicitud = get_object_or_404(SolicitudEnsayo, pk=pk)
 
+    if not _puede_ver_solicitud(request.user, solicitud):
+        return HttpResponseForbidden("No tienes asignado ningún ensayo de esta solicitud.")
+
     estados_validos = ['pendiente', 'proceso', 'finalizado']
 
     if nuevo_estado not in estados_validos:
@@ -1028,21 +992,32 @@ def lista_solicitudes(request):
         'elaborado_por'
     ).all().order_by('-fecha_solicitud', '-id')
 
+    ve_todos = ve_todos_los_ensayos(request.user)
+    if not ve_todos:
+        solicitudes = solicitudes.filter(detalles__tecnico_asignado__user=request.user).distinct()
+
     q = request.GET.get('q', '').strip()
 
     if q:
-        solicitudes = solicitudes.filter(
-            Q(codigo_solicitud__icontains=q) |
-            Q(cotizacion__cliente__razon_social__icontains=q) |
-            Q(cotizacion__numero_oferta__icontains=q)
-        ).distinct()
+        filtro = Q(codigo_solicitud__icontains=q) | Q(cotizacion__numero_oferta__icontains=q)
+        if ve_todos:
+            filtro |= Q(cotizacion__cliente__razon_social__icontains=q)
+        else:
+            filtro |= Q(cotizacion__cliente__codigo_confidencial__icontains=q)
+        solicitudes = solicitudes.filter(filtro).distinct()
 
+    placeholder = 'Buscar por N° solicitud, cliente o cotización...' if ve_todos else 'Buscar por N° solicitud, código de cliente o cotización...'
     return render(request, 'proyectos/ensayos_list.html', {
         'solicitudes': solicitudes,
         'q': q,
         'query': q,
-        'header_search': {'id': 'buscar-solicitudes', 'placeholder': 'Buscar por N° solicitud, cliente o cotización...'},
+        'ocultar_cliente': not ve_todos,
+        'header_search': {'id': 'buscar-solicitudes', 'placeholder': placeholder},
     })
+
+
+def _puede_ver_solicitud(user, solicitud):
+    return ve_todos_los_ensayos(user) or solicitud.detalles.filter(tecnico_asignado__user=user).exists()
 
 
 @login_required
@@ -1052,6 +1027,9 @@ def generar_pdf_ensayo(request, solicitud_id):
         SolicitudEnsayo.objects.select_related('cotizacion__cliente'),
         id=solicitud_id
     )
+
+    if not _puede_ver_solicitud(request.user, solicitud):
+        return HttpResponseForbidden("No tienes asignado ningún ensayo de esta solicitud.")
 
     proyecto = Proyecto.objects.filter(cotizacion=solicitud.cotizacion).first()
 
@@ -1181,7 +1159,7 @@ def gestionar_informe_final(request, solicitud_id=None):
             return redirect('proyectos:lista_informes')
 
         except Exception as e:
-            print(f"DEBUG ERROR: {e}")
+            logger.exception("Error al procesar el informe final")
             messages.error(request, f"Error al procesar el informe: {e}")
 
     return render(request, 'proyectos/informes_form.html', {
@@ -1212,9 +1190,36 @@ def descargar_pdf_informe(request, informe_id):
     )
 
 
-def validar_informe_publico(request, slug_validacion):
-    informe = get_object_or_404(InformeFinal, slug_validacion=slug_validacion)
+# Lista blanca de la página pública del QR (reglas 2 y 3): ni RUC, ni montos,
+# ni firma, ni el PDF. Solo lo que un tercero necesita para comprobar que el
+# informe impreso lo emitió el laboratorio.
+_INFORME_CAMPOS_PUBLICOS = (
+    'codigo_informe',
+    'fecha_emision',
+    'solicitud__codigo_solicitud',
+    'solicitud__cotizacion__cliente__razon_social',
+    'responsable_firma__titulo_profesional',
+    'responsable_firma__nombre_completo',
+)
 
+
+def validar_informe_publico(request, slug_validacion):
+    informe = (
+        InformeFinal.objects.filter(slug_validacion=slug_validacion)
+        .values(*_INFORME_CAMPOS_PUBLICOS)
+        .first()
+    )
+    if informe is None:
+        raise Http404("Informe no encontrado.")
+
+    titulo = informe['responsable_firma__titulo_profesional']
+    nombre = informe['responsable_firma__nombre_completo']
     return render(request, 'proyectos/validar_publico.html', {
-        'informe': informe
+        'informe': {
+            'codigo': informe['codigo_informe'],
+            'fecha_emision': informe['fecha_emision'],
+            'codigo_solicitud': informe['solicitud__codigo_solicitud'],
+            'cliente': informe['solicitud__cotizacion__cliente__razon_social'],
+            'responsable': f"{titulo}. {nombre}" if titulo else nombre,
+        },
     })

@@ -5,7 +5,7 @@
 {% block meta_description %}{% if publicado.meta_description %}{{ publicado.meta_description }}{% else %}{{ publicado.resumen }}{% endif %}{% endblock %}
 {% block meta_robots %}<meta name="robots" content="{% if publicado.noindex %}noindex,follow{% else %}index,follow{% endif %}">{% endblock %}
 
-{% block og_image %}{% if publicado.imagen_og %}{{ SITE_URL }}{{ publicado.imagen_og.url }}{% elif publicado.imagen %}{{ SITE_URL }}{{ publicado.imagen.url }}{% else %}{{ SITE_URL }}{% static 'web/img/LogoF.webp' %}{% endif %}{% endblock %}
+{% block og_image %}{% if publicado.imagen_og %}{{ SITE_URL }}{{ publicado.imagen_og.url }}{% elif publicado.imagen %}{{ SITE_URL }}{{ publicado.imagen.url }}{% else %}{{ SITE_URL }}{% static 'web/img/og-grupovicaf.jpg' %}{% endif %}{% endblock %}
 
 {% block jsonld %}
 <script type="application/ld+json">

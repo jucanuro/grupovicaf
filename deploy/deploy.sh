@@ -15,7 +15,23 @@ cd "$PROJECT_DIR"
 echo "==> git pull origin $RAMA"
 git fetch origin
 git checkout "$RAMA"
+
+# mediafiles/ es el MEDIA_ROOT real (firmas, logos, informes subidos). Si el
+# pull deja de versionar archivos de ahí (VCF-INFRA T3 los sacó del repo),
+# git los BORRARÍA del disco: se copian antes y se reponen después sin pisar.
+RESPALDO_MEDIA=""
+if [ -n "$(git diff --name-only --diff-filter=D HEAD "origin/$RAMA" -- mediafiles/)" ]; then
+    RESPALDO_MEDIA="/var/backups/grupovicaf/mediafiles-predeploy-$(date +%Y%m%d-%H%M%S)"
+    echo "==> el pull quita archivos de mediafiles/ del repo: copia en $RESPALDO_MEDIA"
+    cp -a mediafiles "$RESPALDO_MEDIA"
+fi
+
 git pull origin "$RAMA"
+
+if [ -n "$RESPALDO_MEDIA" ]; then
+    echo "==> reponiendo en disco los archivos de mediafiles/ que git quitó"
+    cp -an "$RESPALDO_MEDIA/." mediafiles/
+fi
 
 echo "==> pip install -r requirements.txt"
 "$VENV/pip" install --no-cache-dir -r requirements.txt

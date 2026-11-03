@@ -13,7 +13,12 @@ from django.views.decorators.http import require_GET, require_POST
 from clientes.models import Cliente
 from proyectos.models import Proyecto, RecepcionMuestra, SolicitudEnsayo, InformeFinal, DetalleSolicitudEnsayo
 from trabajadores.models import TrabajadorProfile
-from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso
+from trabajadores.permissions import (
+    nombre_cliente_visible,
+    permiso_requerido,
+    trabajador_tiene_permiso,
+    ve_todos_los_ensayos,
+)
 
 from .models import (
     CalendarioActividad,
@@ -116,7 +121,8 @@ def obtener_responsable_ensayo(ensayo):
 def calendario_dashboard(request):
     categorias = CalendarioCategoria.objects.filter(activo=True).order_by('nombre')
     trabajadores = TrabajadorProfile.objects.all().order_by('user__username')
-    clientes = Cliente.objects.all().order_by('razon_social')
+    # Sin ensayos.ver_todos (técnico) no se listan razones sociales en los filtros.
+    clientes = Cliente.objects.all().order_by('razon_social') if ve_todos_los_ensayos(request.user) else Cliente.objects.none()
     proyectos = Proyecto.objects.all().order_by('-fecha_inicio')
 
     resumen = {
@@ -147,6 +153,7 @@ def calendario_dashboard(request):
 @permiso_requerido('calendario.ver')
 @require_GET
 def calendario_eventos_json(request):
+    ve_todos = ve_todos_los_ensayos(request.user)
     start = request.GET.get('start')
     end = request.GET.get('end')
     categoria_id = request.GET.get('categoria')
@@ -216,8 +223,8 @@ def calendario_eventos_json(request):
         cliente_nombre = ''
 
         if actividad.cliente:
-            cliente_nombre = actividad.cliente.razon_social
-        else:
+            cliente_nombre = nombre_cliente_visible(request.user, actividad.cliente, ve_todos)
+        elif ve_todos:
             cliente_nombre = actividad.cliente_nombre_manual or ''
 
         eventos.append({
@@ -292,6 +299,9 @@ def calendario_eventos_json(request):
             tecnico_asignado_id=responsable_id
         )
 
+    if not ve_todos:
+        detalles_ensayo = detalles_ensayo.filter(tecnico_asignado__user=request.user)
+
     colores_ensayos = {
         'pendiente': '#94a3b8',
         'proceso': '#f59e0b',
@@ -310,7 +320,7 @@ def calendario_eventos_json(request):
         cliente_nombre = ''
 
         if solicitud.cotizacion and solicitud.cotizacion.cliente:
-            cliente_nombre = solicitud.cotizacion.cliente.razon_social
+            cliente_nombre = nombre_cliente_visible(request.user, solicitud.cotizacion.cliente, ve_todos)
 
         codigo_solicitud = solicitud.codigo_solicitud if solicitud else f'DET-{detalle.id}'
         muestra_codigo = detalle.muestra.codigo_laboratorio if detalle.muestra else 'Sin muestra'
@@ -793,6 +803,7 @@ def gantt_dashboard(request):
 @permiso_requerido('gantt.ver')
 @require_GET
 def gantt_actividades_json(request):
+    ve_todos = ve_todos_los_ensayos(request.user)
     proyecto_id = request.GET.get('proyecto')
     estado = request.GET.get('estado')
     responsable_id = request.GET.get('responsable')
@@ -870,7 +881,7 @@ def gantt_actividades_json(request):
             'estado': actividad.estado or 'PROGRAMADA',
             'clase': actividad.clase or 'OTRO',
             'proyecto': actividad.proyecto.nombre_proyecto if actividad.proyecto else '',
-            'cliente': actividad.cliente.razon_social if actividad.cliente else '',
+            'cliente': nombre_cliente_visible(request.user, actividad.cliente, ve_todos),
             'descripcion': actividad.descripcion or '',
             'tipo': 'actividad',
         })
@@ -904,6 +915,9 @@ def gantt_actividades_json(request):
         if responsable_id:
             detalles_ensayo = detalles_ensayo.filter(tecnico_asignado_id=responsable_id)
 
+        if not ve_todos:
+            detalles_ensayo = detalles_ensayo.filter(tecnico_asignado__user=request.user)
+
         colores_ensayos = {
             'pendiente': '#94a3b8',
             'proceso': '#f59e0b',
@@ -924,7 +938,7 @@ def gantt_actividades_json(request):
             cliente_nombre = ''
 
             if solicitud and solicitud.cotizacion and solicitud.cotizacion.cliente:
-                cliente_nombre = solicitud.cotizacion.cliente.razon_social
+                cliente_nombre = nombre_cliente_visible(request.user, solicitud.cotizacion.cliente, ve_todos)
 
             muestra_codigo = detalle.muestra.codigo_laboratorio if detalle.muestra else 'Sin muestra'
 

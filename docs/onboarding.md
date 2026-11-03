@@ -8,7 +8,7 @@ proceso real del laboratorio, no son módulos genéricos de un CRM.
 
 **GRUPO VICAF** es un **laboratorio de ensayo de materiales y geotecnia**,
 acreditado por INACAL (el organismo peruano de acreditación), con sede en
-Cajamarca y cobertura en el norte del Perú. Hacen ensayos de suelos, concreto,
+Cajamarca, donde opera exclusivamente (D-VCF-002). Hacen ensayos de suelos, concreto,
 agregados, rocas y agua — por ejemplo "¿este concreto aguanta la carga que dice
 el diseño?" o "¿este terreno es apto para cimentar?". Los clientes son
 constructoras, municipalidades y mineras.

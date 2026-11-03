@@ -111,3 +111,15 @@ class HomeCertificacionesTests(TestCase):
         # Los accesos INACAL y "Ver todas" llevan a /acreditacion/.
         url = reverse('web_acreditacion:acreditacion')
         self.assertGreaterEqual(html.count(f'href="{url}"'), 3)
+
+
+class PaginaNoEncontradaTests(TestCase):
+    def test_404_con_marca_un_h1_y_noindex(self):
+        respuesta = self.client.get('/esta-pagina-no-existe/')
+
+        self.assertEqual(respuesta.status_code, 404)
+        self.assertTemplateUsed(respuesta, 'web/404.html')
+        html = respuesta.content.decode()
+        self.assertEqual(html.count('<h1'), 1)
+        self.assertIn('noindex', html)
+        self.assertIn('/servicios/', html)

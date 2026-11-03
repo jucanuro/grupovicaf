@@ -17,9 +17,19 @@ def es_honeypot(request):
 
 
 def obtener_ip_cliente(request):
+    """IP del visitante tal como la vio nginx, no la que el visitante declare.
+
+    nginx fija X-Real-IP con $remote_addr (sobrescribe lo que mande el
+    cliente) y añade $remote_addr al FINAL de X-Forwarded-For. La primera IP
+    de X-Forwarded-For la escribe el propio visitante: usarla permitía
+    saltarse el rate limit cambiando la cabecera en cada envío.
+    """
+    real_ip = request.META.get('HTTP_X_REAL_IP', '').strip()
+    if real_ip:
+        return real_ip
     forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
     if forwarded:
-        return forwarded.split(',')[0].strip()
+        return forwarded.split(',')[-1].strip()
     return request.META.get('REMOTE_ADDR')
 
 

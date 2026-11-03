@@ -370,3 +370,10 @@ class SitemapTests(CatalogoPublicoTestCase):
         self.assertContains(response, reverse(
             'web_catalogo:servicio_detalle', kwargs={'slug': self.linea.slug}
         ))
+
+
+class SoloCajamarcaTests(CatalogoPublicoTestCase):
+    def test_clientes_no_menciona_norte_del_peru(self):
+        # D-VCF-002: el laboratorio opera solo en Cajamarca (PM-11).
+        html = self.client.get(reverse('web_catalogo:clientes_list')).content.decode()
+        self.assertNotIn('norte del per', html.lower())

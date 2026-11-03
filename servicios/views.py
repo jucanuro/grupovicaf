@@ -7,7 +7,6 @@ from django.core.paginator import Paginator
 from django.db.models import Q, Sum
 from django.db import transaction 
 from datetime import date
-from django.db.models import Max
 from django.contrib.auth.decorators import login_required
 from weasyprint import HTML
 from django.forms.models import model_to_dict
@@ -46,6 +45,8 @@ from proyectos.models import Proyecto
 from trabajadores.models import TrabajadorProfile
 from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso
 from clientes.models import Cliente
+from web_contacto.models import SolicitudCotizacionWeb
+from .numeracion import siguiente_numero_oferta
 from .models import (
     Servicio,
     Norma,
@@ -540,6 +541,7 @@ def lista_cotizaciones(request):
         'estados_disponibles': Cotizacion.ESTADO_CHOICES,
         'get_params': get_params.urlencode(),
         'header_search': {'id': 'buscar-cotizaciones', 'placeholder': 'Buscar por N° oferta, cliente o asunto...'},
+        'solicitudes_web_pendientes': SolicitudCotizacionWeb.objects.filter(cotizacion__isnull=True).count(),
     }
 
     return render(request, 'servicios/cotizacion_list.html', context)
@@ -710,20 +712,7 @@ def crear_editar_cotizacion(request, pk=None):
                 cotizacion.tasa_igv = Decimal(tasa_igv_str)
 
                 if not is_editing and not cotizacion.es_plantilla:
-                    prefix = 'VCF-OTE'
-                    year_part = str(cotizacion.fecha_generacion.year)
-                    max_result = Cotizacion.objects.filter(
-                        numero_oferta__startswith=f'{prefix}-{year_part}-'
-                    ).aggregate(Max('numero_oferta'))
-
-                    last_num_oferta = max_result.get('numero_oferta__max')
-                    next_order_num = 1
-                    if last_num_oferta:
-                        try:
-                            next_order_num = int(last_num_oferta.split('-')[-1]) + 1
-                        except (IndexError, ValueError):
-                            next_order_num = 1
-                    cotizacion.numero_oferta = f'{prefix}-{year_part}-{str(next_order_num).zfill(3)}'
+                    cotizacion.numero_oferta = siguiente_numero_oferta(cotizacion.fecha_generacion.year)
                 elif cotizacion.es_plantilla:
                     cotizacion.numero_oferta = None
 
@@ -1209,6 +1198,38 @@ def generar_pdf_cotizacion(request, pk):
 
     return response
 
+def _marcar_cotizacion(request, pk, estado, texto):
+    with transaction.atomic():
+        cotizacion = get_object_or_404(Cotizacion.objects.select_for_update(), pk=pk, es_plantilla=False)
+        if not cotizacion.puede_marcarse_como(estado):
+            messages.error(
+                request,
+                f'La cotización {cotizacion.numero_oferta} está {cotizacion.get_estado_display().lower()} '
+                f'y no se puede marcar como {texto}.',
+            )
+        else:
+            cotizacion.estado = estado
+            cotizacion.save(update_fields=['estado', 'fecha_actualizacion'])
+            messages.success(request, f'Cotización {cotizacion.numero_oferta} marcada como {texto}.')
+    return redirect('servicios:lista_cotizaciones')
+
+
+@login_required
+@permiso_requerido('cotizaciones.ver')
+@require_POST
+def marcar_cotizacion_enviada(request, pk):
+    """REQ-LIMS-22: Pendiente → Enviada."""
+    return _marcar_cotizacion(request, pk, 'Enviada', 'enviada al cliente')
+
+
+@login_required
+@permiso_requerido('cotizaciones.ver')
+@require_POST
+def marcar_cotizacion_rechazada(request, pk):
+    """REQ-LIMS-23: Pendiente o Enviada → Rechazada."""
+    return _marcar_cotizacion(request, pk, 'Rechazada', 'rechazada')
+
+
 @login_required
 @transaction.atomic 
 def aprobar_cotizacion(request, pk):
@@ -1429,9 +1450,9 @@ def administracion_view(request):
     q = request.GET.get('q')
     if q:
         cotizaciones = cotizaciones.filter(
-            models.Q(numero_oferta__icontains=q) | 
-            models.Q(asunto_servicio__icontains=q) |
-            models.Q(cliente__razon_social__icontains=q)
+            Q(numero_oferta__icontains=q) | 
+            Q(asunto_servicio__icontains=q) |
+            Q(cliente__razon_social__icontains=q)
         )
 
     estado_filtro = request.GET.get('estado')

@@ -5,7 +5,7 @@
 {% block meta_description %}{% if nosotros.meta_description %}{{ nosotros.meta_description }}{% else %}{{ negocio.descripcion }}{% endif %}{% endblock %}
 {% block meta_robots %}<meta name="robots" content="{% if nosotros.noindex %}noindex,follow{% else %}index,follow{% endif %}">{% endblock %}
 
-{% block og_image %}{% if nosotros.imagen_og %}{{ SITE_URL }}{{ nosotros.imagen_og.url }}{% else %}{{ SITE_URL }}{% static 'web/img/LogoF.webp' %}{% endif %}{% endblock %}
+{% block og_image %}{% if nosotros.imagen_og %}{{ SITE_URL }}{{ nosotros.imagen_og.url }}{% else %}{{ SITE_URL }}{% static 'web/img/og-grupovicaf.jpg' %}{% endif %}{% endblock %}
 
 {% block jsonld %}
 <script type="application/ld+json">

@@ -12,10 +12,11 @@ from django.core.files.base import ContentFile
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.core.validators import MinValueValidator
 from clientes.models import Cliente
 from trabajadores.models import TrabajadorProfile 
+from core.models import siguiente_correlativo
 from servicios.models import Cotizacion, CotizacionDetalle, Servicio, CategoriaServicio, Subcategoria
 import os
 import datetime
@@ -175,16 +176,12 @@ class MuestraDetalle(models.Model):
         sigla = self.tipo_muestra.sigla.upper()
         prefijo = f"V-M-{anio}-{sigla}-"
 
-        ultimo = MuestraDetalle.objects.filter(
-            codigo_laboratorio__startswith=prefijo
-        ).order_by('codigo_laboratorio').last()
-
-        if ultimo and ultimo.codigo_laboratorio:
-            ultimo_nro = int(ultimo.codigo_laboratorio.split('-')[-1]) + 1
-        else:
-            ultimo_nro = 1
-
-        return f"{prefijo}{ultimo_nro:04d}"
+        numero = siguiente_correlativo(
+            prefijo,
+            MuestraDetalle.objects.filter(codigo_laboratorio__startswith=prefijo)
+            .values_list('codigo_laboratorio', flat=True),
+        )
+        return f"{prefijo}{numero:04d}"
 
     def save(self, *args, **kwargs):
         if self.codigo_laboratorio:
@@ -408,9 +405,14 @@ class InformeFinal(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.codigo_informe:
-            anio = now().year
-            ultimo = InformeFinal.objects.filter(fecha_emision__year=anio).count()
-            self.codigo_informe = f"INF-{anio}-{(ultimo + 1):04d}"
+            # Antes count() + 1: al borrar un informe el siguiente repetía número.
+            prefijo = f"INF-{now().year}-"
+            numero = siguiente_correlativo(
+                prefijo,
+                InformeFinal.objects.filter(codigo_informe__startswith=prefijo)
+                .values_list('codigo_informe', flat=True),
+            )
+            self.codigo_informe = f"{prefijo}{numero:04d}"
         
         if not self.qr_code:
             self.generar_qr_validacion()

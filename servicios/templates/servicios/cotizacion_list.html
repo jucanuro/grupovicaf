@@ -101,6 +101,13 @@
                 <span class="command-header__trigger-label">Panel</span>
             </button>
 
+            <a href="{% url 'servicios:lista_solicitudes_web' %}"
+            class="command-header__action command-header__action--secondary"
+            title="Solicitudes de cotización recibidas desde la web">
+                <i data-lucide="globe" class="w-3.5 h-3.5"></i>
+                Web{% if solicitudes_web_pendientes %} ({{ solicitudes_web_pendientes }}){% endif %}
+            </a>
+
             <a href="{% url 'servicios:crear_cotizacion' %}"
             class="command-header__action">
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
@@ -242,7 +249,7 @@
                             </span>
                         </td>
                         <td class="py-2 px-4 text-right" data-label="Acciones">
-                            <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                            <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all">
                                 <a href="{% url 'servicios:ver_pdf_cotizacion' cotizacion.pk %}" target="_blank" class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Ver PDF">
                                     <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
                                 </a>
@@ -251,6 +258,25 @@
                                 <a href="{% url 'servicios:aprobar_cotizacion' cotizacion.pk %}" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Aprobar">
                                     <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
                                 </a>
+                                {% endif %}
+
+                                {% if cotizacion.puede_marcarse_enviada %}
+                                <form method="post" action="{% url 'servicios:marcar_cotizacion_enviada' cotizacion.pk %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="p-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-all" title="Marcar como enviada" aria-label="Marcar como enviada {{ cotizacion.numero_oferta }}">
+                                        <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+
+                                {% if cotizacion.puede_marcarse_rechazada %}
+                                <form method="post" action="{% url 'servicios:marcar_cotizacion_rechazada' cotizacion.pk %}" class="inline"
+                                      onsubmit="return confirm('¿Marcar la cotización {{ cotizacion.numero_oferta|escapejs }} como rechazada?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Marcar como rechazada" aria-label="Marcar como rechazada {{ cotizacion.numero_oferta }}">
+                                        <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </form>
                                 {% endif %}
 
                                 {% if cotizacion.estado != 'Aceptada' %}

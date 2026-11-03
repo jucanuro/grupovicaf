@@ -67,3 +67,33 @@ class HorarioNegocioTests(TestCase):
         utc = ZoneInfo('UTC')
         self.assertTrue(self.negocio.esta_abierto(datetime(2026, 10, 14, 14, 0, tzinfo=utc)))
         self.assertFalse(self.negocio.esta_abierto(datetime(2026, 10, 14, 18, 30, tzinfo=utc)))
+
+
+class LocalBusinessJsonLdTests(TestCase):
+    """W7: el JSON-LD global se serializa con json.dumps, no con el escape de HTML."""
+
+    def test_comillas_y_ampersand_del_admin_no_rompen_el_json(self):
+        import json
+
+        from .templatetags.negocio_jsonld import local_business_jsonld
+
+        negocio = NegocioConfig.objects.get(pk=1)
+        negocio.nombre = 'Grupo "VICAF" & Asociados'
+        negocio.direccion_calle = 'Jr. Los Topacios 440 </script>'
+        negocio.horario_semana_apertura = time(8, 0)
+        negocio.horario_semana_cierre = time(18, 0)
+        negocio.horario_semana_receso_inicio = time(13, 0)
+        negocio.horario_semana_receso_fin = time(15, 0)
+        negocio.horario_sabado_apertura = time(8, 0)
+        negocio.horario_sabado_cierre = time(13, 0)
+
+        salida = local_business_jsonld(negocio)
+        datos = json.loads(salida)
+
+        self.assertNotIn('</script>', salida)
+        self.assertEqual(datos['name'], 'Grupo "VICAF" & Asociados')
+        self.assertEqual(datos['address']['streetAddress'], 'Jr. Los Topacios 440 </script>')
+        self.assertEqual(
+            [(h['dayOfWeek'][0], h['opens'], h['closes']) for h in datos['openingHoursSpecification']],
+            [('Monday', '08:00', '13:00'), ('Monday', '15:00', '18:00'), ('Saturday', '08:00', '13:00')],
+        )

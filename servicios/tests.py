@@ -1,10 +1,14 @@
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.test import TestCase, override_settings
+from django.urls import reverse
 
 from clientes.models import Cliente
-from servicios.models import Cotizacion, CotizacionDetalle, CotizacionGrupo, Servicio
+from servicios.models import CategoriaServicio, Cotizacion, CotizacionDetalle, CotizacionGrupo, Servicio
+from trabajadores.testing import crear_trabajador, rol_con_permisos
+from web_catalogo.models import ServicioPublicado
+from web_contacto.models import SolicitudCotizacionItem, SolicitudCotizacionWeb
 
 
 class CotizacionTasaIgvTipoNumericoTests(TestCase):
@@ -118,3 +122,179 @@ class CotizacionDetallePrecioUnitarioTipoNumericoTests(TestCase):
     def test_tipo_no_soportado_lanza_validation_error_no_typeerror(self):
         with self.assertRaises(ValidationError):
             self._crear_detalle(object())
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab')
+class SolicitudesWebBandejaTests(TestCase):
+    """W1: la solicitud pública se convierte en cotización solo desde el LIMS."""
+
+    @classmethod
+    def setUpTestData(cls):
+        categoria = CategoriaServicio.objects.create(nombre='Suelos')
+        cls.servicio = Servicio.objects.create(
+            codigo_facturacion='ES011-TEST', nombre='CBR', precio_base=Decimal('150.00'), unidad_base='Ensayo',
+        )
+        publicado = ServicioPublicado.objects.create(
+            servicio=cls.servicio, categoria=categoria, slug='ensayo-cbr-test',
+            titulo_publico='Ensayo CBR', resumen='r', contenido='c', activo=True,
+        )
+        cls.solicitud = SolicitudCotizacionWeb.objects.create(
+            ruc='20123456789', razon_social='Constructora Test SAC', persona_contacto='Juan Perez',
+            correo_contacto='juan@example.com', telefono_contacto='999999999',
+            necesidad='CBR para vía.', origen='/servicios/ensayo-cbr-test/',
+        )
+        SolicitudCotizacionItem.objects.create(
+            solicitud=cls.solicitud, servicio_publicado=publicado, cantidad_estimada=2,
+        )
+        comercial = rol_con_permisos('Comercial', 'cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.eliminar')
+        cls.user_comercial, _ = crear_trabajador('comercial', comercial)
+        tecnico = rol_con_permisos('Técnico', 'cotizaciones.ver')
+        cls.user_tecnico, _ = crear_trabajador('tecnico', tecnico)
+
+    def _url(self, nombre, pk=None):
+        return reverse(f'servicios:{nombre}', args=[pk] if pk else [])
+
+    def test_bandeja_lista_pendientes_y_avisa_ruc_existente(self):
+        Cliente.objects.create(ruc='20123456789', razon_social='Cliente Real SAC')
+        self.client.force_login(self.user_comercial)
+
+        respuesta = self.client.get(self._url('lista_solicitudes_web'))
+
+        self.assertContains(respuesta, 'Constructora Test SAC')
+        self.assertContains(respuesta, 'Cliente Real SAC')
+
+    def test_convertir_crea_cliente_y_cotizacion_con_numero_vcf_ote(self):
+        self.client.force_login(self.user_comercial)
+
+        respuesta = self.client.post(self._url('convertir_solicitud_web', self.solicitud.pk))
+
+        self.solicitud.refresh_from_db()
+        cotizacion = self.solicitud.cotizacion
+        self.assertRedirects(respuesta, self._url('editar_cotizacion', cotizacion.pk), fetch_redirect_response=False)
+        self.assertTrue(cotizacion.numero_oferta.startswith('VCF-OTE-'))
+        self.assertEqual(cotizacion.cliente.origen, 'web')
+        self.assertFalse(cotizacion.cliente.activo)
+        detalle = cotizacion.detalles_cotizacion[0]
+        self.assertEqual(detalle.servicio, self.servicio)
+        self.assertEqual(detalle.cantidad, 2)
+
+    def test_convertir_dos_veces_no_duplica_la_cotizacion(self):
+        self.client.force_login(self.user_comercial)
+        self.client.post(self._url('convertir_solicitud_web', self.solicitud.pk))
+        self.client.post(self._url('convertir_solicitud_web', self.solicitud.pk))
+
+        self.assertEqual(Cotizacion.objects.count(), 1)
+
+    def test_sin_permiso_de_crear_no_puede_convertir(self):
+        self.client.force_login(self.user_tecnico)
+
+        respuesta = self.client.post(self._url('convertir_solicitud_web', self.solicitud.pk))
+
+        self.assertEqual(respuesta.status_code, 403)
+        self.assertFalse(Cotizacion.objects.exists())
+
+    def test_descartar_borra_la_solicitud_pendiente(self):
+        self.client.force_login(self.user_comercial)
+
+        self.client.post(self._url('descartar_solicitud_web', self.solicitud.pk))
+
+        self.assertFalse(SolicitudCotizacionWeb.objects.exists())
+
+    def test_convertir_por_get_no_esta_permitido(self):
+        self.client.force_login(self.user_comercial)
+
+        respuesta = self.client.get(self._url('convertir_solicitud_web', self.solicitud.pk))
+
+        self.assertEqual(respuesta.status_code, 405)
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab')
+class MarcarCotizacionTests(TestCase):
+    """REQ-LIMS-22 a 24: transiciones manuales Enviada/Rechazada (RN-08)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.cliente = Cliente.objects.create(ruc='20123456780', razon_social='Cliente Estados SAC')
+        comercial = rol_con_permisos('Comercial estados', 'cotizaciones.ver')
+        cls.user_comercial, _ = crear_trabajador('comercial.estados', comercial)
+        sin_permiso = rol_con_permisos('Sin cotizaciones', 'ensayos.ver')
+        cls.user_sin_permiso, _ = crear_trabajador('sin.cotizaciones', sin_permiso)
+
+    def _cotizacion(self, estado, numero):
+        return Cotizacion.objects.create(
+            cliente=self.cliente, numero_oferta=numero, estado=estado,
+            asunto_servicio='Ensayos', persona_contacto='Ana', correo_contacto='ana@example.com',
+            telefono_contacto='999999999',
+        )
+
+    def _post(self, nombre, cotizacion):
+        return self.client.post(reverse(f'servicios:{nombre}', args=[cotizacion.pk]))
+
+    def test_pendiente_pasa_a_enviada(self):
+        cotizacion = self._cotizacion('Pendiente', 'T-001')
+        self.client.force_login(self.user_comercial)
+
+        respuesta = self._post('marcar_cotizacion_enviada', cotizacion)
+
+        self.assertRedirects(respuesta, reverse('servicios:lista_cotizaciones'), fetch_redirect_response=False)
+        cotizacion.refresh_from_db()
+        self.assertEqual(cotizacion.estado, 'Enviada')
+
+    def test_pendiente_y_enviada_pasan_a_rechazada(self):
+        self.client.force_login(self.user_comercial)
+        for estado, numero in (('Pendiente', 'T-002'), ('Enviada', 'T-003')):
+            cotizacion = self._cotizacion(estado, numero)
+            self._post('marcar_cotizacion_rechazada', cotizacion)
+            cotizacion.refresh_from_db()
+            self.assertEqual(cotizacion.estado, 'Rechazada', estado)
+
+    def test_transiciones_no_permitidas_no_cambian_el_estado(self):
+        self.client.force_login(self.user_comercial)
+        casos = [
+            ('marcar_cotizacion_enviada', 'Enviada'),
+            ('marcar_cotizacion_enviada', 'Aceptada'),
+            ('marcar_cotizacion_enviada', 'Rechazada'),
+            ('marcar_cotizacion_rechazada', 'Aceptada'),
+            ('marcar_cotizacion_rechazada', 'Anulada'),
+            ('marcar_cotizacion_rechazada', 'Rechazada'),
+        ]
+        for i, (accion, estado) in enumerate(casos):
+            cotizacion = self._cotizacion(estado, f'T-1{i:02d}')
+            self._post(accion, cotizacion)
+            cotizacion.refresh_from_db()
+            self.assertEqual(cotizacion.estado, estado, accion)
+
+    def test_get_no_cambia_el_estado(self):
+        cotizacion = self._cotizacion('Pendiente', 'T-004')
+        self.client.force_login(self.user_comercial)
+
+        respuesta = self.client.get(reverse('servicios:marcar_cotizacion_enviada', args=[cotizacion.pk]))
+
+        self.assertEqual(respuesta.status_code, 405)
+        cotizacion.refresh_from_db()
+        self.assertEqual(cotizacion.estado, 'Pendiente')
+
+    def test_sin_permiso_cotizaciones_ver_da_403(self):
+        cotizacion = self._cotizacion('Pendiente', 'T-005')
+        self.client.force_login(self.user_sin_permiso)
+
+        respuesta = self._post('marcar_cotizacion_enviada', cotizacion)
+
+        self.assertEqual(respuesta.status_code, 403)
+        cotizacion.refresh_from_db()
+        self.assertEqual(cotizacion.estado, 'Pendiente')
+
+    def test_la_lista_muestra_solo_los_botones_que_aplican(self):
+        pendiente = self._cotizacion('Pendiente', 'T-006')
+        enviada = self._cotizacion('Enviada', 'T-007')
+        aceptada = self._cotizacion('Aceptada', 'T-008')
+        self.client.force_login(self.user_comercial)
+
+        html = self.client.get(reverse('servicios:lista_cotizaciones')).content.decode()
+
+        self.assertIn(reverse('servicios:marcar_cotizacion_enviada', args=[pendiente.pk]), html)
+        self.assertIn(reverse('servicios:marcar_cotizacion_rechazada', args=[pendiente.pk]), html)
+        self.assertNotIn(reverse('servicios:marcar_cotizacion_enviada', args=[enviada.pk]), html)
+        self.assertIn(reverse('servicios:marcar_cotizacion_rechazada', args=[enviada.pk]), html)
+        self.assertNotIn(reverse('servicios:marcar_cotizacion_enviada', args=[aceptada.pk]), html)
+        self.assertNotIn(reverse('servicios:marcar_cotizacion_rechazada', args=[aceptada.pk]), html)
