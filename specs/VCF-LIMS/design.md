@@ -2,7 +2,7 @@
 
 | Dueño | Versión | Fecha | Estado |
 |---|---|---|---|
-| DLF | v1 | 2026-11-03 | Listo para implementar |
+| DLF | v2 | 2026-11-03 | Listo para implementar |
 
 > Depende de `requirements.md` v1 (G1). Todo elemento de este diseño apunta a un REQ.
 
@@ -63,9 +63,39 @@ Paleta, validada con `validate_palette.js`:
 | R2 | Las cifras de proyectos cambian al leer `Proyecto.estado` | Comparar con el dashboard anterior antes del pase (pregunta abierta 1) | Abierto |
 | R3 | Las cotizaciones históricas nunca se marcaron como enviadas o rechazadas, así que la tasa saldrá "Sin datos" al principio | Esperado: se llena a medida que el equipo use los botones | Aceptado |
 
+## 5b. Análisis con tabla dinámica (v2, REQ-LIMS-27 a 40)
+
+**Modelo:** app nueva `analisis` (capa LIMS). Un modelo, `VistaAnalisis`
+(usuario, nombre, conjunto, `configuracion` JSON; única por usuario + conjunto +
+nombre). Migración de datos `0002` que crea el permiso `reportes.ver` y lo da a
+los roles cuyo nombre contiene "admin" o "gerent". No toca tablas existentes.
+
+| URL | Vista | Permiso | REQ |
+|---|---|---|---|
+| `/analisis/?conjunto=&desde=&hasta=#c=<json>` | `analisis.views.analisis_view` | `reportes.ver` | 27, 34, 36 |
+| `/analisis/datos/<conjunto>/?desde=&hasta=` (GET, JSON) | `datos_view` | `reportes.ver` + permiso del conjunto | 29-31, 38-40 |
+| `/analisis/vistas/` (GET lista, POST JSON guarda) | `vistas_view` | `reportes.ver` | 35 |
+| `/analisis/vistas/<pk>/eliminar/` (POST) | `eliminar_vista_view` | `reportes.ver` y dueño | 35 |
+
+| Componente | Responsabilidad | REQ |
+|---|---|---|
+| `analisis/conjuntos.py` | Registro de conjuntos: permiso, fecha, lista blanca (`Campo`), vistas rápidas. `datos()` arma `encabezado` + `filas` copiando solo las claves de la lista blanca | 29, 31, 34, 38-40 |
+| `templates/analisis/analisis.html` + `static/css/analisis.css` | Filtros, vistas, botones; estilo de PivotTable.js | 27, 30 |
+| `static/js/analisis.js` (`defer`) | `pivotUI` con agregadores y renderizadores propios (tabla + 4 gráficos Chart.js), URL compartible, vistas guardadas, exportación SheetJS desde `pivotData` | 28, 32, 33, 35-37 |
+| `static/vendor/{jquery 3.7.1, jquery-ui 1.13.2, pivottable 2.23.0, sheetjs 0.18.5}` | Librerías MIT/Apache-2.0, solo en esta página y sin `sourceMappingURL` (evita el fallo de `collectstatic` visto con Chart.js) | 28, 37 |
+
+Paleta de los gráficos: categórica de 8 colores en orden fijo (`#2a78d6`, `#eb6834`,
+`#1baf7a`, `#eda100`, `#e87ba4`, `#008300`, `#6250d6`, `#e34948`), validada en la
+skill dataviz; "Otros" en gris `#8a8984`; 2 px de superficie entre segmentos apilados.
+
+Riesgos: R4 `xlsx` 0.18.5 de npm tiene avisos de seguridad al **leer** archivos;
+aquí solo se escribe, en el navegador. R5 El arrastrar de jQuery UI no funciona
+con el dedo en celulares: en móvil se usan las vistas rápidas y guardadas.
+
 ## 6. Historial
 
 | Versión | Fecha | Autor | Cambio |
 |---|---|---|---|
 | v0 | 2026-10-12 | DLF | Plantilla inicial |
 | v1 | 2026-11-03 | Claude (DLF) | Diseño del dashboard y de las transiciones de cotización |
+| v2 | 2026-11-03 | Claude (DLF) | Diseño de Análisis con tabla dinámica (app `analisis`) |
