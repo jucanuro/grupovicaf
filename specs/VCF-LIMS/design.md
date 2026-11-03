@@ -36,12 +36,15 @@ erDiagram
 | `core/dashboard.py` | Módulo de funciones puras | `resolver_periodo(params, hoy)`, `periodo_anterior(periodo)` y un `construir_dashboard(periodo, user, hoy)` que devuelve un `dict` serializable. Solo agregaciones (`Count`, `Min`, `TruncMonth`), sin bucles por fila sobre la BD | 01-17, 21, 25 |
 | `servicios.models.Cotizacion.TRANSICIONES_MANUALES` + `puede_marcarse_como(estado)` | Regla de dominio | RN-08 | 22-24 |
 | `templates/dashboard.html` | Plantilla | Filtro, KPI, embudo, barras HTML, tablas `<details>`, `json_script` con los datos de los gráficos | 01-08, 10-20 |
-| `static/vendor/chartjs/chart.umd.min.js` | Librería (Chart.js 4.4.1, MIT) | Barras apiladas y línea | 06, 09, 14, 19 |
+| `static/vendor/chartjs/chart.umd.js` | Librería (Chart.js 4.4.1, MIT) | Barras apiladas y línea | 06, 09, 14, 19 |
 | `static/js/dashboard.js` (`defer`) | Script | Lee `#dashboard-datos` y dibuja los dos gráficos de Chart.js con la paleta acordada | 06, 09, 14 |
 | `servicios/templates/servicios/cotizacion_list.html` | Plantilla | Botones POST "Marcar como enviada" y "Marcar como rechazada" según RN-08 | 22-24 |
 
-Paleta (validada con el validador de dataviz): azul `#2a78d6`; ordinal claro `#86b6ef` y oscuro `#104281`;
-gris de perdidas `#c3c2b7`; cancelado `#a9a8a1`; alerta `#d03b3b` siempre con ícono y texto.
+Paleta, validada con `validate_palette.js`:
+- Barras por mes (categórica, 3 series): Aceptadas `#2a78d6`, En gestión `#1baf7a`, Rechazadas o anuladas `#eb6834`. Pasa todos los controles; el aqua queda bajo 3:1 contra el fondo, así que la leyenda y la tabla son obligatorias. El gris del mockup (`#c3c2b7`) se descartó porque no se distinguía del azul claro (ΔE 12 < 15).
+- Solicitudes por estado (ordinal, un solo tono): `#86b6ef` → `#2a78d6` → `#104281`. Pasa como rampa ordinal.
+- Embudo, línea y proyectos: una sola serie en `#2a78d6`; Cancelado en gris `#a9a8a1` (énfasis, con etiqueta).
+- Alerta `#d03b3b`, siempre con ícono y texto.
 
 ## 4. Reglas del CLAUDE.md que aplican
 
