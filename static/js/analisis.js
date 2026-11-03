@@ -350,7 +350,9 @@
                 // Al guardar, los filtros quedan como exclusiones: los valores
                 // nuevos que aparezcan después se muestran por defecto.
                 delete nueva.inclusions;
-                estado.config = nueva;
+                // Sin filas PivotTable.js no conoce los campos y vacía filas y
+                // columnas: se conserva la disposición pedida para el próximo rango.
+                estado.config = datos.filas.length ? nueva : disposicion;
                 escribirUrl();
                 el('an-estado').textContent = textoRango() + ' · ' + datos.filas.length.toLocaleString('es-PE') + ' registros de ' + estado.conjunto.nombre;
             }
