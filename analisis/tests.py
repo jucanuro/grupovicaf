@@ -1,16 +1,24 @@
 """Pruebas de Análisis (VCF-LIMS, HU-LIMS-06 a 10)."""
 import json
-from datetime import date
+import tempfile
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from unittest import mock
 
 from django.core.files.base import ContentFile
 from django.db import connection
 from django.test import TestCase, override_settings
+from django.utils import timezone
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
+from actividades.models import CalendarioActividad
 from clientes.models import Cliente
+from proyectos.models import (
+    DetalleSolicitudEnsayo, IncidenciaSolicitud, InformeFinal, MuestraDetalle, Proyecto, RecepcionMuestra,
+    SolicitudEnsayo, TipoMuestra,
+)
+from web_contacto.models import MensajeContacto
 from servicios.models import Cotizacion, CotizacionDetalle, CotizacionGrupo, Servicio, Voucher
 from trabajadores.models import PermisoModulo
 from trabajadores.testing import crear_trabajador, rol_con_permisos
@@ -22,7 +30,7 @@ from .models import VistaAnalisis
 FEB = (date(2001, 2, 1), date(2001, 2, 28))
 
 # Lo que nunca puede llegar al navegador (reglas 2 y 3 del CLAUDE.md).
-PROHIBIDOS = ('ruc', 'codigo_confidencial', 'firma', 'logo', 'voucher_codigo', 'imagen', 'correo',
+PROHIBIDOS = ('ruc', 'codigo_confidencial', 'código confidencial', 'firma electr', 'logo', 'voucher_codigo', 'imagen', 'correo',
               'celular', 'telefono', 'direccion', 'persona_contacto', 'slug')
 
 
@@ -57,7 +65,9 @@ class BaseAnalisis(TestCase):
         _cotizacion('PL', cls.cliente, 'Pendiente', 10, Decimal('999'), plantilla=True)
         _cotizacion('C-OLD', cls.cliente, 'Rechazada', 1, Decimal('100'), fecha=date(2000, 5, 1))
 
-        rol_total = rol_con_permisos('Gerencia', 'reportes.ver', 'cotizaciones.ver', 'clientes.ver')
+        rol_total = rol_con_permisos('Gerencia', 'reportes.ver', 'cotizaciones.ver', 'clientes.ver', 'muestras.ver',
+                                     'ensayos.ver', 'ensayos.ver_todos', 'informes.ver', 'proyectos.ver',
+                                     'calendario.ver')
         cls.gerente, _ = crear_trabajador('gerente', rol_total)
         rol_analista = rol_con_permisos('Analista', 'reportes.ver', 'clientes.ver')
         cls.analista, _ = crear_trabajador('analista', rol_analista)
@@ -222,3 +232,110 @@ class VistasGuardadasTests(BaseAnalisis):
         self.guardar(self.gerente, {'nombre': '', 'conjunto': 'clientes', 'configuracion': {}}, 400)
         self.guardar(self.gerente, {'nombre': 'x', 'conjunto': 'clientes', 'configuracion': {'rows': 'Cliente'}}, 400)
         self.guardar(self.analista, {'nombre': 'x', 'conjunto': 'cotizaciones', 'configuracion': {}}, 403)
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+class ConjuntosLaboratorioTests(BaseAnalisis):
+    """PR 2: Muestras, Solicitudes, Ensayos, Incidencias, Informes, Proyectos, Agenda y Bandeja web."""
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        hoy = timezone.localdate()
+        cls.hoy = hoy
+        cot = Cotizacion.objects.get(numero_oferta='C-1')
+        perfil = cls.gerente.trabajadorprofile
+        tipo = TipoMuestra.objects.create(nombre='Suelo', sigla='SU')
+        recepcion = RecepcionMuestra.objects.create(
+            cotizacion=cot, procedencia='Cajamarca', responsable_cliente='Ana', telefono='999',
+            responsable_recepcion=cls.gerente, fecha_ensayo_programado=hoy + timedelta(days=3),
+        )
+        muestra = MuestraDetalle.objects.create(recepcion=recepcion, tipo_muestra=tipo, descripcion='M1',
+                                                masa_aprox=Decimal('5'), cantidad=2)
+        solicitud = SolicitudEnsayo.objects.create(
+            codigo_solicitud='SOL-T-1', recepcion=recepcion, cotizacion=cot, estado='proceso',
+            fecha_solicitud=hoy - timedelta(days=10), fecha_entrega_programada=hoy - timedelta(days=4),
+            elaborado_por=perfil,
+        )
+        detalle_cot = CotizacionDetalle.objects.get(grupo__cotizacion=cot)
+        DetalleSolicitudEnsayo.objects.create(  # entregado 2 días tarde
+            solicitud=solicitud, muestra=muestra, servicio_cotizado=detalle_cot, descripcion_ensayo='Proctor',
+            norma='ASTM', tecnico_asignado=perfil, fecha_entrega_programada=hoy - timedelta(days=4),
+            fecha_entrega_real=hoy - timedelta(days=2),
+        )
+        DetalleSolicitudEnsayo.objects.create(  # pendiente y vencido 4 días
+            solicitud=solicitud, muestra=muestra, servicio_cotizado=detalle_cot, descripcion_ensayo='CBR',
+            norma='ASTM', fecha_entrega_programada=hoy - timedelta(days=4),
+        )
+        IncidenciaSolicitud.objects.create(solicitud=solicitud, detalle_incidencia='x', representante_laboratorio=perfil)
+        InformeFinal.objects.create(solicitud=solicitud, responsable_firma=perfil,
+                                    archivo_pdf=ContentFile(b'%PDF', name='i.pdf'))
+        Proyecto.objects.create(codigo_proyecto='P-T-1', nombre_proyecto='P', cliente=cls.cliente, cotizacion=cot,
+                                estado='EN_CURSO', fecha_inicio=hoy, fecha_entrega_estimada=hoy - timedelta(days=5),
+                                numero_muestras=4, numero_muestras_registradas=1)
+        inicio = timezone.make_aware(datetime.combine(hoy, time(9)))
+        CalendarioActividad.objects.create(titulo='Visita', clase='VISITA', fecha_inicio=inicio,
+                                           fecha_fin=inicio + timedelta(hours=2), creado_por=cls.gerente)
+        MensajeContacto.objects.create(nombre='Persona Secreta', correo='secreto@x.invalid', telefono='987654321',
+                                       asunto='Hola', mensaje='Texto privado', origen='/servicios/cbr/')
+
+    def test_ensayos_atraso_y_a_tiempo(self):  # RN-R05, CA-06.8
+        filas = {f['Ensayo']: f for f in self.filas_como_dict(self.datos(self.gerente, 'ensayos'))}
+        self.assertEqual(filas['Proctor']['A tiempo'], 'No')
+        self.assertEqual(filas['Proctor']['Días de atraso'], 2)
+        self.assertEqual(filas['Proctor']['Días de ejecución'], 8)
+        self.assertEqual(filas['CBR']['A tiempo'], 'Pendiente')
+        self.assertEqual(filas['CBR']['Días de atraso'], 4)
+        self.assertEqual(filas['CBR']['Técnico'], 'Sin asignar')
+
+    def test_solicitud_vencida_con_incidencias(self):
+        (fila,) = self.filas_como_dict(self.datos(self.gerente, 'solicitudes'))
+        self.assertEqual(fila['Vencida'], 'Sí')
+        self.assertEqual(fila['N.º ensayos'], 2)
+        self.assertEqual(fila['N.º incidencias'], 1)
+        self.assertEqual(fila['Días de atraso'], 4)
+
+    def test_proyecto_vencido_y_avance(self):  # RN-R06
+        (fila,) = self.filas_como_dict(self.datos(self.gerente, 'proyectos'))
+        self.assertEqual(fila['Vencido'], 'Sí')
+        self.assertEqual(fila['% avance de muestras'], 25.0)
+        self.assertEqual(fila['Días de atraso'], 5)
+
+    def test_muestras_informes_incidencias_y_agenda(self):
+        (muestra,) = self.filas_como_dict(self.datos(self.gerente, 'muestras'))
+        self.assertEqual(muestra['Cantidad'], 2)
+        self.assertEqual(muestra['Días recepción → ensayo programado'], 3)
+        (informe,) = self.filas_como_dict(self.datos(self.gerente, 'informes'))
+        self.assertEqual(informe['Estado de envío'], 'Pendiente de Envío')
+        self.assertEqual(informe['Días solicitud → emisión'], 10)
+        (incidencia,) = self.filas_como_dict(self.datos(self.gerente, 'incidencias'))
+        self.assertEqual(incidencia['Autorizada'], 'No')
+        (actividad,) = self.filas_como_dict(self.datos(self.gerente, 'actividades', self.hoy.isoformat()))
+        self.assertEqual(actividad['Duración (h)'], 2.0)
+        self.assertEqual(actividad['Clase'], 'Visita')
+
+    def test_bandeja_web_sin_datos_personales(self):  # CA-10.2
+        datos = self.datos(self.gerente, 'bandeja-web')
+        (fila,) = self.filas_como_dict(datos)
+        self.assertEqual(fila['Tipo'], 'Mensaje de contacto')
+        self.assertEqual(fila['Página de origen'], '/servicios/cbr/')
+        texto = json.dumps(datos)
+        for privado in ('Persona Secreta', 'secreto@', '987654321', 'Texto privado'):
+            self.assertNotIn(privado, texto)
+
+    def test_cliente_en_ensayos_exige_ver_todos(self):  # regla del técnico
+        rol = rol_con_permisos('Supervisor sin clientes', 'reportes.ver', 'ensayos.ver')
+        supervisor, _ = crear_trabajador('supervisor', rol)
+        for clave in ('solicitudes', 'ensayos', 'incidencias'):
+            with self.subTest(conjunto=clave):
+                datos = self.datos(supervisor, clave)
+                self.assertNotIn('Cliente', datos['encabezado'])
+                self.assertNotIn('Constructora Uno SAC', json.dumps(datos))
+        self.datos(supervisor, 'informes', estado=403)
+
+    def test_cada_conjunto_pide_su_permiso(self):  # DP-LIMS-12 B
+        esperado = {'cotizaciones': 'cotizaciones.ver', 'items': 'cotizaciones.ver', 'clientes': 'clientes.ver',
+                    'muestras': 'muestras.ver', 'solicitudes': 'ensayos.ver', 'ensayos': 'ensayos.ver',
+                    'incidencias': 'ensayos.ver', 'informes': 'informes.ver', 'proyectos': 'proyectos.ver',
+                    'actividades': 'calendario.ver', 'bandeja-web': 'cotizaciones.ver'}
+        self.assertEqual({k: c.permiso for k, c in CONJUNTOS.items()}, esperado)

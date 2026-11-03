@@ -20,7 +20,7 @@
 | T8 | App `analisis`: `VistaAnalisis`, permiso `reportes.ver`, conjuntos Cotizaciones/Ítems/Clientes, vistas JSON + pruebas | 27, 29-31, 34, 35, 38-40 | `python manage.py test analisis` | [x] |
 | T9 | Librerías en `static/vendor/`, `analisis.html`, `analisis.js`, `analisis.css` y accesos en los menús | 27, 28, 32, 33, 36, 37 | Revisión visual (escritorio y 390 px) | [x] |
 | T10 | `sembrar_e2e` (febrero 2001, usuario `e2e.analista`) + `e2e/analisis.spec.js` | 27-30, 32-38 | `npm run test:e2e` | [x] |
-| T11 | PR 2: conjuntos Muestras, Solicitudes, Ensayos asignados, Incidencias, Informes, Proyectos, Actividades y Bandeja web | 27, 29, 38, 39 | Unitarias por conjunto + E2E | [ ] |
+| T11 | PR 2: conjuntos Muestras, Solicitudes, Ensayos asignados, Incidencias, Informes, Proyectos, Actividades y Bandeja web (cliente en Ensayos solo con `ensayos.ver_todos`) | 27, 29, 38, 39 | `python manage.py test analisis` + `e2e/analisis.spec.js` | [x] |
 
 ## Historial
 

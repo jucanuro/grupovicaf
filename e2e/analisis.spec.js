@@ -143,6 +143,30 @@ test.describe('análisis del coordinador', () => {
         await expect(page.locator('#an-aviso')).toContainText('Sin datos para estos filtros');
     });
 
+    test('cambia a un conjunto del laboratorio y conserva lo compatible (CA-06.1b, 06.5)', async ({ page }) => {
+        await abrirFebrero(page);
+        await vistaRapida(page, 'Monto por estado');
+        const opciones = await page.locator('#an-conjunto option').allTextContents();
+        expect(opciones).toEqual(expect.arrayContaining([
+            'Comercial · Cotizaciones', 'Clientes · Clientes', 'Ensayos · Solicitudes de ensayo',
+            'Ensayos · Ensayos asignados', 'Web · Bandeja web',
+        ]));
+        // Sin muestras.ver, informes.ver, proyectos.ver ni calendario.ver.
+        expect(opciones.join('|')).not.toMatch(/Muestras recibidas|Informes finales|Proyectos|Agenda/);
+
+        await page.locator('#an-conjunto').selectOption('solicitudes');
+        await page.locator('[data-periodo="todo"]').click();
+        // "Estado" existe también en Solicitudes: la fila se conserva.
+        await expect(page.locator('table.pvtTable th.pvtRowLabel', { hasText: 'En proceso' })).toBeVisible();
+        expect(decodeURIComponent(page.url())).toContain('conjunto=solicitudes');
+
+        await page.locator('#an-conjunto').selectOption('ensayos');
+        await vistaRapida(page, 'Ensayos por técnico a tiempo o atrasados');
+        await expect(page.locator('[data-grafico][data-tipo="apiladas"] canvas[data-listo]')).toBeVisible();
+        await page.locator('select.pvtRenderer').selectOption('Tabla');
+        await expect(page.locator('table.pvtTable th.pvtRowLabel', { hasText: 'Técnico E2E A' })).toBeVisible();
+    });
+
     test('el menú de inicio lleva a Análisis', async ({ page }) => {
         await expect(page.locator(`a[href="/analisis/"]`).first()).toBeAttached();
     });
