@@ -6,7 +6,7 @@ from unittest import mock
 
 from django.core.files.base import ContentFile
 from django.db import connection
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
@@ -45,6 +45,7 @@ def _cotizacion(numero, cliente, estado, cantidad, precio, pagado=None, plantill
     return cot
 
 
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab')
 class BaseAnalisis(TestCase):
     @classmethod
     def setUpTestData(cls):
