@@ -9,6 +9,7 @@ module.exports = {
         coordinador: 'e2e.coordinador',
         tecnicoAsignado: 'e2e.tecnico.a',
         tecnicoAjeno: 'e2e.tecnico.b',
+        analista: 'e2e.analista',
     },
 
     CLIENTE: { ruc: '20999999991', razonSocial: 'Constructora E2E SAC' },

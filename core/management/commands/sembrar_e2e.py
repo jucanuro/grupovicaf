@@ -14,6 +14,12 @@ deja siempre el mismo estado. Todo lo que crea lleva el marcador E2E:
                       COT-E2E-MARCAR (Pendiente, fechada en 2001 para no
                       contar en el dashboard), SOL-E2E-V01..V06 vencidas
                       (V01-V03 asignadas a e2e.tecnico.a) y P-E2E-01..05
+    Análisis          febrero de 2001: COT-E2E-A01 (Aceptada, S/ 1 180,
+                      voucher S/ 590), COT-E2E-A02 (Aceptada, S/ 590, pagada)
+                      y COT-E2E-A03 (Pendiente, S/ 236, de 'Minera E2E SAC'),
+                      más una plantilla que no debe contar; usuario
+                      e2e.analista (reportes.ver + clientes.ver, sin
+                      cotizaciones.ver)
 
 Las pruebas leen los mismos valores desde e2e/datos.js: si cambia uno aquí,
 cambia allí.
@@ -43,7 +49,7 @@ from proyectos.models import (
     SolicitudEnsayo,
     TipoMuestra,
 )
-from servicios.models import CategoriaServicio, Cotizacion, CotizacionDetalle, CotizacionGrupo, Servicio
+from servicios.models import CategoriaServicio, Cotizacion, CotizacionDetalle, CotizacionGrupo, Servicio, Voucher
 from trabajadores.models import AccionPermiso, ModuloSistema, PermisoModulo, RolTrabajador, TrabajadorProfile
 from web_catalogo.models import LineaServicio, ServicioPublicado
 
@@ -51,7 +57,9 @@ from web_catalogo.models import LineaServicio, ServicioPublicado
 PASSWORD_POR_DEFECTO = 'vicaf-e2e-2026'
 SLUG_INFORME = uuid.UUID('e2e00000-0000-4000-8000-000000000001')
 
-PERMISOS_COORDINADOR = ('cotizaciones.ver', 'ensayos.ver', 'ensayos.ver_todos')
+PERMISOS_COORDINADOR = ('cotizaciones.ver', 'ensayos.ver', 'ensayos.ver_todos', 'clientes.ver', 'reportes.ver')
+PERMISOS_ANALISTA = ('reportes.ver', 'clientes.ver')
+FECHA_ANALISIS = date(2001, 2, 10)
 PERMISOS_TECNICO = ('ensayos.ver', 'calendario.ver')
 
 
@@ -70,6 +78,7 @@ class Command(BaseCommand):
             self._catalogo_web()
             self._solicitud_con_informe(coordinador, tecnico_a)
             self._datos_dashboard(coordinador, tecnico_a)
+            self._datos_analisis()
 
         self.stdout.write(self.style.SUCCESS('Datos E2E listos.'))
 
@@ -108,6 +117,7 @@ class Command(BaseCommand):
         coordinador = self._trabajador('e2e.coordinador', rol_coordinador, 'Coordinadora E2E', password, 'Ing')
         tecnico_a = self._trabajador('e2e.tecnico.a', rol_tecnico, 'Técnico E2E A', password)
         self._trabajador('e2e.tecnico.b', rol_tecnico, 'Técnico E2E B', password)
+        self._trabajador('e2e.analista', self._rol('E2E Analista', PERMISOS_ANALISTA), 'Analista E2E', password)
         return coordinador, tecnico_a
 
     def _catalogo_web(self):
@@ -291,3 +301,58 @@ class Command(BaseCommand):
                     'estado': estado, 'fecha_inicio': hoy,
                 },
             )
+
+    def _datos_analisis(self):
+        """Datos de la tabla dinámica (e2e/analisis.spec.js), en febrero de 2001
+        para que las cifras no dependan de lo que haya en la base."""
+        servicio = Servicio.objects.get(codigo_facturacion='E2E-001')
+        constructora = Cliente.objects.get(ruc='20999999991')
+        minera, _ = Cliente.objects.update_or_create(
+            ruc='20999999992',
+            defaults={'razon_social': 'Minera E2E SAC', 'persona_contacto': 'Luis E2E',
+                      'celular_contacto': '999999992', 'correo_contacto': 'luis@e2e.invalid'},
+        )
+        # (número, cliente, estado, cantidad, precio, monto del voucher)
+        cotizaciones = (
+            ('COT-E2E-A01', constructora, 'Aceptada', 2, Decimal('500.00'), Decimal('590.00')),
+            ('COT-E2E-A02', constructora, 'Aceptada', 1, Decimal('500.00'), Decimal('590.00')),
+            ('COT-E2E-A03', minera, 'Pendiente', 1, Decimal('200.00'), None),
+        )
+        for numero, cliente, estado, cantidad, precio, pagado in cotizaciones:
+            cotizacion, _ = Cotizacion.objects.update_or_create(
+                numero_oferta=numero,
+                defaults={
+                    'cliente': cliente, 'estado': estado, 'fecha_generacion': FECHA_ANALISIS,
+                    'asunto_servicio': 'Análisis E2E', 'persona_contacto': 'Ana E2E',
+                    'correo_contacto': 'ana@e2e.invalid', 'telefono_contacto': '999999991',
+                    'tasa_igv': Decimal('0.18'), 'forma_pago': 'Contado',
+                },
+            )
+            self._un_item(cotizacion, servicio, cantidad, precio)
+            if pagado is None:
+                Voucher.objects.filter(cotizacion=cotizacion).delete()
+            elif not Voucher.objects.filter(cotizacion=cotizacion).update(monto_pagado=pagado):
+                Voucher.objects.create(
+                    cotizacion=cotizacion, codigo=f'V-{numero}', monto_pagado=pagado,
+                    imagen=ContentFile(b'%PDF-1.4 voucher E2E', name='voucher-e2e.pdf'),
+                )
+
+        plantilla = Cotizacion.objects.filter(es_plantilla=True, nombre_plantilla='E2E Plantilla Análisis').first()
+        if plantilla is None:
+            plantilla = Cotizacion.objects.create(
+                cliente=constructora, es_plantilla=True, nombre_plantilla='E2E Plantilla Análisis',
+                fecha_generacion=FECHA_ANALISIS, asunto_servicio='Plantilla E2E', persona_contacto='Ana E2E',
+                correo_contacto='ana@e2e.invalid', telefono_contacto='999999991', tasa_igv=Decimal('0.18'),
+            )
+        self._un_item(plantilla, servicio, 10, Decimal('999.00'))
+
+    @staticmethod
+    def _un_item(cotizacion, servicio, cantidad, precio):
+        """Deja la cotización con un solo ítem; su save() recalcula los totales."""
+        CotizacionDetalle.objects.filter(grupo__cotizacion=cotizacion).delete()
+        CotizacionGrupo.objects.filter(cotizacion=cotizacion).delete()
+        grupo = CotizacionGrupo.objects.create(cotizacion=cotizacion, nombre_grupo='Suelos')
+        CotizacionDetalle.objects.create(
+            grupo=grupo, servicio=servicio, cantidad=cantidad, precio_unitario=precio,
+            descripcion_especifica='Proctor Modificado',
+        )
