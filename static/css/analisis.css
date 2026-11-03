@@ -1,0 +1,62 @@
+/* Pantalla Análisis (VCF-LIMS): ajustes de PivotTable.js al estilo del LIMS. */
+.analisis .an-chip {
+    height: 2rem;
+    padding: 0 .75rem;
+    border-radius: .5rem;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    color: #334155;
+    font-size: 12.5px;
+    font-weight: 600;
+}
+.analisis .an-chip:hover { background: #f1f5f9; }
+.analisis .an-chip:focus-visible,
+.analisis button:focus-visible,
+.analisis select:focus-visible,
+.analisis input:focus-visible { outline: 2px solid #2a78d6; outline-offset: 2px; }
+
+/* Interfaz de la tabla dinámica */
+.analisis table.pvtUi { width: 100%; border-collapse: separate; border-spacing: 6px; color: #0f172a; font-family: inherit; }
+.analisis .pvtUi td { vertical-align: top; }
+.analisis .pvtUi select,
+.analisis .pvtUi .pvtRenderer,
+.analisis .pvtUi .pvtAggregator,
+.analisis .pvtUi .pvtAttrDropdown {
+    height: 2rem; border: 1px solid #cbd5e1; border-radius: .5rem; background: #fff; padding: 0 .4rem; font-size: 13px; color: #0f172a;
+}
+.analisis .pvtAxisContainer,
+.analisis .pvtVals,
+.analisis .pvtUnused { border: 1px dashed #cbd5e1; border-radius: .6rem; background: #f8fafc; padding: 6px; min-height: 2.6rem; }
+.analisis .pvtAxisContainer li { padding: 3px 2px; list-style: none; }
+.analisis .pvtAxisContainer li span.pvtAttr {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #fff; border: 1px solid #cbd5e1; border-radius: 999px;
+    padding: 3px 10px; font-size: 12.5px; color: #1e293b; cursor: grab; white-space: nowrap;
+}
+.analisis .pvtAxisContainer li span.pvtAttr:hover { border-color: #2a78d6; }
+.analisis .pvtAxisContainer li span.pvtAttr.pvtFilteredAttribute { font-style: normal; border-color: #eb6834; box-shadow: inset 0 0 0 1px #eb6834; }
+.analisis .pvtTriangle { color: #64748b; cursor: pointer; }
+.analisis .pvtRows { min-width: 11rem; }
+.analisis .pvtFilterBox { border-radius: .6rem; border: 1px solid #cbd5e1; box-shadow: 0 10px 30px rgba(15,23,42,.15); padding: 10px; background: #fff; z-index: 60; }
+.analisis .pvtFilterBox h4 { font-size: 13px; font-weight: 700; margin: 0 0 6px; }
+.analisis .pvtFilterBox button { border: 1px solid #cbd5e1; border-radius: .4rem; padding: 2px 8px; font-size: 12px; background: #fff; margin: 2px; }
+.analisis .pvtCheckContainer { max-height: 260px; overflow-y: auto; font-size: 12.5px; }
+
+/* Resultado */
+.analisis .pvtRendererArea { padding: 4px; }
+.analisis table.pvtTable { border-collapse: collapse; font-size: 13px; font-family: inherit; }
+.analisis table.pvtTable thead tr th,
+.analisis table.pvtTable tbody tr th { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 6px 8px; font-size: 12.5px; color: #0f172a; text-align: left; }
+.analisis table.pvtTable tbody tr td { border: 1px solid #e2e8f0; padding: 6px 8px; color: #0f172a; text-align: right; font-variant-numeric: tabular-nums; }
+.analisis table.pvtTable .pvtTotal,
+.analisis table.pvtTable .pvtGrandTotal,
+.analisis table.pvtTable .pvtTotalLabel { font-weight: 700; background: #f8fafc; }
+
+.analisis .an-grafico { min-width: 320px; }
+.analisis .an-grafico-lienzo { position: relative; height: 380px; }
+.analisis .an-grafico-aviso { font-size: 12px; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: .5rem; padding: 4px 8px; margin-bottom: 6px; }
+
+@media (max-width: 767px) {
+    .analisis table.pvtUi, .analisis table.pvtUi > tbody, .analisis table.pvtUi > tbody > tr, .analisis table.pvtUi > tbody > tr > td { display: block; width: 100%; }
+    .analisis .an-grafico-lienzo { height: 300px; }
+}
