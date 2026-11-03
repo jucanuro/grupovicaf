@@ -10,6 +10,10 @@ deja siempre el mismo estado. Todo lo que crea lleva el marcador E2E:
     Solicitud         SOL-E2E-0001 (asignada solo a e2e.tecnico.a)
     Informe           slug de validación fijo (SLUG_INFORME)
     Catálogo web      línea 'e2e-mecanica-de-suelos' + ensayo 'e2e-proctor-modificado'
+    Dashboard         COT-E2E-D01..D05 (un estado cada una, fechadas hoy),
+                      COT-E2E-MARCAR (Pendiente, fechada en 2001 para no
+                      contar en el dashboard), SOL-E2E-V01..V06 vencidas
+                      (V01-V03 asignadas a e2e.tecnico.a) y P-E2E-01..05
 
 Las pruebas leen los mismos valores desde e2e/datos.js: si cambia uno aquí,
 cambia allí.
@@ -19,7 +23,7 @@ Uso:
 """
 import os
 import uuid
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.conf import settings
@@ -27,12 +31,14 @@ from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.utils import timezone
 
 from clientes.models import Cliente
 from proyectos.models import (
     DetalleSolicitudEnsayo,
     InformeFinal,
     MuestraDetalle,
+    Proyecto,
     RecepcionMuestra,
     SolicitudEnsayo,
     TipoMuestra,
@@ -63,6 +69,7 @@ class Command(BaseCommand):
             coordinador, tecnico_a = self._trabajadores(password)
             self._catalogo_web()
             self._solicitud_con_informe(coordinador, tecnico_a)
+            self._datos_dashboard(coordinador, tecnico_a)
 
         self.stdout.write(self.style.SUCCESS('Datos E2E listos.'))
 
@@ -210,4 +217,77 @@ class Command(BaseCommand):
                 slug_validacion=SLUG_INFORME,
                 archivo_pdf=ContentFile(b'%PDF-1.4 informe E2E', name='informe-e2e.pdf'),
                 responsable_firma=coordinador,
+            )
+
+    def _datos_dashboard(self, coordinador, tecnico_a):
+        """Datos del dashboard (e2e/dashboard.spec.js). Se fechan respecto de hoy."""
+        hoy = timezone.localdate()
+        cotizacion = Cotizacion.objects.get(numero_oferta='COT-E2E-0001')
+        cliente = cotizacion.cliente
+        datos_cotizacion = {
+            'cliente': cliente,
+            'asunto_servicio': 'Ensayos de suelos E2E',
+            'persona_contacto': 'Ana E2E',
+            'correo_contacto': 'ana@e2e.invalid',
+            'telefono_contacto': '999999991',
+        }
+        estados = ('Pendiente', 'Enviada', 'Aceptada', 'Rechazada', 'Anulada')
+        for numero, estado in enumerate(estados, start=1):
+            Cotizacion.objects.update_or_create(
+                numero_oferta=f'COT-E2E-D{numero:02d}',
+                defaults={**datos_cotizacion, 'estado': estado, 'fecha_generacion': hoy},
+            )
+        # La prueba la pasa a Enviada y luego a Rechazada: cada siembra la deja Pendiente.
+        Cotizacion.objects.update_or_create(
+            numero_oferta='COT-E2E-MARCAR',
+            defaults={**datos_cotizacion, 'estado': 'Pendiente', 'fecha_generacion': date(2001, 1, 15)},
+        )
+
+        detalle_cot = CotizacionDetalle.objects.get(grupo__cotizacion=cotizacion)
+        # Las vencidas cuelgan de la aceptada: COT-E2E-0001 debe seguir con una sola recepción.
+        cotizacion_vencidas = Cotizacion.objects.get(numero_oferta='COT-E2E-D03')
+        tipo_muestra = TipoMuestra.objects.get(nombre='Suelo E2E')
+        # (código, días de atraso, técnico): las ajenas tienen más atraso para
+        # que el coordinador las vea primero y el técnico no.
+        vencidas = (
+            ('SOL-E2E-V01', 2, tecnico_a), ('SOL-E2E-V02', 3, tecnico_a), ('SOL-E2E-V03', 5, tecnico_a),
+            ('SOL-E2E-V04', 40, None), ('SOL-E2E-V05', 50, None), ('SOL-E2E-V06', 60, None),
+        )
+        for codigo, dias, tecnico in vencidas:
+            recepcion = RecepcionMuestra.objects.filter(solicitud_ensayo__codigo_solicitud=codigo).first()
+            if recepcion is None:
+                recepcion = RecepcionMuestra.objects.create(
+                    cotizacion=cotizacion_vencidas, procedencia='Cajamarca', responsable_cliente='Ana E2E',
+                    telefono='999999991', responsable_recepcion=coordinador.user,
+                )
+            muestra, _ = MuestraDetalle.objects.get_or_create(
+                recepcion=recepcion, descripcion=f'Muestra {codigo}',
+                defaults={'tipo_muestra': tipo_muestra, 'masa_aprox': Decimal('5.00')},
+            )
+            entrega = hoy - timedelta(days=dias)
+            solicitud, _ = SolicitudEnsayo.objects.update_or_create(
+                codigo_solicitud=codigo,
+                defaults={
+                    'recepcion': recepcion, 'cotizacion': cotizacion_vencidas, 'estado': 'proceso',
+                    'fecha_solicitud': hoy, 'fecha_entrega_programada': entrega, 'elaborado_por': coordinador,
+                },
+            )
+            DetalleSolicitudEnsayo.objects.update_or_create(
+                solicitud=solicitud, muestra=muestra,
+                defaults={
+                    'servicio_cotizado': detalle_cot, 'descripcion_ensayo': 'Proctor Modificado',
+                    'norma': 'ASTM D1557', 'tecnico_asignado': tecnico, 'fecha_entrega_programada': entrega,
+                    # Dos ensayos ya entregados alimentan la línea por semana.
+                    'fecha_entrega_real': hoy if codigo in ('SOL-E2E-V01', 'SOL-E2E-V04') else None,
+                },
+            )
+
+        etapas = ('PENDIENTE', 'EN_CURSO', 'EN_CURSO', 'FINALIZADO', 'CANCELADO')
+        for numero, estado in enumerate(etapas, start=1):
+            Proyecto.objects.update_or_create(
+                codigo_proyecto=f'P-E2E-{numero:02d}',
+                defaults={
+                    'nombre_proyecto': f'Proyecto E2E {numero}', 'cliente': cliente, 'cotizacion': cotizacion,
+                    'estado': estado, 'fecha_inicio': hoy,
+                },
             )
