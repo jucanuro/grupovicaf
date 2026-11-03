@@ -46,6 +46,10 @@ jobs:
         run: SITE_ROLE=web python manage.py test --noinput
       - name: check --deploy con settings de producción (rol web)
         run: SITE_ROLE=web DJANGO_SETTINGS_MODULE=grupovicaf.settings.prod python manage.py check --deploy --fail-level WARNING
+      # El storage con manifest de prod falla si un CSS/JS referencia un archivo
+      # que no existe (p. ej. un .map de una librería vendorizada).
+      - name: collectstatic con settings de producción
+        run: SITE_ROLE=web DJANGO_SETTINGS_MODULE=grupovicaf.settings.prod python manage.py collectstatic --noinput
 
   frontend:
     runs-on: ubuntu-latest
