@@ -10,6 +10,7 @@ en cada PR contra `dev` y `main`, y un PR con una prueba en rojo no se integra.
 | `validacion-informe.spec.js` | Página del QR del informe (`/proyectos/v/<uuid>/`) sin RUC ni código confidencial, con `noindex` | CLAUDE.md reglas 3 y 15 |
 | `tecnico.spec.js` | El técnico ve solo sus ensayos y el código confidencial en vez del cliente | L3 |
 | `asistente-whatsapp.spec.js` | Asistente de WhatsApp: menú, cotización, validaciones, enlace `wa.me`, fuera de horario | REQ-WEB-01, 04, 10 a 16, 18 |
+| `dashboard.spec.js` | Dashboard del LIMS (KPI, embudo, vencidas, proyectos, periodo, tablas, celular) y marcar cotización como enviada/rechazada | REQ-LIMS-01, 04 a 08, 10 a 20, 22 a 24 |
 
 ## Correr en local (sin Docker)
 

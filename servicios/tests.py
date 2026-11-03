@@ -208,6 +208,7 @@ class SolicitudesWebBandejaTests(TestCase):
         self.assertEqual(respuesta.status_code, 405)
 
 
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab')
 class MarcarCotizacionTests(TestCase):
     """REQ-LIMS-22 a 24: transiciones manuales Enviada/Rechazada (RN-08)."""
 

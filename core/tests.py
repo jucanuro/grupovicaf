@@ -5,7 +5,8 @@ from django.contrib.auth.models import User
 from django.core.management import CommandError, call_command
 from django.test import TestCase, override_settings
 
-from proyectos.models import InformeFinal, SolicitudEnsayo
+from proyectos.models import InformeFinal, Proyecto, SolicitudEnsayo
+from servicios.models import Cotizacion
 from web_catalogo.models import ServicioPublicado
 
 from .models import Correlativo, siguiente_correlativo
@@ -47,6 +48,10 @@ class SembrarE2ETests(TestCase):
         informe = InformeFinal.objects.get()
         self.assertEqual(str(informe.slug_validacion), 'e2e00000-0000-4000-8000-000000000001')
         self.assertTrue(ServicioPublicado.objects.publicados().filter(slug='e2e-proctor-modificado').exists())
+        # Datos del dashboard (e2e/dashboard.spec.js).
+        self.assertEqual(SolicitudEnsayo.objects.filter(codigo_solicitud__startswith='SOL-E2E-V').count(), 6)
+        self.assertEqual(Proyecto.objects.filter(codigo_proyecto__startswith='P-E2E-').count(), 5)
+        self.assertEqual(Cotizacion.objects.get(numero_oferta='COT-E2E-MARCAR').estado, 'Pendiente')
 
     @override_settings(DEBUG=False)
     def test_no_corre_con_debug_false(self):

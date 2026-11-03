@@ -9,8 +9,8 @@
 
     <header class="flex flex-wrap items-end justify-between gap-4 pt-1">
         <div class="min-w-0">
-            <p class="text-xs font-semibold text-slate-500">VICAFPRO · Laboratorio Cajamarca</p>
-            <h1 class="text-2xl font-bold tracking-tight">Dashboard</h1>
+            {# El <h1> "Dashboard" lo pone la cabecera de base_vicafpro.html. #}
+            <p class="text-sm font-semibold text-slate-700">Laboratorio Cajamarca</p>
             <p class="text-xs text-slate-500" data-periodo-texto>
                 Del {{ periodo.desde|date:"j M Y" }} al {{ periodo.hasta|date:"j M Y" }}
             </p>
@@ -62,9 +62,11 @@
                     <circle cx="{{ clientes.sparkline.x|unlocalize }}" cy="{{ clientes.sparkline.y|unlocalize }}" r="3" fill="#2a78d6"></circle>
                 </svg>
             </div>
-            <p class="text-xs font-semibold {% if clientes.nuevos_periodo %}text-[#006300]{% else %}text-slate-500{% endif %}">
-                +{{ clientes.nuevos_periodo }} nuevo{{ clientes.nuevos_periodo|pluralize }} en el periodo
-            </p>
+            {% if clientes.nuevos_periodo %}
+                <p class="text-xs font-semibold text-[#006300]">+{{ clientes.nuevos_periodo }} nuevo{{ clientes.nuevos_periodo|pluralize }} en el periodo</p>
+            {% else %}
+                <p class="text-xs text-slate-500">Sin clientes nuevos en el periodo</p>
+            {% endif %}
         </article>
 
         <article class="dash-card p-4 flex flex-col gap-1.5" data-kpi="cotizaciones">

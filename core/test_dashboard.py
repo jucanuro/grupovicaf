@@ -267,6 +267,7 @@ class ProyectosTests(DatosDashboardMixin, TestCase):
         self.assertEqual(len(pocas), len(muchas))
 
 
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab')
 class VistaDashboardTests(DatosDashboardMixin, TestCase):
     """REQ-LIMS-01, 05, 10, 18 y 19 sobre el HTML."""
 
