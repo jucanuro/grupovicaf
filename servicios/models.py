@@ -191,6 +191,24 @@ class Cotizacion(models.Model):
         self.impuesto_igv = self.subtotal * self.tasa_igv
         self.monto_total = self.subtotal + self.impuesto_igv
 
+    # RN-08 (specs/VCF-LIMS): transiciones que el equipo marca a mano desde la
+    # lista. Aceptada solo llega por aprobar_cotizacion (voucher + proyecto).
+    TRANSICIONES_MANUALES = {
+        'Enviada': ('Pendiente',),
+        'Rechazada': ('Pendiente', 'Enviada'),
+    }
+
+    def puede_marcarse_como(self, estado):
+        return self.estado in self.TRANSICIONES_MANUALES.get(estado, ())
+
+    @property
+    def puede_marcarse_enviada(self):
+        return self.puede_marcarse_como('Enviada')
+
+    @property
+    def puede_marcarse_rechazada(self):
+        return self.puede_marcarse_como('Rechazada')
+
     def puede_editar_contenido_condiciones(self):
         return not self.contenido_condiciones_bloqueado and self.estado not in ('Aceptada', 'Anulada')
 

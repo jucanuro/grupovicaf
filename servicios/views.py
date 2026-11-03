@@ -1198,6 +1198,38 @@ def generar_pdf_cotizacion(request, pk):
 
     return response
 
+def _marcar_cotizacion(request, pk, estado, texto):
+    with transaction.atomic():
+        cotizacion = get_object_or_404(Cotizacion.objects.select_for_update(), pk=pk, es_plantilla=False)
+        if not cotizacion.puede_marcarse_como(estado):
+            messages.error(
+                request,
+                f'La cotización {cotizacion.numero_oferta} está {cotizacion.get_estado_display().lower()} '
+                f'y no se puede marcar como {texto}.',
+            )
+        else:
+            cotizacion.estado = estado
+            cotizacion.save(update_fields=['estado', 'fecha_actualizacion'])
+            messages.success(request, f'Cotización {cotizacion.numero_oferta} marcada como {texto}.')
+    return redirect('servicios:lista_cotizaciones')
+
+
+@login_required
+@permiso_requerido('cotizaciones.ver')
+@require_POST
+def marcar_cotizacion_enviada(request, pk):
+    """REQ-LIMS-22: Pendiente → Enviada."""
+    return _marcar_cotizacion(request, pk, 'Enviada', 'enviada al cliente')
+
+
+@login_required
+@permiso_requerido('cotizaciones.ver')
+@require_POST
+def marcar_cotizacion_rechazada(request, pk):
+    """REQ-LIMS-23: Pendiente o Enviada → Rechazada."""
+    return _marcar_cotizacion(request, pk, 'Rechazada', 'rechazada')
+
+
 @login_required
 @transaction.atomic 
 def aprobar_cotizacion(request, pk):

@@ -206,3 +206,94 @@ class SolicitudesWebBandejaTests(TestCase):
         respuesta = self.client.get(self._url('convertir_solicitud_web', self.solicitud.pk))
 
         self.assertEqual(respuesta.status_code, 405)
+
+
+class MarcarCotizacionTests(TestCase):
+    """REQ-LIMS-22 a 24: transiciones manuales Enviada/Rechazada (RN-08)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.cliente = Cliente.objects.create(ruc='20123456780', razon_social='Cliente Estados SAC')
+        comercial = rol_con_permisos('Comercial estados', 'cotizaciones.ver')
+        cls.user_comercial, _ = crear_trabajador('comercial.estados', comercial)
+        sin_permiso = rol_con_permisos('Sin cotizaciones', 'ensayos.ver')
+        cls.user_sin_permiso, _ = crear_trabajador('sin.cotizaciones', sin_permiso)
+
+    def _cotizacion(self, estado, numero):
+        return Cotizacion.objects.create(
+            cliente=self.cliente, numero_oferta=numero, estado=estado,
+            asunto_servicio='Ensayos', persona_contacto='Ana', correo_contacto='ana@example.com',
+            telefono_contacto='999999999',
+        )
+
+    def _post(self, nombre, cotizacion):
+        return self.client.post(reverse(f'servicios:{nombre}', args=[cotizacion.pk]))
+
+    def test_pendiente_pasa_a_enviada(self):
+        cotizacion = self._cotizacion('Pendiente', 'T-001')
+        self.client.force_login(self.user_comercial)
+
+        respuesta = self._post('marcar_cotizacion_enviada', cotizacion)
+
+        self.assertRedirects(respuesta, reverse('servicios:lista_cotizaciones'), fetch_redirect_response=False)
+        cotizacion.refresh_from_db()
+        self.assertEqual(cotizacion.estado, 'Enviada')
+
+    def test_pendiente_y_enviada_pasan_a_rechazada(self):
+        self.client.force_login(self.user_comercial)
+        for estado, numero in (('Pendiente', 'T-002'), ('Enviada', 'T-003')):
+            cotizacion = self._cotizacion(estado, numero)
+            self._post('marcar_cotizacion_rechazada', cotizacion)
+            cotizacion.refresh_from_db()
+            self.assertEqual(cotizacion.estado, 'Rechazada', estado)
+
+    def test_transiciones_no_permitidas_no_cambian_el_estado(self):
+        self.client.force_login(self.user_comercial)
+        casos = [
+            ('marcar_cotizacion_enviada', 'Enviada'),
+            ('marcar_cotizacion_enviada', 'Aceptada'),
+            ('marcar_cotizacion_enviada', 'Rechazada'),
+            ('marcar_cotizacion_rechazada', 'Aceptada'),
+            ('marcar_cotizacion_rechazada', 'Anulada'),
+            ('marcar_cotizacion_rechazada', 'Rechazada'),
+        ]
+        for i, (accion, estado) in enumerate(casos):
+            cotizacion = self._cotizacion(estado, f'T-1{i:02d}')
+            self._post(accion, cotizacion)
+            cotizacion.refresh_from_db()
+            self.assertEqual(cotizacion.estado, estado, accion)
+
+    def test_get_no_cambia_el_estado(self):
+        cotizacion = self._cotizacion('Pendiente', 'T-004')
+        self.client.force_login(self.user_comercial)
+
+        respuesta = self.client.get(reverse('servicios:marcar_cotizacion_enviada', args=[cotizacion.pk]))
+
+        self.assertEqual(respuesta.status_code, 405)
+        cotizacion.refresh_from_db()
+        self.assertEqual(cotizacion.estado, 'Pendiente')
+
+    def test_sin_permiso_cotizaciones_ver_da_403(self):
+        cotizacion = self._cotizacion('Pendiente', 'T-005')
+        self.client.force_login(self.user_sin_permiso)
+
+        respuesta = self._post('marcar_cotizacion_enviada', cotizacion)
+
+        self.assertEqual(respuesta.status_code, 403)
+        cotizacion.refresh_from_db()
+        self.assertEqual(cotizacion.estado, 'Pendiente')
+
+    def test_la_lista_muestra_solo_los_botones_que_aplican(self):
+        pendiente = self._cotizacion('Pendiente', 'T-006')
+        enviada = self._cotizacion('Enviada', 'T-007')
+        aceptada = self._cotizacion('Aceptada', 'T-008')
+        self.client.force_login(self.user_comercial)
+
+        html = self.client.get(reverse('servicios:lista_cotizaciones')).content.decode()
+
+        self.assertIn(reverse('servicios:marcar_cotizacion_enviada', args=[pendiente.pk]), html)
+        self.assertIn(reverse('servicios:marcar_cotizacion_rechazada', args=[pendiente.pk]), html)
+        self.assertNotIn(reverse('servicios:marcar_cotizacion_enviada', args=[enviada.pk]), html)
+        self.assertIn(reverse('servicios:marcar_cotizacion_rechazada', args=[enviada.pk]), html)
+        self.assertNotIn(reverse('servicios:marcar_cotizacion_enviada', args=[aceptada.pk]), html)
+        self.assertNotIn(reverse('servicios:marcar_cotizacion_rechazada', args=[aceptada.pk]), html)
