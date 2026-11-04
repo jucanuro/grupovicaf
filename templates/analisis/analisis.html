@@ -1,0 +1,108 @@
+{% extends 'base_vicafpro.html' %}
+{% load static %}
+
+{% block title %}Análisis · VICAFPRO{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/analisis.css' %}">
+{% endblock %}
+
+{% block content %}
+{# VCF-LIMS: proc/VCF-LIMS_HU_CU_analisis_v3 (HU-LIMS-06 a 10). Datos en analisis/conjuntos.py. #}
+<div class="analisis">
+
+    <header class="an-cabecera">
+        <div>
+            <h2 class="an-titulo">Análisis</h2>
+            <p class="an-sub">Elige un conjunto en el menú y arma tu tabla arrastrando sus campos al centro.</p>
+        </div>
+        {% if hay_conjuntos %}
+        <div class="an-periodo">
+            <nav class="an-seg" aria-label="Periodo">
+                <button type="button" data-periodo="mes">Este mes</button>
+                <button type="button" data-periodo="anio">Este año</button>
+                <button type="button" data-periodo="12m">Últimos 12 meses</button>
+                <button type="button" data-periodo="todo">Todo</button>
+            </nav>
+            <div class="an-rango">
+                <label>Desde <input id="an-desde" type="date"></label>
+                <label>Hasta <input id="an-hasta" type="date"></label>
+                <button id="an-aplicar" type="button" class="an-btn">Aplicar</button>
+            </div>
+        </div>
+        {% endif %}
+    </header>
+
+    {% if not hay_conjuntos %}
+    <div class="an-tarjeta an-vacio" data-sin-conjuntos>
+        Tu rol no tiene acceso a ningún conjunto de datos. Pide al administrador el permiso de ver del módulo que necesitas.
+    </div>
+    {% else %}
+
+    <div class="an-app">
+        <aside class="an-menu an-tarjeta" id="an-menu" aria-label="Conjuntos de datos"></aside>
+
+        <main class="an-centro">
+            <section class="an-tarjeta" aria-label="Armar la tabla">
+                <div class="an-barra">
+                    <nav class="an-seg" aria-label="Ver como">
+                        <button type="button" data-vista="tabla">Tabla</button>
+                        <button type="button" data-vista="barras">Barras</button>
+                        <button type="button" data-vista="lineas">Líneas</button>
+                        <button type="button" data-vista="dona">Dona</button>
+                    </nav>
+                    <nav class="an-seg" aria-label="Orden de las filas">
+                        <button type="button" data-orden="valor">Mayor primero</button>
+                        <button type="button" data-orden="nombre">A–Z</button>
+                    </nav>
+                    <span class="an-espacio"></span>
+                    <button id="an-copiar-enlace" type="button" class="an-btn">Copiar enlace</button>
+                    <button id="an-exportar-datos" type="button" class="an-btn">Exportar datos</button>
+                    <button id="an-exportar" type="button" class="an-btn an-btn-principal">Descargar Excel</button>
+                </div>
+
+                <div class="an-preguntas">
+                    <span class="an-etiqueta">Preguntas frecuentes</span>
+                    <div id="an-vistas-rapidas" class="an-preguntas-lista"></div>
+                </div>
+
+                <div class="an-zonas" id="an-zonas">
+                    <div class="an-zona" data-zona="filas"><div class="an-zona-cab"><b>Filas</b><span>agrupar por</span></div><div class="an-zona-cuerpo"></div></div>
+                    <div class="an-zona" data-zona="columnas"><div class="an-zona-cab"><b>Columnas</b><span>separar por</span></div><div class="an-zona-cuerpo"></div></div>
+                    <div class="an-zona" data-zona="valores"><div class="an-zona-cab"><b>Valores</b><span>qué medir</span></div><div class="an-zona-cuerpo"></div></div>
+                    <div class="an-zona" data-zona="filtros"><div class="an-zona-cab"><b>Filtros</b><span>mostrar solo</span></div><div class="an-zona-cuerpo"></div></div>
+                </div>
+
+                <div class="an-vistas">
+                    <label>Mis vistas
+                        <select id="an-mis-vistas"><option value="">—</option></select>
+                    </label>
+                    <button id="an-eliminar-vista" type="button" class="an-btn" disabled>Eliminar</button>
+                    <label>Guardar como
+                        <input id="an-nombre-vista" type="text" maxlength="80" placeholder="Ej.: Saldo por cliente 2026">
+                    </label>
+                    <button id="an-guardar-vista" type="button" class="an-btn">Guardar vista</button>
+                </div>
+            </section>
+
+            <div id="an-aviso" role="status" aria-live="polite" hidden></div>
+
+            <section class="an-tarjeta an-resultado" id="an-resultado" aria-live="polite" aria-label="Resultado"></section>
+            <p id="an-estado" class="an-estado" aria-live="polite"></p>
+        </main>
+    </div>
+    {% endif %}
+</div>
+
+<form id="an-csrf" hidden>{% csrf_token %}</form>
+{{ config|json_script:"analisis-config" }}
+{% endblock %}
+
+{% block extra_scripts %}
+{% if hay_conjuntos %}
+<script src="{% static 'vendor/chartjs/chart.umd.js' %}" defer></script>
+<script src="{% static 'vendor/sheetjs/xlsx.mini.min.js' %}" defer></script>
+<script src="{% static 'js/analisis-motor.js' %}" defer></script>
+<script src="{% static 'js/analisis.js' %}" defer></script>
+{% endif %}
+{% endblock %}

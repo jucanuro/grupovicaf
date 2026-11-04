@@ -22,6 +22,7 @@ def permisos_usuario(request):
         'puede_ver_informes': trabajador_tiene_permiso(user, 'informes.ver'),
         'puede_ver_calendario': trabajador_tiene_permiso(user, 'calendario.ver'),
         'puede_ver_gantt': trabajador_tiene_permiso(user, 'gantt.ver'),
+        'puede_ver_reportes': trabajador_tiene_permiso(user, 'reportes.ver'),
     }
 
     permisos['total_modulos_visibles'] = sum(1 for value in permisos.values() if value is True)

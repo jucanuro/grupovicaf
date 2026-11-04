@@ -2,7 +2,7 @@
 
 | Dueño | Versión | Fecha | Estado |
 |---|---|---|---|
-| DLF | v1 | 2026-11-03 | Aprobado (G1 del Gerente, 2026-11-03) |
+| DLF | v2 | 2026-11-03 | Aprobado (G1 del Gerente, 2026-11-03) |
 
 > Primer alcance del módulo: **rediseño de los gráficos del dashboard** y los estados
 > Enviada/Rechazada de la cotización. Origen: `proc/VCF-LIMS_HU_CU_v1.md` v1.1 del
@@ -69,6 +69,37 @@ Patrones: **CUANDO** <evento> · **MIENTRAS** <estado> · **SI** <condición> **
 | REQ-LIMS-25 | HU-LIMS-02 | EL SISTEMA DEBE excluir las plantillas de cotización (`es_plantilla=True`) de todos los indicadores. | sí (unitaria) | [Propuesto] (E-12, hallado al implementar) |
 | REQ-LIMS-26 | HU-LIMS-05 | EL SISTEMA DEBE cargar el dashboard en menos de 1 s con 1 000 proyectos. | no en CI; se mide a mano | [Propuesto] |
 
+## 2b. Análisis con tabla dinámica (v2)
+
+Origen: `proc/VCF-LIMS_HU_CU_analisis_v3.md` (HU-LIMS-06 a 10), G1 del Gerente el
+2026-11-03 con todas las recomendaciones (DP-LIMS-05 A PivotTable.js + Chart.js,
+06 A .xlsx con SheetJS, 08 A permiso `reportes.ver`, 11 A vistas guardadas por
+usuario, 12 B permiso del módulo por conjunto) y entrega en dos PR. **PR 1:**
+motor + conjuntos Cotizaciones, Ítems cotizados y Clientes. **PR 2:** Muestras,
+Solicitudes, Ensayos asignados, Incidencias, Informes, Proyectos, Actividades y
+Bandeja web. Fuera de alcance: varios pagos por cotización, detracción, fecha de
+pago y aprobación a crédito (PM-R01); por eso cobrado y saldo son "referenciales".
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-27 | HU-LIMS-06 | CUANDO un usuario con `reportes.ver` abra `/analisis/`, EL SISTEMA DEBE mostrar un selector con los conjuntos que su rol puede ver y abrir el primero con su rango por defecto y su primera vista rápida. | sí (unitaria + E2E) | [Decisión Gerente] |
+| REQ-LIMS-28 | HU-LIMS-06 | CUANDO el usuario arrastre un campo a filas o columnas o cambie el cálculo (Cantidad, Suma, Promedio, Mínimo, Máximo), EL SISTEMA DEBE recalcular la tabla con totales sin recargar la página. | sí (E2E) | [Propuesto] |
+| REQ-LIMS-29 | HU-LIMS-06 | EL SISTEMA DEBE filtrar cada conjunto por su fecha principal (Cotizaciones e Ítems: `fecha_generacion`; Clientes: `creado_en`) y excluir las plantillas. | sí (unitaria + E2E) | [Propuesto] |
+| REQ-LIMS-30 | HU-LIMS-06 | SI "desde" es posterior a "hasta" o la fecha no es AAAA-MM-DD, ENTONCES EL SISTEMA DEBE avisarlo y no calcular; SI no hay filas, ENTONCES EL SISTEMA DEBE mostrar "Sin datos para estos filtros". | sí (unitaria + E2E) | [Propuesto] |
+| REQ-LIMS-31 | HU-LIMS-06 | EL SISTEMA DEBE calcular Cobrado = `Voucher.monto_pagado` y Saldo referencial = total − cobrado solo para Aceptadas, nunca negativo. | sí (unitaria) | [Propuesto] RN-R02 |
+| REQ-LIMS-32 | HU-LIMS-07 | CUANDO el usuario elija Barras, Barras apiladas, Líneas o Dona, EL SISTEMA DEBE dibujar el mismo resultado con Chart.js, con leyenda si hay más de una serie y tooltip con el valor. | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-33 | HU-LIMS-07 | SI hay más de 20 categorías u 8 series, ENTONCES EL SISTEMA DEBE agrupar el resto en "Otros" y avisarlo; DONDE se elija Dona con columnas, EL SISTEMA DEBE avisar que usa el total por fila. | sí (E2E para la dona) | [Propuesto] |
+| REQ-LIMS-34 | HU-LIMS-08 | EL SISTEMA DEBE ofrecer vistas rápidas por conjunto y ocultar las que usen campos que el usuario no puede ver. | sí (unitaria + E2E) | [Propuesto] |
+| REQ-LIMS-35 | HU-LIMS-08 | CUANDO el usuario guarde una vista con nombre, EL SISTEMA DEBE guardar solo la disposición (filas, columnas, cálculo, filtros) para ese usuario; cada usuario ve y elimina solo las suyas. | sí (unitaria + E2E) | [Decisión Gerente] DP-LIMS-11 A |
+| REQ-LIMS-36 | HU-LIMS-08 | EL SISTEMA DEBE reflejar conjunto, rango y disposición en la URL para que el enlace abra la misma tabla. | sí (E2E) | [Propuesto] |
+| REQ-LIMS-37 | HU-LIMS-09 | CUANDO el usuario pulse "Exportar a Excel" o "Exportar datos", EL SISTEMA DEBE descargar un .xlsx con cabecera (conjunto, rango, filas, columnas, cálculo, filtros, fecha) y montos como números. | sí (E2E) | [Decisión Gerente] DP-LIMS-06 A |
+| REQ-LIMS-38 | HU-LIMS-10 | SI el usuario no tiene `reportes.ver`, ENTONCES EL SISTEMA DEBE responder 403 y ocultar el menú; SI no tiene el permiso de ver del módulo del conjunto, ENTONCES EL SISTEMA DEBE ocultar el conjunto y responder 403 a sus datos; los montos de Clientes exigen además `cotizaciones.ver`. | sí (unitaria + E2E) | [Decisión Gerente] DP-LIMS-08 A, 12 B |
+| REQ-LIMS-39 | HU-LIMS-10 | EL SISTEMA NO DEBE enviar al navegador campos fuera de la lista blanca del conjunto (nunca RUC, código confidencial, firmas, archivos, código del voucher ni contactos). | sí (unitaria por conjunto) | [Propuesto] |
+| REQ-LIMS-40 | HU-LIMS-10 | EL SISTEMA DEBE entregar los datos con un número fijo de consultas y rechazar rangos de más de 20 000 filas pidiendo acotarlos. | sí (unitaria) | [Propuesto] |
+| REQ-LIMS-41 | HU-LIMS-06 | EL SISTEMA DEBE mostrar los conjuntos como un menú agrupado por módulo y, al abrir uno, sus campos en "Agrupar por" y "Medir", que el usuario arrastra o toca para llevarlos a Filas, Columnas, Valores o Filtros. | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-42 | HU-LIMS-06 | EL SISTEMA DEBE mostrar cada número según su tipo: montos en S/ con dos decimales, conteos y cantidades sin decimales de más, días y porcentajes con un decimal en promedios; y elegir el cálculo al soltar (montos y cantidades se suman, días y % se promedian). | sí (unitaria JS + E2E) | [Decisión Gerente] |
+| REQ-LIMS-43 | HU-LIMS-08 | EL SISTEMA DEBE explicar el resultado con una frase y mostrar los totales antes de la tabla, y ofrecer las vistas rápidas como preguntas frecuentes. | sí (E2E) | [Decisión Gerente] |
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -78,6 +109,11 @@ Patrones: **CUANDO** <evento> · **MIENTRAS** <estado> · **SI** <condición> **
 | HU-LIMS-03 | Estado del laboratorio | REQ-LIMS-12 a 15 |
 | HU-LIMS-04 | Proyectos por etapa | REQ-LIMS-16 |
 | HU-LIMS-05 | Filtro único, accesibilidad y rendimiento | REQ-LIMS-17 a 21, 26 |
+| HU-LIMS-06 | Tabla dinámica | REQ-LIMS-27 a 31 |
+| HU-LIMS-07 | Ver como gráfico | REQ-LIMS-32, 33 |
+| HU-LIMS-08 | Vistas rápidas y guardadas | REQ-LIMS-34 a 36 |
+| HU-LIMS-09 | Exportar | REQ-LIMS-37 |
+| HU-LIMS-10 | Seguridad y rendimiento | REQ-LIMS-38 a 40 |
 
 ## 4. Preguntas abiertas
 
@@ -91,3 +127,4 @@ Patrones: **CUANDO** <evento> · **MIENTRAS** <estado> · **SI** <condición> **
 |---|---|---|---|
 | v0 | 2026-10-12 | DLF | Plantilla inicial |
 | v1 | 2026-11-03 | Claude (DLF) | Alcance del dashboard y estados de cotización: RN-01 a 08, REQ-LIMS-01 a 26 |
+| v2 | 2026-11-03 | Claude (DLF) | Análisis con tabla dinámica (PR 1): REQ-LIMS-27 a 40 |
