@@ -20,8 +20,7 @@
     --an-dias: #b25d00;
     --an-dias-fondo: #fbeedd;
     --an-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-    max-width: 1400px;
-    margin: 0 auto;
+    width: 100%;
     padding: 0 .25rem 2.5rem;
     color: var(--an-texto);
     display: grid;
