@@ -22,8 +22,9 @@ from .models import VistaAnalisis
 
 MAX_VISTAS_POR_USUARIO = 50
 MAX_CONFIG_BYTES = 20_000
-CLAVES_CONFIG = {'rows', 'cols', 'vals', 'aggregatorName', 'rendererName',
-                 'exclusions', 'inclusions', 'rowOrder', 'colOrder'}
+CALCULOS = {'conteo', 'suma', 'promedio', 'min', 'max'}
+TIPOS_VISTA = {'tabla', 'barras', 'lineas', 'dona'}
+ORDENES = {'valor', 'nombre'}
 
 
 def _conjunto_o_404(clave, user):
@@ -84,25 +85,43 @@ def datos_view(request, clave):
     return JsonResponse(datos)
 
 
+def _lista_de_textos(valor):
+    return isinstance(valor, list) and all(isinstance(v, str) for v in valor)
+
+
 def _limpiar_config(config):
-    """Solo disposición de la tabla, nunca datos (CA-08.2)."""
+    """Solo la disposición de la tabla, nunca datos (CA-08.2): filas,
+    columnas, valores [[campo, cálculo]], filtros solo/excluir, tipo de
+    vista y orden. Las claves desconocidas se descartan."""
     if not isinstance(config, dict):
         raise ValueError('Configuración inválida.')
     limpia = {}
-    for clave, valor in config.items():
-        if clave not in CLAVES_CONFIG:
-            continue
-        if clave in ('rows', 'cols', 'vals'):
-            if not isinstance(valor, list) or not all(isinstance(v, str) for v in valor):
+    for clave in ('filas', 'columnas'):
+        if clave in config:
+            if not _lista_de_textos(config[clave]):
                 raise ValueError(f'"{clave}" debe ser una lista de textos.')
-        elif clave in ('exclusions', 'inclusions'):
-            if not isinstance(valor, dict) or not all(
-                isinstance(v, list) and all(isinstance(x, str) for x in v) for v in valor.values()
-            ):
+            limpia[clave] = config[clave]
+    if 'valores' in config:
+        valores = config['valores']
+        if not isinstance(valores, list) or not all(
+            isinstance(v, list) and len(v) == 2 and isinstance(v[0], str) and v[1] in CALCULOS for v in valores
+        ):
+            raise ValueError('"valores" debe ser una lista de [campo, cálculo].')
+        limpia['valores'] = valores
+    for clave in ('solo', 'excluir'):
+        if clave in config:
+            valor = config[clave]
+            if not isinstance(valor, dict) or not all(_lista_de_textos(v) for v in valor.values()):
                 raise ValueError(f'"{clave}" tiene un formato inválido.')
-        elif not isinstance(valor, str):
-            raise ValueError(f'"{clave}" debe ser texto.')
-        limpia[clave] = valor
+            limpia[clave] = valor
+    if config.get('vista') is not None:
+        if config['vista'] not in TIPOS_VISTA:
+            raise ValueError('"vista" no es válida.')
+        limpia['vista'] = config['vista']
+    if config.get('orden') is not None:
+        if config['orden'] not in ORDENES:
+            raise ValueError('"orden" no es válido.')
+        limpia['orden'] = config['orden']
     if len(json.dumps(limpia)) > MAX_CONFIG_BYTES:
         raise ValueError('La configuración es demasiado grande.')
     return limpia

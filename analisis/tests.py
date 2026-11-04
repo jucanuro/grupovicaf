@@ -164,6 +164,40 @@ class ListaBlancaTests(BaseAnalisis):
         self.assertEqual(uno['Monto aceptado (con IGV)'], 1770.0)
 
 
+class MenuDeCamposTests(BaseAnalisis):
+    """El menú lateral recibe los campos con su tipo y las preguntas ya
+    traducidas a filas, columnas y valores."""
+
+    def resumen(self, user, clave):
+        self.client.force_login(user)
+        config = self.client.get(reverse('analisis:analisis')).context['config']
+        return next(c for c in config['conjuntos'] if c['clave'] == clave)
+
+    def test_campos_con_tipo_y_conteo(self):
+        cot = self.resumen(self.gerente, 'cotizaciones')
+        tipos = {c['etiqueta']: c['tipo'] for c in cot['campos']}
+        self.assertEqual(tipos['Cliente'], 'texto')
+        self.assertEqual(tipos['Mes'], 'periodo')
+        self.assertEqual(tipos['Total (con IGV)'], 'moneda')
+        self.assertEqual(cot['conteo'], 'N.º de cotizaciones')
+        ens = self.resumen(self.gerente, 'ensayos')
+        self.assertEqual({c['etiqueta']: c['tipo'] for c in ens['campos']}['Días de atraso'], 'dias')
+        cli = self.resumen(self.analista, 'clientes')
+        etiquetas = [c['etiqueta'] for c in cli['campos']]
+        self.assertIn('N.º cotizaciones', etiquetas)
+        self.assertNotIn('Monto cotizado (con IGV)', etiquetas)
+
+    def test_preguntas_traducidas(self):
+        vistas = {v['nombre']: v for v in self.resumen(self.gerente, 'cotizaciones')['vistas']}
+        saldo = vistas['¿Cuánto falta cobrar y de quién?']
+        self.assertEqual(saldo['filas'], ['Cliente'])
+        self.assertEqual(saldo['valores'], [['Saldo referencial', 'suma']])
+        self.assertEqual(saldo['solo'], {'Estado': ['Aceptada']})
+        por_mes = vistas['¿Cuántas cotizaciones por mes y estado?']
+        self.assertEqual(por_mes['valores'], [['N.º de cotizaciones', 'conteo']])
+        self.assertEqual(por_mes['vista'], 'barras')
+
+
 class PermisosTests(BaseAnalisis):
     def test_sin_reportes_ver_no_entra(self):  # CA-10.1
         self.client.force_login(self.comercial)
@@ -182,7 +216,7 @@ class PermisosTests(BaseAnalisis):
         self.assertEqual(claves, ['clientes'])
         # Las vistas rápidas que usan montos no se ofrecen sin cotizaciones.ver.
         vistas = [v['nombre'] for v in pagina.context['config']['conjuntos'][0]['vistas']]
-        self.assertNotIn('Cotizado por cliente', vistas)
+        self.assertNotIn('¿Cuánto le cotizamos a cada cliente?', vistas)
 
     def test_menu_muestra_analisis_con_permiso(self):
         self.client.force_login(self.gerente)
@@ -204,18 +238,19 @@ class VistasGuardadasTests(BaseAnalisis):
         return resp.json()
 
     def test_guarda_solo_la_disposicion(self):  # CA-08.2
-        config = {'rows': ['Cliente'], 'cols': [], 'vals': ['Total (con IGV)'], 'aggregatorName': 'Suma',
-                  'rendererName': 'Tabla', 'exclusions': {'Estado': ['Pendiente']},
-                  'filas': [['dato', 1]], 'localeStrings': {'x': 'y'}}
+        config = {'filas': ['Cliente'], 'columnas': [], 'valores': [['Total (con IGV)', 'suma']],
+                  'vista': 'tabla', 'excluir': {'Estado': ['Pendiente']}, 'orden': 'valor',
+                  'datos': [['dato', 1]], 'localeStrings': {'x': 'y'}}
         vista = self.guardar(self.gerente, {'nombre': 'Por cliente', 'conjunto': 'cotizaciones',
                                             'configuracion': config})['vista']
         guardada = VistaAnalisis.objects.get(pk=vista['id']).configuracion
-        self.assertNotIn('filas', guardada)
+        self.assertNotIn('datos', guardada)
         self.assertNotIn('localeStrings', guardada)
-        self.assertEqual(guardada['rows'], ['Cliente'])
+        self.assertEqual(guardada['filas'], ['Cliente'])
+        self.assertEqual(guardada['valores'], [['Total (con IGV)', 'suma']])
         # Mismo nombre reemplaza en lugar de duplicar.
         self.guardar(self.gerente, {'nombre': 'Por cliente', 'conjunto': 'cotizaciones',
-                                    'configuracion': {'rows': ['Estado']}})
+                                    'configuracion': {'filas': ['Estado']}})
         self.assertEqual(VistaAnalisis.objects.filter(usuario=self.gerente).count(), 1)
 
     def test_cada_usuario_ve_y_borra_solo_las_suyas(self):
@@ -230,7 +265,10 @@ class VistasGuardadasTests(BaseAnalisis):
 
     def test_valida_entrada(self):
         self.guardar(self.gerente, {'nombre': '', 'conjunto': 'clientes', 'configuracion': {}}, 400)
-        self.guardar(self.gerente, {'nombre': 'x', 'conjunto': 'clientes', 'configuracion': {'rows': 'Cliente'}}, 400)
+        self.guardar(self.gerente, {'nombre': 'x', 'conjunto': 'clientes', 'configuracion': {'filas': 'Cliente'}}, 400)
+        self.guardar(self.gerente, {'nombre': 'x', 'conjunto': 'clientes',
+                                    'configuracion': {'valores': [['Monto', 'borrar']]}}, 400)
+        self.guardar(self.gerente, {'nombre': 'x', 'conjunto': 'clientes', 'configuracion': {'vista': 'pastel'}}, 400)
         self.guardar(self.analista, {'nombre': 'x', 'conjunto': 'cotizaciones', 'configuracion': {}}, 403)
 
 

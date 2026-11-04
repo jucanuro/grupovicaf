@@ -4,84 +4,93 @@
 {% block title %}Análisis · VICAFPRO{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'vendor/pivottable/pivot.min.css' %}">
 <link rel="stylesheet" href="{% static 'css/analisis.css' %}">
 {% endblock %}
 
 {% block content %}
 {# VCF-LIMS: proc/VCF-LIMS_HU_CU_analisis_v3 (HU-LIMS-06 a 10). Datos en analisis/conjuntos.py. #}
-<div class="analisis max-w-[1400px] mx-auto px-1 sm:px-2 pb-10 space-y-4 text-slate-900">
+<div class="analisis">
 
-    <header class="flex flex-wrap items-end justify-between gap-3 pt-1">
-        <div class="min-w-0">
-            <h2 class="text-lg font-bold text-slate-900">Análisis</h2>
-            <p class="text-sm text-slate-600">Arrastra campos a filas y columnas, elige el cálculo y míralo como tabla o gráfico.</p>
+    <header class="an-cabecera">
+        <div>
+            <h2 class="an-titulo">Análisis</h2>
+            <p class="an-sub">Elige un conjunto en el menú y arma tu tabla arrastrando sus campos al centro.</p>
         </div>
+        {% if hay_conjuntos %}
+        <div class="an-periodo">
+            <nav class="an-seg" aria-label="Periodo">
+                <button type="button" data-periodo="mes">Este mes</button>
+                <button type="button" data-periodo="anio">Este año</button>
+                <button type="button" data-periodo="12m">Últimos 12 meses</button>
+                <button type="button" data-periodo="todo">Todo</button>
+            </nav>
+            <div class="an-rango">
+                <label>Desde <input id="an-desde" type="date"></label>
+                <label>Hasta <input id="an-hasta" type="date"></label>
+                <button id="an-aplicar" type="button" class="an-btn">Aplicar</button>
+            </div>
+        </div>
+        {% endif %}
     </header>
 
     {% if not hay_conjuntos %}
-    <div class="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600" data-sin-conjuntos>
+    <div class="an-tarjeta an-vacio" data-sin-conjuntos>
         Tu rol no tiene acceso a ningún conjunto de datos. Pide al administrador el permiso de ver del módulo que necesitas.
     </div>
     {% else %}
 
-    <section class="rounded-xl border border-slate-200 bg-white p-3 sm:p-4 space-y-3" aria-label="Filtros">
-        <div class="flex flex-wrap items-end gap-3">
-            <label class="flex flex-col gap-1 text-xs font-semibold text-slate-600">
-                Conjunto de datos
-                <select id="an-conjunto" class="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 min-w-[14rem]"></select>
-            </label>
-            <label class="flex flex-col gap-1 text-xs font-semibold text-slate-600">
-                Desde
-                <input id="an-desde" type="date" class="h-9 rounded-lg border border-slate-300 px-2 text-sm text-slate-800">
-            </label>
-            <label class="flex flex-col gap-1 text-xs font-semibold text-slate-600">
-                Hasta
-                <input id="an-hasta" type="date" class="h-9 rounded-lg border border-slate-300 px-2 text-sm text-slate-800">
-            </label>
-            <button id="an-aplicar" type="button" class="h-9 px-4 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-700">Aplicar</button>
-            <nav class="flex flex-wrap gap-1.5" aria-label="Periodos rápidos">
-                <button type="button" data-periodo="mes" class="an-chip">Este mes</button>
-                <button type="button" data-periodo="anio" class="an-chip">Este año</button>
-                <button type="button" data-periodo="12m" class="an-chip">Últimos 12 meses</button>
-                <button type="button" data-periodo="todo" class="an-chip">Todo</button>
-            </nav>
-        </div>
-        <p id="an-descripcion" class="text-xs text-slate-500"></p>
+    <div class="an-app">
+        <aside class="an-menu an-tarjeta" id="an-menu" aria-label="Conjuntos de datos"></aside>
 
-        <div class="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
-            <span class="text-xs font-semibold text-slate-600">Vistas rápidas:</span>
-            <div id="an-vistas-rapidas" class="flex flex-wrap gap-1.5"></div>
-        </div>
+        <main class="an-centro">
+            <section class="an-tarjeta" aria-label="Armar la tabla">
+                <div class="an-barra">
+                    <nav class="an-seg" aria-label="Ver como">
+                        <button type="button" data-vista="tabla">Tabla</button>
+                        <button type="button" data-vista="barras">Barras</button>
+                        <button type="button" data-vista="lineas">Líneas</button>
+                        <button type="button" data-vista="dona">Dona</button>
+                    </nav>
+                    <nav class="an-seg" aria-label="Orden de las filas">
+                        <button type="button" data-orden="valor">Mayor primero</button>
+                        <button type="button" data-orden="nombre">A–Z</button>
+                    </nav>
+                    <span class="an-espacio"></span>
+                    <button id="an-copiar-enlace" type="button" class="an-btn">Copiar enlace</button>
+                    <button id="an-exportar-datos" type="button" class="an-btn">Exportar datos</button>
+                    <button id="an-exportar" type="button" class="an-btn an-btn-principal">Descargar Excel</button>
+                </div>
 
-        <div class="flex flex-wrap items-end gap-2 border-t border-slate-100 pt-3">
-            <label class="flex flex-col gap-1 text-xs font-semibold text-slate-600">
-                Mis vistas
-                <select id="an-mis-vistas" class="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 min-w-[12rem]">
-                    <option value="">—</option>
-                </select>
-            </label>
-            <button id="an-eliminar-vista" type="button" class="h-9 px-3 rounded-lg border border-slate-300 text-sm text-slate-700 hover:bg-slate-50" disabled>Eliminar</button>
-            <label class="flex flex-col gap-1 text-xs font-semibold text-slate-600">
-                Nombre de la vista
-                <input id="an-nombre-vista" type="text" maxlength="80" placeholder="Ej.: Saldo por cliente 2026" class="h-9 rounded-lg border border-slate-300 px-2 text-sm text-slate-800">
-            </label>
-            <button id="an-guardar-vista" type="button" class="h-9 px-3 rounded-lg border border-slate-300 text-sm font-semibold text-slate-800 hover:bg-slate-50">Guardar vista</button>
-            <span class="flex-1"></span>
-            <button id="an-copiar-enlace" type="button" class="h-9 px-3 rounded-lg border border-slate-300 text-sm text-slate-700 hover:bg-slate-50">Copiar enlace</button>
-            <button id="an-exportar-datos" type="button" class="h-9 px-3 rounded-lg border border-slate-300 text-sm text-slate-700 hover:bg-slate-50">Exportar datos</button>
-            <button id="an-exportar" type="button" class="h-9 px-4 rounded-lg bg-emerald-700 text-white text-sm font-semibold hover:bg-emerald-800">Exportar a Excel</button>
-        </div>
-    </section>
+                <div class="an-preguntas">
+                    <span class="an-etiqueta">Preguntas frecuentes</span>
+                    <div id="an-vistas-rapidas" class="an-preguntas-lista"></div>
+                </div>
 
-    <div id="an-aviso" role="status" aria-live="polite" class="hidden rounded-lg border px-3 py-2 text-sm"></div>
-    <p id="an-estado" class="text-xs text-slate-500" aria-live="polite"></p>
+                <div class="an-zonas" id="an-zonas">
+                    <div class="an-zona" data-zona="filas"><div class="an-zona-cab"><b>Filas</b><span>agrupar por</span></div><div class="an-zona-cuerpo"></div></div>
+                    <div class="an-zona" data-zona="columnas"><div class="an-zona-cab"><b>Columnas</b><span>separar por</span></div><div class="an-zona-cuerpo"></div></div>
+                    <div class="an-zona" data-zona="valores"><div class="an-zona-cab"><b>Valores</b><span>qué medir</span></div><div class="an-zona-cuerpo"></div></div>
+                    <div class="an-zona" data-zona="filtros"><div class="an-zona-cab"><b>Filtros</b><span>mostrar solo</span></div><div class="an-zona-cuerpo"></div></div>
+                </div>
 
-    <section class="rounded-xl border border-slate-200 bg-white p-2 sm:p-3" aria-label="Tabla dinámica">
-        <div class="overflow-x-auto">
-            <div id="an-pivot" data-pivot></div>
-        </div>
-    </section>
+                <div class="an-vistas">
+                    <label>Mis vistas
+                        <select id="an-mis-vistas"><option value="">—</option></select>
+                    </label>
+                    <button id="an-eliminar-vista" type="button" class="an-btn" disabled>Eliminar</button>
+                    <label>Guardar como
+                        <input id="an-nombre-vista" type="text" maxlength="80" placeholder="Ej.: Saldo por cliente 2026">
+                    </label>
+                    <button id="an-guardar-vista" type="button" class="an-btn">Guardar vista</button>
+                </div>
+            </section>
+
+            <div id="an-aviso" role="status" aria-live="polite" hidden></div>
+
+            <section class="an-tarjeta an-resultado" id="an-resultado" aria-live="polite" aria-label="Resultado"></section>
+            <p id="an-estado" class="an-estado" aria-live="polite"></p>
+        </main>
+    </div>
     {% endif %}
 </div>
 
@@ -91,12 +100,9 @@
 
 {% block extra_scripts %}
 {% if hay_conjuntos %}
-<script src="{% static 'vendor/jquery/jquery.min.js' %}" defer></script>
-<script src="{% static 'vendor/jquery-ui/jquery-ui.min.js' %}" defer></script>
-<script src="{% static 'vendor/pivottable/pivot.min.js' %}" defer></script>
-<script src="{% static 'vendor/pivottable/pivot.es.min.js' %}" defer></script>
 <script src="{% static 'vendor/chartjs/chart.umd.js' %}" defer></script>
 <script src="{% static 'vendor/sheetjs/xlsx.mini.min.js' %}" defer></script>
+<script src="{% static 'js/analisis-motor.js' %}" defer></script>
 <script src="{% static 'js/analisis.js' %}" defer></script>
 {% endif %}
 {% endblock %}

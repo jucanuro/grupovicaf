@@ -96,6 +96,9 @@ pago y aprobación a crédito (PM-R01); por eso cobrado y saldo son "referencial
 | REQ-LIMS-38 | HU-LIMS-10 | SI el usuario no tiene `reportes.ver`, ENTONCES EL SISTEMA DEBE responder 403 y ocultar el menú; SI no tiene el permiso de ver del módulo del conjunto, ENTONCES EL SISTEMA DEBE ocultar el conjunto y responder 403 a sus datos; los montos de Clientes exigen además `cotizaciones.ver`. | sí (unitaria + E2E) | [Decisión Gerente] DP-LIMS-08 A, 12 B |
 | REQ-LIMS-39 | HU-LIMS-10 | EL SISTEMA NO DEBE enviar al navegador campos fuera de la lista blanca del conjunto (nunca RUC, código confidencial, firmas, archivos, código del voucher ni contactos). | sí (unitaria por conjunto) | [Propuesto] |
 | REQ-LIMS-40 | HU-LIMS-10 | EL SISTEMA DEBE entregar los datos con un número fijo de consultas y rechazar rangos de más de 20 000 filas pidiendo acotarlos. | sí (unitaria) | [Propuesto] |
+| REQ-LIMS-41 | HU-LIMS-06 | EL SISTEMA DEBE mostrar los conjuntos como un menú agrupado por módulo y, al abrir uno, sus campos en "Agrupar por" y "Medir", que el usuario arrastra o toca para llevarlos a Filas, Columnas, Valores o Filtros. | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-42 | HU-LIMS-06 | EL SISTEMA DEBE mostrar cada número según su tipo: montos en S/ con dos decimales, conteos y cantidades sin decimales de más, días y porcentajes con un decimal en promedios; y elegir el cálculo al soltar (montos y cantidades se suman, días y % se promedian). | sí (unitaria JS + E2E) | [Decisión Gerente] |
+| REQ-LIMS-43 | HU-LIMS-08 | EL SISTEMA DEBE explicar el resultado con una frase y mostrar los totales antes de la tabla, y ofrecer las vistas rápidas como preguntas frecuentes. | sí (E2E) | [Decisión Gerente] |
 
 ## 3. Trazabilidad HU → REQ
 

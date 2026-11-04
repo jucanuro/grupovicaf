@@ -26,8 +26,16 @@ from trabajadores.permissions import trabajador_tiene_permiso
 PERMISO_REPORTES = 'reportes.ver'
 LIMITE_FILAS = 20_000
 
+# Tipos de campo. Los dos primeros sirven para agrupar; el resto se mide y
+# cada uno dice cómo se muestra el número en pantalla y en Excel.
 TEXTO = 'texto'
-NUMERO = 'numero'
+PERIODO = 'periodo'        # año, mes o fecha: se ordena en el tiempo
+MONEDA = 'moneda'          # S/ con dos decimales; se suma
+CANTIDAD = 'cantidad'      # conteos y cantidades, sin decimales de más; se suma
+DIAS = 'dias'              # se promedia
+PORCENTAJE = 'porcentaje'  # se promedia
+NUMERO = CANTIDAD
+TIPOS_NUMERICOS = (MONEDA, CANTIDAD, DIAS, PORCENTAJE)
 
 
 @dataclass(frozen=True)
@@ -36,6 +44,10 @@ class Campo:
     etiqueta: str
     tipo: str = TEXTO
     permiso: str | None = None
+
+    @property
+    def es_numero(self):
+        return self.tipo in TIPOS_NUMERICOS
 
 
 class FilasExcedidas(Exception):
@@ -72,6 +84,7 @@ class Conjunto:
     permiso = ''
     campo_fecha = ''
     rango_defecto = 'mes'  # 'mes' (mes en curso) o 'todo'
+    unidad = 'registros'   # plural para el conteo: "N.º de <unidad>"
     campos: tuple = ()
     vistas_rapidas: tuple = ()
 
@@ -116,9 +129,14 @@ class Conjunto:
         filas = [[registro.get(c.clave) for c in campos] for registro in self.registros(qs, desde, hasta)]
         return {
             'encabezado': [c.etiqueta for c in campos],
-            'numericos': [c.etiqueta for c in campos if c.tipo == NUMERO],
+            'numericos': [c.etiqueta for c in campos if c.es_numero],
             'filas': filas,
         }
+
+    @property
+    def conteo(self):
+        """Medida implícita que cuenta filas: "N.º de cotizaciones"."""
+        return f'N.º de {self.unidad}'
 
     def resumen(self, user):
         return {
@@ -127,8 +145,33 @@ class Conjunto:
             'modulo': self.modulo,
             'descripcion': self.descripcion,
             'rango_defecto': self.rango_defecto,
-            'vistas': self.vistas_visibles(user),
+            'conteo': self.conteo,
+            'campos': [{'etiqueta': c.etiqueta, 'tipo': c.tipo} for c in self.campos_visibles(user)],
+            'vistas': [disposicion_de_vista(v, self.conteo) for v in self.vistas_visibles(user)],
         }
+
+
+CALCULOS = {'Cantidad': 'conteo', 'Suma': 'suma', 'Promedio': 'promedio', 'Mínimo': 'min', 'Máximo': 'max'}
+VISTAS = {'Tabla': 'tabla', 'Barras': 'barras', 'Barras apiladas': 'barras', 'Líneas': 'lineas', 'Dona': 'dona'}
+
+
+def disposicion_de_vista(vista, conteo):
+    """Pasa una vista rápida a la disposición que usa la pantalla:
+    filas, columnas, valores [[campo, cálculo]], solo/excluir y tipo de vista."""
+    calculo = CALCULOS[vista.get('aggregatorName', 'Cantidad')]
+    if calculo == 'conteo':
+        valores = [[conteo, 'conteo']]
+    else:
+        valores = [[campo, calculo] for campo in vista.get('vals', [])]
+    return {
+        'nombre': vista['nombre'],
+        'filas': list(vista.get('rows', [])),
+        'columnas': list(vista.get('cols', [])),
+        'valores': valores,
+        'solo': dict(vista.get('inclusions', {})),
+        'excluir': dict(vista.get('exclusions', {})),
+        'vista': VISTAS[vista.get('rendererName', 'Tabla')],
+    }
 
 
 # ----------------------------------------------------------------------
@@ -143,6 +186,7 @@ def _etiquetas_forma_pago():
 class Cotizaciones(Conjunto):
     clave = 'cotizaciones'
     nombre = 'Cotizaciones'
+    unidad = 'cotizaciones'
     modulo = 'Comercial'
     descripcion = 'Una fila por cotización emitida (sin plantillas). Montos en soles.'
     permiso = 'cotizaciones.ver'
@@ -150,32 +194,32 @@ class Cotizaciones(Conjunto):
     campos = (
         Campo('numero', 'N.º oferta'),
         Campo('cliente', 'Cliente'),
-        Campo('anio', 'Año'),
-        Campo('mes', 'Mes'),
-        Campo('fecha', 'Fecha'),
+        Campo('anio', 'Año', PERIODO),
+        Campo('mes', 'Mes', PERIODO),
+        Campo('fecha', 'Fecha', PERIODO),
         Campo('estado', 'Estado'),
         Campo('forma_pago', 'Forma de pago'),
         Campo('responsable', 'Responsable'),
         Campo('categoria', 'Categoría'),
         Campo('con_voucher', 'Con voucher'),
-        Campo('subtotal', 'Subtotal (sin IGV)', NUMERO),
-        Campo('igv', 'IGV', NUMERO),
-        Campo('total', 'Total (con IGV)', NUMERO),
-        Campo('cobrado', 'Cobrado (voucher)', NUMERO),
-        Campo('saldo', 'Saldo referencial', NUMERO),
+        Campo('subtotal', 'Subtotal (sin IGV)', MONEDA),
+        Campo('igv', 'IGV', MONEDA),
+        Campo('total', 'Total (con IGV)', MONEDA),
+        Campo('cobrado', 'Cobrado (voucher)', MONEDA),
+        Campo('saldo', 'Saldo referencial', MONEDA),
     )
     vistas_rapidas = (
-        {'nombre': 'Total por cliente', 'rows': ['Cliente'], 'cols': [],
+        {'nombre': '¿Cuánto cotizamos por cliente?', 'rows': ['Cliente'], 'cols': [],
          'aggregatorName': 'Suma', 'vals': ['Total (con IGV)'], 'rendererName': 'Tabla',
          'rowOrder': 'value_z_to_a'},
-        {'nombre': 'Cantidad por mes y estado', 'rows': ['Mes'], 'cols': ['Estado'],
+        {'nombre': '¿Cuántas cotizaciones por mes y estado?', 'rows': ['Mes'], 'cols': ['Estado'],
          'aggregatorName': 'Cantidad', 'vals': [], 'rendererName': 'Barras apiladas'},
-        {'nombre': 'Monto por estado', 'rows': ['Estado'], 'cols': [],
+        {'nombre': '¿Cuánto hay en cada estado?', 'rows': ['Estado'], 'cols': [],
          'aggregatorName': 'Suma', 'vals': ['Total (con IGV)'], 'rendererName': 'Tabla'},
-        {'nombre': 'Saldo referencial por cliente', 'rows': ['Cliente'], 'cols': [],
+        {'nombre': '¿Cuánto falta cobrar y de quién?', 'rows': ['Cliente'], 'cols': [],
          'aggregatorName': 'Suma', 'vals': ['Saldo referencial'], 'rendererName': 'Tabla',
          'inclusions': {'Estado': ['Aceptada']}, 'rowOrder': 'value_z_to_a'},
-        {'nombre': 'Por forma de pago', 'rows': ['Forma de pago'], 'cols': [],
+        {'nombre': '¿Contado o crédito?', 'rows': ['Forma de pago'], 'cols': [],
          'aggregatorName': 'Suma', 'vals': ['Total (con IGV)'], 'rendererName': 'Dona'},
     )
 
@@ -218,6 +262,7 @@ class Cotizaciones(Conjunto):
 class ItemsCotizados(Conjunto):
     clave = 'items'
     nombre = 'Ítems cotizados'
+    unidad = 'ítems'
     modulo = 'Comercial'
     descripcion = 'Una fila por ensayo de cada cotización. Montos sin IGV.'
     permiso = 'cotizaciones.ver'
@@ -225,8 +270,8 @@ class ItemsCotizados(Conjunto):
     campos = (
         Campo('numero', 'N.º oferta'),
         Campo('cliente', 'Cliente'),
-        Campo('anio', 'Año'),
-        Campo('mes', 'Mes'),
+        Campo('anio', 'Año', PERIODO),
+        Campo('mes', 'Mes', PERIODO),
         Campo('estado', 'Estado de la cotización'),
         Campo('forma_pago', 'Forma de pago'),
         Campo('responsable', 'Responsable'),
@@ -235,17 +280,17 @@ class ItemsCotizados(Conjunto):
         Campo('ensayo', 'Ensayo'),
         Campo('acreditado', 'Acreditado'),
         Campo('unidad', 'Unidad'),
-        Campo('cantidad', 'Cantidad', NUMERO),
-        Campo('precio', 'Precio unitario (sin IGV)', NUMERO),
-        Campo('total', 'Total ítem (sin IGV)', NUMERO),
+        Campo('cantidad', 'Cantidad', CANTIDAD),
+        Campo('precio', 'Precio unitario (sin IGV)', MONEDA),
+        Campo('total', 'Total ítem (sin IGV)', MONEDA),
     )
     vistas_rapidas = (
-        {'nombre': 'Monto por ensayo', 'rows': ['Ensayo'], 'cols': [],
+        {'nombre': '¿Qué ensayos suman más?', 'rows': ['Ensayo'], 'cols': [],
          'aggregatorName': 'Suma', 'vals': ['Total ítem (sin IGV)'], 'rendererName': 'Tabla',
          'rowOrder': 'value_z_to_a'},
-        {'nombre': 'Cantidad por ensayo y mes', 'rows': ['Ensayo'], 'cols': ['Mes'],
+        {'nombre': '¿Cuántos de cada ensayo por mes?', 'rows': ['Ensayo'], 'cols': ['Mes'],
          'aggregatorName': 'Suma', 'vals': ['Cantidad'], 'rendererName': 'Tabla'},
-        {'nombre': 'Aceptado por ensayo', 'rows': ['Ensayo'], 'cols': [],
+        {'nombre': '¿Qué ensayos se aceptan más?', 'rows': ['Ensayo'], 'cols': [],
          'aggregatorName': 'Suma', 'vals': ['Total ítem (sin IGV)'], 'rendererName': 'Barras',
          'inclusions': {'Estado de la cotización': ['Aceptada']}, 'rowOrder': 'value_z_to_a'},
     )
@@ -292,6 +337,7 @@ class ItemsCotizados(Conjunto):
 class Clientes(Conjunto):
     clave = 'clientes'
     nombre = 'Clientes'
+    unidad = 'clientes'
     modulo = 'Clientes'
     descripcion = 'Una fila por cliente. El rango filtra por fecha de alta; los totales son históricos.'
     permiso = 'clientes.ver'
@@ -301,22 +347,22 @@ class Clientes(Conjunto):
         Campo('razon_social', 'Razón social'),
         Campo('origen', 'Origen'),
         Campo('activo', 'Activo'),
-        Campo('anio', 'Año de alta'),
-        Campo('mes', 'Mes de alta'),
-        Campo('n_cotizaciones', 'N.º cotizaciones', NUMERO),
-        Campo('n_aceptadas', 'N.º aceptadas', NUMERO),
-        Campo('monto', 'Monto cotizado (con IGV)', NUMERO, permiso='cotizaciones.ver'),
-        Campo('monto_aceptado', 'Monto aceptado (con IGV)', NUMERO, permiso='cotizaciones.ver'),
-        Campo('n_proyectos', 'N.º proyectos', NUMERO),
-        Campo('n_informes', 'N.º informes', NUMERO),
+        Campo('anio', 'Año de alta', PERIODO),
+        Campo('mes', 'Mes de alta', PERIODO),
+        Campo('n_cotizaciones', 'N.º cotizaciones', CANTIDAD),
+        Campo('n_aceptadas', 'N.º aceptadas', CANTIDAD),
+        Campo('monto', 'Monto cotizado (con IGV)', MONEDA, permiso='cotizaciones.ver'),
+        Campo('monto_aceptado', 'Monto aceptado (con IGV)', MONEDA, permiso='cotizaciones.ver'),
+        Campo('n_proyectos', 'N.º proyectos', CANTIDAD),
+        Campo('n_informes', 'N.º informes', CANTIDAD),
     )
     vistas_rapidas = (
-        {'nombre': 'Cotizado por cliente', 'rows': ['Razón social'], 'cols': [],
+        {'nombre': '¿Cuánto le cotizamos a cada cliente?', 'rows': ['Razón social'], 'cols': [],
          'aggregatorName': 'Suma', 'vals': ['Monto cotizado (con IGV)'], 'rendererName': 'Tabla',
          'rowOrder': 'value_z_to_a'},
-        {'nombre': 'Clientes nuevos por mes', 'rows': ['Mes de alta'], 'cols': ['Origen'],
+        {'nombre': '¿Cuántos clientes nuevos por mes?', 'rows': ['Mes de alta'], 'cols': ['Origen'],
          'aggregatorName': 'Cantidad', 'vals': [], 'rendererName': 'Barras apiladas'},
-        {'nombre': 'Informes por cliente', 'rows': ['Razón social'], 'cols': [],
+        {'nombre': '¿Cuántos informes tiene cada cliente?', 'rows': ['Razón social'], 'cols': [],
          'aggregatorName': 'Suma', 'vals': ['N.º informes'], 'rendererName': 'Tabla',
          'rowOrder': 'value_z_to_a'},
     )
@@ -395,6 +441,7 @@ def _nombre_usuario(nombre_perfil, username):
 class Muestras(Conjunto):
     clave = 'muestras'
     nombre = 'Muestras recibidas'
+    unidad = 'muestras'
     modulo = 'Recepción'
     descripcion = 'Una fila por muestra recibida. El rango filtra por fecha de recepción.'
     permiso = 'muestras.ver'
@@ -407,16 +454,16 @@ class Muestras(Conjunto):
         Campo('unidad', 'Unidad'),
         Campo('procedencia', 'Procedencia'),
         Campo('recibido_por', 'Recibido por'),
-        Campo('anio', 'Año'),
-        Campo('mes', 'Mes'),
-        Campo('cantidad', 'Cantidad', NUMERO),
-        Campo('masa', 'Masa aprox.', NUMERO),
-        Campo('dias_programado', 'Días recepción → ensayo programado', NUMERO),
+        Campo('anio', 'Año', PERIODO),
+        Campo('mes', 'Mes', PERIODO),
+        Campo('cantidad', 'Cantidad', CANTIDAD),
+        Campo('masa', 'Masa aprox.', CANTIDAD),
+        Campo('dias_programado', 'Días recepción → ensayo programado', DIAS),
     )
     vistas_rapidas = (
-        {'nombre': 'Muestras por tipo y mes', 'rows': ['Tipo de muestra'], 'cols': ['Mes'],
+        {'nombre': '¿Qué muestras llegan cada mes?', 'rows': ['Tipo de muestra'], 'cols': ['Mes'],
          'aggregatorName': 'Suma', 'vals': ['Cantidad'], 'rendererName': 'Tabla'},
-        {'nombre': 'Muestras por cliente', 'rows': ['Cliente'], 'cols': [],
+        {'nombre': '¿Cuántas muestras trajo cada cliente?', 'rows': ['Cliente'], 'cols': [],
          'aggregatorName': 'Suma', 'vals': ['Cantidad'], 'rendererName': 'Barras', 'rowOrder': 'value_z_to_a'},
     )
 
@@ -455,6 +502,7 @@ class Muestras(Conjunto):
 class Solicitudes(Conjunto):
     clave = 'solicitudes'
     nombre = 'Solicitudes de ensayo'
+    unidad = 'solicitudes'
     modulo = 'Ensayos'
     descripcion = 'Una fila por solicitud. Vencida = sin finalizar y con entrega programada anterior a hoy.'
     permiso = 'ensayos.ver'
@@ -468,16 +516,16 @@ class Solicitudes(Conjunto):
         Campo('revisado', 'Revisado por'),
         Campo('vencida', 'Vencida'),
         Campo('con_incidencias', 'Con incidencias'),
-        Campo('anio', 'Año'),
-        Campo('mes', 'Mes'),
-        Campo('n_ensayos', 'N.º ensayos', NUMERO),
-        Campo('n_incidencias', 'N.º incidencias', NUMERO),
-        Campo('atraso', 'Días de atraso', NUMERO),
+        Campo('anio', 'Año', PERIODO),
+        Campo('mes', 'Mes', PERIODO),
+        Campo('n_ensayos', 'N.º ensayos', CANTIDAD),
+        Campo('n_incidencias', 'N.º incidencias', CANTIDAD),
+        Campo('atraso', 'Días de atraso', DIAS),
     )
     vistas_rapidas = (
-        {'nombre': 'Solicitudes por estado y mes', 'rows': ['Mes'], 'cols': ['Estado'],
+        {'nombre': '¿Cómo van las solicitudes por mes?', 'rows': ['Mes'], 'cols': ['Estado'],
          'aggregatorName': 'Cantidad', 'vals': [], 'rendererName': 'Barras apiladas'},
-        {'nombre': 'Vencidas por elaborador', 'rows': ['Elaborado por'], 'cols': [],
+        {'nombre': '¿Quién tiene solicitudes vencidas?', 'rows': ['Elaborado por'], 'cols': [],
          'aggregatorName': 'Cantidad', 'vals': [], 'rendererName': 'Tabla',
          'inclusions': {'Vencida': ['Sí']}, 'rowOrder': 'value_z_to_a'},
     )
@@ -522,6 +570,7 @@ class Solicitudes(Conjunto):
 class EnsayosAsignados(Conjunto):
     clave = 'ensayos'
     nombre = 'Ensayos asignados'
+    unidad = 'ensayos'
     modulo = 'Ensayos'
     descripcion = ('Una fila por ensayo de una solicitud. El rango filtra por entrega programada. '
                    'Terminado = tiene fecha real de entrega (RN-R05).')
@@ -537,15 +586,15 @@ class EnsayosAsignados(Conjunto):
         Campo('aceptado', 'Aceptado por técnico'),
         Campo('terminado', 'Terminado'),
         Campo('a_tiempo', 'A tiempo'),
-        Campo('anio', 'Año'),
-        Campo('mes', 'Mes'),
-        Campo('atraso', 'Días de atraso', NUMERO),
-        Campo('ejecucion', 'Días de ejecución', NUMERO),
+        Campo('anio', 'Año', PERIODO),
+        Campo('mes', 'Mes', PERIODO),
+        Campo('atraso', 'Días de atraso', DIAS),
+        Campo('ejecucion', 'Días de ejecución', DIAS),
     )
     vistas_rapidas = (
-        {'nombre': 'Ensayos por técnico a tiempo o atrasados', 'rows': ['Técnico'], 'cols': ['A tiempo'],
+        {'nombre': '¿Quién va a tiempo y quién atrasado?', 'rows': ['Técnico'], 'cols': ['A tiempo'],
          'aggregatorName': 'Cantidad', 'vals': [], 'rendererName': 'Barras apiladas'},
-        {'nombre': 'Atraso promedio por ensayo', 'rows': ['Ensayo'], 'cols': [],
+        {'nombre': '¿Qué ensayo se atrasa más?', 'rows': ['Ensayo'], 'cols': [],
          'aggregatorName': 'Promedio', 'vals': ['Días de atraso'], 'rendererName': 'Tabla',
          'rowOrder': 'value_z_to_a'},
     )
@@ -587,6 +636,7 @@ class EnsayosAsignados(Conjunto):
 class Incidencias(Conjunto):
     clave = 'incidencias'
     nombre = 'Incidencias'
+    unidad = 'incidencias'
     modulo = 'Ensayos'
     descripcion = 'Una fila por incidencia registrada en una solicitud.'
     permiso = 'ensayos.ver'
@@ -598,12 +648,12 @@ class Incidencias(Conjunto):
         Campo('representante', 'Representante del laboratorio'),
         Campo('autorizada', 'Autorizada'),
         Campo('autorizado_por', 'Autorizado por'),
-        Campo('anio', 'Año'),
-        Campo('mes', 'Mes'),
-        Campo('dias_autorizacion', 'Días hasta autorización', NUMERO),
+        Campo('anio', 'Año', PERIODO),
+        Campo('mes', 'Mes', PERIODO),
+        Campo('dias_autorizacion', 'Días hasta autorización', DIAS),
     )
     vistas_rapidas = (
-        {'nombre': 'Incidencias por mes y autorización', 'rows': ['Mes'], 'cols': ['Autorizada'],
+        {'nombre': '¿Cuántas incidencias por mes?', 'rows': ['Mes'], 'cols': ['Autorizada'],
          'aggregatorName': 'Cantidad', 'vals': [], 'rendererName': 'Barras apiladas'},
     )
 
@@ -634,6 +684,7 @@ class Incidencias(Conjunto):
 class Informes(Conjunto):
     clave = 'informes'
     nombre = 'Informes finales'
+    unidad = 'informes'
     modulo = 'Informes'
     descripcion = 'Una fila por informe final emitido. El rango filtra por fecha de emisión.'
     permiso = 'informes.ver'
@@ -644,17 +695,17 @@ class Informes(Conjunto):
         Campo('cliente', 'Cliente'),
         Campo('estado_envio', 'Estado de envío'),
         Campo('firmado_por', 'Firmado por'),
-        Campo('anio', 'Año'),
-        Campo('mes', 'Mes'),
-        Campo('descargas', 'Descargas', NUMERO),
-        Campo('dias_envio', 'Días emisión → envío', NUMERO),
-        Campo('dias_emision', 'Días solicitud → emisión', NUMERO),
+        Campo('anio', 'Año', PERIODO),
+        Campo('mes', 'Mes', PERIODO),
+        Campo('descargas', 'Descargas', CANTIDAD),
+        Campo('dias_envio', 'Días emisión → envío', DIAS),
+        Campo('dias_emision', 'Días solicitud → emisión', DIAS),
     )
     vistas_rapidas = (
-        {'nombre': 'Pendientes de envío por cliente', 'rows': ['Cliente'], 'cols': [],
+        {'nombre': '¿Qué informes faltan enviar?', 'rows': ['Cliente'], 'cols': [],
          'aggregatorName': 'Cantidad', 'vals': [], 'rendererName': 'Tabla',
          'inclusions': {'Estado de envío': ['Pendiente de Envío']}, 'rowOrder': 'value_z_to_a'},
-        {'nombre': 'Informes por mes y estado de envío', 'rows': ['Mes'], 'cols': ['Estado de envío'],
+        {'nombre': '¿Cuántos informes salen por mes?', 'rows': ['Mes'], 'cols': ['Estado de envío'],
          'aggregatorName': 'Cantidad', 'vals': [], 'rendererName': 'Barras apiladas'},
     )
 
@@ -689,6 +740,7 @@ class Informes(Conjunto):
 class Proyectos(Conjunto):
     clave = 'proyectos'
     nombre = 'Proyectos'
+    unidad = 'proyectos'
     modulo = 'Proyectos'
     descripcion = ('Una fila por proyecto. El rango filtra por fecha de inicio. Vencido = entrega estimada '
                    'anterior a hoy y sin finalizar ni cancelar (RN-R06).')
@@ -699,17 +751,17 @@ class Proyectos(Conjunto):
         Campo('cliente', 'Cliente'),
         Campo('estado', 'Estado'),
         Campo('vencido', 'Vencido'),
-        Campo('anio', 'Año'),
-        Campo('mes', 'Mes'),
-        Campo('previstas', 'Muestras previstas', NUMERO),
-        Campo('registradas', 'Muestras registradas', NUMERO),
-        Campo('avance', '% avance de muestras', NUMERO),
-        Campo('atraso', 'Días de atraso', NUMERO),
+        Campo('anio', 'Año', PERIODO),
+        Campo('mes', 'Mes', PERIODO),
+        Campo('previstas', 'Muestras previstas', CANTIDAD),
+        Campo('registradas', 'Muestras registradas', CANTIDAD),
+        Campo('avance', '% avance de muestras', PORCENTAJE),
+        Campo('atraso', 'Días de atraso', DIAS),
     )
     vistas_rapidas = (
-        {'nombre': 'Proyectos por estado', 'rows': ['Estado'], 'cols': [],
+        {'nombre': '¿Cuántos proyectos hay en cada estado?', 'rows': ['Estado'], 'cols': [],
          'aggregatorName': 'Cantidad', 'vals': [], 'rendererName': 'Barras'},
-        {'nombre': 'Vencidos por cliente', 'rows': ['Cliente'], 'cols': [],
+        {'nombre': '¿Qué clientes tienen proyectos vencidos?', 'rows': ['Cliente'], 'cols': [],
          'aggregatorName': 'Cantidad', 'vals': [], 'rendererName': 'Tabla',
          'inclusions': {'Vencido': ['Sí']}, 'rowOrder': 'value_z_to_a'},
     )
@@ -749,6 +801,7 @@ class Proyectos(Conjunto):
 class Actividades(Conjunto):
     clave = 'actividades'
     nombre = 'Actividades de la agenda'
+    unidad = 'actividades'
     modulo = 'Agenda'
     descripcion = 'Una fila por actividad del calendario. El rango filtra por fecha de inicio.'
     permiso = 'calendario.ver'
@@ -761,15 +814,15 @@ class Actividades(Conjunto):
         Campo('categoria', 'Categoría'),
         Campo('cliente', 'Cliente'),
         Campo('creada_por', 'Creada por'),
-        Campo('anio', 'Año'),
-        Campo('mes', 'Mes'),
-        Campo('duracion', 'Duración (h)', NUMERO),
-        Campo('atraso', 'Días de atraso', NUMERO),
+        Campo('anio', 'Año', PERIODO),
+        Campo('mes', 'Mes', PERIODO),
+        Campo('duracion', 'Duración (h)', CANTIDAD),
+        Campo('atraso', 'Días de atraso', DIAS),
     )
     vistas_rapidas = (
-        {'nombre': 'Actividades por clase y estado', 'rows': ['Clase'], 'cols': ['Estado'],
+        {'nombre': '¿Qué actividades hay y cómo van?', 'rows': ['Clase'], 'cols': ['Estado'],
          'aggregatorName': 'Cantidad', 'vals': [], 'rendererName': 'Tabla'},
-        {'nombre': 'Horas por mes', 'rows': ['Mes'], 'cols': [],
+        {'nombre': '¿Cuántas horas por mes?', 'rows': ['Mes'], 'cols': [],
          'aggregatorName': 'Suma', 'vals': ['Duración (h)'], 'rendererName': 'Líneas'},
     )
 
@@ -813,6 +866,7 @@ class BandejaWeb(Conjunto):
     personales: ni nombre, ni correo, ni teléfono, ni RUC, ni texto del mensaje."""
     clave = 'bandeja-web'
     nombre = 'Bandeja web'
+    unidad = 'registros'
     modulo = 'Web'
     descripcion = 'Una fila por mensaje de contacto o solicitud de cotización llegada desde la web.'
     permiso = 'cotizaciones.ver'
@@ -822,15 +876,15 @@ class BandejaWeb(Conjunto):
         Campo('origen', 'Página de origen'),
         Campo('estado', 'Estado'),
         Campo('convertida', 'Convertida en cotización'),
-        Campo('anio', 'Año'),
-        Campo('mes', 'Mes'),
-        Campo('n_items', 'N.º ítems', NUMERO),
-        Campo('dias_atencion', 'Días hasta atención', NUMERO),
+        Campo('anio', 'Año', PERIODO),
+        Campo('mes', 'Mes', PERIODO),
+        Campo('n_items', 'N.º ítems', CANTIDAD),
+        Campo('dias_atencion', 'Días hasta atención', DIAS),
     )
     vistas_rapidas = (
-        {'nombre': 'Llegadas por mes y tipo', 'rows': ['Mes'], 'cols': ['Tipo'],
+        {'nombre': '¿Qué llega por la web cada mes?', 'rows': ['Mes'], 'cols': ['Tipo'],
          'aggregatorName': 'Cantidad', 'vals': [], 'rendererName': 'Barras apiladas'},
-        {'nombre': 'Páginas que más convierten', 'rows': ['Página de origen'], 'cols': ['Tipo'],
+        {'nombre': '¿Qué páginas traen más pedidos?', 'rows': ['Página de origen'], 'cols': ['Tipo'],
          'aggregatorName': 'Cantidad', 'vals': [], 'rendererName': 'Tabla', 'rowOrder': 'value_z_to_a'},
     )
 
