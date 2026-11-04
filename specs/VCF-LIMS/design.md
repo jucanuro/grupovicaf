@@ -2,7 +2,7 @@
 
 | Dueño | Versión | Fecha | Estado |
 |---|---|---|---|
-| DLF | v1 | 2026-11-03 | Listo para implementar |
+| DLF | v2 | 2026-11-03 | Listo para implementar |
 
 > Depende de `requirements.md` v1 (G1). Todo elemento de este diseño apunta a un REQ.
 
@@ -63,9 +63,46 @@ Paleta, validada con `validate_palette.js`:
 | R2 | Las cifras de proyectos cambian al leer `Proyecto.estado` | Comparar con el dashboard anterior antes del pase (pregunta abierta 1) | Abierto |
 | R3 | Las cotizaciones históricas nunca se marcaron como enviadas o rechazadas, así que la tasa saldrá "Sin datos" al principio | Esperado: se llena a medida que el equipo use los botones | Aceptado |
 
+## 5b. Análisis con tabla dinámica (v2, REQ-LIMS-27 a 40)
+
+**Modelo:** app nueva `analisis` (capa LIMS). Un modelo, `VistaAnalisis`
+(usuario, nombre, conjunto, `configuracion` JSON; única por usuario + conjunto +
+nombre). Migración de datos `0002` que crea el permiso `reportes.ver` y lo da a
+los roles cuyo nombre contiene "admin" o "gerent". No toca tablas existentes.
+
+| URL | Vista | Permiso | REQ |
+|---|---|---|---|
+| `/analisis/?conjunto=&desde=&hasta=#c=<json>` | `analisis.views.analisis_view` | `reportes.ver` | 27, 34, 36 |
+| `/analisis/datos/<conjunto>/?desde=&hasta=` (GET, JSON) | `datos_view` | `reportes.ver` + permiso del conjunto | 29-31, 38-40 |
+| `/analisis/vistas/` (GET lista, POST JSON guarda) | `vistas_view` | `reportes.ver` | 35 |
+| `/analisis/vistas/<pk>/eliminar/` (POST) | `eliminar_vista_view` | `reportes.ver` y dueño | 35 |
+
+| Componente | Responsabilidad | REQ |
+|---|---|---|
+| `analisis/conjuntos.py` | Registro de conjuntos: permiso, fecha, unidad del conteo ("N.º de cotizaciones"), lista blanca (`Campo` con tipo `texto`, `periodo`, `moneda`, `cantidad`, `dias` o `porcentaje`) y preguntas frecuentes. `datos()` arma `encabezado` + `filas` copiando solo las claves de la lista blanca; `resumen()` entrega al menú los campos visibles con su tipo | 29, 31, 34, 38-41 |
+| `templates/analisis/analisis.html` + `static/css/analisis.css` | Menú de conjuntos por módulo a la izquierda; al centro, zonas Filas, Columnas, Valores y Filtros, preguntas frecuentes, vistas y botones | 27, 30, 41 |
+| `static/js/analisis-motor.js` | Funciones puras (navegador y Node): disposición válida por conjunto, cálculo por grupos (conteo, suma, promedio, máx., mín.), formato por tipo y formato de Excel. Pruebas en `tests/js/analisis-motor.test.js` | 28, 33, 42 |
+| `static/js/analisis.js` (`defer`) | Arrastrar (HTML5) o tocar campos, frase y totales, tabla con barra de fondo, gráficos Chart.js (barras, líneas, dona), URL compartible, vistas guardadas, exportación SheetJS | 28, 32, 33, 35-37, 41-43 |
+| `static/vendor/sheetjs 0.18.5` | Apache-2.0, solo en esta página y sin `sourceMappingURL` (evita el fallo de `collectstatic` visto con Chart.js) | 37 |
+
+Disposición (URL, vistas guardadas y preguntas): `{filas, columnas, valores:
+[[campo, cálculo]], solo: {campo: [valores]}, excluir: {campo: [valores]}, vista:
+tabla|barras|lineas|dona, orden: valor|nombre}`. El servidor valida esas claves y
+descarta el resto.
+
+Paleta de los gráficos: categórica de 8 colores en orden fijo (`#2a78d6`, `#eb6834`,
+`#1baf7a`, `#eda100`, `#e87ba4`, `#008300`, `#6250d6`, `#e34948`), validada en la
+skill dataviz; "Otros" en gris `#8a8984`; 2 px de superficie entre segmentos apilados.
+
+Riesgos: R4 `xlsx` 0.18.5 de npm tiene avisos de seguridad al **leer** archivos;
+aquí solo se escribe, en el navegador. R5 El arrastrar HTML5 no funciona con el
+dedo en celulares: ahí se toca el campo y se agrega en la zona que corresponde.
+
 ## 6. Historial
 
 | Versión | Fecha | Autor | Cambio |
 |---|---|---|---|
 | v0 | 2026-10-12 | DLF | Plantilla inicial |
 | v1 | 2026-11-03 | Claude (DLF) | Diseño del dashboard y de las transiciones de cotización |
+| v3 | 2026-11-04 | Claude (DLF) | Análisis sin PivotTable.js: menú de conjuntos, zonas para arrastrar y números por tipo (aprobado por el Gerente el 2026-11-04) |
+| v2 | 2026-11-03 | Claude (DLF) | Diseño de Análisis con tabla dinámica (app `analisis`) |

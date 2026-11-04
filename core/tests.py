@@ -1,4 +1,5 @@
 import tempfile
+from decimal import Decimal
 from io import StringIO
 
 from django.contrib.auth.models import User
@@ -43,7 +44,7 @@ class SembrarE2ETests(TestCase):
         call_command('sembrar_e2e', stdout=StringIO())
         call_command('sembrar_e2e', stdout=StringIO())
 
-        self.assertEqual(User.objects.filter(username__startswith='e2e.').count(), 3)
+        self.assertEqual(User.objects.filter(username__startswith='e2e.').count(), 4)
         self.assertEqual(SolicitudEnsayo.objects.filter(codigo_solicitud='SOL-E2E-0001').count(), 1)
         informe = InformeFinal.objects.get()
         self.assertEqual(str(informe.slug_validacion), 'e2e00000-0000-4000-8000-000000000001')
@@ -52,6 +53,11 @@ class SembrarE2ETests(TestCase):
         self.assertEqual(SolicitudEnsayo.objects.filter(codigo_solicitud__startswith='SOL-E2E-V').count(), 6)
         self.assertEqual(Proyecto.objects.filter(codigo_proyecto__startswith='P-E2E-').count(), 5)
         self.assertEqual(Cotizacion.objects.get(numero_oferta='COT-E2E-MARCAR').estado, 'Pendiente')
+        # Datos de Análisis (e2e/analisis.spec.js): totales fijos tras dos siembras.
+        a01 = Cotizacion.objects.get(numero_oferta='COT-E2E-A01')
+        self.assertEqual(a01.monto_total, Decimal('1180.00'))
+        self.assertEqual(a01.voucher.monto_pagado, Decimal('590.00'))
+        self.assertEqual(Cotizacion.objects.filter(es_plantilla=True, nombre_plantilla='E2E Plantilla Análisis').count(), 1)
 
     @override_settings(DEBUG=False)
     def test_no_corre_con_debug_false(self):

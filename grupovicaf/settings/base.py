@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'servicios',
     'proyectos',
     'actividades',
+    'analisis',
     'siteconfig',
     'web_inicio',
     'web_nosotros',

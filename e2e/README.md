@@ -11,6 +11,7 @@ en cada PR contra `dev` y `main`, y un PR con una prueba en rojo no se integra.
 | `tecnico.spec.js` | El técnico ve solo sus ensayos y el código confidencial en vez del cliente | L3 |
 | `asistente-whatsapp.spec.js` | Asistente de WhatsApp: menú, cotización, validaciones, enlace `wa.me`, fuera de horario | REQ-WEB-01, 04, 10 a 16, 18 |
 | `dashboard.spec.js` | Dashboard del LIMS (KPI, embudo, vencidas, proyectos, periodo, tablas, celular) y marcar cotización como enviada/rechazada | REQ-LIMS-01, 04 a 08, 10 a 20, 22 a 24 |
+| `analisis.spec.js` | Análisis: menú de conjuntos, arrastrar o tocar campos a Filas/Columnas/Valores/Filtros, números en S/, gráficos, Excel, vistas guardadas y permisos | REQ-LIMS-27 a 43 |
 
 ## Correr en local (sin Docker)
 

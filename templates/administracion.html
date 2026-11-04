@@ -487,6 +487,17 @@ document.addEventListener('DOMContentLoaded', () => {
             ]
         },
         {
+            id: 'tabla_dinamica',
+            visible: {{ puede_ver_reportes|yesno:"true,false" }},
+            url: "{% url 'analisis:analisis' %}",
+            icon: '🧮',
+            category: 'Análisis',
+            title: 'Análisis con tabla dinámica',
+            desc: 'Cruza datos de cualquier módulo en tablas y gráficos; exporta a Excel.',
+            glow: '#6250d6',
+            isLight: false
+        },
+        {
             id: 'analisis',
             visible: {{ puede_ver_dashboard|yesno:"true,false" }},
             url: "{% url 'dashboard' %}",
