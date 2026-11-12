@@ -34,7 +34,7 @@ from .directorio import sugerir
 from .models import Adjunto, AccesoCuenta, CuentaCorreo, EventoMensaje, Firma, Mensaje
 from .sanitizar import reemplazar_cid, sanitizar_html
 from .tasks import adjuntar_cotizacion, enviar_mensaje
-from .views_correo import URLCONF_LAB, correo_requerido
+from .views_correo import URLCONF_LAB, contexto_bandeja_cuenta, correo_requerido
 
 MAX_BYTES = settings.CORREO_MAX_ADJUNTOS_BYTES
 
@@ -202,9 +202,12 @@ def borrador(request, pk):
     disponibles = cuentas_para_enviar(request.user)
     original = _original(b)
     puede_cotizar = trabajador_tiene_permiso(request.user, 'cotizaciones.ver')
-    return render(request, 'correo/redactar.html', {
+    # Como en Outlook: la lista de la cuenta a la izquierda y el correo nuevo en el
+    # panel de lectura. ?completo=1 lo abre a pantalla completa.
+    contexto = contexto_bandeja_cuenta(request, b.cuenta)
+    contexto.update({
         'b': b,
-        'cuentas': disponibles,
+        'cuentas_envio': disponibles,
         'cuenta_actual': b.cuenta,
         'para': _fmt(b.para), 'cc': _fmt(b.cc), 'cco': _fmt(b.cco),
         'cuerpo_editor': _html_para_editor(b),
@@ -213,8 +216,10 @@ def borrador(request, pk):
         'firmas': firmas_de(request.user, disponibles),
         'adjuntos': _adjuntos_json(b),
         'puede_cotizar': puede_cotizar,
-        'url_inicio_lab': url_lab(request, reverse('inicio', urlconf=URLCONF_LAB)),
+        'completo': request.GET.get('completo') == '1',
+        'redactando': True,
     })
+    return render(request, 'correo/redactar.html', contexto)
 
 
 def _guardar_campos(request, b):

@@ -81,8 +81,10 @@ def salir(request):
 
 # ---------------------------------------------------------- tres paneles
 
-def _render_bandeja(request, *, titulo, filtro, url_base, cuenta=None, carpeta=None, extra=None):
-    hilo_id = request.GET.get('h')
+def contexto_bandeja(request, *, titulo, filtro, url_base, cuenta=None, carpeta=None, extra=None, abrir=True):
+    """Contexto de la lista (y del hilo abierto con ?h=). Lo usa también Redactar,
+    que muestra la lista a la izquierda y el correo nuevo en el panel de lectura."""
+    hilo_id = request.GET.get('h') if abrir else None
     lectura = None
     if hilo_id and hilo_id.isdigit():
         lectura = abrir_hilo(request, exigir_hilo(request.user, int(hilo_id)), carpeta)
@@ -100,10 +102,26 @@ def _render_bandeja(request, *, titulo, filtro, url_base, cuenta=None, carpeta=N
         'url_base': url_base,
         'lectura': lectura,
         'url_inicio_lab': url_lab(request, reverse('inicio', urlconf=URLCONF_LAB)),
-        'volver': request.get_full_path(),
+        'volver': request.get_full_path() if abrir else url_base,
+        # «Mover a» de la barra de comandos: carpetas de la cuenta (o del hilo abierto).
+        'carpetas_mover': (list(cuenta.carpetas.order_by('orden', 'nombre')) if cuenta is not None
+                           else list(lectura['carpetas_destino']) if lectura else []),
     }
     contexto.update(extra or {})
-    return render(request, 'correo/bandeja.html', contexto)
+    return contexto
+
+
+def contexto_bandeja_cuenta(request, cuenta):
+    """Lista de la bandeja de entrada de `cuenta`, sin hilo abierto."""
+    carpeta = carpeta_de(cuenta, 'entrada')
+    return contexto_bandeja(
+        request, titulo=carpeta.nombre, filtro={'carpeta': carpeta},
+        url_base=reverse('bandeja_cuenta', args=[cuenta.slug]), cuenta=cuenta, carpeta=carpeta, abrir=False,
+    )
+
+
+def _render_bandeja(request, **kwargs):
+    return render(request, 'correo/bandeja.html', contexto_bandeja(request, **kwargs))
 
 
 @correo_requerido
@@ -246,6 +264,10 @@ def acciones(request):
     hilos = [int(x) for x in request.POST.getlist('hilos') if x.isdigit()]
     ids = [int(x) for x in request.POST.getlist('mensajes') if x.isdigit()]
     origen = request.POST.get('origen', '')
+    # Barra de comandos: sin casillas marcadas, la acción va sobre el hilo abierto.
+    abierto = request.POST.get('hilo_abierto', '')
+    if not hilos and not ids and abierto.isdigit():
+        hilos = [int(abierto)]
     seleccion = Q(pk__in=ids)
     if hilos:
         filtro_hilos = Q(hilo__in=hilos)
@@ -291,8 +313,9 @@ def acciones(request):
                 'eliminar': 'Eliminados definitivamente.' if definitivos and not restantes else 'Movidos a la Papelera.',
             }[accion]
     messages.success(request, texto)
-    # Si el hilo abierto ya no está en esta carpeta, cerrar el panel de lectura.
-    if accion not in ('leido', 'no_leido') and '?h=' in volver:
+    # Si el hilo abierto ya no está en esta carpeta, cerrar el panel de lectura. También
+    # al marcar como no leído: volver a abrirlo lo marcaría leído otra vez.
+    if accion != 'leido' and '?h=' in volver:
         volver = volver.split('?h=')[0]
     return redirect(volver)
 

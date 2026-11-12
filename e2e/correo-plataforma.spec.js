@@ -31,7 +31,14 @@ test.describe('plataforma de correo', () => {
         await page.locator('.fila__enlace', { hasText: 'Solicitud de cotización' }).first().click();
         await expect(page.locator('.hilo__asunto')).toContainText('Solicitud de cotización');
         await expect(page.locator('.mensaje')).not.toHaveCount(0);
+        // Como Outlook: solo el último mensaje abierto; los anteriores plegados en una línea.
+        await expect(page.locator('.mensaje--ultimo')).toHaveAttribute('open', '');
+        // Detalles (participantes, quién lo atiende, actividad) en un panel que se abre con un botón.
+        const detalles = page.getByRole('button', { name: 'Detalles de la conversación' });
+        if ((await detalles.getAttribute('aria-expanded')) !== 'true') { await detalles.click(); }
         await expect(page.getByRole('heading', { name: 'Participantes' })).toBeVisible();
+        await detalles.click();
+        await expect(page.getByRole('heading', { name: 'Participantes' })).toBeHidden();
 
         const cuerpo = page.locator('iframe[data-cuerpo]').last();
         await expect(cuerpo).toHaveAttribute('sandbox', /allow-same-origin/);
@@ -48,6 +55,17 @@ test.describe('plataforma de correo', () => {
         await page.keyboard.press('Enter');
         await expect(page).toHaveURL(/[?&]h=\d+/);
         await expect(page.locator('.fila--activa')).toHaveCount(1);
+    });
+
+    test('barra de comandos: sin marcar nada actúa sobre la conversación abierta', async ({ page }) => {
+        await abrirCorreo(page, 'informes');
+        const comandos = page.getByRole('toolbar', { name: 'Acciones de correo' });
+        await expect(comandos.getByRole('button', { name: 'Archivar' })).toBeDisabled();
+        await page.locator('.fila__enlace', { hasText: 'Recepción de muestras' }).click();
+        await expect(comandos.getByRole('button', { name: 'Archivar' })).toBeEnabled();
+        await comandos.getByRole('button', { name: 'Marcar como no leído' }).click();
+        await expect(page.locator('.avisos')).toContainText('no leídos');
+        await expect(page.locator('.fila', { hasText: 'Recepción de muestras' })).toHaveClass(/fila--no-leida/);
     });
 
     test('el boletín llega sin scripts y con imágenes remotas bloqueadas', async ({ page }) => {
@@ -118,6 +136,12 @@ test.describe('plataforma de correo', () => {
         await expect(page.locator('.ficha')).toHaveCount(1);
 
         await expect(page.locator('input[type="hidden"][name="para"]')).toHaveValue('Laboratorio <laboratorio@grupovicaf.com>');
+
+        // CC y CCO quedan ocultos hasta pedirlos.
+        await expect(page.locator('#r-cc')).toBeHidden();
+        await page.getByRole('button', { name: 'CC', exact: true }).click();
+        await expect(page.locator('#r-cc')).toBeVisible();
+        await expect(page.locator('#r-cc')).toBeFocused();
         expect(violaciones).toEqual([]);
     });
 

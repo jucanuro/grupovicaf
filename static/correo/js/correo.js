@@ -25,11 +25,19 @@
     // Selección múltiple en la lista.
     var formLista = document.getElementById('form-lista');
     if (formLista) {
-        var todos = formLista.querySelector('[data-seleccionar-todo]');
+        var todos = document.querySelector('[data-seleccionar-todo]');
+        // Barra de comandos: sin casillas marcadas actúa sobre el hilo abierto.
+        var abierto = formLista.querySelector('[data-hilo-abierto]');
         var casillas = function () { return formLista.querySelectorAll('input[name="hilos"]'); };
         var actualizar = function () {
             var marcadas = formLista.querySelectorAll('input[name="hilos"]:checked').length;
-            formLista.querySelectorAll('[data-requiere-seleccion]').forEach(function (el) { el.disabled = marcadas === 0; });
+            var inactivo = marcadas === 0 && !abierto;
+            document.querySelectorAll('[data-requiere-seleccion]').forEach(function (el) {
+                if (el.tagName === 'SUMMARY') {
+                    el.setAttribute('aria-disabled', inactivo ? 'true' : 'false');
+                    if (inactivo && el.parentNode.open) { el.parentNode.open = false; }
+                } else { el.disabled = inactivo; }
+            });
             if (todos) {
                 todos.checked = marcadas > 0 && marcadas === casillas().length;
                 todos.indeterminate = marcadas > 0 && marcadas < casillas().length;
@@ -47,12 +55,9 @@
         });
         actualizar();
 
-        // El botón «Mover» exige elegir carpeta.
-        formLista.addEventListener('submit', function (e) {
-            if (e.submitter && e.submitter.value === 'mover') {
-                var destino = formLista.querySelector('select[name="destino"]');
-                if (destino && !destino.value) { e.preventDefault(); destino.focus(); }
-            }
+        document.addEventListener('click', function (e) {
+            var resumen = e.target.closest('summary[aria-disabled="true"]');
+            if (resumen) { e.preventDefault(); }
         });
 
         // Doble clic: pantalla completa.
@@ -125,6 +130,43 @@
             window.setTimeout(function () { if (aviso) { aviso.hidden = true; } }, 0);
         });
     });
+
+    // Menús (Mover a, Más acciones): uno abierto a la vez; Escape o clic fuera los cierra.
+    var menus = function () { return document.querySelectorAll('details[data-menu][open]'); };
+    document.addEventListener('click', function (e) {
+        menus().forEach(function (m) { if (!m.contains(e.target)) { m.open = false; } });
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') { return; }
+        menus().forEach(function (m) { m.open = false; var s = m.querySelector('summary'); if (s) { s.focus(); } });
+    });
+    document.querySelectorAll('details[data-menu]').forEach(function (m) {
+        m.addEventListener('toggle', function () {
+            if (!m.open) { return; }
+            menus().forEach(function (otro) { if (otro !== m) { otro.open = false; } });
+            var primero = m.querySelector('.menu__item');
+            if (primero) { primero.focus(); }
+        });
+    });
+
+    // Panel «Detalles» de la conversación (participantes, quién lo atiende, actividad).
+    // Cerrado por defecto, como en Outlook; se recuerda la preferencia en este navegador.
+    var alternar = document.querySelector('[data-alternar-detalles]');
+    var hilo = document.querySelector('.hilo');
+    if (alternar && hilo) {
+        var leer = function () { try { return window.localStorage.getItem('correo:detalles'); } catch (err) { return null; } };
+        var poner = function (abierto) {
+            hilo.classList.toggle('hilo--sin-detalles', !abierto);
+            alternar.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+        };
+        poner(leer() === 'abierto');
+        alternar.addEventListener('click', function () {
+            var abierto = alternar.getAttribute('aria-expanded') !== 'true';
+            poner(abierto);
+            try { window.localStorage.setItem('correo:detalles', abierto ? 'abierto' : 'cerrado'); } catch (err) { /* sin almacenamiento */ }
+            if (abierto) { var lado = document.getElementById('detalles-hilo'); if (lado) { lado.scrollIntoView({ block: 'nearest' }); } }
+        });
+    }
 
     // Avisos: se van solos.
     var avisos = document.querySelector('.avisos');

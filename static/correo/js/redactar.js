@@ -197,10 +197,7 @@
     }
 
     var subir = document.querySelector('[data-subir]');
-    if (subir) {
-        subir.addEventListener('change', function () {
-            var archivos = Array.prototype.slice.call(subir.files);
-            subir.value = '';
+    var subirArchivos = function (archivos) {
             var siguiente = function () {
                 var archivo = archivos.shift();
                 if (!archivo) { avisar(''); return; }
@@ -216,7 +213,36 @@
                     .catch(function (err) { avisar(err.message); });
             };
             siguiente();
+    };
+    if (subir) {
+        subir.addEventListener('change', function () {
+            var archivos = Array.prototype.slice.call(subir.files);
+            subir.value = '';
+            subirArchivos(archivos);
         });
+        // Arrastrar archivos sobre el correo los adjunta (también sobre el editor).
+        var zona = document.querySelector('[data-zona-soltar]');
+        var conArchivos = function (e) { return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') >= 0; };
+        var profundidad = 0;
+        form.addEventListener('dragenter', function (e) {
+            if (!conArchivos(e)) { return; }
+            profundidad += 1;
+            if (zona) { zona.hidden = false; }
+        }, true);
+        form.addEventListener('dragleave', function (e) {
+            if (!conArchivos(e)) { return; }
+            profundidad = Math.max(0, profundidad - 1);
+            if (zona && !profundidad) { zona.hidden = true; }
+        }, true);
+        form.addEventListener('dragover', function (e) { if (conArchivos(e)) { e.preventDefault(); } }, true);
+        form.addEventListener('drop', function (e) {
+            if (!conArchivos(e)) { return; }
+            e.preventDefault();
+            e.stopPropagation();
+            profundidad = 0;
+            if (zona) { zona.hidden = true; }
+            subirArchivos(Array.prototype.slice.call(e.dataTransfer.files));
+        }, true);
     }
 
     // ------------------------------------------------------ cotizaciones
@@ -491,4 +517,27 @@
         pintar();
     });
     form.addEventListener('submit', function () { campos.forEach(function (c) { c.confirmar(); }); }, true);
+
+    // CC y CCO ocultos hasta pedirlos (o si ya traen direcciones), como en Outlook.
+    document.querySelectorAll('[data-mostrar-campo]').forEach(function (boton) {
+        var campo = boton.dataset.mostrarCampo;
+        var partes = form.querySelectorAll('[data-fila-campo="' + campo + '"]');
+        var oculto = form.querySelector('input[type="hidden"][name="' + campo + '"]');
+        var mostrar = function (enfocar) {
+            partes.forEach(function (el) { el.hidden = false; });
+            boton.hidden = true;
+            if (enfocar) { document.getElementById('r-' + campo).focus(); }
+        };
+        if (oculto && oculto.value.trim()) { mostrar(false); }
+        else { partes.forEach(function (el) { el.hidden = true; }); }
+        boton.addEventListener('click', function () { mostrar(true); });
+    });
+
+    // Ctrl+Enter envía (como Outlook).
+    form.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            if (form.requestSubmit) { form.requestSubmit(); } else { form.submit(); }
+        }
+    });
 })();

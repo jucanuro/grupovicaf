@@ -15,7 +15,7 @@
         <a class="busqueda-rapida__mas" href="{% url 'buscar' %}" title="Búsqueda avanzada">Filtros</a>
     </form>
     <div class="barra__acciones">
-        <a class="boton boton--primario" href="{% url 'redactar' %}{% if cuenta_actual %}?cuenta={{ cuenta_actual.slug }}{% endif %}">{% include 'correo/_iconos.html' with nombre='lapiz' %}<span class="ocultar-movil">Nuevo correo</span></a>
+        <a class="boton boton--primario boton--chico solo-movil" href="{% url 'redactar' %}{% if cuenta_actual %}?cuenta={{ cuenta_actual.slug }}{% endif %}" aria-label="Nuevo correo">{% include 'correo/_iconos.html' with nombre='lapiz' %}</a>
         <a class="boton-icono" href="{% url 'firmas' %}" aria-label="Firmas" title="Firmas">{% include 'correo/_iconos.html' with nombre='firma' %}</a>
         <a class="boton-icono" href="{{ url_inicio_lab }}" aria-label="Volver al inicio de la plataforma" title="Inicio">{% include 'correo/_iconos.html' with nombre='sistema' %}</a>
         <form method="post" action="{% url 'salir' %}">{% csrf_token %}

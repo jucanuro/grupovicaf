@@ -1,0 +1,74 @@
+{% load correo_tags %}
+<section class="lista" aria-labelledby="titulo-lista">
+    <header class="lista__cabeza">
+        {% if carpeta_actual.tipo != 'borradores' %}
+        <label class="casilla casilla--todo"><input type="checkbox" data-seleccionar-todo form="form-lista" aria-label="Seleccionar todo"></label>
+        {% endif %}
+        <div class="lista__titulos">
+            <h1 id="titulo-lista" class="lista__titulo">{{ titulo }}</h1>
+            <p class="lista__sub">{% if cuenta_actual %}<span class="mono">{{ cuenta_actual.direccion }}</span>{% else %}Todas tus cuentas{% endif %} · {{ pagina.paginator.count }} {% if pagina.paginator.count == 1 %}conversación{% else %}conversaciones{% endif %}</p>
+        </div>
+        {% if unificada and cuentas|length > 1 %}
+        <form method="get" class="filtro-cuenta">
+            <label class="solo-lector" for="filtro-cuenta">Filtrar por cuenta</label>
+            <select id="filtro-cuenta" name="cuenta" data-autoenviar>
+                <option value="">Todas</option>
+                {% for c in cuentas %}<option value="{{ c.slug }}"{% if filtro_cuenta == c.slug %} selected{% endif %}>{{ c.nombre }}</option>{% endfor %}
+            </select>
+            <noscript><button class="boton boton--suave boton--chico" type="submit">Filtrar</button></noscript>
+        </form>
+        {% endif %}
+        {% if carpeta_actual and carpeta_actual.tipo == 'personal' and cuenta_actual.puede_gestionar %}
+        <form method="post" action="{% url 'carpeta_eliminar' cuenta_actual.slug carpeta_actual.pk %}" data-confirmar="¿Eliminar la carpeta «{{ carpeta_actual.nombre }}»? Sus correos vuelven a la bandeja de entrada.">
+            {% csrf_token %}<button class="boton-icono boton-icono--rojo" type="submit" aria-label="Eliminar la carpeta" title="Eliminar la carpeta">{% include 'correo/_iconos.html' with nombre='papelera' %}</button>
+        </form>
+        {% endif %}
+    </header>
+
+    <form id="form-lista" method="post" action="{% url 'acciones' %}">
+        {% csrf_token %}
+        <input type="hidden" name="volver" value="{{ volver }}">
+        <input type="hidden" name="origen" value="{% if carpeta_actual %}{{ carpeta_actual.pk }}{% else %}entrada{% endif %}">
+        {% if lectura %}<input type="hidden" name="hilo_abierto" value="{{ lectura.hilo.pk }}" data-hilo-abierto>{% endif %}
+
+        <ul class="filas" data-lista>
+            {% for f in filas %}
+            {% with grupo=f.mensaje.fecha|grupo_fecha %}{% ifchanged grupo %}<li class="filas__grupo" aria-hidden="true">{{ grupo }}</li>{% endifchanged %}{% endwith %}
+            <li class="fila{% if f.no_leido %} fila--no-leida{% endif %}{% if f.seleccionado %} fila--activa{% endif %}" data-fila data-url-completa="{% if carpeta_actual.tipo == 'borradores' %}{{ f.url }}{% else %}{{ f.url_completa }}{% endif %}">
+                {% if carpeta_actual.tipo != 'borradores' %}
+                <label class="casilla"><input type="checkbox" name="hilos" value="{{ f.hilo.pk }}" aria-label="Seleccionar «{{ f.mensaje.asunto|default:'(sin asunto)' }}»"></label>
+                {% endif %}
+                <a class="fila__enlace" href="{{ f.url }}"{% if f.seleccionado %} aria-current="true"{% endif %}>
+                    <span class="avatar" aria-hidden="true">{% if f.enviado %}{{ f.mensaje.para.0.nombre|default:f.mensaje.para.0.correo|iniciales }}{% else %}{{ f.mensaje|remitente|iniciales }}{% endif %}</span>
+                    <span class="fila__cuerpo">
+                        <span class="fila__linea">
+                            <span class="fila__de">{% if f.enviado %}Para: {{ f.mensaje.para.0.nombre|default:f.mensaje.para.0.correo|default:'(sin destinatario)' }}{% else %}{{ f.mensaje|remitente }}{% endif %}{% if f.n > 1 %} <span class="fila__n">({{ f.n }})</span>{% endif %}</span>
+                            {% if f.adjunto %}<span class="fila__clip" title="Con adjuntos">{% include 'correo/_iconos.html' with nombre='clip' %}<span class="solo-lector">Con adjuntos</span></span>{% endif %}
+                        </span>
+                        <span class="fila__linea">
+                            <span class="fila__asunto">{% if f.no_leido %}<span class="solo-lector">No leído. </span>{% endif %}{{ f.mensaje.asunto|default:'(sin asunto)' }}</span>
+                            <time class="fila__fecha" datetime="{{ f.mensaje.fecha|date:'c' }}">{{ f.mensaje.fecha|fecha_corta }}</time>
+                        </span>
+                        <span class="fila__previa">{{ f.mensaje.vista_previa }}</span>
+                        <span class="fila__etiquetas">
+                            {% if unificada %}<span class="chip">{{ f.hilo.cuenta.nombre }}</span>{% endif %}
+                            {% if f.asignacion %}<span class="chip {% if f.asignacion.estado == 'atendido' %}chip--verde{% else %}chip--ambar{% endif %}">{% if f.asignacion.estado == 'atendido' %}Atendido{% else %}Atiende{% endif %}: {{ f.asignacion.asignado_a.trabajadorprofile.nombre_completo|default:f.asignacion.asignado_a.username }}</span>{% endif %}
+                            {% if f.mensaje.estado_envio == 'fallido' %}<span class="chip chip--rojo">Falló el envío</span>{% elif f.mensaje.estado_envio == 'en_cola' %}<span class="chip chip--ambar">En cola</span>{% endif %}
+                        </span>
+                    </span>
+                </a>
+            </li>
+            {% empty %}
+            <li class="vacio">No hay correos en esta carpeta.</li>
+            {% endfor %}
+        </ul>
+    </form>
+
+    {% if pagina.has_other_pages %}
+    <nav class="paginacion" aria-label="Páginas">
+        {% if pagina.has_previous %}<a class="boton boton--suave boton--chico" href="?p={{ pagina.previous_page_number }}{% if filtro_cuenta %}&cuenta={{ filtro_cuenta }}{% endif %}">Anteriores</a>{% endif %}
+        <span class="mono">{{ pagina.number }} / {{ pagina.paginator.num_pages }}</span>
+        {% if pagina.has_next %}<a class="boton boton--suave boton--chico" href="?p={{ pagina.next_page_number }}{% if filtro_cuenta %}&cuenta={{ filtro_cuenta }}{% endif %}">Siguientes</a>{% endif %}
+    </nav>
+    {% endif %}
+</section>
