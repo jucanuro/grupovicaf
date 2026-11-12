@@ -210,10 +210,20 @@ LAB_BASE_URL = os.environ.get('LAB_BASE_URL', '').rstrip('/')
 CORREO_ENLACE_SEGUNDOS = int(os.environ.get('CORREO_ENLACE_SEGUNDOS') or 60)
 # Si el usuario solo tiene acceso a un módulo, saltar la pantalla de entrada.
 CORREO_OMITIR_ENTRADA = os.environ.get('CORREO_OMITIR_ENTRADA', 'False') == 'True'
-# Carpeta privada para .eml y adjuntos mientras no se conecte R2 (Paso 3).
-# Fuera de MEDIA_ROOT: nunca la sirve nginx.
+# Dónde van los .eml y adjuntos: 'local' (carpeta privada, dev y pruebas) o
+# 'r2' (bucket PRIVADO de Cloudflare R2 vía django-storages, producción).
+CORREO_ALMACEN = os.environ.get('CORREO_ALMACEN') or 'local'
+# Carpeta privada del modo 'local'. Fuera de MEDIA_ROOT: nunca la sirve nginx.
 CORREO_ALMACEN_DIR = os.environ.get('CORREO_ALMACEN_DIR') or str(BASE_DIR / 'correo_privado')
-# Vigencia de los enlaces firmados de descarga de adjuntos (como las URL de R2).
+# Modo 'r2': bucket, endpoint S3 de la cuenta (https://<id>.r2.cloudflarestorage.com)
+# y un token de API de R2 con permiso solo sobre ese bucket.
+CORREO_R2_BUCKET = os.environ.get('CORREO_R2_BUCKET', '')
+CORREO_R2_ENDPOINT = os.environ.get('CORREO_R2_ENDPOINT', '').rstrip('/')
+CORREO_R2_ACCESS_KEY = os.environ.get('CORREO_R2_ACCESS_KEY', '')
+CORREO_R2_SECRET_KEY = os.environ.get('CORREO_R2_SECRET_KEY', '')
+# Dominios que puede tener una cuenta creada desde «Administrar cuentas».
+CORREO_DOMINIOS = [d.strip().lower() for d in (os.environ.get('CORREO_DOMINIOS') or 'grupovicaf.com').split(',') if d.strip()]
+# Vigencia de los enlaces firmados de descarga y de las URL prefirmadas de R2.
 CORREO_URL_FIRMADA_SEGUNDOS = int(os.environ.get('CORREO_URL_FIRMADA_SEGUNDOS') or 300)
 # Límite total de adjuntos al redactar.
 CORREO_MAX_ADJUNTOS_BYTES = 25 * 1024 * 1024

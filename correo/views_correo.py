@@ -10,7 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from django.http import FileResponse, Http404, HttpResponse
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -24,6 +24,7 @@ from servicios.models import Cotizacion
 from trabajadores.permissions import trabajador_tiene_permiso
 
 from . import busqueda
+from .almacen import es_r2, url_prefirmada
 from .cuentas import (
     GESTIONA, LECTURA, cuentas_de, exigir_cuenta, exigir_hilo, exigir_mensaje, mensajes_visibles, permite, roles_de,
 )
@@ -231,9 +232,19 @@ def adjunto(request, token):
         raise Http404('El enlace venció. Vuelve a abrir el correo.')
     adj = get_object_or_404(Adjunto, pk=pk)
     seguro_en_linea = adj.tipo_mime in ('image/png', 'image/jpeg', 'image/gif', 'image/webp')
+    tipo = adj.tipo_mime if seguro_en_linea else (mimetypes.guess_type(adj.nombre)[0] or adj.tipo_mime)
+    if es_r2() and not adj.incrustado:
+        # R2: el archivo no pasa por el servidor (2 GB de RAM); se redirige a una URL
+        # prefirmada de 300 s. Las imágenes del cuerpo (cid:) siguen por aquí porque
+        # la CSP del iframe solo admite imágenes del propio origen.
+        destino = url_prefirmada(adj.archivo.name, descarga=adj.nombre, tipo=tipo, en_linea=seguro_en_linea)
+        respuesta = HttpResponseRedirect(destino)
+        respuesta['Cache-Control'] = 'no-store'
+        respuesta['Referrer-Policy'] = 'no-referrer'
+        return respuesta
     respuesta = FileResponse(
         adj.archivo.open('rb'), as_attachment=not seguro_en_linea, filename=adj.nombre,
-        content_type=adj.tipo_mime if seguro_en_linea else (mimetypes.guess_type(adj.nombre)[0] or adj.tipo_mime),
+        content_type=tipo,
     )
     respuesta['Content-Security-Policy'] = "default-src 'none'; sandbox"
     respuesta['X-Content-Type-Options'] = 'nosniff'
