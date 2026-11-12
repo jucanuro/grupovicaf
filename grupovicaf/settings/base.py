@@ -217,4 +217,18 @@ CORREO_ALMACEN_DIR = os.environ.get('CORREO_ALMACEN_DIR') or str(BASE_DIR / 'cor
 CORREO_URL_FIRMADA_SEGUNDOS = int(os.environ.get('CORREO_URL_FIRMADA_SEGUNDOS') or 300)
 # Límite total de adjuntos al redactar.
 CORREO_MAX_ADJUNTOS_BYTES = 25 * 1024 * 1024
+# Envío: 'simulado' (no sale nada) o 'smtp'. En dev el SMTP es Mailpit
+# (docker-compose.dev.yml); en producción, el SMTP de Amazon SES (Paso 5).
+# Es un SMTP aparte de EMAIL_* (avisos del sistema y formulario de contacto).
+CORREO_ENVIO = os.environ.get('CORREO_ENVIO') or 'simulado'
+CORREO_SMTP_HOST = os.environ.get('CORREO_SMTP_HOST', '')
+CORREO_SMTP_PUERTO = int(os.environ.get('CORREO_SMTP_PUERTO') or 587)
+CORREO_SMTP_USUARIO = os.environ.get('CORREO_SMTP_USUARIO', '')
+CORREO_SMTP_CLAVE = os.environ.get('CORREO_SMTP_CLAVE', '')
+CORREO_SMTP_TLS = os.environ.get('CORREO_SMTP_TLS', 'True') == 'True'
+# Solo desarrollo: API de Mailpit. Con valor, beat trae cada 15 s lo que llegó
+# a las cuentas VICAF (hace las veces de Cloudflare Email Routing).
+CORREO_MAILPIT_URL = os.environ.get('CORREO_MAILPIT_URL', '').rstrip('/')
+# Tamaño máximo de un correo entrante completo (.eml).
+CORREO_MAX_ENTRANTE_BYTES = 40 * 1024 * 1024
 

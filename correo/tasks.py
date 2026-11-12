@@ -1,7 +1,9 @@
 """Tareas Celery del correo (cola 'correo', CLAUDE.md regla 7)."""
+import hashlib
 import logging
 
 from celery import shared_task
+from django.core.files.base import ContentFile
 from django.db import transaction
 
 from .mensajeria import carpeta, registrar_evento
@@ -14,7 +16,12 @@ MAX_INTENTOS = 5
 
 @shared_task(queue='correo')
 def enviar_mensaje(mensaje_id):
-    """Bandeja de salida -> Enviados (o queda como fallido para reintentar)."""
+    """Bandeja de salida -> Enviados.
+
+    Si el servidor falla de forma temporal (sin conexión, 4xx), el mensaje sigue
+    en la Bandeja de salida y se reintenta solo (1, 2, 3, 4 min). Un rechazo
+    definitivo o el último intento lo dejan como fallido, con botón Reintentar.
+    """
     with transaction.atomic():
         mensaje = Mensaje.objects.select_for_update().select_related('cuenta', 'hilo').filter(
             pk=mensaje_id, estado_envio=Mensaje.EN_COLA,
@@ -23,16 +30,39 @@ def enviar_mensaje(mensaje_id):
             return 'nada que enviar'
         mensaje.intentos += 1
         resultado = servicio_envio().enviar(mensaje)
+        campos = ['intentos', 'estado_envio', 'carpeta', 'ultimo_error', 'actualizado_en']
+        reintentar = False
         if resultado.ok:
             mensaje.estado_envio = Mensaje.ENVIADO
             mensaje.carpeta = carpeta(mensaje.cuenta, 'enviados')
-            mensaje.ultimo_error = ''
-        else:
-            mensaje.estado_envio = Mensaje.FALLIDO
             mensaje.ultimo_error = resultado.error[:2000]
-            logger.warning('Envío fallido del mensaje %s: %s', mensaje.pk, resultado.error)
-        mensaje.save(update_fields=['intentos', 'estado_envio', 'carpeta', 'ultimo_error', 'actualizado_en'])
+            if resultado.eml:
+                mensaje.eml.save('enviado.eml', ContentFile(resultado.eml), save=False)
+                mensaje.eml_sha256 = hashlib.sha256(resultado.eml).hexdigest()
+                mensaje.tamano = len(resultado.eml)
+                campos += ['eml', 'eml_sha256', 'tamano']
+        else:
+            mensaje.ultimo_error = resultado.error[:2000]
+            reintentar = resultado.reintentar and mensaje.intentos < MAX_INTENTOS
+            mensaje.estado_envio = Mensaje.EN_COLA if reintentar else Mensaje.FALLIDO
+            logger.warning('Envío fallido del mensaje %s (intento %s): %s', mensaje.pk, mensaje.intentos, resultado.error)
+        mensaje.save(update_fields=campos)
+        if reintentar:
+            espera = 60 * mensaje.intentos
+            transaction.on_commit(lambda: enviar_mensaje.apply_async((mensaje_id,), countdown=espera))
     return mensaje.estado_envio
+
+
+@shared_task(queue='correo')
+def traer_mailpit():
+    """Solo desarrollo: lo que llegó a Mailpit para las cuentas VICAF entra a sus bandejas."""
+    from django.conf import settings
+
+    if not settings.CORREO_MAILPIT_URL:
+        return 0
+    from .mailpit import traer
+
+    return traer(settings.CORREO_MAILPIT_URL)
 
 
 @shared_task(queue='correo')
