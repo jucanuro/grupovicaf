@@ -59,6 +59,15 @@ cola Celery `correo`; `@falla.invalid` simula un rebote) hasta el Paso 5.
 Datos de ejemplo: `python manage.py seed_correo_demo --usuario <username>`
 (solo `DEBUG=True`). Quill 2.0.3 está vendorizado en `static/vendor/`.
 
+Correo real en local: `docker-compose.dev.yml` levanta **Mailpit** (bandeja web
+http://localhost:8025, SMTP localhost:1025) y pone `CORREO_ENVIO=smtp`. Lo que
+se envía sale como MIME real (`correo/envio.py`) hacia Mailpit; lo que llega a
+una cuenta VICAF vuelve a su bandeja cada 15 s por `correo/mailpit.py` (beat),
+que usa la misma `RecepcionEML` (`correo/recepcion.py`) que tendrá el webhook
+de Cloudflare. Comandos: `simular_entrante` (un cliente escribe o responde,
+solo DEBUG), `recibir_eml archivo.eml` (correos reales exportados) y
+`traer_mailpit`. En producción `CORREO_SMTP_*` apuntará al SMTP de Amazon SES.
+
 ### Capa web (pública) — prefijo `web_` obligatorio
 
 | App | Responsabilidad |
