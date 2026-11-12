@@ -8,6 +8,7 @@ Proyecto Django único que sirve **dos sitios** desde el mismo código y la mism
 |---|---|---|---|
 | Web institucional pública | `www.grupovicaf.com` | `web` | `grupovicaf/urls_web.py` |
 | LIMS (sistema de laboratorio) | `laboratorio.grupovicaf.com` | `lab` | `grupovicaf/urls_lab.py` |
+| Correo (módulo del LIMS) | `email.grupovicaf.com` | `lab` | `grupovicaf/urls_correo.py` |
 
 Se ejecutan como **dos procesos gunicorn separados** con distinta variable de entorno
 `SITE_ROLE`, para que un informe PDF pesado del laboratorio nunca frene la web pública.
@@ -36,6 +37,14 @@ ni contenido para otras ciudades.
 | `servicios` | Catálogo de ensayos (`Norma`, `Metodo`, `Servicio`), cotizaciones, vouchers |
 | `proyectos` | `Proyecto`, recepción de muestras, solicitudes de ensayo, `InformeFinal` |
 | `actividades` | Ejecución de ensayos y resultados |
+| `correo` | Pantalla de entrada (`/inicio/`) y módulo de correo en `email.` (ver abajo) |
+
+**Correo en su propio host.** `correo.middleware.CorreoHostMiddleware` cambia el
+URLconf a `urls_correo.py` cuando el host es `CORREO_HOST` (solo rol `lab`; en
+dev `email.localhost:<puerto>`). Las cookies **no** se comparten entre hosts
+(regla 5): `laboratorio.` → `email.` usa un enlace firmado de un solo uso
+(`correo/enlaces.py`, 60 s). Las cuentas visibles salen siempre de
+`correo.cuentas.cuentas_de(user)`; el acceso se revisa en el servidor.
 
 ### Capa web (pública) — prefijo `web_` obligatorio
 
