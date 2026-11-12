@@ -24,3 +24,11 @@ app.conf.beat_schedule = {
         'schedule': crontab(hour=7, minute=30),
     },
 }
+
+# Solo en desarrollo (docker-compose.dev.yml define CORREO_MAILPIT_URL): trae a
+# las bandejas lo que llega a Mailpit para las cuentas VICAF.
+if os.environ.get('CORREO_MAILPIT_URL'):
+    app.conf.beat_schedule['correo-traer-mailpit'] = {
+        'task': 'correo.tasks.traer_mailpit',
+        'schedule': 15.0,
+    }
