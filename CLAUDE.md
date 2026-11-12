@@ -59,6 +59,27 @@ cola Celery `correo`; `@falla.invalid` simula un rebote) hasta el Paso 5.
 Datos de ejemplo: `python manage.py seed_correo_demo --usuario <username>`
 (solo `DEBUG=True`). Quill 2.0.3 está vendorizado en `static/vendor/`.
 
+Correo real en local: `docker-compose.dev.yml` levanta **Mailpit** (bandeja web
+http://localhost:8025, SMTP localhost:1025) y pone `CORREO_ENVIO=smtp`. Lo que
+se envía sale como MIME real (`correo/envio.py`) hacia Mailpit; lo que llega a
+una cuenta VICAF vuelve a su bandeja cada 15 s por `correo/mailpit.py` (beat),
+que usa la misma `RecepcionEML` (`correo/recepcion.py`) que tendrá el webhook
+de Cloudflare. Comandos: `simular_entrante` (un cliente escribe o responde,
+solo DEBUG), `recibir_eml archivo.eml` (correos reales exportados) y
+`traer_mailpit`. En producción `CORREO_SMTP_*` apuntará al SMTP de Amazon SES.
+
+Paso 3 (archivos y administración): `CORREO_ALMACEN=local` (dev/pruebas,
+carpeta privada) o `r2` (prod: bucket **privado** de Cloudflare R2 vía
+django-storages, `CORREO_R2_*` en el `.env`; boto3 solo se importa en ese
+modo). Una descarga primero valida el enlace firmado propio y luego redirige
+a una URL prefirmada de R2 de `CORREO_URL_FIRMADA_SEGUNDOS` (300 s); las
+imágenes del cuerpo (cid:) siguen pasando por Django por la CSP del iframe.
+Cuentas y accesos se gestionan en `email.<dominio>/administrar/`
+(`correo/administracion.py`): superusuario o permiso `correo.administrar`
+crea/activa cuentas (solo dominios `CORREO_DOMINIOS`); el rol «administra»
+de una cuenta gestiona sus accesos. Administrar no da lectura. Todo cambio
+queda en `EventoCuenta` (bitácora).
+
 ### Capa web (pública) — prefijo `web_` obligatorio
 
 | App | Responsabilidad |

@@ -1,61 +1,103 @@
-{% extends 'correo/base.html' %}
+{% extends 'correo/_app.html' %}
 {% load static %}
 {% block title %}{{ b.asunto|default:'Nuevo correo' }} · Correo VICAF{% endblock %}
-{% block head %}
+{% block head_extra %}
 <link rel="stylesheet" href="{% static 'vendor/quill-2.0.3/quill.snow.css' %}">
 <script src="{% static 'vendor/quill-2.0.3/quill.js' %}" defer></script>
-<script src="{% static 'correo/js/correo.js' %}" defer></script>
 <script src="{% static 'correo/js/redactar.js' %}" defer></script>
 {% endblock %}
-{% block body %}
-<a class="saltar" href="#contenido">Saltar al contenido</a>
-<header class="barra barra--app">
-    <a class="boton boton--suave" href="{% url 'bandeja_cuenta' b.cuenta.slug %}">{% include 'correo/_iconos.html' with nombre='volver' %}<span class="ocultar-movil">Volver al correo</span></a>
-    <span class="barra__titulo">{% if modo == 'responder' %}Responder{% elif modo == 'reenviar' %}Reenviar{% else %}Nuevo correo{% endif %}</span>
-    <span class="estado-guardado mono" data-estado-guardado aria-live="polite">Borrador</span>
-</header>
-{% if messages %}
-<div class="avisos" role="status">{% for m in messages %}<p class="avisos__item avisos__item--{{ m.tags }}">{{ m }}</p>{% endfor %}</div>
-{% endif %}
+{% block clase_app %}app--leyendo app--redactando{% if completo %} app--completo{% endif %}{% endblock %}
+{% block contenido %}
+<div class="paneles">
+    {% include 'correo/_lista.html' %}
 
-<main id="contenido" class="redactar" tabindex="-1">
-    <form id="form-redactar" class="tarjeta redactar__form" method="post" action="{% url 'borrador_enviar' b.pk %}"
+    <section class="lectura lectura--redactar" aria-labelledby="t-redactar">
+    <form id="form-redactar" class="redactor" method="post" action="{% url 'borrador_enviar' b.pk %}"
           data-guardar="{% url 'borrador_guardar' b.pk %}" data-adjuntos="{% url 'borrador_adjuntos' b.pk %}"
           data-contactos="{% url 'api_contactos' %}" data-cotizaciones="{% url 'api_cotizaciones' %}"
           data-cotizacion="{% url 'borrador_cotizacion' b.pk %}" data-quitar="{% url 'borrador_adjunto_quitar' b.pk 0 %}">
         {% csrf_token %}
-        <div class="redactar__campos">
+        <h2 id="t-redactar" class="solo-lector">{% if modo == 'responder' %}Responder{% elif modo == 'reenviar' %}Reenviar{% else %}Nuevo correo{% endif %}</h2>
+        <div class="redactor__barra" role="toolbar" aria-label="Acciones del correo">
+            <button class="boton boton--primario boton--chico" type="submit">{% include 'correo/_iconos.html' with nombre='enviar' %}Enviar</button>
+            <label class="comando" for="r-archivos">{% include 'correo/_iconos.html' with nombre='clip' %}<span>Adjuntar</span></label>
+            <input id="r-archivos" class="solo-lector" type="file" multiple data-subir>
+            {% if puede_cotizar %}
+            <button class="comando" type="button" data-abrir-cotizaciones>{% include 'correo/_iconos.html' with nombre='documento' %}<span>Cotización</span></button>
+            {% endif %}
+            {% if firmas %}
+            <label class="solo-lector" for="r-firma">Insertar firma</label>
+            <select id="r-firma" class="redactor__firma" data-insertar-firma>
+                <option value="">Firma…</option>
+                {% for f in firmas %}<option value="{{ f.pk }}">{{ f.nombre }}{% if f.cuenta %} ({{ f.cuenta.nombre }}){% endif %}</option>{% endfor %}
+            </select>
+            {% endif %}
+            <span class="comandos__fin">
+                <span class="estado-guardado" data-estado-guardado aria-live="polite">Borrador</span>
+                <button class="comando" type="submit" formaction="{% url 'borrador_guardar' b.pk %}">Guardar</button>
+                {% if completo %}
+                <a class="comando comando--icono" href="{% url 'borrador' b.pk %}" aria-label="Volver al panel de lectura" title="Volver al panel">{% include 'correo/_iconos.html' with nombre='panel' %}</a>
+                {% else %}
+                <a class="comando comando--icono" href="{% url 'borrador' b.pk %}?completo=1" aria-label="Abrir en pantalla completa" title="Pantalla completa">{% include 'correo/_iconos.html' with nombre='expandir' %}</a>
+                {% endif %}
+                <button class="comando comando--icono comando--rojo" type="submit" form="form-descartar" aria-label="Descartar" title="Descartar">{% include 'correo/_iconos.html' with nombre='papelera' %}</button>
+                <a class="comando comando--icono" href="{% url 'bandeja_cuenta' b.cuenta.slug %}" aria-label="Cerrar (el borrador queda guardado)" title="Cerrar · queda en Borradores">{% include 'correo/_iconos.html' with nombre='cerrar' %}</a>
+            </span>
+        </div>
+
+        <div class="redactor__campos">
             <label for="r-de">De</label>
             <select id="r-de" name="cuenta"{% if modo != 'nuevo' %} disabled title="Una respuesta o reenvío sale de la misma cuenta"{% endif %}>
-                {% for c in cuentas %}<option value="{{ c.pk }}"{% if c.pk == b.cuenta_id %} selected{% endif %}>{{ c.nombre }} &lt;{{ c.direccion }}&gt;</option>{% endfor %}
+                {% for c in cuentas_envio %}<option value="{{ c.pk }}"{% if c.pk == b.cuenta_id %} selected{% endif %}>{{ c.nombre }} &lt;{{ c.direccion }}&gt;</option>{% endfor %}
             </select>
+            <span></span>
 
             <label for="r-para">Para</label>
             <div class="autocompletar">
                 <input id="r-para" name="para" value="{{ para }}" autocomplete="off" data-autocompletar
-                       role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug-para" placeholder="nombre@empresa.com, …">
+                       role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug-para" placeholder="Escribe un nombre o correo">
                 <ul id="sug-para" class="sugerencias" role="listbox" hidden></ul>
             </div>
+            <span class="redactor__copias">
+                <button class="comando comando--chico" type="button" data-mostrar-campo="cc" aria-controls="fila-cc">CC</button>
+                <button class="comando comando--chico" type="button" data-mostrar-campo="cco" aria-controls="fila-cco">CCO</button>
+            </span>
 
-            <label for="r-cc">CC</label>
-            <div class="autocompletar">
+            <label for="r-cc" data-fila-campo="cc">CC</label>
+            <div class="autocompletar" id="fila-cc" data-fila-campo="cc">
                 <input id="r-cc" name="cc" value="{{ cc }}" autocomplete="off" data-autocompletar
                        role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug-cc">
                 <ul id="sug-cc" class="sugerencias" role="listbox" hidden></ul>
             </div>
+            <span data-fila-campo="cc"></span>
 
-            <label for="r-cco">CCO</label>
-            <div class="autocompletar">
+            <label for="r-cco" data-fila-campo="cco">CCO</label>
+            <div class="autocompletar" id="fila-cco" data-fila-campo="cco">
                 <input id="r-cco" name="cco" value="{{ cco }}" autocomplete="off" data-autocompletar
                        role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug-cco">
                 <ul id="sug-cco" class="sugerencias" role="listbox" hidden></ul>
             </div>
+            <span data-fila-campo="cco"></span>
 
             <label for="r-asunto">Asunto</label>
-            <input id="r-asunto" name="asunto" value="{{ b.asunto }}" maxlength="500">
+            <input id="r-asunto" name="asunto" value="{{ b.asunto }}" maxlength="500" placeholder="Agrega un asunto">
+            <span></span>
         </div>
 
-        <div class="redactar__editor">
+        <section class="redactor__adjuntos" aria-label="Adjuntos">
+            <ul class="adjuntos" data-lista-adjuntos>
+                {% for a in adjuntos.adjuntos %}
+                <li class="adjunto" data-id="{{ a.id }}">{% include 'correo/_iconos.html' with nombre='documento' %}<a class="adjunto__nombre" href="{{ a.url }}" download>{{ a.nombre }}</a><span class="adjunto__peso mono">{{ a.tamano|filesizeformat }}</span></li>
+                {% endfor %}
+            </ul>
+            <div class="peso">
+                <progress data-peso max="{{ adjuntos.maximo }}" value="{{ adjuntos.total }}" aria-label="Peso de los adjuntos"></progress>
+                <span class="mono" data-peso-texto>{{ adjuntos.total|filesizeformat }} de {{ adjuntos.maximo|filesizeformat }}</span>
+            </div>
+            <p class="nota" data-aviso-adjuntos role="status"></p>
+        </section>
+
+        <div class="redactor__editor">
             <div id="editor" class="editor" data-editor aria-label="Cuerpo del mensaje"></div>
             <label class="solo-lector" for="cuerpo-html">Cuerpo del mensaje (HTML)</label>
             <textarea id="cuerpo-html" name="cuerpo_html" class="editor__respaldo" rows="14">{{ cuerpo_editor }}</textarea>
@@ -67,42 +109,11 @@
             <iframe class="mensaje__iframe" title="Mensaje original" src="{% url 'mensaje_cuerpo' original.pk %}" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" data-cuerpo></iframe>
         </details>
         {% endif %}
-
-        <section class="adjuntos-redactar" aria-labelledby="t-adjuntos">
-            <h2 id="t-adjuntos" class="subtitulo">Adjuntos</h2>
-            <ul class="adjuntos" data-lista-adjuntos>
-                {% for a in adjuntos.adjuntos %}
-                <li class="adjunto" data-id="{{ a.id }}">{% include 'correo/_iconos.html' with nombre='documento' %}<a class="adjunto__nombre" href="{{ a.url }}" download>{{ a.nombre }}</a><span class="adjunto__peso mono">{{ a.tamano|filesizeformat }}</span></li>
-                {% endfor %}
-            </ul>
-            <div class="peso">
-                <progress data-peso max="{{ adjuntos.maximo }}" value="{{ adjuntos.total }}" aria-label="Peso de los adjuntos"></progress>
-                <span class="mono" data-peso-texto>{{ adjuntos.total|filesizeformat }} de {{ adjuntos.maximo|filesizeformat }}</span>
-            </div>
-            <div class="adjuntos-redactar__botones">
-                <label class="boton boton--suave boton--chico" for="r-archivos">{% include 'correo/_iconos.html' with nombre='clip' %}Adjuntar archivos</label>
-                <input id="r-archivos" class="solo-lector" type="file" multiple data-subir>
-                {% if puede_cotizar %}
-                <button class="boton boton--suave boton--chico" type="button" data-abrir-cotizaciones>{% include 'correo/_iconos.html' with nombre='documento' %}Elegir cotización</button>
-                {% endif %}
-                {% if firmas %}
-                <label class="solo-lector" for="r-firma">Insertar firma</label>
-                <select id="r-firma" data-insertar-firma>
-                    <option value="">Insertar firma…</option>
-                    {% for f in firmas %}<option value="{{ f.pk }}">{{ f.nombre }}{% if f.cuenta %} ({{ f.cuenta.nombre }}){% endif %}</option>{% endfor %}
-                </select>
-                {% endif %}
-            </div>
-            <p class="nota" data-aviso-adjuntos role="status"></p>
-        </section>
-
-        <div class="redactar__pie">
-            <button class="boton boton--primario" type="submit">{% include 'correo/_iconos.html' with nombre='enviar' %}Enviar</button>
-            <button class="boton boton--suave" type="submit" formaction="{% url 'borrador_guardar' b.pk %}">Guardar borrador</button>
-            <button class="boton boton--suave boton-texto--rojo" type="submit" form="form-descartar">Descartar</button>
-        </div>
+        <div class="redactor__soltar" data-zona-soltar hidden>Suelta los archivos para adjuntarlos</div>
     </form>
     <form id="form-descartar" method="post" action="{% url 'borrador_descartar' b.pk %}" data-confirmar="¿Descartar este borrador?">{% csrf_token %}</form>
+    </section>
+</div>
 
     {% for f in firmas %}<textarea hidden data-firma-html="{{ f.pk }}">{{ f.html }}</textarea>{% endfor %}
 
@@ -118,5 +129,4 @@
         <p class="nota">Se genera el PDF de la cotización y se adjunta en unos segundos.</p>
     </dialog>
     {% endif %}
-</main>
 {% endblock %}

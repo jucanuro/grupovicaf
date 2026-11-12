@@ -137,6 +137,60 @@ class PantallaEntradaTests(BaseCorreo):
         self.assertEqual(self.entrada(self.solo_lims).status_code, 200)
 
 
+class AccesoPorCuentasTests(BaseCorreo):
+    """Solo entra al correo quien maneja al menos una cuenta activa."""
+
+    def setUp(self):
+        super().setUp()
+        self.sin_cuentas, _ = crear_trabajador('sin_cuentas', self.rol_solo_correo, 'Saúl Sin')
+
+    def entrada(self, user):
+        self.client.force_login(user)
+        return self.client.get(reverse('inicio'), HTTP_HOST=HOST_LAB)
+
+    def test_sin_cuentas_la_tarjeta_queda_bloqueada(self):
+        respuesta = self.entrada(self.sin_cuentas)
+        self.assertContains(respuesta, 'data-tarjeta="correos"')
+        self.assertContains(respuesta, 'Correo no disponible')
+        self.assertNotContains(respuesta, f'href="{reverse("correo:abrir")}"')
+
+    def test_sin_cuentas_no_obtiene_enlace_ni_entra(self):
+        self.client.force_login(self.sin_cuentas)
+        respuesta = self.client.get(reverse('correo:abrir'), HTTP_HOST=HOST_LAB)
+        self.assertContains(respuesta, 'Aún no tienes cuentas', status_code=403)
+        self.client.logout()
+        token = crear_enlace(self.sin_cuentas, '/')
+        self.assertEqual(self.get_correo(ruta_correo('entrar') + f'?t={token}').status_code, 403)
+        self.client.force_login(self.sin_cuentas)
+        self.assertEqual(self.get_correo(ruta_correo('bandeja')).status_code, 403)
+
+    def test_cuenta_inactiva_no_cuenta(self):
+        cuenta = CuentaCorreo.objects.create(direccion='vieja@grupovicaf.com', nombre='Vieja', slug='vieja', activa=False)
+        AccesoCuenta.objects.create(usuario=self.sin_cuentas, cuenta=cuenta)
+        self.client.force_login(self.sin_cuentas)
+        self.assertEqual(self.get_correo(ruta_correo('bandeja')).status_code, 403)
+
+    def test_admin_del_correo_sin_cuentas_entra_a_administrar(self):
+        admin = User.objects.create_superuser('admin', password='x')
+        self.assertContains(self.entrada(admin), 'Administrar cuentas')
+        respuesta = self.client.get(reverse('correo:abrir'), HTTP_HOST=HOST_LAB)
+        destino = parse_qs(urlsplit(respuesta['Location']).query)['t'][0]
+        self.assertEqual(signing.loads(destino, salt=SALT)['d'], ruta_correo('admin_cuentas'))
+
+    def test_muestra_maximo_tres_cuentas_y_el_resto_como_mas(self):
+        for i in range(2):
+            cuenta = CuentaCorreo.objects.create(direccion=f'extra{i}@grupovicaf.com', nombre=f'Zeta {i}', slug=f'extra{i}')
+            AccesoCuenta.objects.create(usuario=self.ambos, cuenta=cuenta)
+        html = self.entrada(self.ambos).content.decode()
+        self.assertEqual(html.count('class="cuenta"'), 3)
+        self.assertIn('+2 cuentas más', html)
+        self.assertIn('Abrir todas mis cuentas', html)
+        self.assertNotIn('?cuenta=extra1"', html)
+
+    def test_muestra_el_rol_en_cada_cuenta(self):
+        self.assertContains(self.entrada(self.solo_correo), 'Lectura', count=3)
+
+
 class RuteoPorHostTests(BaseCorreo):
     def test_host_del_lims_sigue_igual(self):
         self.client.force_login(self.ambos)

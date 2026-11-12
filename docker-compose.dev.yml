@@ -18,6 +18,17 @@ services:
     ports:
       - "6379:6379"
 
+  # Servidor de correo de pruebas: recibe todo lo que envía la plataforma de
+  # correo (nada sale a Internet). Bandeja web en http://localhost:8025;
+  # SMTP en localhost:1025 para mandar correos de prueba desde otro programa.
+  mailpit:
+    image: axllent/mailpit:v1.20.0
+    ports:
+      - "${MAILPIT_WEB_PORT:-8025}:8025"
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+    environment:
+      MP_MAX_MESSAGES: 5000
+
   lab:
     build:
       context: .
@@ -28,6 +39,13 @@ services:
     environment:
       SITE_ROLE: lab
       DJANGO_SETTINGS_MODULE: grupovicaf.settings.dev
+      # Correo real en local: lo que se envía va a Mailpit y lo que llega a las
+      # cuentas VICAF vuelve a las bandejas (ver correo/mailpit.py).
+      CORREO_ENVIO: ${CORREO_ENVIO:-smtp}
+      CORREO_SMTP_HOST: ${CORREO_SMTP_HOST:-mailpit}
+      CORREO_SMTP_PUERTO: ${CORREO_SMTP_PUERTO:-1025}
+      CORREO_SMTP_TLS: ${CORREO_SMTP_TLS:-False}
+      CORREO_MAILPIT_URL: ${CORREO_MAILPIT_URL:-http://mailpit:8025}
     env_file:
       - .env
     volumes:
@@ -72,6 +90,13 @@ services:
     environment:
       SITE_ROLE: lab
       DJANGO_SETTINGS_MODULE: grupovicaf.settings.dev
+      # Correo real en local: lo que se envía va a Mailpit y lo que llega a las
+      # cuentas VICAF vuelve a las bandejas (ver correo/mailpit.py).
+      CORREO_ENVIO: ${CORREO_ENVIO:-smtp}
+      CORREO_SMTP_HOST: ${CORREO_SMTP_HOST:-mailpit}
+      CORREO_SMTP_PUERTO: ${CORREO_SMTP_PUERTO:-1025}
+      CORREO_SMTP_TLS: ${CORREO_SMTP_TLS:-False}
+      CORREO_MAILPIT_URL: ${CORREO_MAILPIT_URL:-http://mailpit:8025}
     env_file:
       - .env
     volumes:
@@ -95,6 +120,13 @@ services:
     environment:
       SITE_ROLE: lab
       DJANGO_SETTINGS_MODULE: grupovicaf.settings.dev
+      # Correo real en local: lo que se envía va a Mailpit y lo que llega a las
+      # cuentas VICAF vuelve a las bandejas (ver correo/mailpit.py).
+      CORREO_ENVIO: ${CORREO_ENVIO:-smtp}
+      CORREO_SMTP_HOST: ${CORREO_SMTP_HOST:-mailpit}
+      CORREO_SMTP_PUERTO: ${CORREO_SMTP_PUERTO:-1025}
+      CORREO_SMTP_TLS: ${CORREO_SMTP_TLS:-False}
+      CORREO_MAILPIT_URL: ${CORREO_MAILPIT_URL:-http://mailpit:8025}
     env_file:
       - .env
     volumes:

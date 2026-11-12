@@ -38,7 +38,7 @@ test.describe('pantalla de entrada', () => {
         await iniciarSesion(page, USUARIOS.coordinador);
         const [pestana] = await Promise.all([
             context.waitForEvent('page'),
-            page.getByRole('link', { name: 'Abrir informes@grupovicaf.com en una pestaña nueva' }).click(),
+            page.getByRole('link', { name: /abre informes@grupovicaf\.com en una pestaña nueva/ }).click(),
         ]);
         await expect(pestana).toHaveURL(new RegExp(`^http://${HOST_CORREO}:\\d+/c/informes/bandeja/$`));
         await expect(pestana.getByRole('heading', { name: 'Bandeja de entrada' })).toBeVisible();

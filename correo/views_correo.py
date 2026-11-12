@@ -10,7 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from django.http import FileResponse, Http404, HttpResponse
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -24,13 +24,14 @@ from servicios.models import Cotizacion
 from trabajadores.permissions import trabajador_tiene_permiso
 
 from . import busqueda
+from .almacen import es_r2, url_prefirmada
 from .cuentas import (
     GESTIONA, LECTURA, cuentas_de, exigir_cuenta, exigir_hilo, exigir_mensaje, mensajes_visibles, permite, roles_de,
 )
 from .enlaces import adjunto_de_token, consumir_enlace, destino_seguro, url_adjunto, url_lab
 from .mensajeria import carpeta as carpeta_de, mover, registrar_evento
 from .models import Adjunto, Asignacion, Carpeta, Contacto, EventoMensaje, Hilo, Mensaje
-from .permisos import puede_usar_correo
+from .permisos import motivo_sin_correo, puede_entrar_correo
 from .presentacion import abrir_hilo, filas_de_hilos, panel_cuentas
 from .sanitizar import bloquear_imagenes_remotas, reemplazar_cid, tiene_imagenes_remotas
 
@@ -42,8 +43,8 @@ def correo_requerido(vista):
     """login_required + permiso correo.ver (403 con pantalla propia)."""
     @login_required
     def envoltura(request, *args, **kwargs):
-        if not puede_usar_correo(request.user):
-            return render(request, 'correo/sin_acceso.html', status=403)
+        if not puede_entrar_correo(request.user):
+            return render(request, 'correo/sin_acceso.html', {'motivo': motivo_sin_correo(request.user)}, status=403)
         return vista(request, *args, **kwargs)
     envoltura.__name__ = vista.__name__
     envoltura.__doc__ = vista.__doc__
@@ -67,8 +68,9 @@ def entrar(request):
             'url_lab': url_lab(request, reverse('inicio', urlconf=URLCONF_LAB)),
         }, status=400)
     user = get_user_model().objects.filter(pk=datos['u'], is_active=True).first()
-    if user is None or not puede_usar_correo(user):
-        return render(request, 'correo/sin_acceso.html', status=403)
+    if user is None or not puede_entrar_correo(user):
+        motivo = motivo_sin_correo(user) if user else 'sin_permiso'
+        return render(request, 'correo/sin_acceso.html', {'motivo': motivo}, status=403)
     login(request, user, backend=BACKEND)
     return redirect(datos['d'])
 
@@ -81,8 +83,10 @@ def salir(request):
 
 # ---------------------------------------------------------- tres paneles
 
-def _render_bandeja(request, *, titulo, filtro, url_base, cuenta=None, carpeta=None, extra=None):
-    hilo_id = request.GET.get('h')
+def contexto_bandeja(request, *, titulo, filtro, url_base, cuenta=None, carpeta=None, extra=None, abrir=True):
+    """Contexto de la lista (y del hilo abierto con ?h=). Lo usa también Redactar,
+    que muestra la lista a la izquierda y el correo nuevo en el panel de lectura."""
+    hilo_id = request.GET.get('h') if abrir else None
     lectura = None
     if hilo_id and hilo_id.isdigit():
         lectura = abrir_hilo(request, exigir_hilo(request.user, int(hilo_id)), carpeta)
@@ -100,10 +104,26 @@ def _render_bandeja(request, *, titulo, filtro, url_base, cuenta=None, carpeta=N
         'url_base': url_base,
         'lectura': lectura,
         'url_inicio_lab': url_lab(request, reverse('inicio', urlconf=URLCONF_LAB)),
-        'volver': request.get_full_path(),
+        'volver': request.get_full_path() if abrir else url_base,
+        # «Mover a» de la barra de comandos: carpetas de la cuenta (o del hilo abierto).
+        'carpetas_mover': (list(cuenta.carpetas.order_by('orden', 'nombre')) if cuenta is not None
+                           else list(lectura['carpetas_destino']) if lectura else []),
     }
     contexto.update(extra or {})
-    return render(request, 'correo/bandeja.html', contexto)
+    return contexto
+
+
+def contexto_bandeja_cuenta(request, cuenta):
+    """Lista de la bandeja de entrada de `cuenta`, sin hilo abierto."""
+    carpeta = carpeta_de(cuenta, 'entrada')
+    return contexto_bandeja(
+        request, titulo=carpeta.nombre, filtro={'carpeta': carpeta},
+        url_base=reverse('bandeja_cuenta', args=[cuenta.slug]), cuenta=cuenta, carpeta=carpeta, abrir=False,
+    )
+
+
+def _render_bandeja(request, **kwargs):
+    return render(request, 'correo/bandeja.html', contexto_bandeja(request, **kwargs))
 
 
 @correo_requerido
@@ -213,9 +233,19 @@ def adjunto(request, token):
         raise Http404('El enlace venció. Vuelve a abrir el correo.')
     adj = get_object_or_404(Adjunto, pk=pk)
     seguro_en_linea = adj.tipo_mime in ('image/png', 'image/jpeg', 'image/gif', 'image/webp')
+    tipo = adj.tipo_mime if seguro_en_linea else (mimetypes.guess_type(adj.nombre)[0] or adj.tipo_mime)
+    if es_r2() and not adj.incrustado:
+        # R2: el archivo no pasa por el servidor (2 GB de RAM); se redirige a una URL
+        # prefirmada de 300 s. Las imágenes del cuerpo (cid:) siguen por aquí porque
+        # la CSP del iframe solo admite imágenes del propio origen.
+        destino = url_prefirmada(adj.archivo.name, descarga=adj.nombre, tipo=tipo, en_linea=seguro_en_linea)
+        respuesta = HttpResponseRedirect(destino)
+        respuesta['Cache-Control'] = 'no-store'
+        respuesta['Referrer-Policy'] = 'no-referrer'
+        return respuesta
     respuesta = FileResponse(
         adj.archivo.open('rb'), as_attachment=not seguro_en_linea, filename=adj.nombre,
-        content_type=adj.tipo_mime if seguro_en_linea else (mimetypes.guess_type(adj.nombre)[0] or adj.tipo_mime),
+        content_type=tipo,
     )
     respuesta['Content-Security-Policy'] = "default-src 'none'; sandbox"
     respuesta['X-Content-Type-Options'] = 'nosniff'
@@ -246,6 +276,10 @@ def acciones(request):
     hilos = [int(x) for x in request.POST.getlist('hilos') if x.isdigit()]
     ids = [int(x) for x in request.POST.getlist('mensajes') if x.isdigit()]
     origen = request.POST.get('origen', '')
+    # Barra de comandos: sin casillas marcadas, la acción va sobre el hilo abierto.
+    abierto = request.POST.get('hilo_abierto', '')
+    if not hilos and not ids and abierto.isdigit():
+        hilos = [int(abierto)]
     seleccion = Q(pk__in=ids)
     if hilos:
         filtro_hilos = Q(hilo__in=hilos)
@@ -291,8 +325,9 @@ def acciones(request):
                 'eliminar': 'Eliminados definitivamente.' if definitivos and not restantes else 'Movidos a la Papelera.',
             }[accion]
     messages.success(request, texto)
-    # Si el hilo abierto ya no está en esta carpeta, cerrar el panel de lectura.
-    if accion not in ('leido', 'no_leido') and '?h=' in volver:
+    # Si el hilo abierto ya no está en esta carpeta, cerrar el panel de lectura. También
+    # al marcar como no leído: volver a abrirlo lo marcaría leído otra vez.
+    if accion != 'leido' and '?h=' in volver:
         volver = volver.split('?h=')[0]
     return redirect(volver)
 
@@ -413,6 +448,35 @@ def buscar(request):
         'companeros': [(u.pk, nombre_usuario(u)) for u in companeros],
         'url_inicio_lab': url_lab(request, reverse('inicio', urlconf=URLCONF_LAB)),
     })
+
+
+@correo_requerido
+def api_buscar(request):
+    """Sugerencias de la barra de búsqueda mientras se escribe (como Outlook):
+    personas (directorio.sugerir, con su misma regla de privacidad) y los
+    correos que coinciden, solo de las cuentas que el usuario puede abrir."""
+    from urllib.parse import urlencode
+
+    from .directorio import sugerir
+    from .templatetags.correo_tags import fecha_corta
+    q = (request.GET.get('q') or '').strip()[:100]
+    if len(q) < 2:
+        return JsonResponse({'personas': [], 'correos': []})
+    personas = [
+        {**p, 'url': reverse('contacto') + '?' + urlencode({'correo': p['correo']})}
+        for p in sugerir(request.user, q, limite=4)
+    ]
+    visibles = (mensajes_visibles(request.user).exclude(estado_envio=Mensaje.BORRADOR)
+                .exclude(carpeta__tipo__in=['papelera', 'spam']).select_related('cuenta'))
+    correos = [{
+        'asunto': m.asunto or '(sin asunto)',
+        'remitente': m.de_nombre or m.de,
+        'cuenta': m.cuenta.nombre or m.cuenta.direccion,
+        'fecha': fecha_corta(m.fecha),
+        'adjunto': m.tiene_adjuntos,
+        'url': reverse('carpeta', args=[m.cuenta.slug, m.carpeta_id]) + f'?h={m.hilo_id}',
+    } for m in busqueda.buscar_al_escribir(visibles, q)[:5]]
+    return JsonResponse({'personas': personas, 'correos': correos})
 
 
 @correo_requerido

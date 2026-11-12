@@ -8,6 +8,7 @@ from django.urls import path
 from correo import views_correo as v
 from correo import views_firmas as f
 from correo import views_redactar as r
+from correo import views_admin as ad
 
 urlpatterns = [
     # Sesión
@@ -34,6 +35,7 @@ urlpatterns = [
 
     # Búsqueda e historial
     path('buscar/', v.buscar, name='buscar'),
+    path('api/buscar/', v.api_buscar, name='api_buscar'),
     path('contacto/', v.contacto, name='contacto'),
 
     # Redactar
@@ -54,4 +56,13 @@ urlpatterns = [
     path('firmas/<int:pk>/', f.firma_editar, name='firma_editar'),
     path('firmas/<int:pk>/eliminar/', f.firma_eliminar, name='firma_eliminar'),
     path('firmas/<int:pk>/vista/', f.firma_vista, name='firma_vista'),
+
+    # Administrar cuentas y accesos (Paso 3)
+    path('administrar/', ad.lista, name='admin_cuentas'),
+    path('administrar/nueva/', ad.crear, name='admin_cuenta_crear'),
+    path('administrar/<slug:slug>/', ad.detalle, name='admin_cuenta'),
+    path('administrar/<slug:slug>/guardar/', ad.guardar, name='admin_cuenta_guardar'),
+    path('administrar/<slug:slug>/accesos/', ad.acceso_dar, name='admin_acceso_dar'),
+    path('administrar/<slug:slug>/accesos/<int:pk>/rol/', ad.acceso_rol, name='admin_acceso_rol'),
+    path('administrar/<slug:slug>/accesos/<int:pk>/quitar/', ad.acceso_quitar, name='admin_acceso_quitar'),
 ]

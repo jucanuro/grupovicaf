@@ -1,0 +1,97 @@
+{% extends 'correo/_app.html' %}
+{% block title %}{{ cuenta.direccion }} · Administrar · Correo VICAF{% endblock %}
+{% block contenido %}
+<div class="pagina">
+    <header class="pagina__cabeza">
+        <div>
+            <p class="lista__sub"><a href="{% url 'admin_cuentas' %}">Administrar cuentas</a></p>
+            <h1 class="pagina__titulo">{{ cuenta.nombre }}</h1>
+            <p class="lista__sub"><span class="mono">{{ cuenta.direccion }}</span> · {% if cuenta.activa %}<span class="chip chip--verde">Activa</span>{% else %}<span class="chip">Inactiva: nadie la ve en su bandeja</span>{% endif %}</p>
+        </div>
+    </header>
+
+    <div class="rejilla-2">
+        <section class="tarjeta" aria-labelledby="t-datos">
+            <h2 id="t-datos" class="tarjeta__titulo">Datos de la cuenta</h2>
+            <form class="formulario-columna" method="post" action="{% url 'admin_cuenta_guardar' cuenta.slug %}">
+                {% csrf_token %}
+                <div class="campo">
+                    <label for="c-nombre">Nombre visible</label>
+                    <input id="c-nombre" name="nombre" value="{{ cuenta.nombre }}" maxlength="120" required>
+                </div>
+                {% if es_admin_correo %}
+                <fieldset class="opciones">
+                    <legend>Estado</legend>
+                    <label class="casilla-texto"><input type="radio" name="activa" value="1"{% if cuenta.activa %} checked{% endif %}> Activa</label>
+                    <label class="casilla-texto"><input type="radio" name="activa" value="0"{% if not cuenta.activa %} checked{% endif %}> Inactiva (se oculta a todos; no se borra nada)</label>
+                </fieldset>
+                {% endif %}
+                <div><button class="boton boton--primario boton--chico" type="submit">Guardar</button></div>
+            </form>
+        </section>
+
+        <section class="tarjeta" aria-labelledby="t-dar">
+            <h2 id="t-dar" class="tarjeta__titulo">Dar acceso</h2>
+            {% if candidatos %}
+            <form class="formulario-columna" method="post" action="{% url 'admin_acceso_dar' cuenta.slug %}">
+                {% csrf_token %}
+                <div class="campo">
+                    <label for="a-usuario">Trabajador</label>
+                    <select id="a-usuario" name="usuario" required>
+                        <option value="">Elige…</option>
+                        {% for u in candidatos %}<option value="{{ u.pk }}">{{ u.trabajadorprofile.nombre_completo|default:u.username }} ({{ u.username }})</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="campo">
+                    <label for="a-rol">Rol</label>
+                    <select id="a-rol" name="rol">
+                        {% for valor, texto in roles %}<option value="{{ valor }}"{% if valor == 'gestiona' %} selected{% endif %}>{{ texto }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div><button class="boton boton--primario boton--chico" type="submit">Dar acceso</button></div>
+            </form>
+            {% else %}
+            <p class="nota">Todos los trabajadores activos ya tienen acceso.</p>
+            {% endif %}
+            <p class="nota">Solo lectura: lee. Gestiona: responde, mueve y asigna. Administra: además, maneja estos accesos y las firmas de la cuenta.</p>
+        </section>
+    </div>
+
+    <section class="tarjeta" aria-labelledby="t-accesos">
+        <h2 id="t-accesos" class="tarjeta__titulo">Quién puede abrir esta cuenta</h2>
+        <table class="tabla">
+            <thead><tr><th scope="col">Persona</th><th scope="col">Rol</th><th scope="col"><span class="solo-lector">Quitar</span></th></tr></thead>
+            <tbody>
+            {% for a in accesos %}
+            <tr>
+                <td><strong>{{ a.usuario.trabajadorprofile.nombre_completo|default:a.usuario.username }}</strong><br><small class="mono">{{ a.usuario.username }}</small>
+                    {% if a.usuario_id in sin_permiso %}<br><span class="chip chip--ambar" title="Dale el permiso «Ver Correo» en su rol del LIMS (Administración › Roles).">Sin permiso Correo en su rol: aún no la ve</span>{% endif %}</td>
+                <td>
+                    <form class="fila-acciones" method="post" action="{% url 'admin_acceso_rol' cuenta.slug a.pk %}">
+                        {% csrf_token %}
+                        <label class="solo-lector" for="rol-{{ a.pk }}">Rol de {{ a.usuario.username }}</label>
+                        <select id="rol-{{ a.pk }}" name="rol" data-autoenviar>
+                            {% for valor, texto in roles %}<option value="{{ valor }}"{% if valor == a.rol %} selected{% endif %}>{{ texto }}</option>{% endfor %}
+                        </select>
+                        <noscript><button class="boton boton--suave boton--chico" type="submit">Cambiar</button></noscript>
+                    </form>
+                </td>
+                <td>
+                    <form method="post" action="{% url 'admin_acceso_quitar' cuenta.slug a.pk %}" data-confirmar="¿Quitar el acceso de {{ a.usuario.trabajadorprofile.nombre_completo|default:a.usuario.username }} a {{ cuenta.direccion }}?">
+                        {% csrf_token %}<button class="boton boton--suave boton--chico boton-texto--rojo" type="submit">Quitar</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="nota">Nadie tiene acceso todavía.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <section class="tarjeta" aria-labelledby="t-bitacora">
+        <h2 id="t-bitacora" class="tarjeta__titulo">Bitácora de la cuenta</h2>
+        {% if bitacora %}{% include 'correo/_bitacora_admin.html' %}{% else %}<p class="nota">Sin cambios registrados.</p>{% endif %}
+    </section>
+</div>
+{% endblock %}
