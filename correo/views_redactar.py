@@ -24,7 +24,7 @@ from servicios.models import Cotizacion
 from trabajadores.permissions import trabajador_tiene_permiso
 
 from .cuentas import ADMINISTRA, GESTIONA, cuentas_de, exigir_cuenta, exigir_mensaje, permite, roles_de
-from .enlaces import adjunto_de_token, url_adjunto, url_lab
+from .enlaces import adjunto_de_token, url_adjunto
 from .mensajeria import (
     agregar_adjunto, actualizar_tiene_adjuntos, carpeta, crear_mensaje, direcciones, normalizar_asunto,
     nuevo_message_id, preparar_cuerpo, registrar_evento,
@@ -34,7 +34,7 @@ from .directorio import sugerir
 from .models import Adjunto, AccesoCuenta, CuentaCorreo, EventoMensaje, Firma, Mensaje
 from .sanitizar import reemplazar_cid, sanitizar_html
 from .tasks import adjuntar_cotizacion, enviar_mensaje
-from .views_correo import URLCONF_LAB, contexto_bandeja_cuenta, correo_requerido
+from .views_correo import contexto_bandeja_cuenta, correo_requerido
 
 MAX_BYTES = settings.CORREO_MAX_ADJUNTOS_BYTES
 
