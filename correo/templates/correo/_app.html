@@ -8,11 +8,13 @@
         <img src="{% static 'img/LogoF.png' %}" alt="Grupo VICAF" width="77" height="32">
         <span class="barra__titulo">Correo</span>
     </a>
-    <form class="busqueda-rapida" role="search" method="get" action="{% url 'buscar' %}">
+    <form class="busqueda-rapida" role="search" method="get" action="{% url 'buscar' %}" data-sugerencias="{% url 'api_buscar' %}">
         <label class="solo-lector" for="q-rapida">Buscar en el correo</label>
         {% include 'correo/_iconos.html' with nombre='buscar' %}
-        <input id="q-rapida" type="search" name="q" value="{{ g.q|default:'' }}" placeholder="Buscar correos, personas, adjuntos…" autocomplete="off">
+        <input id="q-rapida" type="search" name="q" value="{{ g.q|default:'' }}" placeholder="Buscar correos, personas, adjuntos…" autocomplete="off"
+               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="q-rapida-lista">
         <a class="busqueda-rapida__mas" href="{% url 'buscar' %}" title="Búsqueda avanzada">Filtros</a>
+        <ul id="q-rapida-lista" class="sugerencias sugerencias--busqueda" role="listbox" aria-label="Sugerencias de búsqueda" hidden></ul>
     </form>
     <div class="barra__acciones">
         <a class="boton boton--primario boton--chico solo-movil" href="{% url 'redactar' %}{% if cuenta_actual %}?cuenta={{ cuenta_actual.slug }}{% endif %}" aria-label="Nuevo correo">{% include 'correo/_iconos.html' with nombre='lapiz' %}</a>

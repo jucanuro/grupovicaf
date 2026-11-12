@@ -10,7 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -447,6 +447,35 @@ def buscar(request):
         'companeros': [(u.pk, nombre_usuario(u)) for u in companeros],
         'url_inicio_lab': url_lab(request, reverse('inicio', urlconf=URLCONF_LAB)),
     })
+
+
+@correo_requerido
+def api_buscar(request):
+    """Sugerencias de la barra de búsqueda mientras se escribe (como Outlook):
+    personas (directorio.sugerir, con su misma regla de privacidad) y los
+    correos que coinciden, solo de las cuentas que el usuario puede abrir."""
+    from urllib.parse import urlencode
+
+    from .directorio import sugerir
+    from .templatetags.correo_tags import fecha_corta
+    q = (request.GET.get('q') or '').strip()[:100]
+    if len(q) < 2:
+        return JsonResponse({'personas': [], 'correos': []})
+    personas = [
+        {**p, 'url': reverse('contacto') + '?' + urlencode({'correo': p['correo']})}
+        for p in sugerir(request.user, q, limite=4)
+    ]
+    visibles = (mensajes_visibles(request.user).exclude(estado_envio=Mensaje.BORRADOR)
+                .exclude(carpeta__tipo__in=['papelera', 'spam']).select_related('cuenta'))
+    correos = [{
+        'asunto': m.asunto or '(sin asunto)',
+        'remitente': m.de_nombre or m.de,
+        'cuenta': m.cuenta.nombre or m.cuenta.direccion,
+        'fecha': fecha_corta(m.fecha),
+        'adjunto': m.tiene_adjuntos,
+        'url': reverse('carpeta', args=[m.cuenta.slug, m.carpeta_id]) + f'?h={m.hilo_id}',
+    } for m in busqueda.buscar_al_escribir(visibles, q)[:5]]
+    return JsonResponse({'personas': personas, 'correos': correos})
 
 
 @correo_requerido

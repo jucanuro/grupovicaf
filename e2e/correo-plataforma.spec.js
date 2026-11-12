@@ -153,6 +153,30 @@ test.describe('plataforma de correo', () => {
         await expect(page.getByRole('button', { name: 'Reintentar' })).toBeVisible();
     });
 
+    test('la barra de búsqueda sugiere personas y correos mientras se escribe', async ({ page }) => {
+        const violaciones = vigilarCsp(page);
+        await abrirCorreo(page);
+        const q = page.locator('#q-rapida');
+        await q.pressSequentially('compres', { delay: 30 });
+        const lista = page.locator('#q-rapida-lista');
+        await expect(lista).toBeVisible();
+        await expect(q).toHaveAttribute('aria-expanded', 'true');
+        await expect(lista.locator('.sugerencias__titulo', { hasText: 'Correos' })).toBeVisible();
+        await expect(lista.getByRole('option', { name: /Buscar «compres»/ })).toBeVisible();
+
+        // Teclado: ↓ marca la primera opción y Enter la abre.
+        await q.press('ArrowDown');
+        await expect(q).toHaveAttribute('aria-activedescendant', 'q-rapida-op-0');
+        await q.press('Escape');
+        await expect(lista).toBeHidden();
+
+        await q.press('End');
+        await q.pressSequentially('i');
+        await lista.locator('.sugerencia--correo').first().click();
+        await expect(page).toHaveURL(/\?h=\d+/);
+        expect(violaciones).toEqual([]);
+    });
+
     test('búsqueda sin tildes y ficha del contacto con su cliente del LIMS', async ({ page }) => {
         const origen = await abrirCorreo(page);
         await page.locator('#q-rapida').fill('compresion');

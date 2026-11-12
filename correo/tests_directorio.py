@@ -100,3 +100,55 @@ class DestinatariosTests(BasePlataforma):
         self.assertContains(respuesta, 'no es un correo válido')
         borrador.refresh_from_db()
         self.assertEqual(borrador.estado_envio, Mensaje.BORRADOR)
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab', SITE_ROLE='lab')
+class BuscadorSugerenciasTests(BasePlataforma):
+    """Barra de búsqueda: sugerencias mientras se escribe (api_buscar)."""
+
+    def sugerencias(self, q, usuario=None):
+        self.entrar(usuario or self.gestor)
+        respuesta = self.client.get(ruta('api_buscar'), {'q': q}, HTTP_HOST=HOST)
+        self.assertEqual(respuesta.status_code, 200)
+        return respuesta.json()
+
+    def test_sugiere_personas_y_correos(self):
+        datos = self.sugerencias('ana')
+        self.assertEqual(datos['personas'][0]['correo'], 'ana@cliente.example')
+        self.assertIn('contacto', datos['personas'][0]['url'])
+        self.assertEqual([c['asunto'] for c in datos['correos']], ['Cotización de compresión de probetas'])
+        self.assertTrue(datos['correos'][0]['adjunto'])
+        self.assertIn(f'?h={self.m.hilo_id}', datos['correos'][0]['url'])
+
+    def test_palabra_a_medio_escribir(self):
+        asuntos = [c['asunto'] for c in self.sugerencias('probet')['correos']]
+        self.assertEqual(asuntos, ['Cotización de compresión de probetas'])
+
+    @skipUnless(ES_POSTGRES, 'unaccent solo existe en PostgreSQL')
+    def test_sin_tildes(self):
+        self.assertEqual(len(self.sugerencias('cotizacion compres')['correos']), 1)
+
+    def test_nunca_correos_de_cuentas_ajenas(self):
+        self.assertEqual(self.sugerencias('proctor')['correos'], [])
+        self.assertEqual(len(self.sugerencias('proctor', self.ajeno)['correos']), 1)
+        self.assertEqual(self.sugerencias('cotizacion', self.ajeno)['correos'], [])
+
+    def test_ni_papelera_ni_borradores(self):
+        from .mensajeria import carpeta, mover
+        mover([self.m], carpeta(self.informes, 'papelera'), self.gestor)
+        self.assertEqual(self.sugerencias('probetas')['correos'], [])
+
+    def test_texto_corto_o_raro_no_consulta(self):
+        self.assertEqual(self.sugerencias('a'), {'personas': [], 'correos': []})
+        self.assertEqual(self.sugerencias('&|!:*')['correos'], [])
+
+    def test_sin_modulo_de_correo_403(self):
+        self.entrar(self.sin_modulo)
+        self.assertEqual(self.client.get(ruta('api_buscar'), {'q': 'ana'}, HTTP_HOST=HOST).status_code, 403)
+
+    def test_la_barra_es_un_combobox_accesible(self):
+        self.entrar(self.gestor)
+        html = self.client.get(ruta('bandeja'), HTTP_HOST=HOST).content.decode()
+        self.assertIn('role="combobox"', html)
+        self.assertIn('aria-controls="q-rapida-lista"', html)
+        self.assertIn('role="listbox"', html)

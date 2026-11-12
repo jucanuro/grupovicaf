@@ -561,6 +561,11 @@ a.adjunto:hover { border-color: var(--acento); background: var(--acento-suave); 
 .sugerencia__texto { display: grid; min-width: 0; }
 .sugerencia__texto > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sugerencia__detalle { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sugerencias--busqueda { max-height: min(460px, 70vh); }
+.sugerencias .sugerencia__meta { color: var(--tinta-3); font-size: 12.5px; }
+.sugerencias mark { background: transparent; color: var(--acento); font-weight: 700; }
+.sugerencias .sugerencia--correo { grid-template-columns: minmax(0, 1fr) auto; }
+.sugerencias .sugerencia--buscar { grid-template-columns: minmax(0, 1fr) auto; margin-top: 4px; border-top: 1px solid var(--linea); border-radius: 0 0 8px 8px; color: var(--acento); font-weight: 600; }
 .avatar { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; font-size: 12px; font-weight: 700;
     background: #E0E7FF; color: #3730A3; }
 .avatar--vicaf, .avatar--equipo { background: #DBEAFE; color: var(--acento); }

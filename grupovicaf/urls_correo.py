@@ -35,6 +35,7 @@ urlpatterns = [
 
     # Búsqueda e historial
     path('buscar/', v.buscar, name='buscar'),
+    path('api/buscar/', v.api_buscar, name='api_buscar'),
     path('contacto/', v.contacto, name='contacto'),
 
     # Redactar
