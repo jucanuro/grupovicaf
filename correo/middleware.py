@@ -47,5 +47,8 @@ class CorreoHostMiddleware:
         response = self.get_response(request)
         if request.es_host_correo:
             response.headers.setdefault('Content-Security-Policy', CSP_CORREO)
-            response.headers.setdefault('Referrer-Policy', 'no-referrer')
+            # same-origin: nada sale hacia otros sitios, pero los formularios
+            # conservan su Origin (con no-referrer Chrome manda Origin: null y
+            # la verificación CSRF de Django rechaza el POST).
+            response.headers.setdefault('Referrer-Policy', 'same-origin')
         return response

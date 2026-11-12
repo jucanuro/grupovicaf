@@ -1,0 +1,109 @@
+{% extends 'correo/_app.html' %}
+{% load correo_tags %}
+{% block title %}{{ titulo }}{% if cuenta_actual %} · {{ cuenta_actual.direccion }}{% endif %} · Correo VICAF{% endblock %}
+{% block clase_app %}{% if lectura %}app--leyendo{% endif %}{% endblock %}
+{% block contenido %}
+<div class="paneles">
+    <section class="lista" aria-labelledby="titulo-lista">
+        <header class="lista__cabeza">
+            <div>
+                <h1 id="titulo-lista" class="lista__titulo">{{ titulo }}</h1>
+                <p class="lista__sub">{% if cuenta_actual %}<span class="mono">{{ cuenta_actual.direccion }}</span>{% else %}Todas tus cuentas{% endif %} · {{ pagina.paginator.count }} {% if pagina.paginator.count == 1 %}conversación{% else %}conversaciones{% endif %}</p>
+            </div>
+            {% if unificada and cuentas|length > 1 %}
+            <form method="get" class="filtro-cuenta">
+                <label class="solo-lector" for="filtro-cuenta">Filtrar por cuenta</label>
+                <select id="filtro-cuenta" name="cuenta" data-autoenviar>
+                    <option value="">Todas las cuentas</option>
+                    {% for c in cuentas %}<option value="{{ c.slug }}"{% if filtro_cuenta == c.slug %} selected{% endif %}>{{ c.nombre }}</option>{% endfor %}
+                </select>
+                <noscript><button class="boton boton--suave" type="submit">Filtrar</button></noscript>
+            </form>
+            {% endif %}
+            {% if carpeta_actual and carpeta_actual.tipo == 'personal' and cuenta_actual.puede_gestionar %}
+            <form method="post" action="{% url 'carpeta_eliminar' cuenta_actual.slug carpeta_actual.pk %}" data-confirmar="¿Eliminar la carpeta «{{ carpeta_actual.nombre }}»? Sus correos vuelven a la bandeja de entrada.">
+                {% csrf_token %}<button class="boton boton--suave boton--chico" type="submit">Eliminar carpeta</button>
+            </form>
+            {% endif %}
+        </header>
+
+        <form id="form-lista" method="post" action="{% url 'acciones' %}">
+            {% csrf_token %}
+            <input type="hidden" name="volver" value="{{ volver }}">
+            <input type="hidden" name="origen" value="{% if carpeta_actual %}{{ carpeta_actual.pk }}{% else %}entrada{% endif %}">
+            {% if carpeta_actual.tipo != 'borradores' %}
+            <div class="acciones-bloque" role="toolbar" aria-label="Acciones sobre los seleccionados">
+                <label class="casilla"><input type="checkbox" data-seleccionar-todo aria-label="Seleccionar todo"></label>
+                <button class="boton-icono" name="accion" value="leido" aria-label="Marcar como leído" title="Marcar como leído" data-requiere-seleccion>{% include 'correo/_iconos.html' with nombre='leido' %}</button>
+                <button class="boton-icono" name="accion" value="no_leido" aria-label="Marcar como no leído" title="Marcar como no leído" data-requiere-seleccion>{% include 'correo/_iconos.html' with nombre='no_leido' %}</button>
+                <button class="boton-icono" name="accion" value="archivar" aria-label="Archivar" title="Archivar" data-requiere-seleccion>{% include 'correo/_iconos.html' with nombre='archivar' %}</button>
+                {% if carpeta_actual.tipo == 'spam' %}
+                <button class="boton-icono" name="accion" value="no_spam" aria-label="No es correo no deseado" title="No es correo no deseado" data-requiere-seleccion>{% include 'correo/_iconos.html' with nombre='check' %}</button>
+                {% else %}
+                <button class="boton-icono" name="accion" value="spam" aria-label="Marcar como no deseado" title="Correo no deseado" data-requiere-seleccion>{% include 'correo/_iconos.html' with nombre='spam' %}</button>
+                {% endif %}
+                <button class="boton-icono boton-icono--rojo" name="accion" value="eliminar" aria-label="{% if carpeta_actual.tipo == 'papelera' %}Eliminar definitivamente{% else %}Eliminar{% endif %}" title="Eliminar" data-requiere-seleccion{% if carpeta_actual.tipo == 'papelera' %} data-confirmar="Se eliminarán definitivamente. ¿Continuar?"{% endif %}>{% include 'correo/_iconos.html' with nombre='papelera' %}</button>
+                {% if cuenta_actual %}
+                <label class="solo-lector" for="mover-bloque">Mover a</label>
+                <select id="mover-bloque" name="destino" class="mover" data-requiere-seleccion>
+                    <option value="">Mover a…</option>
+                    {% for c in cuenta_actual.lista_carpetas %}{% if c.pk != carpeta_actual.pk %}<option value="{{ c.pk }}">{{ c.nombre }}</option>{% endif %}{% endfor %}
+                </select>
+                <button class="boton boton--suave boton--chico" name="accion" value="mover" data-requiere-seleccion>Mover</button>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <ul class="filas" data-lista>
+                {% for f in filas %}
+                <li class="fila{% if f.no_leido %} fila--no-leida{% endif %}{% if f.seleccionado %} fila--activa{% endif %}" data-fila data-url-completa="{% if carpeta_actual.tipo == 'borradores' %}{{ f.url }}{% else %}{{ f.url_completa }}{% endif %}">
+                    {% if carpeta_actual.tipo != 'borradores' %}
+                    <label class="casilla"><input type="checkbox" name="hilos" value="{{ f.hilo.pk }}" aria-label="Seleccionar «{{ f.mensaje.asunto|default:'(sin asunto)' }}»"></label>
+                    {% endif %}
+                    <a class="fila__enlace" href="{{ f.url }}"{% if f.seleccionado %} aria-current="true"{% endif %}>
+                        <span class="avatar" aria-hidden="true">{{ f.mensaje|remitente|iniciales }}</span>
+                        <span class="fila__cuerpo">
+                            <span class="fila__linea">
+                                <span class="fila__de">{% if f.enviado %}Para: {{ f.mensaje.para.0.nombre|default:f.mensaje.para.0.correo|default:'(sin destinatario)' }}{% else %}{{ f.mensaje|remitente }}{% endif %}{% if f.n > 1 %} <span class="fila__n">({{ f.n }})</span>{% endif %}</span>
+                                {% if f.adjunto %}<span class="fila__clip" title="Con adjuntos">{% include 'correo/_iconos.html' with nombre='clip' %}<span class="solo-lector">Con adjuntos</span></span>{% endif %}
+                                <time class="fila__fecha mono" datetime="{{ f.mensaje.fecha|date:'c' }}">{{ f.mensaje.fecha|fecha_corta }}</time>
+                            </span>
+                            <span class="fila__asunto">{% if f.no_leido %}<span class="punto" aria-hidden="true"></span><span class="solo-lector">No leído. </span>{% endif %}{{ f.mensaje.asunto|default:'(sin asunto)' }}</span>
+                            <span class="fila__previa">{{ f.mensaje.vista_previa }}</span>
+                            <span class="fila__etiquetas">
+                                {% if unificada %}<span class="chip">{{ f.hilo.cuenta.nombre }}</span>{% endif %}
+                                {% if f.asignacion %}<span class="chip {% if f.asignacion.estado == 'atendido' %}chip--verde{% else %}chip--ambar{% endif %}">{% if f.asignacion.estado == 'atendido' %}Atendido{% else %}Atiende{% endif %}: {{ f.asignacion.asignado_a.trabajadorprofile.nombre_completo|default:f.asignacion.asignado_a.username }}</span>{% endif %}
+                                {% if f.mensaje.estado_envio == 'fallido' %}<span class="chip chip--rojo">Falló el envío</span>{% elif f.mensaje.estado_envio == 'en_cola' %}<span class="chip chip--ambar">En cola</span>{% endif %}
+                            </span>
+                        </span>
+                    </a>
+                </li>
+                {% empty %}
+                <li class="vacio">No hay correos en esta carpeta.</li>
+                {% endfor %}
+            </ul>
+        </form>
+
+        {% if pagina.has_other_pages %}
+        <nav class="paginacion" aria-label="Páginas">
+            {% if pagina.has_previous %}<a class="boton boton--suave boton--chico" href="?p={{ pagina.previous_page_number }}{% if filtro_cuenta %}&cuenta={{ filtro_cuenta }}{% endif %}">Anteriores</a>{% endif %}
+            <span class="mono">{{ pagina.number }} / {{ pagina.paginator.num_pages }}</span>
+            {% if pagina.has_next %}<a class="boton boton--suave boton--chico" href="?p={{ pagina.next_page_number }}{% if filtro_cuenta %}&cuenta={{ filtro_cuenta }}{% endif %}">Siguientes</a>{% endif %}
+        </nav>
+        {% endif %}
+    </section>
+
+    <section class="lectura" aria-label="Lectura">
+        {% if lectura %}
+            <a class="boton boton--suave boton--chico solo-movil" href="{{ url_base }}">{% include 'correo/_iconos.html' with nombre='volver' %}Volver a la lista</a>
+            {% include 'correo/_lectura.html' %}
+        {% else %}
+            <div class="lectura__vacia">
+                {% include 'correo/_iconos.html' with nombre='correo' %}
+                <p>Elige una conversación para leerla.</p>
+                <p class="nota">Doble clic la abre en pantalla completa. Usa ↑ ↓ para moverte por la lista.</p>
+            </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

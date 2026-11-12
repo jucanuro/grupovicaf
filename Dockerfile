@@ -58,7 +58,7 @@ COPY --from=builder /opt/venv /opt/venv
 COPY . .
 COPY --from=node-builder /app/static/web/css/output.css /app/static/web/css/output.css
 
-RUN mkdir -p /app/staticfiles /app/mediafiles \
+RUN mkdir -p /app/staticfiles /app/mediafiles /app/correo_privado \
     && chown -R app:app /app /opt/venv
 
 ENV PATH=/opt/venv/bin:$PATH \

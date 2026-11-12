@@ -23,8 +23,8 @@ E2E_PYTHON=venv/bin/python npm run test:e2e
 ```
 
 Playwright levanta `lab` en :8000 y `web` en :8001 con `grupovicaf.settings.test_local`
-(caché en memoria, Celery en modo eager). El lab corre `migrate` y
-`sembrar_e2e` antes de escuchar. Sin `DB_HOST` usa `db.sqlite3`.
+(caché en memoria, Celery en modo eager). El lab corre `migrate`,
+`sembrar_e2e` y `seed_correo_demo --usuario e2e.coordinador` antes de escuchar. Sin `DB_HOST` usa `db.sqlite3`.
 
 Para ver el navegador: `npx playwright test --headed`; para depurar paso a paso:
 `npx playwright test --debug`; reporte con trazas: `npx playwright show-report`.
@@ -35,6 +35,7 @@ Si :8000 y :8001 ya responden, Playwright los reutiliza y **no siembra**:
 
 ```bash
 docker compose -f docker-compose.dev.yml exec lab python manage.py sembrar_e2e
+docker compose -f docker-compose.dev.yml exec lab python manage.py seed_correo_demo --usuario e2e.coordinador
 npx playwright test
 ```
 

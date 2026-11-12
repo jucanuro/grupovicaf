@@ -42,7 +42,7 @@ test.describe('pantalla de entrada', () => {
         ]);
         await expect(pestana).toHaveURL(new RegExp(`^http://${HOST_CORREO}:\\d+/c/informes/bandeja/$`));
         await expect(pestana.getByRole('heading', { name: 'Bandeja de entrada' })).toBeVisible();
-        await expect(pestana.getByText('informes@grupovicaf.com')).toBeVisible();
+        await expect(pestana.locator('.lista__sub')).toContainText('informes@grupovicaf.com');
     });
 
     test('el técnico sin correo.ver solo ve Sistema', async ({ page }) => {

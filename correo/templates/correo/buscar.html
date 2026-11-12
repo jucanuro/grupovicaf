@@ -1,0 +1,79 @@
+{% extends 'correo/_app.html' %}
+{% load correo_tags %}
+{% block title %}Buscar · Correo VICAF{% endblock %}
+{% block contenido %}
+<div class="pagina">
+    <h1 class="pagina__titulo">Buscar en el correo</h1>
+    <form class="filtros tarjeta" method="get" role="search">
+        <div class="campo campo--ancho">
+            <label for="b-q">Palabras</label>
+            <input id="b-q" type="search" name="q" value="{{ g.q|default:'' }}" placeholder="Asunto, texto, nombre de un adjunto…">
+        </div>
+        <div class="campo">
+            <label for="b-cuenta">Cuenta</label>
+            <select id="b-cuenta" name="cuenta">
+                <option value="">Todas</option>
+                {% for c in cuentas %}<option value="{{ c.slug }}"{% if g.cuenta == c.slug %} selected{% endif %}>{{ c.nombre }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="campo">
+            <label for="b-carpeta">Carpeta</label>
+            <select id="b-carpeta" name="carpeta">
+                <option value="">Todas (sin papelera ni no deseado)</option>
+                {% for valor, nombre in tipos_carpeta %}<option value="{{ valor }}"{% if g.carpeta == valor %} selected{% endif %}>{{ nombre }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="campo">
+            <label for="b-de">De</label>
+            <input id="b-de" name="de" value="{{ g.de|default:'' }}" placeholder="nombre o correo">
+        </div>
+        <div class="campo">
+            <label for="b-para">Para</label>
+            <input id="b-para" name="para" value="{{ g.para|default:'' }}" placeholder="correo">
+        </div>
+        <div class="campo">
+            <label for="b-desde">Desde</label>
+            <input id="b-desde" type="date" name="desde" value="{{ g.desde|default:'' }}">
+        </div>
+        <div class="campo">
+            <label for="b-hasta">Hasta</label>
+            <input id="b-hasta" type="date" name="hasta" value="{{ g.hasta|default:'' }}">
+        </div>
+        <div class="campo">
+            <label for="b-participante">Intervino del equipo</label>
+            <select id="b-participante" name="participante">
+                <option value="">Cualquiera</option>
+                {% for pk, nombre in companeros %}<option value="{{ pk }}"{% if g.participante == pk|stringformat:'s' %} selected{% endif %}>{{ nombre }}</option>{% endfor %}
+            </select>
+        </div>
+        <label class="casilla-texto"><input type="checkbox" name="adjunto" value="1"{% if g.adjunto == '1' %} checked{% endif %}> Con adjuntos</label>
+        <div class="filtros__botones">
+            <a class="boton boton--suave" href="{% url 'buscar' %}">Limpiar</a>
+            <button class="boton boton--primario" type="submit">{% include 'correo/_iconos.html' with nombre='buscar' %}Buscar</button>
+        </div>
+    </form>
+
+    {% if hay_filtros %}
+    <section class="tarjeta" aria-labelledby="titulo-resultados">
+        <h2 id="titulo-resultados" class="tarjeta__titulo">{{ resultados|length }} resultado{{ resultados|length|pluralize }}{% if resultados|length == 100 %} (se muestran los 100 más relevantes){% endif %}</h2>
+        <table class="tabla">
+            <thead><tr><th scope="col">De</th><th scope="col">Asunto</th><th scope="col">Cuenta · carpeta</th><th scope="col">Fecha</th></tr></thead>
+            <tbody>
+            {% for m in resultados %}
+            <tr>
+                <td>{{ m|remitente }}<br><small class="mono">{{ m.de }}</small></td>
+                <td><a href="{{ m.url }}">{{ m.asunto|default:'(sin asunto)' }}</a>{% if m.tiene_adjuntos %} <span class="fila__clip" title="Con adjuntos">{% include 'correo/_iconos.html' with nombre='clip' %}</span>{% endif %}<br><small>{{ m.vista_previa|truncatechars:120 }}</small></td>
+                <td><span class="chip">{{ m.cuenta.nombre }}</span> {{ m.carpeta.nombre }}</td>
+                <td class="mono">{{ m.fecha|date:'d/m/Y' }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="vacio">No encontramos correos con esos filtros.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% else %}
+    <p class="nota">Escribe una palabra o elige un filtro. La búsqueda ignora tildes y mayúsculas, y encuentra variantes («ensayo» encuentra «ensayos»).</p>
+    {% endif %}
+</div>
+{% endblock %}

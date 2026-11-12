@@ -1,0 +1,39 @@
+{% extends 'correo/base.html' %}
+{% load static %}
+{% block head %}<script src="{% static 'correo/js/correo.js' %}" defer></script>{% block head_extra %}{% endblock %}{% endblock %}
+{% block body %}
+<a class="saltar" href="#contenido">Saltar al contenido</a>
+<header class="barra barra--app">
+    <a class="barra__marca" href="{% url 'bandeja' %}">
+        <img src="{% static 'img/LogoF.png' %}" alt="Grupo VICAF" width="77" height="32">
+        <span class="barra__titulo">Correo</span>
+    </a>
+    <form class="busqueda-rapida" role="search" method="get" action="{% url 'buscar' %}">
+        <label class="solo-lector" for="q-rapida">Buscar en el correo</label>
+        {% include 'correo/_iconos.html' with nombre='buscar' %}
+        <input id="q-rapida" type="search" name="q" value="{{ g.q|default:'' }}" placeholder="Buscar correos, personas, adjuntos…" autocomplete="off">
+        <a class="busqueda-rapida__mas" href="{% url 'buscar' %}" title="Búsqueda avanzada">Filtros</a>
+    </form>
+    <div class="barra__acciones">
+        <a class="boton boton--primario" href="{% url 'redactar' %}{% if cuenta_actual %}?cuenta={{ cuenta_actual.slug }}{% endif %}">{% include 'correo/_iconos.html' with nombre='lapiz' %}<span class="ocultar-movil">Nuevo correo</span></a>
+        <a class="boton-icono" href="{% url 'firmas' %}" aria-label="Firmas" title="Firmas">{% include 'correo/_iconos.html' with nombre='firma' %}</a>
+        <a class="boton-icono" href="{{ url_inicio_lab }}" aria-label="Volver al inicio de la plataforma" title="Inicio">{% include 'correo/_iconos.html' with nombre='sistema' %}</a>
+        <form method="post" action="{% url 'salir' %}">{% csrf_token %}
+            <button type="submit" class="boton-icono" aria-label="Salir del correo" title="Salir">{% include 'correo/_iconos.html' with nombre='salir' %}</button>
+        </form>
+    </div>
+</header>
+
+{% if messages %}
+<div class="avisos" role="status">
+    {% for m in messages %}<p class="avisos__item avisos__item--{{ m.tags }}">{{ m }}</p>{% endfor %}
+</div>
+{% endif %}
+
+<div class="app {% block clase_app %}{% endblock %}">
+    {% include 'correo/_panel_cuentas.html' %}
+    <main id="contenido" class="app__principal" tabindex="-1">
+        {% block contenido %}{% endblock %}
+    </main>
+</div>
+{% endblock %}

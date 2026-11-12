@@ -67,7 +67,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runtime
-    command: celery -A grupovicaf worker -l info
+    command: celery -A grupovicaf worker -l info -Q celery,correo
     user: root
     environment:
       SITE_ROLE: lab

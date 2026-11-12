@@ -1,0 +1,35 @@
+<nav class="lateral" aria-label="Cuentas y carpetas">
+    <a class="carpeta carpeta--unificada" href="{% url 'bandeja' %}"{% if unificada and not filtro_cuenta %} aria-current="page"{% endif %}>
+        {% include 'correo/_iconos.html' with nombre='bandeja' %}<span>Bandeja unificada</span>
+    </a>
+    {% for cuenta in cuentas %}
+    <details class="grupo-cuenta" {% if not cuenta_actual or cuenta_actual.pk == cuenta.pk %}open{% endif %} data-cuenta="{{ cuenta.slug }}">
+        <summary class="grupo-cuenta__titulo">
+            <span class="grupo-cuenta__nombre">{{ cuenta.nombre }}<small class="mono">{{ cuenta.direccion }}</small></span>
+            {% if cuenta.no_leidos %}<span class="contador" aria-label="{{ cuenta.no_leidos }} sin leer">{{ cuenta.no_leidos }}</span>{% endif %}
+        </summary>
+        <ul class="carpetas">
+            {% for c in cuenta.lista_carpetas %}
+            <li>
+                <a class="carpeta" href="{% if c.tipo == 'entrada' %}{% url 'bandeja_cuenta' cuenta.slug %}{% else %}{% url 'carpeta' cuenta.slug c.pk %}{% endif %}"{% if carpeta_actual.pk == c.pk %} aria-current="page"{% endif %}>
+                    <span>{{ c.nombre }}</span>
+                    {% if c.tipo == 'salida' and c.fallidos %}<span class="contador contador--aviso" aria-label="{{ c.fallidos }} con error">{{ c.fallidos }}</span>
+                    {% elif c.contador %}<span class="contador{% if c.tipo == 'borradores' or c.tipo == 'salida' %} contador--cero{% endif %}" aria-label="{{ c.contador }}{% if c.tipo != 'borradores' and c.tipo != 'salida' %} sin leer{% endif %}">{{ c.contador }}</span>{% endif %}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% if cuenta.puede_gestionar %}
+        <form class="carpeta-nueva" method="post" action="{% url 'carpeta_nueva' cuenta.slug %}">
+            {% csrf_token %}
+            <label class="solo-lector" for="nueva-{{ cuenta.slug }}">Nueva carpeta en {{ cuenta.nombre }}</label>
+            <input id="nueva-{{ cuenta.slug }}" name="nombre" maxlength="80" placeholder="+ Nueva carpeta" required>
+        </form>
+        {% else %}
+        <p class="lateral__nota">Solo lectura</p>
+        {% endif %}
+    </details>
+    {% empty %}
+    <p class="lateral__nota">Aún no tienes cuentas de correo asignadas.</p>
+    {% endfor %}
+</nav>

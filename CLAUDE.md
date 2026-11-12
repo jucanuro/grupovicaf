@@ -46,6 +46,19 @@ dev `email.localhost:<puerto>`). Las cookies **no** se comparten entre hosts
 (`correo/enlaces.py`, 60 s). Las cuentas visibles salen siempre de
 `correo.cuentas.cuentas_de(user)`; el acceso se revisa en el servidor.
 
+Plataforma (Paso 2): modelos reales en `correo/models.py` (`CuentaCorreo`,
+`AccesoCuenta` con rol lectura/gestiona/administra, `Carpeta`, `Hilo`,
+`Mensaje`, `Adjunto`, `Firma`, `EventoMensaje` = bitácora, `Asignacion`).
+Toda consulta pasa por `correo/cuentas.py` (`exigir_cuenta`, `exigir_mensaje`,
+`exigir_hilo`: 404 si la cuenta no es suya, 403 si su rol no alcanza). El HTML
+recibido se limpia con nh3 (`correo/sanitizar.py`) y se muestra en un iframe
+sandbox sin scripts con CSP propia; las imágenes remotas van bloqueadas. Los
+archivos van a `CORREO_ALMACEN_DIR` (privado, nunca MEDIA_ROOT) y se descargan
+con enlace firmado de 300 s. El envío es simulado (`ServicioEnvioSimulado`,
+cola Celery `correo`; `@falla.invalid` simula un rebote) hasta el Paso 5.
+Datos de ejemplo: `python manage.py seed_correo_demo --usuario <username>`
+(solo `DEBUG=True`). Quill 2.0.3 está vendorizado en `static/vendor/`.
+
 ### Capa web (pública) — prefijo `web_` obligatorio
 
 | App | Responsabilidad |
