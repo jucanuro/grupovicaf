@@ -68,3 +68,26 @@ def url_correo(request, ruta='/', **query):
 def url_lab(request, ruta='/', **query):
     url = _base(request, settings.LAB_BASE_URL, settings.LAB_HOST) + ruta
     return url + ('?' + urlencode(query) if query else '')
+
+
+# --- Descarga de adjuntos con enlace firmado de corta duración ---
+# En el Paso 3 la vista `adjunto` redirige a la URL prefirmada de R2 con la
+# misma vigencia; las plantillas no cambian.
+SALT_ADJUNTO = 'correo.adjunto'
+
+
+def token_adjunto(adjunto):
+    return signing.dumps({'a': adjunto.pk}, salt=SALT_ADJUNTO)
+
+
+def adjunto_de_token(token):
+    try:
+        datos = signing.loads(token or '', salt=SALT_ADJUNTO, max_age=settings.CORREO_URL_FIRMADA_SEGUNDOS)
+    except signing.BadSignature:
+        return None
+    return datos.get('a')
+
+
+def url_adjunto(adjunto):
+    from django.urls import reverse
+    return reverse('adjunto', urlconf='grupovicaf.urls_correo', args=[token_adjunto(adjunto)])

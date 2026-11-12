@@ -34,3 +34,22 @@ class ServicioEnvio(ABC):
     @abstractmethod
     def enviar(self, mensaje) -> ResultadoEnvio:
         """Arma el MIME (con adjuntos e imágenes incrustadas) y lo entrega al proveedor."""
+
+
+class ServicioEnvioSimulado(ServicioEnvio):
+    """Pasos 2 y 3: no sale nada a Internet. Marca el mensaje como enviado.
+
+    Un destinatario que termina en `@falla.invalid` simula un rebote, para
+    poder probar la Bandeja de salida (fallidos y reintento).
+    """
+
+    def enviar(self, mensaje) -> ResultadoEnvio:
+        destinos = [d['correo'] for d in list(mensaje.para) + list(mensaje.cc) + list(mensaje.cco)]
+        if any(d.endswith('@falla.invalid') for d in destinos):
+            return ResultadoEnvio(ok=False, error='Rebote simulado: el dominio no existe.', reintentar=True)
+        return ResultadoEnvio(ok=True, id_proveedor=f'simulado-{mensaje.pk}')
+
+
+def servicio_envio() -> ServicioEnvio:
+    """Implementación activa. En el Paso 5 devolverá la de Amazon SES."""
+    return ServicioEnvioSimulado()
