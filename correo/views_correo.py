@@ -31,7 +31,7 @@ from .cuentas import (
 from .enlaces import adjunto_de_token, consumir_enlace, destino_seguro, url_adjunto, url_lab
 from .mensajeria import carpeta as carpeta_de, mover, registrar_evento
 from .models import Adjunto, Asignacion, Carpeta, Contacto, EventoMensaje, Hilo, Mensaje
-from .permisos import puede_usar_correo
+from .permisos import motivo_sin_correo, puede_entrar_correo
 from .presentacion import abrir_hilo, filas_de_hilos, panel_cuentas
 from .sanitizar import bloquear_imagenes_remotas, reemplazar_cid, tiene_imagenes_remotas
 
@@ -43,8 +43,8 @@ def correo_requerido(vista):
     """login_required + permiso correo.ver (403 con pantalla propia)."""
     @login_required
     def envoltura(request, *args, **kwargs):
-        if not puede_usar_correo(request.user):
-            return render(request, 'correo/sin_acceso.html', status=403)
+        if not puede_entrar_correo(request.user):
+            return render(request, 'correo/sin_acceso.html', {'motivo': motivo_sin_correo(request.user)}, status=403)
         return vista(request, *args, **kwargs)
     envoltura.__name__ = vista.__name__
     envoltura.__doc__ = vista.__doc__
@@ -68,8 +68,9 @@ def entrar(request):
             'url_lab': url_lab(request, reverse('inicio', urlconf=URLCONF_LAB)),
         }, status=400)
     user = get_user_model().objects.filter(pk=datos['u'], is_active=True).first()
-    if user is None or not puede_usar_correo(user):
-        return render(request, 'correo/sin_acceso.html', status=403)
+    if user is None or not puede_entrar_correo(user):
+        motivo = motivo_sin_correo(user) if user else 'sin_permiso'
+        return render(request, 'correo/sin_acceso.html', {'motivo': motivo}, status=403)
     login(request, user, backend=BACKEND)
     return redirect(datos['d'])
 

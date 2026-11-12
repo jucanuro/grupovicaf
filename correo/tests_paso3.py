@@ -193,8 +193,9 @@ class AdministrarTests(BasePlataforma):
         self.informes.refresh_from_db()
         self.assertFalse(self.informes.activa)
         self.assertEqual(self.informes.nombre, 'Informes VICAF')
+        # Era su única cuenta: sin cuentas activas ya no entra al correo.
         self.entrar(self.gestor)
-        self.assertEqual(self.get('bandeja_cuenta', 'informes').status_code, 404)
+        self.assertContains(self.get('bandeja_cuenta', 'informes'), 'Aún no tienes cuentas', status_code=403)
 
     def test_administrar_no_da_acceso_a_leer(self):
         self.entrar(self.admin)

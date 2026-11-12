@@ -3,8 +3,13 @@
 {% block body %}
 <main class="centrado">
     <div class="panel">
+        {% if motivo == 'sin_cuentas' %}
+        <h1 class="panel__titulo">Aún no tienes cuentas de correo</h1>
+        <p class="panel__sub">Para entrar necesitas al menos una cuenta asignada (por ejemplo informes@ o laboratorio@). Pide a quien administra el correo que te dé acceso.</p>
+        {% else %}
         <h1 class="panel__titulo">No tienes acceso al correo</h1>
         <p class="panel__sub">Tu rol no incluye el permiso del módulo de correo. Pide a un administrador que te lo asigne.</p>
+        {% endif %}
     </div>
 </main>
 {% endblock %}

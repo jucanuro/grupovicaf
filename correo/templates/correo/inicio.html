@@ -1,86 +1,109 @@
 {% extends 'correo/base.html' %}
-{% load static %}
+{% load static correo_tags %}
 {% block title %}Inicio · VICAF{% endblock %}
 {% block body %}
-<header class="barra">
-    <a class="barra__marca" href="{% url 'inicio' %}">
-        <img src="{% static 'img/LogoF.png' %}" alt="Grupo VICAF" width="77" height="32">
-        <span>
-            <span class="barra__titulo">Plataforma VICAF</span>
-            <span class="barra__sub">· Laboratorio de ensayo de materiales</span>
-        </span>
-    </a>
-    <form class="barra__acciones" method="post" action="{% url 'logout' %}">
-        {% csrf_token %}
-        <button type="submit" class="boton boton--suave">{% include 'correo/_iconos.html' with nombre='salir' %}Cerrar sesión</button>
-    </form>
-</header>
+<div class="portada">
+    <header class="barra barra--portada">
+        <a class="barra__marca" href="{% url 'inicio' %}">
+            <span class="portada__logo"><img src="{% static 'img/LogoF.png' %}" alt="Grupo VICAF" width="77" height="32"></span>
+            <span>
+                <span class="barra__titulo">Plataforma VICAF</span>
+                <span class="barra__sub">· Laboratorio de ensayo de materiales</span>
+            </span>
+        </a>
+        <form class="barra__acciones" method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="boton boton--cristal">{% include 'correo/_iconos.html' with nombre='salir' %}Cerrar sesión</button>
+        </form>
+    </header>
+    <div class="portada__hero">
+        <p class="portada__fecha"><span class="punto-vivo" aria-hidden="true"></span><span class="mono">{% now "d/m/Y" %}</span> · Cajamarca</p>
+        <h1 class="portada__saludo">Hola, {{ nombre_usuario }}</h1>
+        <p class="portada__intro">¿Qué quieres abrir? Cada opción se abre en una pestaña nueva, así tienes el correo y el sistema a la vez.</p>
+    </div>
+</div>
 
 <main class="entrada">
-    <h1 class="entrada__saludo">Hola, {{ nombre_usuario }}</h1>
-    <p class="entrada__intro">
-        ¿Qué quieres abrir? Cada opción se abre en una pestaña nueva, así puedes tener el correo y el sistema a la vez.
-        <span class="entrada__fecha mono">{% now "d/m/Y" %}</span>
-    </p>
-
     {% if ve_correo or ve_sistema %}
     <div class="tarjetas">
         {% if ve_correo %}
-        <section class="tarjeta" aria-labelledby="tarjeta-correos" data-tarjeta="correos">
+        <section class="tarjeta tarjeta--brillo{% if not entra_correo %} tarjeta--bloqueada{% endif %}" aria-labelledby="tarjeta-correos" data-tarjeta="correos">
             <div class="tarjeta__cabeza">
                 <span class="tarjeta__icono tarjeta__icono--azul">{% include 'correo/_iconos.html' with nombre='correo' %}</span>
-                <div>
+                <div class="tarjeta__titulos">
                     <h2 class="tarjeta__titulo" id="tarjeta-correos">Correos</h2>
                     <p class="tarjeta__texto">
-                        {% if total_no_leidos %}<span class="mono">{{ total_no_leidos }}</span> sin leer en {{ cuentas|length }} cuenta{{ cuentas|length|pluralize }}{% else %}Todo leído{% endif %}
+                        {% if not cuentas %}Sin cuentas asignadas{% else %}{{ cuentas|length }} cuenta{{ cuentas|length|pluralize }} a tu cargo{% endif %}
                     </p>
                 </div>
+                {% if cuentas %}
+                <span class="indicador{% if not total_no_leidos %} indicador--cero{% endif %}">
+                    <strong class="mono">{{ total_no_leidos }}</strong>
+                    <span>sin leer</span>
+                </span>
+                {% endif %}
             </div>
 
             {% if cuentas %}
-            <div>
-                <p class="etiqueta-tabla">Tus cuentas</p>
-                <ul class="cuentas">
-                    {% for cuenta in cuentas %}
-                    <li class="cuenta" data-cuenta="{{ cuenta.slug }}">
+            <ul class="cuentas" aria-label="Tus cuentas de correo">
+                {% for cuenta in cuentas_visibles %}
+                <li>
+                    <a class="cuenta" data-cuenta="{{ cuenta.slug }}" href="{% url 'correo:abrir' %}?cuenta={{ cuenta.slug }}" target="_blank" rel="noopener">
+                        <span class="cuenta__avatar cuenta__avatar--{{ forloop.counter }}" aria-hidden="true">{{ cuenta.nombre|iniciales }}</span>
                         <span class="cuenta__datos">
-                            <span class="cuenta__nombre">{{ cuenta.nombre }}</span>
+                            <span class="cuenta__nombre">{{ cuenta.nombre }}{% if cuenta.rol_texto %} <span class="cuenta__rol">{{ cuenta.rol_texto }}</span>{% endif %}</span>
                             <span class="cuenta__direccion mono">{{ cuenta.direccion }}</span>
                         </span>
-                        <span class="contador{% if not cuenta.no_leidos %} contador--cero{% endif %}" aria-label="{{ cuenta.no_leidos }} sin leer">{{ cuenta.no_leidos }}</span>
-                        <a class="cuenta__abrir" href="{% url 'correo:abrir' %}?cuenta={{ cuenta.slug }}" target="_blank" rel="noopener" aria-label="Abrir {{ cuenta.direccion }} en una pestaña nueva">{% include 'correo/_iconos.html' with nombre='externo' %}</a>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
+                        {% if cuenta.no_leidos %}<span class="cuenta__nuevos" aria-label="{{ cuenta.no_leidos }} sin leer">{{ cuenta.no_leidos }}</span>{% endif %}
+                        <span class="cuenta__ir" aria-hidden="true">{% include 'correo/_iconos.html' with nombre='externo' %}</span>
+                        <span class="solo-lector">(abre {{ cuenta.direccion }} en una pestaña nueva)</span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% if cuentas_resto %}
+            <a class="cuentas__mas" href="{% url 'correo:abrir' %}" target="_blank" rel="noopener">
+                <span class="pila" aria-hidden="true">{% for cuenta in cuentas|slice:"3:6" %}<span class="pila__item">{{ cuenta.nombre|iniciales }}</span>{% endfor %}</span>
+                +{{ cuentas_resto }} cuenta{{ cuentas_resto|pluralize }} más · verlas en el correo
+            </a>
+            {% endif %}
+            {% elif entra_correo %}
+            <p class="tarjeta__nota">Administras el correo pero aún no tienes cuentas propias. Entra para crearlas y asignarlas.</p>
             {% else %}
-            <p class="tarjeta__texto">Aún no tienes cuentas de correo asignadas.</p>
+            <div class="tarjeta__nota tarjeta__nota--bloqueo" role="status">
+                {% include 'correo/_iconos.html' with nombre='candado' %}
+                <span>Para entrar necesitas al menos una cuenta asignada (por ejemplo informes@). Pide acceso a quien administra el correo.</span>
+            </div>
             {% endif %}
 
             <div class="tarjeta__pie">
-                <a class="boton boton--primario boton--bloque" href="{% url 'correo:abrir' %}" target="_blank" rel="noopener">
-                    {% include 'correo/_iconos.html' with nombre='bandeja' %}Abrir correo
+                {% if entra_correo %}
+                <a class="boton boton--primario boton--brillo boton--bloque" href="{% url 'correo:abrir' %}" target="_blank" rel="noopener">
+                    {% include 'correo/_iconos.html' with nombre='bandeja' %}{% if cuentas|length > 1 %}Abrir todas mis cuentas{% elif cuentas %}Abrir correo{% else %}Administrar cuentas{% endif %}
                     <span class="solo-lector">(se abre en una pestaña nueva)</span>
                 </a>
+                {% else %}
+                <span class="boton boton--bloque boton--inactivo" aria-disabled="true">{% include 'correo/_iconos.html' with nombre='candado' %}Correo no disponible</span>
+                {% endif %}
             </div>
         </section>
         {% endif %}
 
         {% if ve_sistema %}
-        <section class="tarjeta" aria-labelledby="tarjeta-sistema" data-tarjeta="sistema">
+        <section class="tarjeta tarjeta--brillo tarjeta--verde" aria-labelledby="tarjeta-sistema" data-tarjeta="sistema">
             <div class="tarjeta__cabeza">
                 <span class="tarjeta__icono tarjeta__icono--verde">{% include 'correo/_iconos.html' with nombre='sistema' %}</span>
-                <div>
+                <div class="tarjeta__titulos">
                     <h2 class="tarjeta__titulo" id="tarjeta-sistema">Sistema (LIMS)</h2>
-                    <p class="tarjeta__texto">Cotizaciones, proyectos, muestras, ensayos e informes.</p>
+                    <p class="tarjeta__texto">Gestión del laboratorio</p>
                 </div>
             </div>
-            <ul class="lista-modulos">
-                <li>Dashboard con los indicadores del laboratorio</li>
-                <li>Los módulos que permite tu rol</li>
+            <ul class="modulos" aria-label="Qué encontrarás">
+                <li>Cotizaciones</li><li>Proyectos</li><li>Muestras</li><li>Ensayos</li><li>Informes</li><li>Dashboard</li>
             </ul>
+            <p class="tarjeta__nota">Verás los módulos que permite tu rol.</p>
             <div class="tarjeta__pie">
-                <a class="boton boton--verde boton--bloque" href="{% url 'dashboard' %}" target="_blank" rel="noopener">
+                <a class="boton boton--verde boton--brillo boton--bloque" href="{% url 'dashboard' %}" target="_blank" rel="noopener">
                     {% include 'correo/_iconos.html' with nombre='sistema' %}Entrar al sistema
                     <span class="solo-lector">(se abre en una pestaña nueva)</span>
                 </a>

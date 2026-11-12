@@ -22,6 +22,8 @@ def fecha_corta(valor):
 @register.filter
 def iniciales(texto):
     partes = [p for p in (texto or '').replace('@', ' ').split() if p[:1].isalnum()]
+    # «Informes y cotizaciones» → IC, «Ana de la Cruz» → AC (sin conectores).
+    partes = [p for p in partes if not (len(p) <= 3 and p.islower())] or partes
     return ''.join(p[0] for p in partes[:2]).upper() or '?'
 
 
