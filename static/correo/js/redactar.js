@@ -286,63 +286,209 @@
         });
     }
 
-    // --------------------------------------------- autocompletar direcciones
+    // ------------------------------- destinatarios como «chips» + autocompletado
+    // El campo visible solo sirve para escribir; lo que se envía y autoguarda es
+    // un input oculto con el mismo `name` («Nombre <correo>, …»). Sin JS, el
+    // campo de texto sigue funcionando como antes.
+    var CORREO = /^[^\s@<>(),;:"]+@[^\s@<>(),;:"]+\.[^\s@<>(),;:"]+$/;
+    var trocear = function (texto) {
+        return (String(texto || '').match(/(?:"[^"]*"|<[^>]*>|[^,;"<])+/g) || [])
+            .map(function (t) { return t.trim(); }).filter(Boolean);
+    };
+    var leer = function (t) {
+        var m = t.match(/^(.*)<([^>]*)>\s*$/);
+        var nombre = m ? m[1].replace(/"/g, '').trim() : '';
+        var correo = (m ? m[2] : t.replace(/"/g, '')).trim().toLowerCase();
+        return { nombre: nombre, correo: correo };
+    };
+    var formatear = function (p) {
+        var nombre = (p.nombre || '').replace(/"/g, '').trim();
+        if (!nombre) { return p.correo; }
+        return (/[,;<>@]/.test(nombre) ? '"' + nombre + '"' : nombre) + ' <' + p.correo + '>';
+    };
+    var campos = [];
+    var elegidos = function () {
+        var todos = [];
+        campos.forEach(function (c) { c.personas.forEach(function (p) { todos.push(p.correo); }); });
+        return todos;
+    };
+    var iniciales = function (p) {
+        var base = (p.nombre || p.correo.split('@')[0]).replace(/[^\p{L}\p{N} ._-]/gu, ' ');
+        var partes = base.split(/[\s._-]+/).filter(Boolean);
+        return ((partes[0] || '?').charAt(0) + (partes.length > 1 ? partes[partes.length - 1].charAt(0) : '')).toUpperCase();
+    };
+
     document.querySelectorAll('[data-autocompletar]').forEach(function (input) {
+        var caja = input.closest('.autocompletar');
         var lista = document.getElementById(input.getAttribute('aria-controls'));
+        var oculto = crear('input', { type: 'hidden', name: input.name });
+        input.removeAttribute('name');
+        caja.appendChild(oculto);
+        caja.classList.add('destinatarios');
+        var fichas = crear('span', { 'class': 'destinatarios__fichas' });
+        caja.insertBefore(fichas, input);
+        var campo = { input: input, personas: [] };
+        campos.push(campo);
+        var etiqueta = (document.querySelector('label[for="' + input.id + '"]') || {}).textContent || '';
         var opciones = [];
         var activa = -1;
         var espera = null;
+        var ultimaConsulta = null;
+
+        var volcar = function () {
+            var textos = campo.personas.map(formatear);
+            if (input.value.trim()) { textos.push(input.value.trim()); }
+            oculto.value = textos.join(', ');
+            input.placeholder = campo.personas.length ? '' : (input.dataset.placeholder || '');
+        };
+        var pintar = function () {
+            fichas.textContent = '';
+            campo.personas.forEach(function (p, i) {
+                var valido = CORREO.test(p.correo);
+                var ficha = crear('span', {
+                    'class': 'ficha' + (valido ? '' : ' ficha--invalida'), tabindex: '-1', 'data-correo': p.correo,
+                    title: valido ? p.correo : p.correo + ' no es un correo válido',
+                });
+                ficha.appendChild(crear('span', { 'class': 'ficha__texto' }, p.nombre || p.correo));
+                var quitar = crear('button', {
+                    type: 'button', 'class': 'ficha__quitar', tabindex: '-1',
+                    'aria-label': 'Quitar ' + (p.nombre ? p.nombre + ' (' + p.correo + ')' : p.correo) + ' de ' + etiqueta,
+                }, '×');
+                quitar.addEventListener('click', function () { borrar(i); input.focus(); });
+                ficha.appendChild(quitar);
+                ficha.addEventListener('keydown', function (e) {
+                    if (e.key === 'Backspace' || e.key === 'Delete') {
+                        e.preventDefault(); borrar(i);
+                        var resto = fichas.children;
+                        if (resto.length) { resto[Math.min(i, resto.length - 1)].focus(); } else { input.focus(); }
+                    } else if (e.key === 'ArrowLeft' && ficha.previousSibling) { e.preventDefault(); ficha.previousSibling.focus(); }
+                    else if (e.key === 'ArrowRight') { e.preventDefault(); (ficha.nextSibling || input).focus(); }
+                    else if (e.key === 'Enter' || e.key === 'F2') { e.preventDefault(); editar(i); }
+                });
+                ficha.addEventListener('dblclick', function () { editar(i); });
+                fichas.appendChild(ficha);
+            });
+            volcar();
+        };
+        var cambio = function () { sucio = true; pintar(); };
+        var borrar = function (i) { campo.personas.splice(i, 1); cambio(); };
+        var editar = function (i) {
+            var p = campo.personas.splice(i, 1)[0];
+            if (input.value.trim()) { agregarTexto(input.value); }
+            input.value = formatear(p);
+            cambio();
+            input.focus();
+            input.select();
+        };
+        var agregar = function (p) {
+            if (!p.correo) { return; }
+            var ya = campo.personas.some(function (q) { return q.correo === p.correo; });
+            if (!ya) { campo.personas.push(p); }
+        };
+        var agregarTexto = function (texto) {
+            trocear(texto).forEach(function (t) { agregar(leer(t)); });
+        };
+        var confirmar = function () {
+            if (!input.value.trim()) { return false; }
+            agregarTexto(input.value);
+            input.value = '';
+            cambio();
+            return true;
+        };
+        campo.confirmar = confirmar;
+
         var cerrar = function () {
             lista.hidden = true; activa = -1;
             input.setAttribute('aria-expanded', 'false');
             input.removeAttribute('aria-activedescendant');
         };
-        var marcar = function (i) {
-            activa = i;
-            Array.prototype.forEach.call(lista.children, function (li, j) { li.setAttribute('aria-selected', j === i ? 'true' : 'false'); });
-            if (i >= 0) { input.setAttribute('aria-activedescendant', lista.children[i].id); }
-        };
         var elegir = function (o) {
-            var partes = input.value.split(/[,;]/);
-            partes.pop();
-            var texto = o.nombre ? o.nombre.replace(/[<>,;]/g, '') + ' <' + o.correo + '>' : o.correo;
-            partes.push(' ' + texto);
-            input.value = partes.map(function (p) { return p.trim(); }).filter(Boolean).join(', ') + ', ';
-            sucio = true;
+            agregar({ nombre: o.nombre, correo: o.correo });
+            input.value = '';
+            cambio();
             cerrar();
             input.focus();
         };
-        var actual = function () { return (input.value.split(/[,;]/).pop() || '').trim(); };
+        var buscar = function () {
+            var q = input.value.trim();
+            var url = form.dataset.contactos + '?q=' + encodeURIComponent(q) + '&excluir=' + encodeURIComponent(elegidos().join(','));
+            ultimaConsulta = url;
+            pedir(url).then(function (r) {
+                if (url !== ultimaConsulta || document.activeElement !== input) { return; }
+                opciones = r.resultados || [];
+                lista.textContent = '';
+                if (!opciones.length) { cerrar(); return; }
+                if (!q) { lista.appendChild(crear('li', { role: 'presentation', 'class': 'sugerencias__titulo' }, 'Contactos recientes')); }
+                opciones.forEach(function (o, i) {
+                    var li = crear('li', { role: 'option', id: lista.id + '-' + i, 'aria-selected': 'false', 'class': 'sugerencia' });
+                    li.appendChild(crear('span', { 'class': 'avatar avatar--' + (o.tipo || 'reciente'), 'aria-hidden': 'true' }, iniciales(o)));
+                    var texto = crear('span', { 'class': 'sugerencia__texto' });
+                    texto.appendChild(crear('strong', {}, o.nombre || o.correo));
+                    texto.appendChild(crear('span', { 'class': 'mono' }, o.correo));
+                    li.appendChild(texto);
+                    if (o.detalle) { li.appendChild(crear('small', { 'class': 'sugerencia__detalle' }, o.detalle)); }
+                    li.addEventListener('mousedown', function (e) { e.preventDefault(); elegir(o); });
+                    lista.appendChild(li);
+                });
+                // El título no es una opción: los índices de `opciones` van tras él.
+                if (!q) { lista.firstChild.id = lista.id + '-t'; }
+                lista.hidden = false;
+                input.setAttribute('aria-expanded', 'true');
+                marcar(q ? 0 : -1);
+            }).catch(cerrar);
+        };
+        var opcionLi = function (i) { return lista.querySelector('#' + lista.id + '-' + i); };
+        var marcar = function (i) {
+            activa = i;
+            Array.prototype.forEach.call(lista.querySelectorAll('[role="option"]'), function (li) { li.setAttribute('aria-selected', 'false'); });
+            var li = i >= 0 ? opcionLi(i) : null;
+            if (li) {
+                li.setAttribute('aria-selected', 'true');
+                input.setAttribute('aria-activedescendant', li.id);
+                li.scrollIntoView({ block: 'nearest' });
+            } else { input.removeAttribute('aria-activedescendant'); }
+        };
+        var programar = function () { window.clearTimeout(espera); espera = window.setTimeout(buscar, 150); };
+
         input.addEventListener('input', function () {
-            window.clearTimeout(espera);
-            var q = actual();
-            if (q.length < 2) { cerrar(); return; }
-            espera = window.setTimeout(function () {
-                pedir(form.dataset.contactos + '?q=' + encodeURIComponent(q)).then(function (r) {
-                    opciones = r.resultados;
-                    lista.textContent = '';
-                    if (!opciones.length) { cerrar(); return; }
-                    opciones.forEach(function (o, i) {
-                        var li = crear('li', { role: 'option', id: lista.id + '-' + i, 'aria-selected': 'false' });
-                        li.appendChild(crear('strong', {}, o.nombre || o.correo));
-                        li.appendChild(crear('span', { 'class': 'mono' }, o.correo));
-                        if (o.detalle) { li.appendChild(crear('small', {}, o.detalle)); }
-                        li.addEventListener('mousedown', function (e) { e.preventDefault(); elegir(o); });
-                        lista.appendChild(li);
-                    });
-                    lista.hidden = false;
-                    input.setAttribute('aria-expanded', 'true');
-                    marcar(0);
-                }).catch(cerrar);
-            }, 200);
+            if (/[,;]/.test(input.value) && !/"[^"]*$/.test(input.value)) {
+                var partes = trocear(input.value);
+                var cola = /[,;]\s*$/.test(input.value) ? '' : partes.pop() || '';
+                partes.forEach(function (t) { agregar(leer(t)); });
+                input.value = cola;
+                cambio();
+            } else { volcar(); }
+            programar();
+        });
+        input.addEventListener('focus', function () { caja.classList.add('destinatarios--foco'); if (!input.value.trim()) { programar(); } });
+        input.addEventListener('paste', function (e) {
+            var texto = (e.clipboardData || window.clipboardData).getData('text');
+            if (trocear(texto).length > 1) { e.preventDefault(); agregarTexto(input.value + ',' + texto); input.value = ''; cambio(); cerrar(); }
         });
         input.addEventListener('keydown', function (e) {
-            if (lista.hidden) { return; }
-            if (e.key === 'ArrowDown') { e.preventDefault(); marcar(Math.min(activa + 1, opciones.length - 1)); }
-            else if (e.key === 'ArrowUp') { e.preventDefault(); marcar(Math.max(activa - 1, 0)); }
-            else if ((e.key === 'Enter' || e.key === 'Tab') && activa >= 0) { e.preventDefault(); elegir(opciones[activa]); }
-            else if (e.key === 'Escape') { cerrar(); }
+            var abierta = !lista.hidden && opciones.length;
+            if (e.key === 'ArrowDown' && abierta) { e.preventDefault(); marcar(Math.min(activa + 1, opciones.length - 1)); }
+            else if (e.key === 'ArrowUp' && abierta) { e.preventDefault(); marcar(Math.max(activa - 1, 0)); }
+            else if ((e.key === 'Enter' || e.key === 'Tab') && abierta && activa >= 0) { e.preventDefault(); elegir(opciones[activa]); }
+            else if (e.key === 'Enter') { e.preventDefault(); if (confirmar()) { cerrar(); programar(); } }
+            else if (e.key === 'Escape' && abierta) { e.preventDefault(); cerrar(); }
+            else if ((e.key === 'Backspace' || e.key === 'ArrowLeft') && !input.value && fichas.lastChild) {
+                e.preventDefault(); fichas.lastChild.focus();
+            }
         });
-        input.addEventListener('blur', function () { window.setTimeout(cerrar, 150); });
+        input.addEventListener('blur', function () {
+            caja.classList.remove('destinatarios--foco');
+            window.setTimeout(function () { cerrar(); }, 150);
+            confirmar();
+        });
+        caja.addEventListener('mousedown', function (e) {
+            if (e.target === caja || e.target === fichas) { e.preventDefault(); input.focus(); }
+        });
+
+        input.dataset.placeholder = input.getAttribute('placeholder') || '';
+        agregarTexto(input.value);
+        input.value = '';
+        pintar();
     });
+    form.addEventListener('submit', function () { campos.forEach(function (c) { c.confirmar(); }); }, true);
 })();

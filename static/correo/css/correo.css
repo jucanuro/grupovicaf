@@ -422,9 +422,37 @@ a.adjunto:hover { border-color: var(--acento); background: var(--acento-suave); 
     position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 6px;
     list-style: none; background: var(--blanco); border: 1px solid var(--borde); border-radius: 12px; box-shadow: var(--sombra);
 }
+.sugerencias { max-height: 340px; overflow-y: auto; }
 .sugerencias li { display: grid; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 14px; }
 .sugerencias li[aria-selected="true"], .sugerencias li:hover { background: var(--acento-suave); }
 .sugerencias .mono, .sugerencias small { color: var(--tinta-3); font-size: 12px; }
+.sugerencias .sugerencias__titulo { display: block; cursor: default; padding: 4px 10px 6px; font-size: 12px; font-weight: 600; color: var(--tinta-3); }
+.sugerencias .sugerencias__titulo:hover { background: none; }
+.sugerencias .sugerencia { grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.sugerencia__texto { display: grid; min-width: 0; }
+.sugerencia__texto > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sugerencia__detalle { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.avatar { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; font-size: 12px; font-weight: 700;
+    background: #E0E7FF; color: #3730A3; }
+.avatar--vicaf, .avatar--equipo { background: #DBEAFE; color: var(--acento); }
+.avatar--cliente { background: var(--exito-suave); color: var(--exito); }
+
+/* Destinatarios como fichas (Para, CC, CCO): la caja se ve como un campo. */
+.destinatarios { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-height: 40px; padding: 3px 6px;
+    background: var(--blanco); border: 1px solid var(--borde); border-radius: 10px; cursor: text; }
+.destinatarios--foco { outline: 2px solid var(--acento); outline-offset: 0; }
+.destinatarios__fichas { display: contents; }
+.autocompletar.destinatarios input[data-autocompletar][role] { width: auto; flex: 1 1 160px; min-width: 120px; min-height: 32px; border: 0; padding: 0 4px; background: transparent; }
+.autocompletar.destinatarios input[data-autocompletar][role]:focus-visible { outline: none; }
+.ficha { display: inline-flex; align-items: center; gap: 2px; max-width: 100%; height: 28px; padding: 0 2px 0 10px;
+    border-radius: 999px; background: #EEF2F7; border: 1px solid transparent; font-size: 13px; cursor: default; }
+.ficha__texto { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; }
+.ficha:hover { background: #E2E8F0; }
+.ficha:focus { outline: none; background: var(--acento); color: var(--blanco); }
+.ficha--invalida { background: var(--rojo-suave); color: var(--rojo); border-color: #FCA5A5; text-decoration: underline wavy; text-underline-offset: 3px; }
+.ficha__quitar { display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%;
+    background: transparent; color: inherit; font-size: 16px; line-height: 1; cursor: pointer; }
+.ficha__quitar:hover { background: rgba(15, 23, 42, .12); }
 .editor__barra.ql-toolbar.ql-snow { border: 1px solid var(--borde); border-radius: 12px 12px 0 0; background: #F8FAFC; font-family: var(--texto); }
 .editor.ql-container.ql-snow { border: 1px solid var(--borde); border-top: 0; border-radius: 0 0 12px 12px; font-family: var(--texto); font-size: 15px; }
 .editor .ql-editor { min-height: 280px; line-height: 1.55; }

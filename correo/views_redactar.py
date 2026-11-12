@@ -20,7 +20,6 @@ from django.urls import reverse
 from django.utils import timezone, formats
 from django.views.decorators.http import require_POST
 
-from clientes.models import Cliente
 from servicios.models import Cotizacion
 from trabajadores.permissions import trabajador_tiene_permiso
 
@@ -31,7 +30,8 @@ from .mensajeria import (
     nuevo_message_id, preparar_cuerpo, registrar_evento,
 )
 from .busqueda import indexar
-from .models import Adjunto, AccesoCuenta, Contacto, CuentaCorreo, EventoMensaje, Firma, Mensaje
+from .directorio import sugerir
+from .models import Adjunto, AccesoCuenta, CuentaCorreo, EventoMensaje, Firma, Mensaje
 from .sanitizar import reemplazar_cid, sanitizar_html
 from .tasks import adjuntar_cotizacion, enviar_mensaje
 from .views_correo import URLCONF_LAB, correo_requerido
@@ -57,8 +57,19 @@ def firma_por_defecto(user, cuenta, respuesta):
     return firma.html if firma else ''
 
 
+PARTE = re.compile(r'(?:"[^"]*"|<[^>]*>|[^,;"<])+')
+
+
 def _fmt(personas):
-    return ', '.join(f'{p["nombre"]} <{p["correo"]}>' if p.get('nombre') else p['correo'] for p in personas)
+    """«Nombre <correo>, …»; el nombre va entre comillas si trae comas u otros separadores."""
+    def una(p):
+        nombre = (p.get('nombre') or '').replace('"', '').strip()
+        if not nombre:
+            return p['correo']
+        if any(c in nombre for c in ',;<>@'):
+            nombre = f'"{nombre}"'
+        return f'{nombre} <{p["correo"]}>'
+    return ', '.join(una(p) for p in personas)
 
 
 def _original(borrador):
@@ -221,9 +232,9 @@ def _guardar_campos(request, b):
             b.de, b.de_nombre = nueva.direccion, nueva.nombre
     for campo in ('para', 'cc', 'cco'):
         if campo in p:
-            texto = p.get(campo, '')
-            lista = direcciones(texto)
-            sueltos = [t.strip() for t in re.split(r'[,;]', texto) if t.strip()]
+            # Separa por coma o punto y coma, salvo dentro de "comillas" o <correo>.
+            sueltos = [t.strip() for t in PARTE.findall(p.get(campo, '')) if t.strip()]
+            lista = direcciones(', '.join(sueltos))
             for t in sueltos:
                 correo = (re.search(r'<([^>]+)>', t) or [None, t])[1].strip()
                 try:
@@ -363,25 +374,9 @@ def adjuntar_cotizacion_vista(request, pk):
 
 @correo_requerido
 def api_contactos(request):
-    """Autocompletado de Para/CC/CCO: contactos del correo y clientes del LIMS."""
-    q = (request.GET.get('q') or '').strip()
-    if len(q) < 2:
-        return JsonResponse({'resultados': []})
-    resultados, vistos = [], set()
-    for c in Contacto.objects.filter(Q(correo__icontains=q) | Q(nombre__icontains=q) | Q(empresa__icontains=q))[:8]:
-        vistos.add(c.correo)
-        resultados.append({'correo': c.correo, 'nombre': c.nombre, 'detalle': c.empresa})
-    if trabajador_tiene_permiso(request.user, 'clientes.ver'):
-        clientes = Cliente.objects.filter(
-            Q(correo_contacto__icontains=q) | Q(razon_social__icontains=q) | Q(persona_contacto__icontains=q)
-        ).values('correo_contacto', 'persona_contacto', 'razon_social')[:8]
-        for c in clientes:
-            correo = (c['correo_contacto'] or '').lower()
-            if correo and correo not in vistos:
-                vistos.add(correo)
-                resultados.append({'correo': correo, 'nombre': c['persona_contacto'] or '',
-                                   'detalle': f'Cliente LIMS · {c["razon_social"]}'})
-    return JsonResponse({'resultados': resultados[:10]})
+    """Autocompletado de Para/CC/CCO (ver correo/directorio.py). Sin `q`: recientes."""
+    excluir = (request.GET.get('excluir') or '').split(',')
+    return JsonResponse({'resultados': sugerir(request.user, request.GET.get('q', '')[:100], excluir=excluir[:100])})
 
 
 @correo_requerido

@@ -85,6 +85,42 @@ test.describe('plataforma de correo', () => {
         expect(violaciones).toEqual([]);
     });
 
+    test('destinatarios: sugerencias al entrar, fichas y quitar', async ({ page }) => {
+        const violaciones = vigilarCsp(page);
+        const origen = await abrirCorreo(page, 'informes');
+        await page.goto(`${origen}/redactar/?cuenta=informes`);
+        const para = page.locator('#r-para');
+        const sugerencias = page.locator('#sug-para');
+
+        // Al entrar al campo vacío: contactos recientes, como en Outlook.
+        await para.focus();
+        await expect(sugerencias).toBeVisible();
+        await expect(sugerencias).toContainText('Contactos recientes');
+
+        // Escribir busca también las cuentas VICAF; Enter elige la marcada.
+        await para.pressSequentially('labor');
+        await expect(sugerencias.getByRole('option').first()).toContainText('laboratorio@grupovicaf.com');
+        await page.keyboard.press('Enter');
+        await expect(page.locator('.ficha')).toHaveCount(1);
+        await expect(page.locator('.ficha').first()).toHaveText(/Laboratorio/);
+
+        // Pegar o escribir con comas crea varias fichas; la inválida se marca.
+        await para.pressSequentially('malo@, otro@cliente.example,');
+        await expect(page.locator('.ficha')).toHaveCount(3);
+        await expect(page.locator('.ficha--invalida')).toHaveCount(1);
+
+        // Retroceso en el campo vacío selecciona la última ficha y la quita.
+        await page.keyboard.press('Backspace');
+        await expect(page.locator('.ficha').last()).toBeFocused();
+        await page.keyboard.press('Backspace');
+        await expect(page.locator('.ficha')).toHaveCount(2);
+        await page.getByRole('button', { name: /Quitar malo@ de Para/ }).click();
+        await expect(page.locator('.ficha')).toHaveCount(1);
+
+        await expect(page.locator('input[type="hidden"][name="para"]')).toHaveValue('Laboratorio <laboratorio@grupovicaf.com>');
+        expect(violaciones).toEqual([]);
+    });
+
     test('la Bandeja de salida muestra el envío fallido y permite reintentar', async ({ page }) => {
         await abrirCorreo(page, 'informes');
         await page.locator('.grupo-cuenta[data-cuenta="informes"]').getByRole('link', { name: /Bandeja de salida/ }).click();
