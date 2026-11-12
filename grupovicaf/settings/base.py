@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'proyectos',
     'actividades',
     'analisis',
+    'correo',
     'siteconfig',
     'web_inicio',
     'web_nosotros',
@@ -65,6 +66,7 @@ SITE_ID = 1
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'correo.middleware.CorreoHostMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -137,7 +139,9 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'mediafiles'
 
 # Login / Logout
-LOGIN_REDIRECT_URL = 'dashboard'
+# Tras el login se muestra la pantalla de entrada (tarjetas Correos / Sistema,
+# app correo). Si el usuario venía de una URL concreta (?next=), va ahí.
+LOGIN_REDIRECT_URL = 'inicio'
 LOGIN_URL = 'login'
 LOGOUT_REDIRECT_URL = 'login'
 
@@ -189,4 +193,20 @@ EMAIL_BACKEND = os.environ.get(
 )
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# --- Módulo de correo (app correo, VCF-LIMS) ---
+# El mismo proceso del rol 'lab' sirve dos hosts: el LIMS (LAB_HOST) y el
+# correo (CORREO_HOST). correo.middleware.CorreoHostMiddleware elige el
+# URLconf según el host. Las cookies NO se comparten entre hosts (regla 5):
+# el paso de uno a otro usa un enlace firmado de un solo uso.
+CORREO_HOST = os.environ.get('CORREO_HOST') or 'email.localhost'
+LAB_HOST = os.environ.get('LAB_HOST') or 'localhost'
+# URLs base absolutas (con esquema y puerto). Vacías = se arman con el
+# esquema y el puerto de la petición actual (cómodo en desarrollo).
+CORREO_BASE_URL = os.environ.get('CORREO_BASE_URL', '').rstrip('/')
+LAB_BASE_URL = os.environ.get('LAB_BASE_URL', '').rstrip('/')
+# Vigencia del enlace firmado laboratorio -> correo, en segundos.
+CORREO_ENLACE_SEGUNDOS = int(os.environ.get('CORREO_ENLACE_SEGUNDOS') or 60)
+# Si el usuario solo tiene acceso a un módulo, saltar la pantalla de entrada.
+CORREO_OMITIR_ENTRADA = os.environ.get('CORREO_OMITIR_ENTRADA', 'False') == 'True'
 

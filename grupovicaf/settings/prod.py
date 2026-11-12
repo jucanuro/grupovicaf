@@ -8,17 +8,18 @@ DEBUG = False
 
 ALLOWED_HOSTS = os.environ.get(
     'ALLOWED_HOSTS',
-    'laboratorio.grupovicaf.com,grupovicaf.com,www.grupovicaf.com,localhost,127.0.0.1'
+    'laboratorio.grupovicaf.com,email.grupovicaf.com,grupovicaf.com,www.grupovicaf.com,localhost,127.0.0.1'
 ).split(',')
 
 CSRF_TRUSTED_ORIGINS = os.environ.get(
     'CSRF_TRUSTED_ORIGINS',
-    'https://laboratorio.grupovicaf.com,https://grupovicaf.com,https://www.grupovicaf.com'
+    'https://laboratorio.grupovicaf.com,https://email.grupovicaf.com,https://grupovicaf.com,https://www.grupovicaf.com'
 ).split(',')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'correo.middleware.CorreoHostMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -26,6 +27,11 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+CORREO_HOST = os.environ.get('CORREO_HOST') or 'email.grupovicaf.com'
+LAB_HOST = os.environ.get('LAB_HOST') or 'laboratorio.grupovicaf.com'
+CORREO_BASE_URL = CORREO_BASE_URL or f'https://{CORREO_HOST}'
+LAB_BASE_URL = LAB_BASE_URL or f'https://{LAB_HOST}'
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
