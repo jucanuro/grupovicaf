@@ -123,3 +123,6 @@ docker-compose.dev.local.yml
 # Playwright (e2e/)
 test-results/
 playwright-report/
+
+# Módulo de correo: .eml y adjuntos locales (dev), nunca se versionan
+correo_privado/

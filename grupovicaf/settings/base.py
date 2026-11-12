@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sites',
     'django.contrib.sitemaps',
+    'django.contrib.postgres',
 
     # Tus apps
     'core',
@@ -209,4 +210,11 @@ LAB_BASE_URL = os.environ.get('LAB_BASE_URL', '').rstrip('/')
 CORREO_ENLACE_SEGUNDOS = int(os.environ.get('CORREO_ENLACE_SEGUNDOS') or 60)
 # Si el usuario solo tiene acceso a un módulo, saltar la pantalla de entrada.
 CORREO_OMITIR_ENTRADA = os.environ.get('CORREO_OMITIR_ENTRADA', 'False') == 'True'
+# Carpeta privada para .eml y adjuntos mientras no se conecte R2 (Paso 3).
+# Fuera de MEDIA_ROOT: nunca la sirve nginx.
+CORREO_ALMACEN_DIR = os.environ.get('CORREO_ALMACEN_DIR') or str(BASE_DIR / 'correo_privado')
+# Vigencia de los enlaces firmados de descarga de adjuntos (como las URL de R2).
+CORREO_URL_FIRMADA_SEGUNDOS = int(os.environ.get('CORREO_URL_FIRMADA_SEGUNDOS') or 300)
+# Límite total de adjuntos al redactar.
+CORREO_MAX_ADJUNTOS_BYTES = 25 * 1024 * 1024
 
