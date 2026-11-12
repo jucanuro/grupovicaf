@@ -671,3 +671,9 @@ a.adjunto:hover { border-color: var(--acento); background: var(--acento-suave); 
     .tabla tr { display: grid; padding: 8px 0; border-bottom: 1px solid var(--borde); }
     .tabla td { border: 0; padding: 2px 4px; }
 }
+
+/* Administrar cuentas (Paso 3) */
+.formulario-fila { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); align-items: end; gap: 12px 16px; }
+.formulario-columna { display: grid; gap: 12px; }
+.nota-campo { color: var(--tinta-3); font-size: 12px; }
+.fila-acciones select { width: auto; min-height: 32px; padding: 2px 8px; font-size: 13px; }

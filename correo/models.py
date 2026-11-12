@@ -300,3 +300,35 @@ class Asignacion(models.Model):
     class Meta:
         verbose_name = 'asignación'
         verbose_name_plural = 'asignaciones'
+
+
+class EventoCuenta(models.Model):
+    """Bitácora de la administración: quién creó cuentas o cambió accesos y cuándo."""
+    CREO, EDITO, ACTIVO, DESACTIVO = 'creo', 'edito', 'activo', 'desactivo'
+    DIO_ACCESO, CAMBIO_ROL, QUITO_ACCESO = 'dio_acceso', 'cambio_rol', 'quito_acceso'
+    TIPOS = [
+        (CREO, 'creó la cuenta'),
+        (EDITO, 'editó la cuenta'),
+        (ACTIVO, 'activó la cuenta'),
+        (DESACTIVO, 'desactivó la cuenta'),
+        (DIO_ACCESO, 'dio acceso'),
+        (CAMBIO_ROL, 'cambió el rol'),
+        (QUITO_ACCESO, 'quitó el acceso'),
+    ]
+
+    # SET_NULL: la bitácora sobrevive aunque se borre la cuenta (detalle guarda la dirección).
+    cuenta = models.ForeignKey(CuentaCorreo, null=True, blank=True, on_delete=models.SET_NULL, related_name='bitacora')
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+',
+    )
+    tipo = models.CharField(max_length=14, choices=TIPOS)
+    detalle = models.JSONField(default=dict, blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-creado_en']
+        verbose_name = 'evento de administración'
+        verbose_name_plural = 'bitácora de administración'
+
+    def __str__(self):
+        return f'{self.get_tipo_display()} · {self.detalle.get("cuenta", "")}'

@@ -164,6 +164,44 @@ test.describe('plataforma de correo', () => {
         await expect(page.getByRole('heading', { name: /Historial/ })).toBeVisible();
     });
 
+    test('administrar: crear una cuenta, dar acceso, cambiar rol y quitarlo', async ({ page }) => {
+        const violaciones = vigilarCsp(page);
+        await abrirCorreo(page);
+        await page.getByRole('link', { name: 'Administrar cuentas' }).click();
+        await expect(page.getByRole('heading', { name: 'Administrar cuentas' })).toBeVisible();
+
+        const direccion = `e2e${Date.now()}@grupovicaf.com`;  // la base de e2e no se vacía entre corridas
+        await page.getByLabel('Dirección').fill(direccion);
+        await page.getByLabel('Nombre visible').fill('Cuenta E2E');
+        await page.getByRole('button', { name: 'Crear cuenta' }).click();
+        await expect(page.getByRole('heading', { name: 'Cuenta E2E' })).toBeVisible();
+        await expect(page.locator('.tabla')).toContainText('e2e.coordinador');  // «Darme acceso» marcado
+
+        const tecnico = await page.locator('#a-usuario option', { hasText: '(e2e.tecnico.a)' }).getAttribute('value');
+        await page.getByLabel('Trabajador').selectOption(tecnico);
+        await page.getByLabel('Rol', { exact: true }).selectOption('lectura');
+        await page.getByRole('button', { name: 'Dar acceso' }).click();
+        const fila = page.locator('.tabla tr', { hasText: 'e2e.tecnico.a' });
+        await expect(fila).toContainText('Sin permiso Correo en su rol');
+        await fila.locator('select').selectOption('gestiona');
+        await expect(page.locator('.avisos')).toContainText('Rol actualizado');
+
+        page.once('dialog', (d) => d.accept());
+        await page.locator('.tabla tr', { hasText: 'e2e.tecnico.a' }).getByRole('button', { name: 'Quitar' }).click();
+        await expect(page.locator('.tabla tr', { hasText: 'e2e.tecnico.a' })).toHaveCount(0);
+        await expect(page.locator('.actividad')).toContainText('quitó el acceso');
+
+        // La cuenta nueva ya aparece en el panel de carpetas de quien la creó.
+        await expect(page.locator('.grupo-cuenta', { hasText: 'Cuenta E2E' }).first()).toBeVisible();
+
+        // Se desactiva al final: desaparece de las bandejas y las demás pruebas siguen viendo 3 cuentas.
+        await page.locator('input[name="activa"][value="0"]').check();
+        await page.getByRole('button', { name: 'Guardar' }).click();
+        await expect(page.getByText('Inactiva: nadie la ve en su bandeja')).toBeVisible();
+        await expect(page.locator('.grupo-cuenta', { hasText: 'Cuenta E2E' })).toHaveCount(0);
+        expect(violaciones).toEqual([]);
+    });
+
     test('firmas: crear una personal con el editor', async ({ page }) => {
         const violaciones = vigilarCsp(page);
         const origen = await abrirCorreo(page);

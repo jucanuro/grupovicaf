@@ -1,0 +1,60 @@
+{% extends 'correo/_app.html' %}
+{% block title %}Administrar cuentas · Correo VICAF{% endblock %}
+{% block contenido %}
+<div class="pagina">
+    <header class="pagina__cabeza">
+        <div>
+            <h1 class="pagina__titulo">Administrar cuentas</h1>
+            <p class="lista__sub">Crea las cuentas de correo y decide quién puede abrir cada una. Administrar no da acceso a leer: para eso la persona necesita un acceso propio.</p>
+        </div>
+    </header>
+
+    {% if es_admin_correo %}
+    <section class="tarjeta" aria-labelledby="t-nueva">
+        <h2 id="t-nueva" class="tarjeta__titulo">Nueva cuenta</h2>
+        <form class="formulario-fila" method="post" action="{% url 'admin_cuenta_crear' %}">
+            {% csrf_token %}
+            <div class="campo">
+                <label for="n-direccion">Dirección</label>
+                <input id="n-direccion" name="direccion" type="email" required maxlength="254" placeholder="ventas@grupovicaf.com" autocomplete="off">
+                <small class="nota-campo">Debe ser {{ dominios }}.</small>
+            </div>
+            <div class="campo">
+                <label for="n-nombre">Nombre visible</label>
+                <input id="n-nombre" name="nombre" maxlength="120" placeholder="Ventas">
+                <small class="nota-campo">Es el nombre que verán los clientes en «De».</small>
+            </div>
+            <label class="casilla-texto"><input type="checkbox" name="darme_acceso" value="1" checked> Darme acceso como administrador</label>
+            <button class="boton boton--primario" type="submit">Crear cuenta</button>
+        </form>
+    </section>
+    {% endif %}
+
+    <section class="tarjeta" aria-labelledby="t-cuentas">
+        <h2 id="t-cuentas" class="tarjeta__titulo">Cuentas</h2>
+        <table class="tabla">
+            <thead><tr><th scope="col">Cuenta</th><th scope="col">Estado</th><th scope="col">Personas con acceso</th><th scope="col">Correos</th><th scope="col"><span class="solo-lector">Acciones</span></th></tr></thead>
+            <tbody>
+            {% for c in administrables %}
+            <tr>
+                <td><a href="{% url 'admin_cuenta' c.slug %}">{{ c.nombre }}</a><br><small class="mono">{{ c.direccion }}</small></td>
+                <td>{% if c.activa %}<span class="chip chip--verde">Activa</span>{% else %}<span class="chip">Inactiva</span>{% endif %}</td>
+                <td>{{ c.n_accesos }}</td>
+                <td>{{ c.n_mensajes }}</td>
+                <td><a class="boton boton--suave boton--chico" href="{% url 'admin_cuenta' c.slug %}">Accesos</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="nota">Aún no hay cuentas. Crea la primera arriba.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    {% if bitacora %}
+    <section class="tarjeta" aria-labelledby="t-bitacora">
+        <h2 id="t-bitacora" class="tarjeta__titulo">Últimos cambios</h2>
+        {% include 'correo/_bitacora_admin.html' %}
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

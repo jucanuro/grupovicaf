@@ -61,3 +61,10 @@ def grupo_fecha(valor):
                  'septiembre', 'octubre', 'noviembre', 'diciembre']
         return meses[dia.month - 1].capitalize()
     return str(dia.year)
+
+
+@register.simple_tag
+def puede_administrar_correo(user):
+    """Muestra el acceso a «Administrar cuentas» en la barra superior."""
+    from correo.administracion import puede_administrar_algo
+    return puede_administrar_algo(user)
