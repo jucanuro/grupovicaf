@@ -1,0 +1,145 @@
+{% load correo_tags %}
+{% with h=lectura.hilo %}
+<div class="hilo">
+    <header class="hilo__cabeza">
+        <h2 class="hilo__asunto">{{ h.asunto|default:lectura.ultimo.asunto|default:'(sin asunto)' }}</h2>
+        <p class="hilo__meta">
+            <span class="chip">{{ h.cuenta.nombre }}</span>
+            <span>{{ lectura.mensajes|length }} mensaje{{ lectura.mensajes|length|pluralize }}</span>
+            {% if lectura.asignacion %}<span class="chip {% if lectura.asignacion.estado == 'atendido' %}chip--verde{% else %}chip--ambar{% endif %}">{% if lectura.asignacion.estado == 'atendido' %}Atendido{% else %}Atiende{% endif %}: {{ lectura.asignacion.asignado_a.trabajadorprofile.nombre_completo|default:lectura.asignacion.asignado_a.username }}</span>{% endif %}
+        </p>
+    </header>
+
+    <div class="hilo__cuerpo">
+        <div class="hilo__mensajes">
+        {% for m in lectura.mensajes %}
+            <article class="mensaje{% if forloop.last %} mensaje--ultimo{% endif %}" aria-labelledby="de-{{ m.pk }}">
+                <header class="mensaje__cabeza">
+                    <span class="avatar" aria-hidden="true">{{ m|remitente|iniciales }}</span>
+                    <div class="mensaje__quien">
+                        <p class="mensaje__de" id="de-{{ m.pk }}"><strong>{{ m|remitente }}</strong> <a class="mono" href="{% url 'contacto' %}?correo={{ m.de|urlencode }}" title="Historial con este contacto">&lt;{{ m.de }}&gt;</a></p>
+                        <p class="mensaje__para">Para: {{ m.lista_para|default:'—' }}{% if m.lista_cc %} · CC: {{ m.lista_cc }}{% endif %}</p>
+                    </div>
+                    <time class="mensaje__fecha mono" datetime="{{ m.fecha|date:'c' }}">{{ m.fecha|date:'d/m/Y H:i' }}</time>
+                </header>
+
+                {% if m.estado_envio == 'fallido' %}
+                <div class="aviso aviso--rojo" role="alert">
+                    <p><strong>No se pudo enviar.</strong> {{ m.ultimo_error }}</p>
+                    {% if lectura.puede_gestionar %}
+                    <form method="post" action="{% url 'reintentar' m.pk %}">{% csrf_token %}<button class="boton boton--suave boton--chico" type="submit">Reintentar</button></form>
+                    {% endif %}
+                </div>
+                {% elif m.estado_envio == 'en_cola' %}
+                <div class="aviso aviso--ambar" role="status"><p>En la Bandeja de salida: se enviará en unos segundos.</p></div>
+                {% endif %}
+
+                <div class="mensaje__barra" role="toolbar" aria-label="Acciones del mensaje">
+                    {% if lectura.puede_gestionar %}
+                    <a class="boton-icono" href="{% url 'redactar' %}?responder={{ m.pk }}" aria-label="Responder" title="Responder">{% include 'correo/_iconos.html' with nombre='responder' %}</a>
+                    <a class="boton-icono" href="{% url 'redactar' %}?responder_todos={{ m.pk }}" aria-label="Responder a todos" title="Responder a todos">{% include 'correo/_iconos.html' with nombre='responder_todos' %}</a>
+                    <a class="boton-icono" href="{% url 'redactar' %}?reenviar={{ m.pk }}" aria-label="Reenviar" title="Reenviar">{% include 'correo/_iconos.html' with nombre='reenviar' %}</a>
+                    <form class="mensaje__acciones" method="post" action="{% url 'acciones' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="mensajes" value="{{ m.pk }}">
+                        <input type="hidden" name="volver" value="{{ volver }}">
+                        <button class="boton-icono" name="accion" value="archivar" aria-label="Archivar" title="Archivar">{% include 'correo/_iconos.html' with nombre='archivar' %}</button>
+                        <button class="boton-icono" name="accion" value="no_leido" aria-label="Marcar como no leído" title="Marcar como no leído">{% include 'correo/_iconos.html' with nombre='no_leido' %}</button>
+                        <button class="boton-icono boton-icono--rojo" name="accion" value="eliminar" aria-label="Eliminar" title="Eliminar"{% if m.carpeta.tipo == 'papelera' %} data-confirmar="Se eliminará definitivamente. ¿Continuar?"{% endif %}>{% include 'correo/_iconos.html' with nombre='papelera' %}</button>
+                        <label class="solo-lector" for="mover-{{ m.pk }}">Mover a</label>
+                        <select id="mover-{{ m.pk }}" name="accion" class="mover" data-autoenviar>
+                            <option value="">Mover a…</option>
+                            {% for c in lectura.carpetas_destino %}{% if c.pk != m.carpeta_id %}<option value="mover:{{ c.pk }}">{{ c.nombre }}</option>{% endif %}{% endfor %}
+                        </select>
+                    </form>
+                    {% endif %}
+                    <a class="boton-icono" href="{% url 'imprimir' m.pk %}" target="_blank" rel="noopener" aria-label="Imprimir" title="Imprimir">{% include 'correo/_iconos.html' with nombre='imprimir' %}</a>
+                    <a class="boton-icono" href="{% url 'mensaje' m.pk %}" aria-label="Abrir en pantalla completa" title="Pantalla completa">{% include 'correo/_iconos.html' with nombre='expandir' %}</a>
+                    <span class="chip chip--suave">{{ m.carpeta.nombre }}</span>
+                </div>
+
+                {% if m.imagenes_remotas %}
+                <p class="aviso aviso--suave">
+                    {% include 'correo/_iconos.html' with nombre='imagen' %}
+                    <span>Imágenes remotas bloqueadas por privacidad.</span>
+                    <a href="{% url 'mensaje_cuerpo' m.pk %}?imagenes=1" target="cuerpo-{{ m.pk }}" data-mostrar-imagenes>Mostrar imágenes</a>
+                </p>
+                {% endif %}
+                <iframe class="mensaje__iframe" name="cuerpo-{{ m.pk }}" title="Contenido del mensaje de {{ m|remitente }}"
+                        src="{% url 'mensaje_cuerpo' m.pk %}"
+                        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" loading="lazy" data-cuerpo></iframe>
+
+                {% if m.lista_adjuntos %}
+                <ul class="adjuntos" aria-label="Adjuntos">
+                    {% for a in m.lista_adjuntos %}
+                    <li>
+                        <a class="adjunto" href="{{ a.url }}" {% if a.es_imagen %}target="_blank" rel="noopener"{% else %}download{% endif %}>
+                            {% include 'correo/_iconos.html' with nombre='documento' %}
+                            <span class="adjunto__nombre">{{ a.nombre }}</span>
+                            <span class="adjunto__peso mono">{{ a.tamano|filesizeformat }}</span>
+                            {% include 'correo/_iconos.html' with nombre='descargar' %}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </article>
+        {% endfor %}
+        </div>
+
+        <aside class="hilo__lado" aria-label="Detalles de la conversación">
+            <section class="tarjeta-lado">
+                <h3 class="tarjeta-lado__titulo">Participantes</h3>
+                <ul class="personas">
+                    {% for p in lectura.participantes %}
+                    <li>
+                        <a href="{% url 'contacto' %}?correo={{ p.correo|urlencode }}">{{ p.nombre|default:p.correo }}</a>
+                        {% if p.nombre %}<small class="mono">{{ p.correo }}</small>{% endif %}
+                        {% if p.cliente %}<span class="chip chip--azul">Cliente LIMS</span>{% endif %}
+                    </li>
+                    {% empty %}<li class="nota">Sin participantes externos.</li>{% endfor %}
+                </ul>
+            </section>
+
+            <section class="tarjeta-lado">
+                <h3 class="tarjeta-lado__titulo">Equipo VICAF</h3>
+                <ul class="personas">
+                    {% for i in lectura.intervinientes %}
+                    <li><strong>{{ i.nombre }}</strong><small>{{ i.acciones|join:', ' }}</small></li>
+                    {% empty %}<li class="nota">Nadie del equipo intervino aún.</li>{% endfor %}
+                </ul>
+                {% if lectura.puede_gestionar %}
+                <form class="asignar" method="post" action="{% url 'asignar' h.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="volver" value="{{ volver }}">
+                    <label for="asignar-{{ h.pk }}">Quién lo atiende</label>
+                    <div class="asignar__fila">
+                        <select id="asignar-{{ h.pk }}" name="usuario">
+                            <option value="">Sin asignar</option>
+                            {% for pk, nombre in lectura.asignables %}<option value="{{ pk }}"{% if lectura.asignacion.asignado_a_id == pk %} selected{% endif %}>{{ nombre }}</option>{% endfor %}
+                        </select>
+                        <button class="boton boton--suave boton--chico" type="submit">Asignar</button>
+                    </div>
+                </form>
+                <form method="post" action="{% url 'atendido' h.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="volver" value="{{ volver }}">
+                    <button class="boton boton--chico {% if lectura.asignacion.estado == 'atendido' %}boton--suave{% else %}boton--verde{% endif %} boton--bloque" type="submit">
+                        {% include 'correo/_iconos.html' with nombre='check' %}{% if lectura.asignacion.estado == 'atendido' %}Volver a pendiente{% else %}Marcar como atendido{% endif %}
+                    </button>
+                </form>
+                {% endif %}
+            </section>
+
+            <section class="tarjeta-lado">
+                <h3 class="tarjeta-lado__titulo">Actividad</h3>
+                <ol class="actividad">
+                    {% for e in lectura.eventos|slice:':12' %}
+                    <li><strong>{{ e.quien }}</strong> {{ e.que|lower }}{% if e.detalle.a %} a {{ e.detalle.a }}{% endif %}{% if e.detalle.carpeta %} → {{ e.detalle.carpeta }}{% endif %} <time class="mono" datetime="{{ e.cuando|date:'c' }}">{{ e.cuando|date:'d/m H:i' }}</time></li>
+                    {% empty %}<li class="nota">Sin actividad.</li>{% endfor %}
+                </ol>
+            </section>
+        </aside>
+    </div>
+</div>
+{% endwith %}

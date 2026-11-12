@@ -1,0 +1,67 @@
+{% extends 'correo/_app.html' %}
+{% load correo_tags %}
+{% block title %}{% if por_empresa %}{{ dominio }}{% else %}{{ correo }}{% endif %} · Correo VICAF{% endblock %}
+{% block contenido %}
+<div class="pagina">
+    <header class="pagina__cabeza">
+        <span class="avatar avatar--grande" aria-hidden="true">{% if ficha.nombre %}{{ ficha.nombre|iniciales }}{% else %}{{ correo|iniciales }}{% endif %}</span>
+        <div>
+            <h1 class="pagina__titulo">{% if por_empresa %}Todo con @{{ dominio }}{% else %}{{ ficha.nombre|default:correo }}{% endif %}</h1>
+            <p class="lista__sub"><span class="mono">{{ correo }}</span>{% if ficha.empresa %} · {{ ficha.empresa }}{% endif %}</p>
+        </div>
+        <div class="pagina__acciones">
+            {% if por_empresa %}
+            <a class="boton boton--suave" href="?correo={{ correo|urlencode }}">Solo esta persona</a>
+            {% else %}
+            <a class="boton boton--suave" href="?correo={{ correo|urlencode }}&amp;empresa=1">Toda la empresa (@{{ dominio }})</a>
+            {% endif %}
+            <a class="boton boton--primario" href="{% url 'redactar' %}?para={{ correo|urlencode }}">{% include 'correo/_iconos.html' with nombre='lapiz' %}Escribirle</a>
+        </div>
+    </header>
+
+    <div class="rejilla-2">
+        <section class="tarjeta" aria-labelledby="t-cliente">
+            <h2 id="t-cliente" class="tarjeta__titulo">Cliente en el LIMS</h2>
+            {% if cliente %}
+                <p><strong>{{ cliente.razon_social }}</strong> <span class="chip chip--azul">Cliente LIMS</span></p>
+                {% if puede_ver_cotizaciones %}
+                <h3 class="subtitulo">Últimas cotizaciones</h3>
+                <ul class="lista-simple">
+                    {% for c in cotizaciones %}
+                    <li><a href="{{ c.url }}" target="_blank" rel="noopener">{{ c.numero_oferta|default:c.pk }}</a> · {{ c.asunto_servicio|default:'' }} <span class="chip">{{ c.estado }}</span> <span class="mono">{{ c.fecha_generacion|date:'d/m/Y' }}</span></li>
+                    {% empty %}<li class="nota">Sin cotizaciones registradas.</li>{% endfor %}
+                </ul>
+                {% else %}
+                <p class="nota">No tienes permiso para ver cotizaciones.</p>
+                {% endif %}
+            {% else %}
+                <p class="nota">Este correo no coincide con ningún cliente del LIMS.</p>
+            {% endif %}
+        </section>
+        <section class="tarjeta" aria-labelledby="t-cuentas">
+            <h2 id="t-cuentas" class="tarjeta__titulo">Por cuenta</h2>
+            <ul class="lista-simple">
+                {% for nombre, n in por_cuenta %}<li>{{ nombre }} <span class="contador contador--cero">{{ n }}</span></li>
+                {% empty %}<li class="nota">Sin correos en tus cuentas.</li>{% endfor %}
+            </ul>
+        </section>
+    </div>
+
+    <section class="tarjeta" aria-labelledby="t-historial">
+        <h2 id="t-historial" class="tarjeta__titulo">Historial ({{ historial|length }})</h2>
+        <table class="tabla">
+            <thead><tr><th scope="col">De</th><th scope="col">Asunto</th><th scope="col">Cuenta</th><th scope="col">Fecha</th></tr></thead>
+            <tbody>
+            {% for m in historial %}
+            <tr>
+                <td>{{ m|remitente }}</td>
+                <td><a href="{{ m.url }}">{{ m.asunto|default:'(sin asunto)' }}</a></td>
+                <td><span class="chip">{{ m.cuenta.nombre }}</span> {{ m.carpeta.nombre }}</td>
+                <td class="mono">{{ m.fecha|date:'d/m/Y H:i' }}</td>
+            </tr>
+            {% empty %}<tr><td colspan="4" class="vacio">Sin correos.</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+{% endblock %}
