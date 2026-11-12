@@ -1,0 +1,47 @@
+{% extends 'correo/base.html' %}
+{% load static %}
+{% block title %}{% if actual %}{{ actual.direccion }}{% else %}Bandeja unificada{% endif %} · Correo VICAF{% endblock %}
+{% block body %}
+<header class="barra">
+    <a class="barra__marca" href="{% url 'bandeja' %}">
+        <img src="{% static 'img/LogoF.png' %}" alt="Grupo VICAF" width="77" height="32">
+        <span>
+            <span class="barra__titulo">Correo</span>
+            <span class="barra__sub">· {{ request.user.get_full_name|default:request.user.username }}</span>
+        </span>
+    </a>
+    <div class="barra__acciones">
+        <a class="boton boton--suave" href="{{ url_inicio_lab }}">Inicio</a>
+        <form method="post" action="{% url 'salir' %}">
+            {% csrf_token %}
+            <button type="submit" class="boton boton--suave">{% include 'correo/_iconos.html' with nombre='salir' %}Salir</button>
+        </form>
+    </div>
+</header>
+
+<div class="correo">
+    <nav class="correo__lateral" aria-label="Cuentas de correo">
+        <p class="etiqueta-tabla">Cuentas</p>
+        <ul class="carpetas">
+            <li><a class="carpeta" href="{% url 'bandeja' %}"{% if not actual %} aria-current="page"{% endif %}>
+                <span>Bandeja unificada</span></a></li>
+            {% for cuenta in cuentas %}
+            <li><a class="carpeta" href="{% url 'bandeja_cuenta' cuenta.slug %}"{% if actual.slug == cuenta.slug %} aria-current="page"{% endif %}>
+                <span>{{ cuenta.nombre }}</span>
+                <span class="contador{% if not cuenta.no_leidos %} contador--cero{% endif %}" aria-label="{{ cuenta.no_leidos }} sin leer">{{ cuenta.no_leidos }}</span>
+            </a></li>
+            {% endfor %}
+        </ul>
+    </nav>
+
+    <main class="correo__principal">
+        <section class="panel">
+            <h1 class="panel__titulo">{% if actual %}Bandeja de entrada{% else %}Bandeja unificada{% endif %}</h1>
+            <p class="panel__sub">
+                {% if actual %}<span class="mono">{{ actual.direccion }}</span> · {% endif %}<span class="mono">{{ no_leidos }}</span> sin leer
+            </p>
+            <p class="nota">Vista provisional con cuentas de ejemplo. La bandeja completa (carpetas, lista, lectura, responder y redactar) llega en el Paso 2.</p>
+        </section>
+    </main>
+</div>
+{% endblock %}

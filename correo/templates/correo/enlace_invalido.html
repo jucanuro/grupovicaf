@@ -1,0 +1,11 @@
+{% extends 'correo/base.html' %}
+{% block title %}Enlace vencido · Correo VICAF{% endblock %}
+{% block body %}
+<main class="centrado">
+    <div class="panel">
+        <h1 class="panel__titulo">El enlace venció o ya se usó</h1>
+        <p class="panel__sub">Por seguridad, cada enlace al correo sirve una sola vez y dura un minuto. Vuelve al inicio y ábrelo de nuevo.</p>
+        <p class="nota"><a class="boton boton--primario" href="{{ url_lab }}">Volver al inicio</a></p>
+    </div>
+</main>
+{% endblock %}
