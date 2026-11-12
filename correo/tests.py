@@ -1,5 +1,7 @@
 """Paso 1 del módulo de correo: pantalla de entrada, ruteo por host y
-enlace firmado entre laboratorio. y email. (VCF-LIMS)."""
+enlace firmado entre laboratorio. y email. (VCF-LIMS).
+
+Las pruebas de la plataforma (Paso 2) están en tests_plataforma.py."""
 from unittest import mock
 from urllib.parse import parse_qs, urlsplit
 
@@ -14,6 +16,7 @@ from trabajadores.testing import crear_trabajador, rol_con_permisos
 
 from .enlaces import SALT, crear_enlace, destino_seguro
 from .middleware import URLCONF_CORREO
+from .models import AccesoCuenta, CuentaCorreo
 
 HOST_CORREO = 'email.localhost'
 HOST_LAB = 'localhost'
@@ -37,6 +40,17 @@ class BaseCorreo(TestCase):
         self.solo_lims, _ = crear_trabajador('solo_lims', self.rol_solo_lims)
         self.solo_correo, _ = crear_trabajador('solo_correo', self.rol_solo_correo)
         self.vacio, _ = crear_trabajador('vacio', self.rol_vacio)
+        self.cuentas = {
+            slug: CuentaCorreo.objects.create(direccion=direccion, nombre=nombre, slug=slug)
+            for slug, direccion, nombre in (
+                ('informes', 'informes@grupovicaf.com', 'Informes y cotizaciones'),
+                ('laboratorio', 'laboratorio@grupovicaf.com', 'Laboratorio'),
+                ('quejas', 'quejas.reportes@grupovicaf.com', 'Quejas y reportes'),
+            )
+        }
+        for cuenta in self.cuentas.values():
+            AccesoCuenta.objects.create(usuario=self.ambos, cuenta=cuenta, rol=AccesoCuenta.GESTIONA)
+            AccesoCuenta.objects.create(usuario=self.solo_correo, cuenta=cuenta, rol=AccesoCuenta.LECTURA)
 
     def get_correo(self, ruta, **kwargs):
         return self.client.get(ruta, HTTP_HOST=HOST_CORREO, **kwargs)
@@ -137,7 +151,7 @@ class RuteoPorHostTests(BaseCorreo):
         respuesta = self.get_correo(ruta_correo('login'))
         self.assertIn("script-src 'self'", respuesta['Content-Security-Policy'])
         self.assertIn("frame-ancestors 'none'", respuesta['Content-Security-Policy'])
-        self.assertEqual(respuesta['Referrer-Policy'], 'no-referrer')
+        self.assertEqual(respuesta['Referrer-Policy'], 'same-origin')
 
     def test_host_del_lims_sin_csp_del_correo(self):
         respuesta = self.client.get(reverse('login'), HTTP_HOST=HOST_LAB)
