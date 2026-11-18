@@ -205,8 +205,8 @@
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.GET.next }}">
                     <div class="input-container">
-                        <label class="label-premium">Usuario</label>
-                        <input type="text" name="username" class="input-premium" placeholder="Nombre de usuario" required>
+                        <label class="label-premium">Usuario o correo</label>
+                        <input type="text" name="username" class="input-premium" placeholder="Usuario o correo corporativo" autocomplete="username" required>
                         <i data-lucide="user" class="input-icon w-5 h-5"></i>
                     </div>
 
