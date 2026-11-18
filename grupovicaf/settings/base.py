@@ -143,6 +143,7 @@ MEDIA_ROOT = BASE_DIR / 'mediafiles'
 # Tras el login se muestra la pantalla de entrada (tarjetas Correos / Sistema,
 # app correo). Si el usuario venía de una URL concreta (?next=), va ahí.
 LOGIN_REDIRECT_URL = 'inicio'
+AUTHENTICATION_BACKENDS = ['core.backends.UsuarioOCorreoBackend']
 LOGIN_URL = 'login'
 LOGOUT_REDIRECT_URL = 'login'
 
