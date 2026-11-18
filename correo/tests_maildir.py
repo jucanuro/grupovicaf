@@ -47,3 +47,23 @@ class ImportarMaildirTests(BasePlataforma):
     def test_simular_no_guarda(self):
         self.correr('informes@grupovicaf.com', self.maildir(), '--simular')
         self.assertEqual(Mensaje.objects.filter(cuenta=self.informes).count(), 0)
+
+
+class CargarCuentasTests(BasePlataforma):
+    def csv(self, texto):
+        ruta = Path(tempfile.mkdtemp(prefix='cuentas-')) / 'c.csv'
+        ruta.write_text(texto, encoding='utf-8')
+        return str(ruta)
+
+    def test_crea_cuentas_y_accesos_sin_duplicar(self):
+        from .models import AccesoCuenta, CuentaCorreo
+        self.jefe.is_superuser = True
+        self.jefe.save()
+        ruta = self.csv('direccion;nombre;accesos\nventas@grupovicaf.com;Ventas;gestor:gestiona,lector:lectura\n')
+        for _ in range(2):
+            call_command('cargar_cuentas', ruta, '--actor', 'jefe', stdout=StringIO())
+        cuenta = CuentaCorreo.objects.get(direccion='ventas@grupovicaf.com')
+        self.assertEqual(CuentaCorreo.objects.filter(direccion='ventas@grupovicaf.com').count(), 1)
+        self.assertEqual(AccesoCuenta.objects.get(cuenta=cuenta, usuario=self.gestor).rol, 'gestiona')
+        self.assertEqual(AccesoCuenta.objects.get(cuenta=cuenta, usuario=self.lector).rol, 'lectura')
+        self.assertEqual(AccesoCuenta.objects.get(cuenta=cuenta, usuario=self.jefe).rol, 'administra')
