@@ -51,6 +51,9 @@ def construir_mime(mensaje):
     m['X-Mailer'] = 'Correo VICAF'
     if settings.CORREO_SES_CONFIG_SET:
         m['X-SES-CONFIGURATION-SET'] = settings.CORREO_SES_CONFIG_SET
+        # SES reescribe el Message-ID; la etiqueta vuelve en cada evento y
+        # permite reconocer el mensaje (SES la quita antes de entregar).
+        m['X-SES-MESSAGE-TAGS'] = f'vicaf_mensaje={mensaje.pk}'
 
     m.set_content(mensaje.cuerpo_texto or ' ')
     html = (f'<!DOCTYPE html><html><head><meta charset="utf-8"></head>'
