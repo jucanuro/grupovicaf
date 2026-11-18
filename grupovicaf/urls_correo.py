@@ -9,6 +9,7 @@ from correo import views_correo as v
 from correo import views_firmas as f
 from correo import views_redactar as r
 from correo import views_admin as ad
+from correo import webhooks as wh
 
 urlpatterns = [
     # Sesión
@@ -65,4 +66,8 @@ urlpatterns = [
     path('administrar/<slug:slug>/accesos/', ad.acceso_dar, name='admin_acceso_dar'),
     path('administrar/<slug:slug>/accesos/<int:pk>/rol/', ad.acceso_rol, name='admin_acceso_rol'),
     path('administrar/<slug:slug>/accesos/<int:pk>/quitar/', ad.acceso_quitar, name='admin_acceso_quitar'),
+
+    # Correo real (Pasos 4 y 5): sin sesión, con secreto compartido
+    path('api/entrante/', wh.cloudflare_entrante, name='webhook_entrante'),
+    path('api/ses/<str:token>/', wh.ses_eventos, name='webhook_ses'),
 ]

@@ -89,3 +89,69 @@ def adjuntar_cotizacion(mensaje_id, cotizacion_id, usuario_id):
     agregar_adjunto(mensaje, nombre, 'application/pdf', respuesta.content)
     registrar_evento(mensaje.hilo, 'marco', usuario, mensaje, adjunto=nombre, accion='adjuntó cotización')
     return nombre
+
+
+@shared_task(queue='correo', bind=True, autoretry_for=(OSError,), retry_backoff=30, max_retries=5)
+def recibir_entrante(self, clave, para):
+    """Paso 4: el .eml que dejó el webhook de Cloudflare entra a la cuenta VICAF.
+
+    Es idempotente (sha256 y Message-ID): un reintento del Worker no duplica.
+    El archivo temporal se borra al terminar; si falla algo inesperado queda
+    para el siguiente intento.
+    """
+    from .almacen import almacen_correo
+    from .recepcion import CorreoRechazado, recepcion
+
+    try:
+        with almacen_correo.open(clave, 'rb') as archivo:
+            crudo = archivo.read()
+    except FileNotFoundError:
+        return 'ya procesado'
+    try:
+        creados = recepcion().recibir(crudo, destinatarios=[para])
+    except CorreoRechazado as error:
+        logger.warning('Correo entrante rechazado (%s): %s', clave, error)
+        almacen_correo.delete(clave)
+        return 'rechazado'
+    almacen_correo.delete(clave)
+    return len(creados)
+
+
+@shared_task(queue='correo')
+def procesar_evento_ses(evento):
+    """Paso 5: rebote o queja que avisa Amazon SES (vía SNS).
+
+    Rebote permanente -> el mensaje queda «Falló el envío» con el motivo; queja
+    -> solo se anota en la bitácora. Los rebotes temporales no cambian nada.
+    """
+    tipo = evento.get('eventType') or evento.get('notificationType')
+    correo = evento.get('mail') or {}
+    message_id = (correo.get('commonHeaders') or {}).get('messageId') or ''
+    if not message_id:
+        for cabecera in correo.get('headers') or []:
+            if cabecera.get('name', '').lower() == 'message-id':
+                message_id = cabecera.get('value', '')
+    mensaje = Mensaje.objects.select_related('hilo').filter(
+        message_id=message_id, estado_envio__in=(Mensaje.ENVIADO, Mensaje.FALLIDO),
+    ).first() if message_id else None
+    if mensaje is None:
+        logger.info('Evento SES %s sin mensaje conocido (%s)', tipo, message_id)
+        return 'desconocido'
+    if tipo == 'Bounce':
+        rebote = evento.get('bounce') or {}
+        if rebote.get('bounceType') != 'Permanent':
+            return 'temporal'
+        fallos = []
+        for d in rebote.get('bouncedRecipients') or []:
+            fallos.append(f"{d.get('emailAddress', '?')}: {d.get('diagnosticCode') or d.get('action') or 'rechazado'}")
+        motivo = 'Rebote permanente. ' + '; '.join(fallos)
+        mensaje.estado_envio = Mensaje.FALLIDO
+        mensaje.ultimo_error = motivo[:2000]
+        mensaje.save(update_fields=['estado_envio', 'ultimo_error', 'actualizado_en'])
+        registrar_evento(mensaje.hilo, 'marco', None, mensaje, accion='rebote', detalle=motivo[:500])
+        return 'rebote'
+    if tipo == 'Complaint':
+        quejas = [d.get('emailAddress', '?') for d in (evento.get('complaint') or {}).get('complainedRecipients') or []]
+        registrar_evento(mensaje.hilo, 'marco', None, mensaje, accion='queja', detalle=', '.join(quejas))
+        return 'queja'
+    return 'ignorado'

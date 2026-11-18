@@ -80,6 +80,16 @@ crea/activa cuentas (solo dominios `CORREO_DOMINIOS`); el rol «administra»
 de una cuenta gestiona sus accesos. Administrar no da lectura. Todo cambio
 queda en `EventoCuenta` (bitácora).
 
+Pasos 4 y 5 (correo real): `correo/webhooks.py`. `POST /api/entrante/` en el
+host del correo recibe el .eml crudo del Email Worker de Cloudflare
+(`deploy/cloudflare/correo-entrante.js`), firmado con HMAC-SHA256 y fecha
+(`CORREO_WEBHOOK_SECRET`); rechaza con 404 las cuentas inexistentes, deja el
+.eml en el almacén y la tarea `recibir_entrante` lo pasa por `RecepcionEML`
+(idempotente). `POST /api/ses/<CORREO_SES_TOKEN>/` recibe de SNS los rebotes
+y quejas de SES (`procesar_evento_ses`: rebote permanente = «Falló el envío»).
+`CORREO_SES_CONFIG_SET` añade la cabecera de conjunto de configuración. Guía:
+`deploy/cloudflare/README.md`.
+
 ### Capa web (pública) — prefijo `web_` obligatorio
 
 | App | Responsabilidad |

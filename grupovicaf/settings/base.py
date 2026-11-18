@@ -239,6 +239,22 @@ CORREO_SMTP_TLS = os.environ.get('CORREO_SMTP_TLS', 'True') == 'True'
 # Solo desarrollo: API de Mailpit. Con valor, beat trae cada 15 s lo que llegó
 # a las cuentas VICAF (hace las veces de Cloudflare Email Routing).
 CORREO_MAILPIT_URL = os.environ.get('CORREO_MAILPIT_URL', '').rstrip('/')
+# Paso 4: secreto compartido con el Email Worker de Cloudflare (HMAC-SHA256) y
+# tolerancia del reloj en segundos. Sin secreto, el webhook responde 503.
+CORREO_WEBHOOK_SECRET = os.environ.get('CORREO_WEBHOOK_SECRET', '')
+CORREO_WEBHOOK_TOLERANCIA = int(os.environ.get('CORREO_WEBHOOK_TOLERANCIA') or 300)
+# Dominios de entrada del piloto que equivalen al dominio real:
+# «entrada.grupovicaf.com=grupovicaf.com» (separados por coma). Así
+# informes@entrada.grupovicaf.com llega a la cuenta informes@grupovicaf.com.
+CORREO_ENTRADA_ALIAS = dict(
+    (a.strip().lower(), b.strip().lower())
+    for a, _, b in (par.partition('=') for par in (os.environ.get('CORREO_ENTRADA_ALIAS') or '').split(',') if '=' in par)
+)
+# Paso 5: conjunto de configuración de SES (rebotes/quejas), token secreto de
+# la URL que recibe los avisos de SNS y, si se quiere, el ARN del tema SNS.
+CORREO_SES_CONFIG_SET = os.environ.get('CORREO_SES_CONFIG_SET', '')
+CORREO_SES_TOKEN = os.environ.get('CORREO_SES_TOKEN', '')
+CORREO_SES_TOPIC_ARN = os.environ.get('CORREO_SES_TOPIC_ARN', '')
 # Tamaño máximo de un correo entrante completo (.eml).
 CORREO_MAX_ENTRANTE_BYTES = 40 * 1024 * 1024
 

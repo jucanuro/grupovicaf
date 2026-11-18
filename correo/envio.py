@@ -49,6 +49,8 @@ def construir_mime(mensaje):
     if mensaje.references:
         m['References'] = mensaje.references
     m['X-Mailer'] = 'Correo VICAF'
+    if settings.CORREO_SES_CONFIG_SET:
+        m['X-SES-CONFIGURATION-SET'] = settings.CORREO_SES_CONFIG_SET
 
     m.set_content(mensaje.cuerpo_texto or ' ')
     html = (f'<!DOCTYPE html><html><head><meta charset="utf-8"></head>'
