@@ -131,13 +131,18 @@ def procesar_evento_ses(self, evento):
         for cabecera in correo.get('headers') or []:
             if cabecera.get('name', '').lower() == 'message-id':
                 message_id = cabecera.get('value', '')
-    mensaje = Mensaje.objects.select_related('hilo').filter(
-        message_id=message_id, estado_envio__in=(Mensaje.ENVIADO, Mensaje.FALLIDO),
-    ).first() if message_id else None
+    estados = (Mensaje.ENVIADO, Mensaje.FALLIDO)
+    mensaje = None
+    etiquetas = correo.get('tags') or {}
+    for valor in etiquetas.get('vicaf_mensaje') or []:
+        if str(valor).isdigit():
+            mensaje = Mensaje.objects.select_related('hilo').filter(pk=int(valor), estado_envio__in=estados).first()
+    if mensaje is None and message_id:
+        mensaje = Mensaje.objects.select_related('hilo').filter(message_id=message_id, estado_envio__in=estados).first()
     if mensaje is None:
         # SES puede avisar del rebote antes de que la tarea de envío guarde el
         # message_id (pasa con el simulador): se reintenta unos segundos.
-        if message_id and not (self.request.called_directly or self.request.is_eager) and self.request.retries < 6:
+        if (message_id or etiquetas) and not (self.request.called_directly or self.request.is_eager) and self.request.retries < 6:
             raise self.retry(countdown=10, max_retries=6)
         logger.info('Evento SES %s sin mensaje conocido (%s)', tipo, message_id)
         return 'desconocido'

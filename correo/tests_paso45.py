@@ -144,6 +144,13 @@ class EventosSESTests(BasePlataforma):
         evento['mail']['commonHeaders']['messageId'] = '<otro@x>'
         self.assertEqual(self.aviso(evento).status_code, 204)
 
+    def test_rebote_se_reconoce_por_la_etiqueta_de_ses(self):
+        evento = self.rebote()
+        evento['mail'] = {'messageId': '010001abc-000000', 'commonHeaders': {'messageId': '010001abc-000000'},
+                          'tags': {'vicaf_mensaje': [str(self.hilo_msg.pk)]}}
+        self.assertEqual(self.aviso(evento).status_code, 204)
+        self.assertEqual(Mensaje.objects.get(pk=self.hilo_msg.pk).estado_envio, Mensaje.FALLIDO)
+
     def test_token_incorrecto(self):
         self.assertEqual(self.aviso(self.rebote(), token='malo').status_code, 404)
         self.assertEqual(Mensaje.objects.get(pk=self.hilo_msg.pk).estado_envio, Mensaje.ENVIADO)
@@ -177,6 +184,7 @@ class CabeceraSESTests(BasePlataforma):
                           para=[{'nombre': '', 'correo': 'x@cliente.example'}], asunto='S', texto='t',
                           message_id='<c1@grupovicaf.com>')
         self.assertEqual(construir_mime(m)['X-SES-CONFIGURATION-SET'], 'vicaf-correo')
+        self.assertEqual(construir_mime(m)['X-SES-MESSAGE-TAGS'], f'vicaf_mensaje={m.pk}')
 
     def test_sin_conjunto_no_hay_cabecera(self):
         from .envio import construir_mime
