@@ -117,8 +117,8 @@ def recibir_entrante(self, clave, para):
     return len(creados)
 
 
-@shared_task(queue='correo')
-def procesar_evento_ses(evento):
+@shared_task(bind=True, queue='correo')
+def procesar_evento_ses(self, evento):
     """Paso 5: rebote o queja que avisa Amazon SES (vía SNS).
 
     Rebote permanente -> el mensaje queda «Falló el envío» con el motivo; queja
@@ -135,6 +135,10 @@ def procesar_evento_ses(evento):
         message_id=message_id, estado_envio__in=(Mensaje.ENVIADO, Mensaje.FALLIDO),
     ).first() if message_id else None
     if mensaje is None:
+        # SES puede avisar del rebote antes de que la tarea de envío guarde el
+        # message_id (pasa con el simulador): se reintenta unos segundos.
+        if message_id and not (self.request.called_directly or self.request.is_eager) and self.request.retries < 6:
+            raise self.retry(countdown=10, max_retries=6)
         logger.info('Evento SES %s sin mensaje conocido (%s)', tipo, message_id)
         return 'desconocido'
     if tipo == 'Bounce':
