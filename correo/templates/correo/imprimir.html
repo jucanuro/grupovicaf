@@ -1,0 +1,26 @@
+{% load static correo_tags %}<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
+<title>{{ m.asunto|default:'(sin asunto)' }}</title>
+<link rel="stylesheet" href="{% static 'correo/css/correo.css' %}">
+<script src="{% static 'correo/js/imprimir.js' %}" defer></script>
+</head>
+<body class="impresion">
+<header class="impresion__cabeza">
+    <img src="{% static 'img/LogoF.png' %}" alt="Grupo VICAF" width="77" height="32">
+    <span class="mono">{{ m.cuenta.direccion }}</span>
+</header>
+<h1 class="impresion__asunto">{{ m.asunto|default:'(sin asunto)' }}</h1>
+<dl class="impresion__datos">
+    <dt>De</dt><dd>{{ m|remitente }} &lt;{{ m.de }}&gt;</dd>
+    <dt>Para</dt><dd>{{ para|default:'—' }}</dd>
+    {% if cc %}<dt>CC</dt><dd>{{ cc }}</dd>{% endif %}
+    <dt>Fecha</dt><dd>{{ m.fecha|date:'d/m/Y H:i' }}</dd>
+    {% if adjuntos %}<dt>Adjuntos</dt><dd>{% for a in adjuntos %}{{ a.nombre }} ({{ a.tamano|filesizeformat }}){% if not forloop.last %}, {% endif %}{% endfor %}</dd>{% endif %}
+</dl>
+<div class="impresion__cuerpo">{{ html|safe }}</div>
+<p class="no-imprimir"><button class="boton boton--primario" type="button" data-imprimir>Imprimir</button></p>
+</body>
+</html>

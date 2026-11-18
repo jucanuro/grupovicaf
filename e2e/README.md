@@ -11,6 +11,7 @@ en cada PR contra `dev` y `main`, y un PR con una prueba en rojo no se integra.
 | `tecnico.spec.js` | El técnico ve solo sus ensayos y el código confidencial en vez del cliente | L3 |
 | `asistente-whatsapp.spec.js` | Asistente de WhatsApp: menú, cotización, validaciones, enlace `wa.me`, fuera de horario | REQ-WEB-01, 04, 10 a 16, 18 |
 | `dashboard.spec.js` | Dashboard del LIMS (KPI, embudo, vencidas, proyectos, periodo, tablas, celular) y marcar cotización como enviada/rechazada | REQ-LIMS-01, 04 a 08, 10 a 20, 22 a 24 |
+| `correo-entrada.spec.js` | Pantalla de entrada tras el login (Correos / Sistema en pestaña nueva) y salto firmado a `email.localhost` | Módulo de correo, Paso 1 |
 | `analisis.spec.js` | Análisis: menú de conjuntos, arrastrar o tocar campos a Filas/Columnas/Valores/Filtros, números en S/, gráficos, Excel, vistas guardadas y permisos | REQ-LIMS-27 a 43 |
 
 ## Correr en local (sin Docker)
@@ -22,8 +23,8 @@ E2E_PYTHON=venv/bin/python npm run test:e2e
 ```
 
 Playwright levanta `lab` en :8000 y `web` en :8001 con `grupovicaf.settings.test_local`
-(caché en memoria, Celery en modo eager). El lab corre `migrate` y
-`sembrar_e2e` antes de escuchar. Sin `DB_HOST` usa `db.sqlite3`.
+(caché en memoria, Celery en modo eager). El lab corre `migrate`,
+`sembrar_e2e` y `seed_correo_demo --usuario e2e.coordinador` antes de escuchar. Sin `DB_HOST` usa `db.sqlite3`.
 
 Para ver el navegador: `npx playwright test --headed`; para depurar paso a paso:
 `npx playwright test --debug`; reporte con trazas: `npx playwright show-report`.
@@ -34,6 +35,7 @@ Si :8000 y :8001 ya responden, Playwright los reutiliza y **no siembra**:
 
 ```bash
 docker compose -f docker-compose.dev.yml exec lab python manage.py sembrar_e2e
+docker compose -f docker-compose.dev.yml exec lab python manage.py seed_correo_demo --usuario e2e.coordinador
 npx playwright test
 ```
 

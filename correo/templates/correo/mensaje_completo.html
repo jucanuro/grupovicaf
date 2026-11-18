@@ -1,0 +1,17 @@
+{% extends 'correo/base.html' %}
+{% load static %}
+{% block title %}{{ lectura.hilo.asunto|default:'(sin asunto)' }} · Correo VICAF{% endblock %}
+{% block head %}<script src="{% static 'correo/js/correo.js' %}" defer></script>{% endblock %}
+{% block body %}
+<a class="saltar" href="#contenido">Saltar al contenido</a>
+<header class="barra barra--app">
+    <a class="boton boton--suave" href="{{ volver }}">{% include 'correo/_iconos.html' with nombre='volver' %}Volver a {{ cuenta_actual.nombre }}</a>
+    <span class="barra__sub mono">{{ cuenta_actual.direccion }}</span>
+</header>
+{% if messages %}
+<div class="avisos" role="status">{% for m in messages %}<p class="avisos__item avisos__item--{{ m.tags }}">{{ m }}</p>{% endfor %}</div>
+{% endif %}
+<main id="contenido" class="completo" tabindex="-1">
+    {% include 'correo/_lectura.html' %}
+</main>
+{% endblock %}

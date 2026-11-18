@@ -1,0 +1,42 @@
+{% comment %}Barra de comandos única (como Outlook). Los botones van al formulario de la
+lista: actúan sobre las conversaciones marcadas o, si no hay ninguna, sobre la abierta.{% endcomment %}
+<div class="comandos" role="toolbar" aria-label="Acciones de correo">
+    {% if carpeta_actual.tipo != 'borradores' %}
+    <button class="comando comando--rojo" form="form-lista" name="accion" value="eliminar" data-requiere-seleccion{% if carpeta_actual.tipo == 'papelera' %} data-confirmar="Se eliminarán definitivamente. ¿Continuar?"{% endif %}>{% include 'correo/_iconos.html' with nombre='papelera' %}<span>{% if carpeta_actual.tipo == 'papelera' %}Eliminar definitivamente{% else %}Eliminar{% endif %}</span></button>
+    <button class="comando" form="form-lista" name="accion" value="archivar" data-requiere-seleccion>{% include 'correo/_iconos.html' with nombre='archivar' %}<span>Archivar</span></button>
+    {% if carpeta_actual.tipo == 'spam' %}
+    <button class="comando" form="form-lista" name="accion" value="no_spam" data-requiere-seleccion>{% include 'correo/_iconos.html' with nombre='check' %}<span>No es no deseado</span></button>
+    {% else %}
+    <button class="comando" form="form-lista" name="accion" value="spam" data-requiere-seleccion>{% include 'correo/_iconos.html' with nombre='spam' %}<span>No deseado</span></button>
+    {% endif %}
+    {% if carpetas_mover %}
+    <details class="menu" data-menu>
+        <summary class="comando" data-requiere-seleccion>{% include 'correo/_iconos.html' with nombre='mover' %}<span>Mover a</span>{% include 'correo/_iconos.html' with nombre='chevron' %}</summary>
+        <div class="menu__lista">
+            {% for c in carpetas_mover %}{% if c.pk != carpeta_actual.pk %}
+            <button class="menu__item" form="form-lista" name="accion" value="mover:{{ c.pk }}">{% include 'correo/_iconos.html' with nombre='carpeta' %}{{ c.nombre }}</button>
+            {% endif %}{% endfor %}
+        </div>
+    </details>
+    {% endif %}
+    <span class="comandos__separador" aria-hidden="true"></span>
+    <button class="comando" form="form-lista" name="accion" value="leido" data-requiere-seleccion aria-label="Marcar como leído" title="Marcar como leído">{% include 'correo/_iconos.html' with nombre='leido' %}<span class="comando__texto-largo">Leído</span></button>
+    <button class="comando" form="form-lista" name="accion" value="no_leido" data-requiere-seleccion aria-label="Marcar como no leído" title="Marcar como no leído">{% include 'correo/_iconos.html' with nombre='no_leido' %}<span class="comando__texto-largo">No leído</span></button>
+    {% endif %}
+
+    {% if lectura %}
+    {% with m=lectura.ultimo %}
+    <span class="comandos__separador" aria-hidden="true"></span>
+    {% if lectura.puede_gestionar %}
+    <a class="comando" href="{% url 'redactar' %}?responder={{ m.pk }}">{% include 'correo/_iconos.html' with nombre='responder' %}<span>Responder</span></a>
+    <a class="comando" href="{% url 'redactar' %}?responder_todos={{ m.pk }}" aria-label="Responder a todos" title="Responder a todos">{% include 'correo/_iconos.html' with nombre='responder_todos' %}<span class="comando__texto-largo">Responder a todos</span></a>
+    <a class="comando" href="{% url 'redactar' %}?reenviar={{ m.pk }}">{% include 'correo/_iconos.html' with nombre='reenviar' %}<span>Reenviar</span></a>
+    {% endif %}
+    <span class="comandos__fin">
+        <a class="comando comando--icono" href="{% url 'imprimir' m.pk %}" target="_blank" rel="noopener" aria-label="Imprimir" title="Imprimir">{% include 'correo/_iconos.html' with nombre='imprimir' %}</a>
+        <a class="comando comando--icono" href="{% url 'mensaje' m.pk %}" aria-label="Abrir en pantalla completa" title="Pantalla completa">{% include 'correo/_iconos.html' with nombre='expandir' %}</a>
+        <button class="comando comando--icono" type="button" data-alternar-detalles aria-controls="detalles-hilo" aria-expanded="true" aria-label="Detalles de la conversación" title="Detalles: participantes, quién lo atiende y actividad">{% include 'correo/_iconos.html' with nombre='panel' %}</button>
+    </span>
+    {% endwith %}
+    {% endif %}
+</div>

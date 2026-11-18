@@ -1,0 +1,8 @@
+<ol class="actividad">
+    {% for e in bitacora %}
+    <li><strong>{{ e.usuario.trabajadorprofile.nombre_completo|default:e.usuario.username|default:'Sistema' }}</strong>
+        {{ e.get_tipo_display }}{% if e.detalle.a %} a {{ e.detalle.a }}{% endif %}{% if e.detalle.rol %} ({{ e.detalle.rol }}){% endif %}{% if e.detalle.nombre.1 %}: «{{ e.detalle.nombre.1 }}»{% endif %}
+        {% if not cuenta %}· <span class="mono">{{ e.detalle.cuenta }}</span>{% endif %}
+        <time class="mono" datetime="{{ e.creado_en|date:'c' }}">{{ e.creado_en|date:'d/m/Y H:i' }}</time></li>
+    {% endfor %}
+</ol>

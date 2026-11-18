@@ -1,0 +1,57 @@
+{% extends 'correo/_app.html' %}
+{% block title %}Firmas · Correo VICAF{% endblock %}
+{% block contenido %}
+<div class="pagina">
+    <header class="pagina__cabeza">
+        <div>
+            <h1 class="pagina__titulo">Firmas</h1>
+            <p class="lista__sub">Las personales son tuyas; las compartidas las define quien administra la cuenta y se usan en todos sus correos.</p>
+        </div>
+        <div class="pagina__acciones"><a class="boton boton--primario" href="{% url 'firma_nueva' %}">{% include 'correo/_iconos.html' with nombre='lapiz' %}Nueva firma</a></div>
+    </header>
+
+    <section aria-labelledby="t-personales">
+        <h2 id="t-personales" class="subtitulo">Mis firmas</h2>
+        <div class="rejilla-firmas">
+            {% for f in personales %}
+            <article class="tarjeta firma">
+                <header class="firma__cabeza">
+                    <h3 class="tarjeta__titulo">{{ f.nombre }}</h3>
+                    <span>{% if f.para_nuevos %}<span class="chip chip--azul">Nuevos</span>{% endif %}{% if f.para_respuestas %} <span class="chip chip--verde">Respuestas</span>{% endif %}</span>
+                </header>
+                <iframe class="firma__vista" title="Vista previa de {{ f.nombre }}" src="{% url 'firma_vista' f.pk %}" sandbox="allow-same-origin" loading="lazy"></iframe>
+                <footer class="firma__pie">
+                    <a class="boton boton--suave boton--chico" href="{% url 'firma_editar' f.pk %}">Editar</a>
+                    <form method="post" action="{% url 'firma_eliminar' f.pk %}" data-confirmar="¿Eliminar la firma «{{ f.nombre }}»?">{% csrf_token %}<button class="boton boton--suave boton--chico boton-texto--rojo" type="submit">Eliminar</button></form>
+                </footer>
+            </article>
+            {% empty %}
+            <p class="nota">Aún no tienes firmas. Crea una y márcala para correos nuevos o respuestas.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section aria-labelledby="t-compartidas">
+        <h2 id="t-compartidas" class="subtitulo">Firmas de cuenta</h2>
+        <div class="rejilla-firmas">
+            {% for f in compartidas %}
+            <article class="tarjeta firma">
+                <header class="firma__cabeza">
+                    <h3 class="tarjeta__titulo">{{ f.nombre }}</h3>
+                    <span class="chip">{{ f.cuenta.nombre }}</span>{% if f.cuenta.firma_predeterminada_id == f.pk %} <span class="chip chip--verde">Predeterminada</span>{% endif %}
+                </header>
+                <iframe class="firma__vista" title="Vista previa de {{ f.nombre }}" src="{% url 'firma_vista' f.pk %}" sandbox="allow-same-origin" loading="lazy"></iframe>
+                {% if f.cuenta_id in administradas %}
+                <footer class="firma__pie">
+                    <a class="boton boton--suave boton--chico" href="{% url 'firma_editar' f.pk %}">Editar</a>
+                    <form method="post" action="{% url 'firma_eliminar' f.pk %}" data-confirmar="¿Eliminar la firma «{{ f.nombre }}»?">{% csrf_token %}<button class="boton boton--suave boton--chico boton-texto--rojo" type="submit">Eliminar</button></form>
+                </footer>
+                {% endif %}
+            </article>
+            {% empty %}
+            <p class="nota">Ninguna de tus cuentas tiene firma compartida.</p>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}

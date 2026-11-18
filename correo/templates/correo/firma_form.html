@@ -1,0 +1,45 @@
+{% extends 'correo/_app.html' %}
+{% load static %}
+{% block title %}{% if firma %}Editar firma{% else %}Nueva firma{% endif %} · Correo VICAF{% endblock %}
+{% block head_extra %}
+<link rel="stylesheet" href="{% static 'vendor/quill-2.0.3/quill.snow.css' %}">
+<script src="{% static 'vendor/quill-2.0.3/quill.js' %}" defer></script>
+<script src="{% static 'correo/js/redactar.js' %}" defer></script>
+{% endblock %}
+{% block contenido %}
+<div class="pagina">
+    <h1 class="pagina__titulo">{% if firma %}Editar firma{% else %}Nueva firma{% endif %}</h1>
+    <form class="tarjeta formulario" method="post" data-form-firma>
+        {% csrf_token %}
+        <div class="campo">
+            <label for="f-nombre">Nombre</label>
+            <input id="f-nombre" name="nombre" value="{{ firma.nombre|default:'' }}" maxlength="80" required placeholder="Ej.: Completa, Breve">
+        </div>
+        <div class="campo">
+            <label for="f-ambito">Tipo</label>
+            <select id="f-ambito" name="ambito">
+                <option value="personal">Personal (solo yo)</option>
+                {% for c in administradas %}<option value="{{ c.pk }}"{% if firma.cuenta_id == c.pk %} selected{% endif %}>Compartida de {{ c.nombre }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="campo campo--ancho">
+            <span class="etiqueta" id="f-html-etiqueta">Firma</span>
+            <div class="editor editor--firma" data-editor aria-labelledby="f-html-etiqueta"></div>
+            <label class="solo-lector" for="cuerpo-html">Firma (HTML)</label>
+            <textarea id="cuerpo-html" name="html" class="editor__respaldo" rows="8">{{ firma.html|default:'' }}</textarea>
+        </div>
+        <fieldset class="opciones">
+            <legend>Usar por defecto</legend>
+            <label class="casilla-texto"><input type="checkbox" name="para_nuevos" value="1"{% if firma.para_nuevos %} checked{% endif %}> En correos nuevos (solo personales)</label>
+            <label class="casilla-texto"><input type="checkbox" name="para_respuestas" value="1"{% if firma.para_respuestas %} checked{% endif %}> En respuestas y reenvíos (solo personales)</label>
+            {% if administradas %}
+            <label class="casilla-texto"><input type="checkbox" name="predeterminada_cuenta" value="1"{% if firma and firma.cuenta.firma_predeterminada_id == firma.pk %} checked{% endif %}> Predeterminada de la cuenta (compartidas)</label>
+            {% endif %}
+        </fieldset>
+        <div class="redactar__pie">
+            <a class="boton boton--suave" href="{% url 'firmas' %}">Cancelar</a>
+            <button class="boton boton--primario" type="submit">Guardar firma</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

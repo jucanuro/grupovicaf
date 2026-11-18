@@ -41,6 +41,7 @@ module.exports = defineConfig({
             // El lab migra y siembra antes de escuchar: cuando su URL responde,
             // los datos de e2e/datos.js ya existen.
             command: `${python} manage.py migrate --noinput && ${python} manage.py sembrar_e2e`
+                + ` && ${python} manage.py seed_correo_demo --usuario e2e.coordinador`
                 + ` && ${python} manage.py runserver 127.0.0.1:8000 --noreload`,
             url: `${LAB_URL}/`,
             env: entorno('lab'),
