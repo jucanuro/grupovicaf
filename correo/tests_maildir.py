@@ -31,9 +31,10 @@ class ImportarMaildirTests(BasePlataforma):
 
     def test_importa_carpetas_estados_y_es_idempotente(self):
         raiz = self.maildir()
+        previos = Mensaje.objects.filter(cuenta=self.informes).count()  # el del escenario base
         self.correr('informes@grupovicaf.com', raiz)
         ms = Mensaje.objects.filter(cuenta=self.informes)
-        self.assertEqual(ms.count(), 4)
+        self.assertEqual(ms.count(), previos + 4)
         self.assertTrue(ms.get(asunto='Entrada leída').leido)
         self.assertFalse(ms.get(asunto='Entrada nueva').leido)
         enviado = ms.get(asunto='Respuesta')
@@ -42,11 +43,12 @@ class ImportarMaildirTests(BasePlataforma):
         self.assertEqual(ms.get(asunto='Viejo').carpeta.nombre, 'Archivo viejo')
         self.assertEqual(ms.get(asunto='Viejo').fecha.year, 2025)
         self.correr('informes@grupovicaf.com', raiz)
-        self.assertEqual(Mensaje.objects.filter(cuenta=self.informes).count(), 4)
+        self.assertEqual(Mensaje.objects.filter(cuenta=self.informes).count(), previos + 4)
 
     def test_simular_no_guarda(self):
+        previos = Mensaje.objects.filter(cuenta=self.informes).count()
         self.correr('informes@grupovicaf.com', self.maildir(), '--simular')
-        self.assertEqual(Mensaje.objects.filter(cuenta=self.informes).count(), 0)
+        self.assertEqual(Mensaje.objects.filter(cuenta=self.informes).count(), previos)
 
 
 class CargarCuentasTests(BasePlataforma):
