@@ -35,7 +35,7 @@ from .permisos import motivo_sin_correo, puede_entrar_correo
 from .presentacion import abrir_hilo, filas_de_hilos, panel_cuentas
 from .sanitizar import bloquear_imagenes_remotas, reemplazar_cid, tiene_imagenes_remotas
 
-BACKEND = 'django.contrib.auth.backends.ModelBackend'
+BACKEND = 'core.backends.UsuarioOCorreoBackend'  # el de AUTHENTICATION_BACKENDS: si no, la sesión no es válida
 URLCONF_LAB = 'grupovicaf.urls_lab'
 
 
