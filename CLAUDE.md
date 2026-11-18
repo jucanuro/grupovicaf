@@ -8,6 +8,7 @@ Proyecto Django único que sirve **dos sitios** desde el mismo código y la mism
 |---|---|---|---|
 | Web institucional pública | `www.grupovicaf.com` | `web` | `grupovicaf/urls_web.py` |
 | LIMS (sistema de laboratorio) | `laboratorio.grupovicaf.com` | `lab` | `grupovicaf/urls_lab.py` |
+| Correo (módulo del LIMS) | `email.grupovicaf.com` | `lab` | `grupovicaf/urls_correo.py` |
 
 Se ejecutan como **dos procesos gunicorn separados** con distinta variable de entorno
 `SITE_ROLE`, para que un informe PDF pesado del laboratorio nunca frene la web pública.
@@ -36,6 +37,58 @@ ni contenido para otras ciudades.
 | `servicios` | Catálogo de ensayos (`Norma`, `Metodo`, `Servicio`), cotizaciones, vouchers |
 | `proyectos` | `Proyecto`, recepción de muestras, solicitudes de ensayo, `InformeFinal` |
 | `actividades` | Ejecución de ensayos y resultados |
+| `correo` | Pantalla de entrada (`/inicio/`) y módulo de correo en `email.` (ver abajo) |
+
+**Correo en su propio host.** `correo.middleware.CorreoHostMiddleware` cambia el
+URLconf a `urls_correo.py` cuando el host es `CORREO_HOST` (solo rol `lab`; en
+dev `email.localhost:<puerto>`). Las cookies **no** se comparten entre hosts
+(regla 5): `laboratorio.` → `email.` usa un enlace firmado de un solo uso
+(`correo/enlaces.py`, 60 s). Las cuentas visibles salen siempre de
+`correo.cuentas.cuentas_de(user)`; el acceso se revisa en el servidor.
+
+Plataforma (Paso 2): modelos reales en `correo/models.py` (`CuentaCorreo`,
+`AccesoCuenta` con rol lectura/gestiona/administra, `Carpeta`, `Hilo`,
+`Mensaje`, `Adjunto`, `Firma`, `EventoMensaje` = bitácora, `Asignacion`).
+Toda consulta pasa por `correo/cuentas.py` (`exigir_cuenta`, `exigir_mensaje`,
+`exigir_hilo`: 404 si la cuenta no es suya, 403 si su rol no alcanza). El HTML
+recibido se limpia con nh3 (`correo/sanitizar.py`) y se muestra en un iframe
+sandbox sin scripts con CSP propia; las imágenes remotas van bloqueadas. Los
+archivos van a `CORREO_ALMACEN_DIR` (privado, nunca MEDIA_ROOT) y se descargan
+con enlace firmado de 300 s. El envío es simulado (`ServicioEnvioSimulado`,
+cola Celery `correo`; `@falla.invalid` simula un rebote) hasta el Paso 5.
+Datos de ejemplo: `python manage.py seed_correo_demo --usuario <username>`
+(solo `DEBUG=True`). Quill 2.0.3 está vendorizado en `static/vendor/`.
+
+Correo real en local: `docker-compose.dev.yml` levanta **Mailpit** (bandeja web
+http://localhost:8025, SMTP localhost:1025) y pone `CORREO_ENVIO=smtp`. Lo que
+se envía sale como MIME real (`correo/envio.py`) hacia Mailpit; lo que llega a
+una cuenta VICAF vuelve a su bandeja cada 15 s por `correo/mailpit.py` (beat),
+que usa la misma `RecepcionEML` (`correo/recepcion.py`) que tendrá el webhook
+de Cloudflare. Comandos: `simular_entrante` (un cliente escribe o responde,
+solo DEBUG), `recibir_eml archivo.eml` (correos reales exportados) y
+`traer_mailpit`. En producción `CORREO_SMTP_*` apuntará al SMTP de Amazon SES.
+
+Paso 3 (archivos y administración): `CORREO_ALMACEN=local` (dev/pruebas,
+carpeta privada) o `r2` (prod: bucket **privado** de Cloudflare R2 vía
+django-storages, `CORREO_R2_*` en el `.env`; boto3 solo se importa en ese
+modo). Una descarga primero valida el enlace firmado propio y luego redirige
+a una URL prefirmada de R2 de `CORREO_URL_FIRMADA_SEGUNDOS` (300 s); las
+imágenes del cuerpo (cid:) siguen pasando por Django por la CSP del iframe.
+Cuentas y accesos se gestionan en `email.<dominio>/administrar/`
+(`correo/administracion.py`): superusuario o permiso `correo.administrar`
+crea/activa cuentas (solo dominios `CORREO_DOMINIOS`); el rol «administra»
+de una cuenta gestiona sus accesos. Administrar no da lectura. Todo cambio
+queda en `EventoCuenta` (bitácora).
+
+Pasos 4 y 5 (correo real): `correo/webhooks.py`. `POST /api/entrante/` en el
+host del correo recibe el .eml crudo del Email Worker de Cloudflare
+(`deploy/cloudflare/correo-entrante.js`), firmado con HMAC-SHA256 y fecha
+(`CORREO_WEBHOOK_SECRET`); rechaza con 404 las cuentas inexistentes, deja el
+.eml en el almacén y la tarea `recibir_entrante` lo pasa por `RecepcionEML`
+(idempotente). `POST /api/ses/<CORREO_SES_TOKEN>/` recibe de SNS los rebotes
+y quejas de SES (`procesar_evento_ses`: rebote permanente = «Falló el envío»).
+`CORREO_SES_CONFIG_SET` añade la cabecera de conjunto de configuración. Guía:
+`deploy/cloudflare/README.md`.
 
 ### Capa web (pública) — prefijo `web_` obligatorio
 

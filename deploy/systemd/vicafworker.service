@@ -24,6 +24,7 @@ Environment=DJANGO_SETTINGS_MODULE=grupovicaf.settings.prod
 # ajustada en el servidor, 2 procesos concurrentes es el techo prudente.
 ExecStart=/var/www/projects/grupovicaf/venv/bin/celery -A grupovicaf worker \
     -l info \
+    -Q celery,correo \
     --concurrency=2 \
     --max-tasks-per-child=100 \
     --hostname=vicafworker@%%h

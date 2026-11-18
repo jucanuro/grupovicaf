@@ -1,0 +1,22 @@
+{% extends 'correo/_app.html' %}
+{% block title %}{{ titulo }}{% if cuenta_actual %} · {{ cuenta_actual.direccion }}{% endif %} · Correo VICAF{% endblock %}
+{% block clase_app %}{% if lectura %}app--leyendo{% endif %}{% endblock %}
+{% block contenido %}
+<div class="paneles">
+    {% include 'correo/_comandos.html' %}
+    {% include 'correo/_lista.html' %}
+
+    <section class="lectura" aria-label="Lectura">
+        {% if lectura %}
+            <a class="boton boton--suave boton--chico solo-movil" href="{{ url_base }}">{% include 'correo/_iconos.html' with nombre='volver' %}Volver a la lista</a>
+            {% include 'correo/_lectura.html' %}
+        {% else %}
+            <div class="lectura__vacia">
+                {% include 'correo/_iconos.html' with nombre='correo' %}
+                <p>Elige una conversación para leerla.</p>
+                <p class="nota">Doble clic la abre en pantalla completa. Usa ↑ ↓ para moverte por la lista y x para marcar.</p>
+            </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

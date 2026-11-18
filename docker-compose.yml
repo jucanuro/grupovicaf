@@ -32,6 +32,7 @@ services:
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/mediafiles
+      - correo_privado:/app/correo_privado
     ports:
       - "8000:8000"
     depends_on:
@@ -68,13 +69,14 @@ services:
       dockerfile: Dockerfile
       target: runtime
     restart: unless-stopped
-    command: celery -A grupovicaf worker -l info --concurrency=2
+    command: celery -A grupovicaf worker -l info --concurrency=2 -Q celery,correo
     environment:
       SITE_ROLE: lab
     env_file:
       - .env
     volumes:
       - media_volume:/app/mediafiles
+      - correo_privado:/app/correo_privado
     depends_on:
       db:
         condition: service_healthy
@@ -106,3 +108,5 @@ volumes:
   postgres_data:
   static_volume:
   media_volume:
+  # .eml y adjuntos del correo hasta el Paso 3 (R2). Privado: nginx no lo sirve.
+  correo_privado:
