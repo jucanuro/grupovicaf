@@ -30,6 +30,7 @@ from .cuentas import (
 )
 from .enlaces import adjunto_de_token, consumir_enlace, destino_seguro, url_adjunto, url_lab
 from .mensajeria import carpeta as carpeta_de, mover, registrar_evento
+from .avisos import resumen_avisos
 from .models import Adjunto, Asignacion, Carpeta, Contacto, EventoMensaje, Hilo, Mensaje
 from .permisos import motivo_sin_correo, puede_entrar_correo
 from .presentacion import abrir_hilo, filas_de_hilos, panel_cuentas
@@ -448,6 +449,20 @@ def buscar(request):
         'companeros': [(u.pk, nombre_usuario(u)) for u in companeros],
         'url_inicio_lab': url_lab(request, reverse('inicio', urlconf=URLCONF_LAB)),
     })
+
+
+@never_cache
+def api_avisos(request):
+    """Contador y correos nuevos para la campanita (la consulta el navegador cada ~30 s)."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'sesion'}, status=401)
+    if not puede_entrar_correo(request.user):
+        return JsonResponse({'error': 'permiso'}, status=403)
+    try:
+        desde = int(request.GET['desde']) if 'desde' in request.GET else None
+    except ValueError:
+        desde = None
+    return JsonResponse(resumen_avisos(request.user, desde))
 
 
 @correo_requerido
