@@ -26,7 +26,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from .mensajeria import crear_mensaje
-from .models import CuentaCorreo, Mensaje
+from .models import CuentaCorreo, Mensaje, ReglaBloqueo
 from .servicios import ServicioRecepcion
 
 logger = logging.getLogger(__name__)
@@ -94,6 +94,45 @@ def _suplanta_dominio(msg, remitente):
     return not respaldado
 
 
+def _bloqueado(remitente):
+    """Regla de bloqueo activa (dirección exacta o dominio, incluidos subdominios)."""
+    correo = remitente['correo']
+    dominio = correo.rpartition('@')[2]
+    for regla in ReglaBloqueo.objects.filter(activa=True):
+        if regla.tipo == ReglaBloqueo.CORREO and regla.valor == correo:
+            return True
+        if regla.tipo == ReglaBloqueo.DOMINIO and (dominio == regla.valor or dominio.endswith('.' + regla.valor)):
+            return True
+    return False
+
+
+def _fraccion_cjk(texto):
+    letras = [c for c in texto if c.isalpha()]
+    if not letras:
+        return 0.0
+    cjk = sum(1 for c in letras if '\u3040' <= c <= '\u9fff' or '\uac00' <= c <= '\ud7af')
+    return cjk / len(letras)
+
+
+def _puntaje_phishing(msg, remitente):
+    """Señales típicas de phishing masivo; con 2 o más puntos va a No deseado."""
+    puntos = 0
+    dominio = remitente['correo'].rpartition('@')[2]
+    nombre = remitente['nombre'].lower()
+    # Nombre «Grupovicaf» en un remitente que no es nuestro dominio.
+    if 'vicaf' in nombre and dominio not in settings.CORREO_DOMINIOS:
+        puntos += 3
+    resultados = ' '.join(_texto(v).lower() for v in (msg.get_all('Authentication-Results') or []))
+    resultados += ' ' + _texto(msg.get('Received-SPF')).lower()
+    if any(f'{m}={r}' in resultados for m in ('spf', 'dkim', 'dmarc') for r in ('fail', 'softfail')):
+        puntos += 2
+    if not msg.get_all('DKIM-Signature'):
+        puntos += 1
+    if _fraccion_cjk(_texto(msg.get('Subject')) + ' ' + remitente['nombre']) > 0.3:
+        puntos += 1
+    return puntos
+
+
 def _cuerpo_y_adjuntos(msg):
     """(html, texto, [(nombre, mime, bytes, content_id, incrustado)])."""
     parte_html = msg.get_body(preferencelist=('html',))
@@ -149,8 +188,12 @@ class RecepcionEML(ServicioRecepcion):
         html, texto, adjuntos = _cuerpo_y_adjuntos(msg)
         fecha = _fecha(msg)
         suplantado = _suplanta_dominio(msg, remitente)
-        carpeta = 'spam' if (suplantado or _es_spam(msg)) else 'entrada'
+        bloqueado = _bloqueado(remitente)
+        phishing = _puntaje_phishing(msg, remitente) >= 2 if getattr(settings, 'CORREO_FILTRAR_SUPLANTACION', False) else False
+        carpeta = 'spam' if (suplantado or bloqueado or phishing or _es_spam(msg)) else 'entrada'
         asunto = _texto(msg.get('Subject'))[:500]
+        if bloqueado or phishing:
+            logger.warning('Correo de %s a No deseado (bloqueo o phishing).', remitente['correo'])
         if suplantado:
             logger.warning('Posible suplantación de %s: va a No deseado.', remitente['correo'])
             asunto = f'[POSIBLE SUPLANTACIÓN] {asunto}'[:500]
