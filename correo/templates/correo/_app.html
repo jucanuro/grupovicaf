@@ -1,6 +1,6 @@
 {% extends 'correo/base.html' %}
 {% load static correo_tags %}
-{% block head %}<script src="{% static 'correo/js/correo.js' %}" defer></script>{% block head_extra %}{% endblock %}{% endblock %}
+{% block head %}<script src="{% static 'correo/js/correo.js' %}" defer></script><script src="{% static 'correo/js/avisos.js' %}" defer></script>{% block head_extra %}{% endblock %}{% endblock %}
 {% block body %}
 <a class="saltar" href="#contenido">Saltar al contenido</a>
 <header class="barra barra--app">
@@ -16,7 +16,12 @@
         <a class="busqueda-rapida__mas" href="{% url 'buscar' %}" title="Búsqueda avanzada">Filtros</a>
         <ul id="q-rapida-lista" class="sugerencias sugerencias--busqueda" role="listbox" aria-label="Sugerencias de búsqueda" hidden></ul>
     </form>
-    <div class="barra__acciones">
+    <div class="barra__acciones" data-avisos="{% url 'api_avisos' %}">
+        <a class="boton-icono campana" href="{% url 'bandeja' %}" aria-label="Correos sin leer" title="Correos sin leer">{% include 'correo/_iconos.html' with nombre='correo' %}<span class="campana__n" data-avisos-n hidden>0</span></a>
+        <button type="button" class="boton-icono" data-avisos-sonido aria-pressed="true" aria-label="Avisos con sonido" title="Avisos con sonido">
+            <span data-avisos-on>{% include 'correo/_iconos.html' with nombre='campana' %}</span>
+            <span data-avisos-off hidden>{% include 'correo/_iconos.html' with nombre='campana_off' %}</span>
+        </button>
         <a class="boton boton--primario boton--chico solo-movil" href="{% url 'redactar' %}{% if cuenta_actual %}?cuenta={{ cuenta_actual.slug }}{% endif %}" aria-label="Nuevo correo">{% include 'correo/_iconos.html' with nombre='lapiz' %}</a>
         {% puede_administrar_correo request.user as administra %}
         {% if administra %}<a class="boton-icono" href="{% url 'admin_cuentas' %}" aria-label="Administrar cuentas" title="Administrar cuentas y accesos">{% include 'correo/_iconos.html' with nombre='usuarios' %}</a>{% endif %}
