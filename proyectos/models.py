@@ -3,6 +3,7 @@ import uuid
 import qrcode
 from io import BytesIO
 from django.core.files import File
+from django.core.files.storage import FileSystemStorage
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils.timezone import now
@@ -456,3 +457,145 @@ class InformeFinal(models.Model):
         with open(self.archivo_pdf.path, "wb") as f:
             output.write(f)
         return True
+
+# ---------------------------------------------------------------------------
+# Ensayo de compresión de probetas (HU-LIMS-14): registro mínimo por probeta
+# y sus cinco fotos obligatorias. Las medidas y el informe llegan en otras HU.
+# ---------------------------------------------------------------------------
+
+def es_ensayo_compresion(norma, codigo_servicio=''):
+    """El ensayo es la compresión de probetas cilíndricas (ASTM C39 / EC001)."""
+    return 'C39' in (norma or '').upper() or (codigo_servicio or '').upper() == 'EC001'
+
+
+class AlmacenFotosEnsayo(FileSystemStorage):
+    """Carpeta privada de las fotos (fuera de MEDIA_ROOT: nginx no la sirve).
+
+    La ubicación se lee de ``settings.ENSAYOS_FOTOS_DIR`` en cada uso, no al
+    importar el modelo, para que ``override_settings`` funcione en los tests.
+    """
+
+    @property
+    def base_location(self):
+        return settings.ENSAYOS_FOTOS_DIR
+
+    @property
+    def location(self):
+        return os.path.abspath(self.base_location)
+
+
+def _almacen_fotos_ensayo():
+    return AlmacenFotosEnsayo()
+
+
+def ruta_foto_ensayo(instance, filename):
+    # Nombre aleatorio: ni el código de la muestra ni el del cliente en la ruta.
+    return f"compresion/{timezone.now():%Y/%m}/{uuid.uuid4().hex}.jpg"
+
+
+class EnsayoCompresion(models.Model):
+    ESTADO_BORRADOR = 'borrador'
+    ESTADO_TERMINADO = 'terminado'
+    ESTADOS = [
+        (ESTADO_BORRADOR, 'En registro'),
+        (ESTADO_TERMINADO, 'Terminado'),
+    ]
+
+    detalle = models.OneToOneField(
+        DetalleSolicitudEnsayo,
+        on_delete=models.CASCADE,
+        related_name='ensayo_compresion',
+        verbose_name="Ensayo de la solicitud",
+    )
+    estado = models.CharField(max_length=20, choices=ESTADOS, default=ESTADO_BORRADOR)
+    fecha_ensayo = models.DateField(null=True, blank=True, verbose_name="Fecha de ensayo")
+    observaciones = models.TextField(blank=True, default='', verbose_name="Observaciones")
+    tecnico = models.ForeignKey(
+        TrabajadorProfile,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='ensayos_compresion',
+        verbose_name="Ejecutado por",
+    )
+    terminado_en = models.DateTimeField(null=True, blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Ensayo de compresión"
+        verbose_name_plural = "Ensayos de compresión"
+
+    def __str__(self):
+        return f"Compresión {self.detalle.muestra.codigo_laboratorio}"
+
+    @property
+    def terminado(self):
+        return self.estado == self.ESTADO_TERMINADO
+
+    def tipos_faltantes(self):
+        """Códigos de los tipos de foto que aún no se cargaron, en orden."""
+        cargados = set(self.fotos.values_list('tipo', flat=True))
+        return [codigo for codigo, _ in FotoEnsayo.TIPOS if codigo not in cargados]
+
+    def faltantes_para_terminar(self):
+        """Lista legible de lo que falta para poder terminar (vacía = listo)."""
+        faltan = []
+        if not self.fecha_ensayo:
+            faltan.append("la fecha de ensayo")
+        etiquetas = dict(FotoEnsayo.TIPOS)
+        faltan += [f"la foto «{etiquetas[t]}»" for t in self.tipos_faltantes()]
+        return faltan
+
+
+class FotoEnsayo(models.Model):
+    TIPO_CARGA = 'carga'
+    TIPO_ANTES = 'antes'
+    TIPO_ANTES_PIZARRA = 'antes_pizarra'
+    TIPO_DESPUES = 'despues'
+    TIPO_DESPUES_PIZARRA = 'despues_pizarra'
+    TIPOS = [
+        (TIPO_CARGA, 'Lectura de carga máxima'),
+        (TIPO_ANTES, 'Probeta antes del ensayo'),
+        (TIPO_ANTES_PIZARRA, 'Probeta antes del ensayo, con pizarra'),
+        (TIPO_DESPUES, 'Probeta fallada'),
+        (TIPO_DESPUES_PIZARRA, 'Probeta fallada, con pizarra'),
+    ]
+    # Proporción ancho:alto de cada recuadro, medida en el informe real
+    # VCF-INF-2026-4582 (FOR-039 v17): carga 111,5 x 43,3 pt; probeta 55,6 x 97,6 pt.
+    PROPORCIONES = {
+        TIPO_CARGA: (18, 7),
+        TIPO_ANTES: (4, 7),
+        TIPO_ANTES_PIZARRA: (4, 7),
+        TIPO_DESPUES: (4, 7),
+        TIPO_DESPUES_PIZARRA: (4, 7),
+    }
+    # Lado mayor de la foto guardada, en px.
+    LADO_MAXIMO = 1600
+
+    ensayo = models.ForeignKey(EnsayoCompresion, on_delete=models.CASCADE, related_name='fotos')
+    tipo = models.CharField(max_length=20, choices=TIPOS)
+    imagen = models.ImageField(
+        storage=_almacen_fotos_ensayo,
+        upload_to=ruta_foto_ensayo,
+        width_field='ancho',
+        height_field='alto',
+    )
+    ancho = models.PositiveIntegerField(default=0)
+    alto = models.PositiveIntegerField(default=0)
+    subido_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    subido_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Foto de ensayo"
+        verbose_name_plural = "Fotos de ensayo"
+        constraints = [
+            models.UniqueConstraint(fields=['ensayo', 'tipo'], name='foto_ensayo_unica_por_tipo'),
+        ]
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} · {self.ensayo}"
+
+    @classmethod
+    def proporcion(cls, tipo):
+        ancho, alto = cls.PROPORCIONES[tipo]
+        return ancho / alto

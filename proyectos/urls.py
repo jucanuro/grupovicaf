@@ -1,6 +1,7 @@
 # proyectos/urls.py
 from django.urls import path
 from . import views
+from . import views_compresion
 
 app_name = 'proyectos'
 
@@ -25,6 +26,12 @@ urlpatterns = [
     path('ensayo/editar/<int:pk>/', views.gestionar_solicitud_ensayo, name='editar_solicitud'),
     path('ensayo/<int:solicitud_id>/pdf/', views.generar_pdf_ensayo, name='generar_pdf_ensayo'),
     path('solicitudes/estado/<int:pk>/<str:nuevo_estado>/', views.cambiar_estado_solicitud, name='cambiar_estado'),
+
+    # --- ENSAYO DE COMPRESIÓN: REGISTRO Y FOTOS (HU-LIMS-14) ---
+    path('compresion/', views_compresion.mis_ensayos_compresion, name='mis_ensayos_compresion'),
+    path('compresion/<int:detalle_id>/', views_compresion.registrar_ensayo_compresion, name='registrar_compresion'),
+    path('compresion/<int:detalle_id>/foto/<str:tipo>/', views_compresion.subir_foto_compresion, name='subir_foto_compresion'),
+    path('compresion/foto/<int:foto_id>/', views_compresion.foto_compresion, name='foto_compresion'),
 
     # --- INFORMES FINALES Y CERTIFICACIÓN ---
     path('informes/', views.lista_informes_finales, name='lista_informes'),

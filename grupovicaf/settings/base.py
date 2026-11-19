@@ -216,6 +216,10 @@ CORREO_OMITIR_ENTRADA = os.environ.get('CORREO_OMITIR_ENTRADA', 'False') == 'Tru
 CORREO_ALMACEN = os.environ.get('CORREO_ALMACEN') or 'local'
 # Carpeta privada del modo 'local'. Fuera de MEDIA_ROOT: nunca la sirve nginx.
 CORREO_ALMACEN_DIR = os.environ.get('CORREO_ALMACEN_DIR') or str(BASE_DIR / 'correo_privado')
+
+# Fotos de los ensayos (HU-LIMS-14). Carpeta privada, fuera de MEDIA_ROOT:
+# nginx nunca la sirve; se descargan por una vista con sesión y permiso.
+ENSAYOS_FOTOS_DIR = os.environ.get('ENSAYOS_FOTOS_DIR') or str(BASE_DIR / 'ensayos_privado')
 # Modo 'r2': bucket, endpoint S3 de la cuenta (https://<id>.r2.cloudflarestorage.com)
 # y un token de API de R2 con permiso solo sobre ese bucket.
 CORREO_R2_BUCKET = os.environ.get('CORREO_R2_BUCKET', '')

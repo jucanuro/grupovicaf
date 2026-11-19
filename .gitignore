@@ -126,3 +126,5 @@ playwright-report/
 
 # Módulo de correo: .eml y adjuntos locales (dev), nunca se versionan
 correo_privado/
+# Fotos de los ensayos (privadas), nunca se versionan
+ensayos_privado/

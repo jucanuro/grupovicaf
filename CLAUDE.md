@@ -90,6 +90,15 @@ y quejas de SES (`procesar_evento_ses`: rebote permanente = «Falló el envío»
 `CORREO_SES_CONFIG_SET` añade la cabecera de conjunto de configuración. Guía:
 `deploy/cloudflare/README.md`.
 
+**Ensayo de compresión (HU-LIMS-14).** `proyectos/views_compresion.py`:
+el técnico registra en el celular cada probeta de ASTM C39 / EC001 asignada
+(`/proyectos/compresion/`) con 5 fotos obligatorias recortadas con proporción
+fija (Cropper.js 1.6.2 vendorizado; carga 18:7, probeta 4:7, en
+`FotoEnsayo.PROPORCIONES`). Sin las 5 fotos y la fecha no se puede terminar.
+Las fotos van a `ENSAYOS_FOTOS_DIR` (privado, nunca MEDIA_ROOT; en prod debe
+existir, ser escribible por el servicio y entrar en el backup) y se sirven
+por una vista con sesión. Permiso `ensayos.registrar`.
+
 ### Capa web (pública) — prefijo `web_` obligatorio
 
 | App | Responsabilidad |

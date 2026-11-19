@@ -1,0 +1,64 @@
+{% extends "base_vicafpro.html" %}
+{% block title %}Ensayos de compresión | VICAF LIMS{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-5 space-y-4">
+    <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600 flex-shrink-0">
+            <i data-lucide="camera" class="w-5 h-5"></i>
+        </div>
+        <div class="min-w-0">
+            <h1 class="text-lg font-bold text-slate-800 leading-tight">Ensayos de compresión</h1>
+            <p class="text-xs text-slate-500">Datos y fotos de cada probeta (ASTM C39)</p>
+        </div>
+    </div>
+
+    <nav class="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl text-sm font-semibold" aria-label="Filtro">
+        <a href="?vista=pendientes"
+           class="text-center py-2 rounded-lg {% if vista != 'terminados' %}bg-white shadow text-slate-900{% else %}text-slate-500{% endif %}">Pendientes</a>
+        <a href="?vista=terminados"
+           class="text-center py-2 rounded-lg {% if vista == 'terminados' %}bg-white shadow text-slate-900{% else %}text-slate-500{% endif %}">Terminados</a>
+    </nav>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="rounded-xl px-4 py-3 text-sm {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-green-50 text-green-700 border border-green-200{% endif %}" role="status">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <ul class="space-y-3" data-lista-compresion>
+        {% for d in detalles %}
+        {% with e=d.ensayo_compresion %}
+        <li>
+            <a href="{% url 'proyectos:registrar_compresion' d.pk %}"
+               class="block bg-white border border-slate-200 rounded-2xl p-4 shadow-sm active:bg-slate-50 hover:border-slate-300 transition">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <p class="font-mono font-bold text-slate-900 break-all" data-codigo>{{ d.muestra.codigo_laboratorio }}</p>
+                        <p class="text-xs text-slate-500 mt-0.5">{{ d.solicitud.codigo_solicitud }} · {{ d.norma }}</p>
+                    </div>
+                    {% if e and e.terminado %}
+                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-green-100 text-green-700 flex-shrink-0">Terminado</span>
+                    {% elif d.fecha_entrega_programada < hoy %}
+                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-red-100 text-red-700 flex-shrink-0">Atrasado</span>
+                    {% else %}
+                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-700 flex-shrink-0">Pendiente</span>
+                    {% endif %}
+                </div>
+                <div class="mt-3 flex items-center justify-between text-xs text-slate-600">
+                    <span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Entrega {{ d.fecha_entrega_programada|date:"d/m/Y" }}</span>
+                    <span class="flex items-center gap-1 font-semibold {% if d.n_fotos == total_fotos %}text-green-700{% endif %}">
+                        <i data-lucide="image" class="w-3.5 h-3.5"></i> {{ d.n_fotos }}/{{ total_fotos }} fotos
+                    </span>
+                </div>
+            </a>
+        </li>
+        {% endwith %}
+        {% empty %}
+        <li class="text-center text-sm text-slate-500 bg-white border border-dashed border-slate-300 rounded-2xl p-8">
+            {% if vista == 'terminados' %}Aún no hay probetas terminadas.{% else %}No tienes probetas de compresión pendientes.{% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
