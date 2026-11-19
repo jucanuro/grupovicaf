@@ -224,6 +224,8 @@ CORREO_R2_ACCESS_KEY = os.environ.get('CORREO_R2_ACCESS_KEY', '')
 CORREO_R2_SECRET_KEY = os.environ.get('CORREO_R2_SECRET_KEY', '')
 # Dominios que puede tener una cuenta creada desde «Administrar cuentas».
 CORREO_DOMINIOS = [d.strip().lower() for d in (os.environ.get('CORREO_DOMINIOS') or 'grupovicaf.com').split(',') if d.strip()]
+# Manda a No deseado lo que dice ser de nuestro dominio sin firma DKIM (suplantación).
+CORREO_FILTRAR_SUPLANTACION = os.environ.get('CORREO_FILTRAR_SUPLANTACION', 'False').lower() in ('1', 'true', 'yes')
 # Vigencia de los enlaces firmados de descarga y de las URL prefirmadas de R2.
 CORREO_URL_FIRMADA_SEGUNDOS = int(os.environ.get('CORREO_URL_FIRMADA_SEGUNDOS') or 300)
 # Límite total de adjuntos al redactar.
