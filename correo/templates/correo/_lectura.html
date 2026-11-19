@@ -13,15 +13,52 @@
     <div class="hilo__cuerpo">
         <div class="hilo__mensajes">
         {% for m in lectura.mensajes %}
-            <article class="mensaje{% if forloop.last %} mensaje--ultimo{% endif %}" aria-labelledby="de-{{ m.pk }}">
-                <header class="mensaje__cabeza">
+            {% comment %}Como Outlook: los anteriores plegados en una línea; se abren el último y los no leídos.{% endcomment %}
+            <details class="mensaje{% if forloop.last %} mensaje--ultimo{% endif %}"{% if forloop.last or not m.leido or m.estado_envio == 'fallido' %} open{% endif %} aria-labelledby="de-{{ m.pk }}">
+                <summary class="mensaje__cabeza">
                     <span class="avatar" aria-hidden="true">{{ m|remitente|iniciales }}</span>
-                    <div class="mensaje__quien">
-                        <p class="mensaje__de" id="de-{{ m.pk }}"><strong>{{ m|remitente }}</strong> <a class="mono" href="{% url 'contacto' %}?correo={{ m.de|urlencode }}" title="Historial con este contacto">&lt;{{ m.de }}&gt;</a></p>
-                        <p class="mensaje__para">Para: {{ m.lista_para|default:'—' }}{% if m.lista_cc %} · CC: {{ m.lista_cc }}{% endif %}</p>
-                    </div>
-                    <time class="mensaje__fecha mono" datetime="{{ m.fecha|date:'c' }}">{{ m.fecha|date:'d/m/Y H:i' }}</time>
-                </header>
+                    <span class="mensaje__quien">
+                        <span class="mensaje__de" id="de-{{ m.pk }}"><strong>{{ m|remitente }}</strong> <span class="mensaje__correo mono">&lt;{{ m.de }}&gt;</span></span>
+                        <span class="mensaje__para">Para: {{ m.lista_para|default:'—' }}{% if m.lista_cc %} · CC: {{ m.lista_cc }}{% endif %}</span>
+                        <span class="mensaje__previa">{{ m.vista_previa }}</span>
+                    </span>
+                    <span class="mensaje__lado">
+                        {% if m.lista_adjuntos %}<span class="fila__clip" title="Con adjuntos">{% include 'correo/_iconos.html' with nombre='clip' %}<span class="solo-lector">Con adjuntos</span></span>{% endif %}
+                        <time class="mensaje__fecha" datetime="{{ m.fecha|date:'c' }}">{{ m.fecha|date:'D d/m/Y H:i' }}</time>
+                    </span>
+                </summary>
+
+                <div class="mensaje__barra" role="toolbar" aria-label="Acciones del mensaje de {{ m|remitente }}">
+                    <a class="mensaje__contacto" href="{% url 'contacto' %}?correo={{ m.de|urlencode }}" title="Historial con este contacto">Historial con {{ m|remitente }}</a>
+                    <span class="chip chip--suave">{{ m.carpeta.nombre }}</span>
+                    <span class="mensaje__iconos">
+                    {% if lectura.puede_gestionar %}
+                    <a class="boton-icono boton-icono--plano" href="{% url 'redactar' %}?responder={{ m.pk }}" aria-label="Responder" title="Responder">{% include 'correo/_iconos.html' with nombre='responder' %}</a>
+                    <a class="boton-icono boton-icono--plano" href="{% url 'redactar' %}?responder_todos={{ m.pk }}" aria-label="Responder a todos" title="Responder a todos">{% include 'correo/_iconos.html' with nombre='responder_todos' %}</a>
+                    <a class="boton-icono boton-icono--plano" href="{% url 'redactar' %}?reenviar={{ m.pk }}" aria-label="Reenviar" title="Reenviar">{% include 'correo/_iconos.html' with nombre='reenviar' %}</a>
+                    {% endif %}
+                    <details class="menu menu--derecha" data-menu>
+                        <summary class="boton-icono boton-icono--plano" aria-label="Más acciones" title="Más acciones">{% include 'correo/_iconos.html' with nombre='mas' %}</summary>
+                        <div class="menu__lista">
+                            {% if lectura.puede_gestionar %}
+                            <form method="post" action="{% url 'acciones' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="mensajes" value="{{ m.pk }}">
+                                <input type="hidden" name="volver" value="{{ volver }}">
+                                <button class="menu__item" name="accion" value="archivar">{% include 'correo/_iconos.html' with nombre='archivar' %}Archivar este mensaje</button>
+                                <button class="menu__item" name="accion" value="no_leido">{% include 'correo/_iconos.html' with nombre='no_leido' %}Marcar como no leído</button>
+                                <button class="menu__item menu__item--rojo" name="accion" value="eliminar"{% if m.carpeta.tipo == 'papelera' %} data-confirmar="Se eliminará definitivamente. ¿Continuar?"{% endif %}>{% include 'correo/_iconos.html' with nombre='papelera' %}Eliminar este mensaje</button>
+                                {% for c in lectura.carpetas_destino %}{% if c.pk != m.carpeta_id %}
+                                <button class="menu__item" name="accion" value="mover:{{ c.pk }}">{% include 'correo/_iconos.html' with nombre='carpeta' %}Mover a {{ c.nombre }}</button>
+                                {% endif %}{% endfor %}
+                            </form>
+                            {% endif %}
+                            <a class="menu__item" href="{% url 'imprimir' m.pk %}" target="_blank" rel="noopener">{% include 'correo/_iconos.html' with nombre='imprimir' %}Imprimir</a>
+                            <a class="menu__item" href="{% url 'mensaje' m.pk %}">{% include 'correo/_iconos.html' with nombre='expandir' %}Pantalla completa</a>
+                        </div>
+                    </details>
+                    </span>
+                </div>
 
                 {% if m.estado_envio == 'fallido' %}
                 <div class="aviso aviso--rojo" role="alert">
@@ -33,30 +70,6 @@
                 {% elif m.estado_envio == 'en_cola' %}
                 <div class="aviso aviso--ambar" role="status"><p>En la Bandeja de salida: se enviará en unos segundos.</p></div>
                 {% endif %}
-
-                <div class="mensaje__barra" role="toolbar" aria-label="Acciones del mensaje">
-                    {% if lectura.puede_gestionar %}
-                    <a class="boton-icono" href="{% url 'redactar' %}?responder={{ m.pk }}" aria-label="Responder" title="Responder">{% include 'correo/_iconos.html' with nombre='responder' %}</a>
-                    <a class="boton-icono" href="{% url 'redactar' %}?responder_todos={{ m.pk }}" aria-label="Responder a todos" title="Responder a todos">{% include 'correo/_iconos.html' with nombre='responder_todos' %}</a>
-                    <a class="boton-icono" href="{% url 'redactar' %}?reenviar={{ m.pk }}" aria-label="Reenviar" title="Reenviar">{% include 'correo/_iconos.html' with nombre='reenviar' %}</a>
-                    <form class="mensaje__acciones" method="post" action="{% url 'acciones' %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="mensajes" value="{{ m.pk }}">
-                        <input type="hidden" name="volver" value="{{ volver }}">
-                        <button class="boton-icono" name="accion" value="archivar" aria-label="Archivar" title="Archivar">{% include 'correo/_iconos.html' with nombre='archivar' %}</button>
-                        <button class="boton-icono" name="accion" value="no_leido" aria-label="Marcar como no leído" title="Marcar como no leído">{% include 'correo/_iconos.html' with nombre='no_leido' %}</button>
-                        <button class="boton-icono boton-icono--rojo" name="accion" value="eliminar" aria-label="Eliminar" title="Eliminar"{% if m.carpeta.tipo == 'papelera' %} data-confirmar="Se eliminará definitivamente. ¿Continuar?"{% endif %}>{% include 'correo/_iconos.html' with nombre='papelera' %}</button>
-                        <label class="solo-lector" for="mover-{{ m.pk }}">Mover a</label>
-                        <select id="mover-{{ m.pk }}" name="accion" class="mover" data-autoenviar>
-                            <option value="">Mover a…</option>
-                            {% for c in lectura.carpetas_destino %}{% if c.pk != m.carpeta_id %}<option value="mover:{{ c.pk }}">{{ c.nombre }}</option>{% endif %}{% endfor %}
-                        </select>
-                    </form>
-                    {% endif %}
-                    <a class="boton-icono" href="{% url 'imprimir' m.pk %}" target="_blank" rel="noopener" aria-label="Imprimir" title="Imprimir">{% include 'correo/_iconos.html' with nombre='imprimir' %}</a>
-                    <a class="boton-icono" href="{% url 'mensaje' m.pk %}" aria-label="Abrir en pantalla completa" title="Pantalla completa">{% include 'correo/_iconos.html' with nombre='expandir' %}</a>
-                    <span class="chip chip--suave">{{ m.carpeta.nombre }}</span>
-                </div>
 
                 {% if m.imagenes_remotas %}
                 <p class="aviso aviso--suave">
@@ -83,11 +96,11 @@
                     {% endfor %}
                 </ul>
                 {% endif %}
-            </article>
+            </details>
         {% endfor %}
         </div>
 
-        <aside class="hilo__lado" aria-label="Detalles de la conversación">
+        <aside class="hilo__lado" id="detalles-hilo" aria-label="Detalles de la conversación">
             <section class="tarjeta-lado">
                 <h3 class="tarjeta-lado__titulo">Participantes</h3>
                 <ul class="personas">

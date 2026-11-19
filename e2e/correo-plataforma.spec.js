@@ -31,7 +31,14 @@ test.describe('plataforma de correo', () => {
         await page.locator('.fila__enlace', { hasText: 'Solicitud de cotización' }).first().click();
         await expect(page.locator('.hilo__asunto')).toContainText('Solicitud de cotización');
         await expect(page.locator('.mensaje')).not.toHaveCount(0);
+        // Como Outlook: solo el último mensaje abierto; los anteriores plegados en una línea.
+        await expect(page.locator('.mensaje--ultimo')).toHaveAttribute('open', '');
+        // Detalles (participantes, quién lo atiende, actividad) en un panel que se abre con un botón.
+        const detalles = page.getByRole('button', { name: 'Detalles de la conversación' });
+        if ((await detalles.getAttribute('aria-expanded')) !== 'true') { await detalles.click(); }
         await expect(page.getByRole('heading', { name: 'Participantes' })).toBeVisible();
+        await detalles.click();
+        await expect(page.getByRole('heading', { name: 'Participantes' })).toBeHidden();
 
         const cuerpo = page.locator('iframe[data-cuerpo]').last();
         await expect(cuerpo).toHaveAttribute('sandbox', /allow-same-origin/);
@@ -48,6 +55,17 @@ test.describe('plataforma de correo', () => {
         await page.keyboard.press('Enter');
         await expect(page).toHaveURL(/[?&]h=\d+/);
         await expect(page.locator('.fila--activa')).toHaveCount(1);
+    });
+
+    test('barra de comandos: sin marcar nada actúa sobre la conversación abierta', async ({ page }) => {
+        await abrirCorreo(page, 'informes');
+        const comandos = page.getByRole('toolbar', { name: 'Acciones de correo' });
+        await expect(comandos.getByRole('button', { name: 'Archivar' })).toBeDisabled();
+        await page.locator('.fila__enlace', { hasText: 'Recepción de muestras' }).click();
+        await expect(comandos.getByRole('button', { name: 'Archivar' })).toBeEnabled();
+        await comandos.getByRole('button', { name: 'Marcar como no leído' }).click();
+        await expect(page.locator('.avisos')).toContainText('no leídos');
+        await expect(page.locator('.fila', { hasText: 'Recepción de muestras' })).toHaveClass(/fila--no-leida/);
     });
 
     test('el boletín llega sin scripts y con imágenes remotas bloqueadas', async ({ page }) => {
@@ -85,12 +103,78 @@ test.describe('plataforma de correo', () => {
         expect(violaciones).toEqual([]);
     });
 
+    test('destinatarios: sugerencias al entrar, fichas y quitar', async ({ page }) => {
+        const violaciones = vigilarCsp(page);
+        const origen = await abrirCorreo(page, 'informes');
+        await page.goto(`${origen}/redactar/?cuenta=informes`);
+        const para = page.locator('#r-para');
+        const sugerencias = page.locator('#sug-para');
+
+        // Al entrar al campo vacío: contactos recientes, como en Outlook.
+        await para.focus();
+        await expect(sugerencias).toBeVisible();
+        await expect(sugerencias).toContainText('Contactos recientes');
+
+        // Escribir busca también las cuentas VICAF; Enter elige la marcada.
+        await para.pressSequentially('labor');
+        await expect(sugerencias.getByRole('option').first()).toContainText('laboratorio@grupovicaf.com');
+        await page.keyboard.press('Enter');
+        await expect(page.locator('.ficha')).toHaveCount(1);
+        await expect(page.locator('.ficha').first()).toHaveText(/Laboratorio/);
+
+        // Pegar o escribir con comas crea varias fichas; la inválida se marca.
+        await para.pressSequentially('malo@, otro@cliente.example,');
+        await expect(page.locator('.ficha')).toHaveCount(3);
+        await expect(page.locator('.ficha--invalida')).toHaveCount(1);
+
+        // Retroceso en el campo vacío selecciona la última ficha y la quita.
+        await page.keyboard.press('Backspace');
+        await expect(page.locator('.ficha').last()).toBeFocused();
+        await page.keyboard.press('Backspace');
+        await expect(page.locator('.ficha')).toHaveCount(2);
+        await page.getByRole('button', { name: /Quitar malo@ de Para/ }).click();
+        await expect(page.locator('.ficha')).toHaveCount(1);
+
+        await expect(page.locator('input[type="hidden"][name="para"]')).toHaveValue('Laboratorio <laboratorio@grupovicaf.com>');
+
+        // CC y CCO quedan ocultos hasta pedirlos.
+        await expect(page.locator('#r-cc')).toBeHidden();
+        await page.getByRole('button', { name: 'CC', exact: true }).click();
+        await expect(page.locator('#r-cc')).toBeVisible();
+        await expect(page.locator('#r-cc')).toBeFocused();
+        expect(violaciones).toEqual([]);
+    });
+
     test('la Bandeja de salida muestra el envío fallido y permite reintentar', async ({ page }) => {
         await abrirCorreo(page, 'informes');
         await page.locator('.grupo-cuenta[data-cuenta="informes"]').getByRole('link', { name: /Bandeja de salida/ }).click();
         await expect(page.locator('.chip--rojo', { hasText: 'Falló el envío' }).first()).toBeVisible();
         await page.locator('.fila__enlace').first().click();
         await expect(page.getByRole('button', { name: 'Reintentar' })).toBeVisible();
+    });
+
+    test('la barra de búsqueda sugiere personas y correos mientras se escribe', async ({ page }) => {
+        const violaciones = vigilarCsp(page);
+        await abrirCorreo(page);
+        const q = page.locator('#q-rapida');
+        await q.pressSequentially('compres', { delay: 30 });
+        const lista = page.locator('#q-rapida-lista');
+        await expect(lista).toBeVisible();
+        await expect(q).toHaveAttribute('aria-expanded', 'true');
+        await expect(lista.locator('.sugerencias__titulo', { hasText: 'Correos' })).toBeVisible();
+        await expect(lista.getByRole('option', { name: /Buscar «compres»/ })).toBeVisible();
+
+        // Teclado: ↓ marca la primera opción y Enter la abre.
+        await q.press('ArrowDown');
+        await expect(q).toHaveAttribute('aria-activedescendant', 'q-rapida-op-0');
+        await q.press('Escape');
+        await expect(lista).toBeHidden();
+
+        await q.press('End');
+        await q.pressSequentially('i');
+        await lista.locator('.sugerencia--correo').first().click();
+        await expect(page).toHaveURL(/\?h=\d+/);
+        expect(violaciones).toEqual([]);
     });
 
     test('búsqueda sin tildes y ficha del contacto con su cliente del LIMS', async ({ page }) => {
@@ -102,6 +186,44 @@ test.describe('plataforma de correo', () => {
         await page.goto(`${origen}/contacto/?correo=ana@e2e.invalid`);
         await expect(page.getByText('Constructora E2E SAC').first()).toBeVisible();
         await expect(page.getByRole('heading', { name: /Historial/ })).toBeVisible();
+    });
+
+    test('administrar: crear una cuenta, dar acceso, cambiar rol y quitarlo', async ({ page }) => {
+        const violaciones = vigilarCsp(page);
+        await abrirCorreo(page);
+        await page.getByRole('link', { name: 'Administrar cuentas' }).click();
+        await expect(page.getByRole('heading', { name: 'Administrar cuentas' })).toBeVisible();
+
+        const direccion = `e2e${Date.now()}@grupovicaf.com`;  // la base de e2e no se vacía entre corridas
+        await page.getByLabel('Dirección').fill(direccion);
+        await page.getByLabel('Nombre visible').fill('Cuenta E2E');
+        await page.getByRole('button', { name: 'Crear cuenta' }).click();
+        await expect(page.getByRole('heading', { name: 'Cuenta E2E' })).toBeVisible();
+        await expect(page.locator('.tabla')).toContainText('e2e.coordinador');  // «Darme acceso» marcado
+
+        const tecnico = await page.locator('#a-usuario option', { hasText: '(e2e.tecnico.a)' }).getAttribute('value');
+        await page.getByLabel('Trabajador').selectOption(tecnico);
+        await page.getByLabel('Rol', { exact: true }).selectOption('lectura');
+        await page.getByRole('button', { name: 'Dar acceso' }).click();
+        const fila = page.locator('.tabla tr', { hasText: 'e2e.tecnico.a' });
+        await expect(fila).toContainText('Sin permiso Correo en su rol');
+        await fila.locator('select').selectOption('gestiona');
+        await expect(page.locator('.avisos')).toContainText('Rol actualizado');
+
+        page.once('dialog', (d) => d.accept());
+        await page.locator('.tabla tr', { hasText: 'e2e.tecnico.a' }).getByRole('button', { name: 'Quitar' }).click();
+        await expect(page.locator('.tabla tr', { hasText: 'e2e.tecnico.a' })).toHaveCount(0);
+        await expect(page.locator('.actividad')).toContainText('quitó el acceso');
+
+        // La cuenta nueva ya aparece en el panel de carpetas de quien la creó.
+        await expect(page.locator('.grupo-cuenta', { hasText: 'Cuenta E2E' }).first()).toBeVisible();
+
+        // Se desactiva al final: desaparece de las bandejas y las demás pruebas siguen viendo 3 cuentas.
+        await page.locator('input[name="activa"][value="0"]').check();
+        await page.getByRole('button', { name: 'Guardar' }).click();
+        await expect(page.getByText('Inactiva: nadie la ve en su bandeja')).toBeVisible();
+        await expect(page.locator('.grupo-cuenta', { hasText: 'Cuenta E2E' })).toHaveCount(0);
+        expect(violaciones).toEqual([]);
     });
 
     test('firmas: crear una personal con el editor', async ({ page }) => {

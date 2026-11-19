@@ -143,6 +143,7 @@ MEDIA_ROOT = BASE_DIR / 'mediafiles'
 # Tras el login se muestra la pantalla de entrada (tarjetas Correos / Sistema,
 # app correo). Si el usuario venía de una URL concreta (?next=), va ahí.
 LOGIN_REDIRECT_URL = 'inicio'
+AUTHENTICATION_BACKENDS = ['core.backends.UsuarioOCorreoBackend']
 LOGIN_URL = 'login'
 LOGOUT_REDIRECT_URL = 'login'
 
@@ -210,11 +211,53 @@ LAB_BASE_URL = os.environ.get('LAB_BASE_URL', '').rstrip('/')
 CORREO_ENLACE_SEGUNDOS = int(os.environ.get('CORREO_ENLACE_SEGUNDOS') or 60)
 # Si el usuario solo tiene acceso a un módulo, saltar la pantalla de entrada.
 CORREO_OMITIR_ENTRADA = os.environ.get('CORREO_OMITIR_ENTRADA', 'False') == 'True'
-# Carpeta privada para .eml y adjuntos mientras no se conecte R2 (Paso 3).
-# Fuera de MEDIA_ROOT: nunca la sirve nginx.
+# Dónde van los .eml y adjuntos: 'local' (carpeta privada, dev y pruebas) o
+# 'r2' (bucket PRIVADO de Cloudflare R2 vía django-storages, producción).
+CORREO_ALMACEN = os.environ.get('CORREO_ALMACEN') or 'local'
+# Carpeta privada del modo 'local'. Fuera de MEDIA_ROOT: nunca la sirve nginx.
 CORREO_ALMACEN_DIR = os.environ.get('CORREO_ALMACEN_DIR') or str(BASE_DIR / 'correo_privado')
-# Vigencia de los enlaces firmados de descarga de adjuntos (como las URL de R2).
+# Modo 'r2': bucket, endpoint S3 de la cuenta (https://<id>.r2.cloudflarestorage.com)
+# y un token de API de R2 con permiso solo sobre ese bucket.
+CORREO_R2_BUCKET = os.environ.get('CORREO_R2_BUCKET', '')
+CORREO_R2_ENDPOINT = os.environ.get('CORREO_R2_ENDPOINT', '').rstrip('/')
+CORREO_R2_ACCESS_KEY = os.environ.get('CORREO_R2_ACCESS_KEY', '')
+CORREO_R2_SECRET_KEY = os.environ.get('CORREO_R2_SECRET_KEY', '')
+# Dominios que puede tener una cuenta creada desde «Administrar cuentas».
+CORREO_DOMINIOS = [d.strip().lower() for d in (os.environ.get('CORREO_DOMINIOS') or 'grupovicaf.com').split(',') if d.strip()]
+# Manda a No deseado lo que dice ser de nuestro dominio sin firma DKIM (suplantación).
+CORREO_FILTRAR_SUPLANTACION = os.environ.get('CORREO_FILTRAR_SUPLANTACION', 'False').lower() in ('1', 'true', 'yes')
+# Vigencia de los enlaces firmados de descarga y de las URL prefirmadas de R2.
 CORREO_URL_FIRMADA_SEGUNDOS = int(os.environ.get('CORREO_URL_FIRMADA_SEGUNDOS') or 300)
 # Límite total de adjuntos al redactar.
 CORREO_MAX_ADJUNTOS_BYTES = 25 * 1024 * 1024
+# Envío: 'simulado' (no sale nada) o 'smtp'. En dev el SMTP es Mailpit
+# (docker-compose.dev.yml); en producción, el SMTP de Amazon SES (Paso 5).
+# Es un SMTP aparte de EMAIL_* (avisos del sistema y formulario de contacto).
+CORREO_ENVIO = os.environ.get('CORREO_ENVIO') or 'simulado'
+CORREO_SMTP_HOST = os.environ.get('CORREO_SMTP_HOST', '')
+CORREO_SMTP_PUERTO = int(os.environ.get('CORREO_SMTP_PUERTO') or 587)
+CORREO_SMTP_USUARIO = os.environ.get('CORREO_SMTP_USUARIO', '')
+CORREO_SMTP_CLAVE = os.environ.get('CORREO_SMTP_CLAVE', '')
+CORREO_SMTP_TLS = os.environ.get('CORREO_SMTP_TLS', 'True') == 'True'
+# Solo desarrollo: API de Mailpit. Con valor, beat trae cada 15 s lo que llegó
+# a las cuentas VICAF (hace las veces de Cloudflare Email Routing).
+CORREO_MAILPIT_URL = os.environ.get('CORREO_MAILPIT_URL', '').rstrip('/')
+# Paso 4: secreto compartido con el Email Worker de Cloudflare (HMAC-SHA256) y
+# tolerancia del reloj en segundos. Sin secreto, el webhook responde 503.
+CORREO_WEBHOOK_SECRET = os.environ.get('CORREO_WEBHOOK_SECRET', '')
+CORREO_WEBHOOK_TOLERANCIA = int(os.environ.get('CORREO_WEBHOOK_TOLERANCIA') or 300)
+# Dominios de entrada del piloto que equivalen al dominio real:
+# «entrada.grupovicaf.com=grupovicaf.com» (separados por coma). Así
+# informes@entrada.grupovicaf.com llega a la cuenta informes@grupovicaf.com.
+CORREO_ENTRADA_ALIAS = dict(
+    (a.strip().lower(), b.strip().lower())
+    for a, _, b in (par.partition('=') for par in (os.environ.get('CORREO_ENTRADA_ALIAS') or '').split(',') if '=' in par)
+)
+# Paso 5: conjunto de configuración de SES (rebotes/quejas), token secreto de
+# la URL que recibe los avisos de SNS y, si se quiere, el ARN del tema SNS.
+CORREO_SES_CONFIG_SET = os.environ.get('CORREO_SES_CONFIG_SET', '')
+CORREO_SES_TOKEN = os.environ.get('CORREO_SES_TOKEN', '')
+CORREO_SES_TOPIC_ARN = os.environ.get('CORREO_SES_TOPIC_ARN', '')
+# Tamaño máximo de un correo entrante completo (.eml).
+CORREO_MAX_ENTRANTE_BYTES = 40 * 1024 * 1024
 

@@ -1,8 +1,10 @@
-"""Interfaces para conectar la recepción (Paso 4) y el envío (Paso 5).
+"""Interfaces de recepción y envío, y la implementación activa de cada una.
 
-Todavía NO se implementan: quedan definidas para que las pantallas de los
-pasos 2 y 3 hablen con ellas y luego solo cambie la implementación
-(Cloudflare Email Routing + R2 para recibir, Amazon SES para enviar).
+- Recepción: `correo.recepcion.RecepcionEML` lee un .eml real (RFC 5322) y lo
+  guarda en la cuenta destinataria. La usan `recibir_eml`, el puente de Mailpit
+  en desarrollo y, en el Paso 4, el webhook de Cloudflare Email Routing.
+- Envío: `ServicioEnvioSimulado` (no sale nada) o `correo.envio.ServicioEnvioSMTP`
+  (MIME completo por SMTP: Mailpit en desarrollo, Amazon SES en producción).
 """
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -14,6 +16,7 @@ class ResultadoEnvio:
     id_proveedor: str = ''   # p. ej. el MessageId de SES
     error: str = ''
     reintentar: bool = False
+    eml: bytes = b''         # el mensaje MIME tal como salió (se guarda en el Mensaje)
 
 
 class ServicioRecepcion(ABC):
@@ -24,8 +27,17 @@ class ServicioRecepcion(ABC):
     """
 
     @abstractmethod
+    def recibir(self, crudo: bytes, destinatarios=()):
+        """Parsea el .eml, sanitiza el HTML, arma el hilo y devuelve los Mensajes creados
+        (uno por cuenta VICAF destinataria). `destinatarios`: los RCPT TO del sobre,
+        si se conocen (incluyen las copias ocultas que no van en las cabeceras)."""
+
     def guardar(self, clave_r2: str, sha256: str):
-        """Lee el .eml, lo parsea, sanitiza el HTML, arma el hilo y devuelve el Mensaje."""
+        """Variante del Paso 4: el .eml ya está en el almacén (R2) con esa clave."""
+        from .almacen import almacen_correo
+
+        with almacen_correo.open(clave_r2, 'rb') as archivo:
+            return self.recibir(archivo.read())
 
 
 class ServicioEnvio(ABC):
@@ -46,10 +58,15 @@ class ServicioEnvioSimulado(ServicioEnvio):
     def enviar(self, mensaje) -> ResultadoEnvio:
         destinos = [d['correo'] for d in list(mensaje.para) + list(mensaje.cc) + list(mensaje.cco)]
         if any(d.endswith('@falla.invalid') for d in destinos):
-            return ResultadoEnvio(ok=False, error='Rebote simulado: el dominio no existe.', reintentar=True)
+            return ResultadoEnvio(ok=False, error='Rebote simulado: el dominio no existe.', reintentar=False)
         return ResultadoEnvio(ok=True, id_proveedor=f'simulado-{mensaje.pk}')
 
 
 def servicio_envio() -> ServicioEnvio:
-    """Implementación activa. En el Paso 5 devolverá la de Amazon SES."""
+    """Implementación activa según CORREO_ENVIO ('simulado' o 'smtp')."""
+    from django.conf import settings
+
+    if settings.CORREO_ENVIO == 'smtp':
+        from .envio import ServicioEnvioSMTP
+        return ServicioEnvioSMTP()
     return ServicioEnvioSimulado()

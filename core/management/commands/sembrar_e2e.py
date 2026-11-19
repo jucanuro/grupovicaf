@@ -3,7 +3,7 @@
 Idempotente: se puede correr las veces que haga falta sobre la misma base y
 deja siempre el mismo estado. Todo lo que crea lleva el marcador E2E:
 
-    Usuarios          e2e.coordinador (con correo.ver), e2e.tecnico.a, e2e.tecnico.b
+    Usuarios          e2e.coordinador (con correo.ver y correo.administrar), e2e.tecnico.a, e2e.tecnico.b
     Roles             'E2E Coordinador', 'E2E Técnico'
     Cliente           RUC 20999999991 · 'Constructora E2E SAC'
     Cotización        COT-E2E-0001
@@ -59,6 +59,7 @@ SLUG_INFORME = uuid.UUID('e2e00000-0000-4000-8000-000000000001')
 
 PERMISOS_COORDINADOR = (
     'cotizaciones.ver', 'ensayos.ver', 'ensayos.ver_todos', 'clientes.ver', 'reportes.ver', 'correo.ver',
+    'correo.administrar',
 )
 PERMISOS_ANALISTA = ('reportes.ver', 'clientes.ver')
 FECHA_ANALISIS = date(2001, 2, 10)

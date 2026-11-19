@@ -5,6 +5,8 @@ Configuración 'spanish' sobre texto sin tildes (extensión unaccent), así
 "compresion" encuentra "compresión". En sqlite (dev sin Docker) cae a
 icontains para no romper el desarrollo local.
 """
+import re
+
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from django.db import connection
 from django.db.models import F, Func, Q, TextField, Value
@@ -58,6 +60,22 @@ def buscar(queryset, texto):
             | Q(de_nombre__icontains=palabra) | Q(adjuntos__nombre__icontains=palabra)
         )
     return queryset.filter(filtro).distinct()
+
+
+def buscar_al_escribir(queryset, texto):
+    """Como `buscar`, pero cada palabra cuenta como prefijo («factu» encuentra
+    «factura»): es la búsqueda de las sugerencias mientras se escribe."""
+    palabras = re.findall(r'\w+', sin_tildes(texto or '').lower())[:6]
+    if not palabras:
+        return queryset.none()
+    if not _es_postgres():
+        return buscar(queryset, ' '.join(palabras))
+    consulta = SearchQuery(' & '.join(f'{p}:*' for p in palabras), config='spanish', search_type='raw')
+    return (
+        queryset.filter(busqueda=consulta)
+        .annotate(rango=SearchRank(F('busqueda'), consulta))
+        .order_by('-rango', '-fecha')
+    )
 
 
 def filtrar_direccion(queryset, campo, correo):
