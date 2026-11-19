@@ -41,7 +41,7 @@ def jpeg(ancho, alto, orientacion=None):
     return SimpleUploadedFile('foto.jpg', buf.getvalue(), content_type='image/jpeg')
 
 
-@override_settings(ENSAYOS_FOTOS_DIR=FOTOS_TMP)
+@override_settings(ENSAYOS_FOTOS_DIR=FOTOS_TMP, ROOT_URLCONF='grupovicaf.urls_lab')
 class CompresionBase(TestCase):
 
     @classmethod
