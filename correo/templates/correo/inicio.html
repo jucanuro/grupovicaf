@@ -13,6 +13,7 @@
         </a>
         <form class="barra__acciones" method="post" action="{% url 'logout' %}">
             {% csrf_token %}
+            <a class="boton boton--cristal" href="{% url 'cambiar_clave' %}">Cambiar contraseña</a>
             <button type="submit" class="boton boton--cristal">{% include 'correo/_iconos.html' with nombre='salir' %}Cerrar sesión</button>
         </form>
     </header>
