@@ -796,3 +796,12 @@ a.adjunto:hover { border-color: var(--acento); background: var(--acento-suave); 
 .formulario-columna { display: grid; gap: 12px; }
 .nota-campo { color: var(--tinta-3); font-size: 12px; }
 .fila-acciones select { width: auto; min-height: 32px; padding: 2px 8px; font-size: 13px; }
+
+/* Avisos de correo nuevo: globito con el número de sin leer. */
+.campana { position: relative; }
+.campana__n {
+    position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px;
+    border-radius: 9px; background: var(--rojo, #DC2626); color: #fff; font-size: 11px; font-weight: 700;
+    line-height: 18px; text-align: center; box-sizing: border-box;
+}
+.campana__n[hidden] { display: none; }
