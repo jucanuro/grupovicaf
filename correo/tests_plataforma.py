@@ -565,3 +565,23 @@ class SemillaTests(BasePlataforma):
         respuesta = self.get('bandeja')
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, 'Aún no tienes cuentas de correo asignadas')
+
+
+class BorradoresSinDestinatarioTests(BasePlataforma):
+    def test_carpeta_borradores_con_borrador_sin_destinatarios(self):
+        """Regresión: un borrador sin «Para» tumbaba la carpeta Borradores con error 500."""
+        borradores = carpeta(self.informes, 'borradores')
+        crear_mensaje(
+            self.informes, 'borradores', de='informes@grupovicaf.com', asunto='Aún sin destinatario',
+            estado=Mensaje.BORRADOR, creado_por=self.gestor, para=[],
+        )
+        crear_mensaje(
+            self.informes, 'borradores', de='informes@grupovicaf.com', asunto='Con destinatario',
+            estado=Mensaje.BORRADOR, creado_por=self.gestor, para=[{'nombre': '', 'correo': 'ana@cliente.example'}],
+        )
+        self.entrar(self.gestor)
+        respuesta = self.get('carpeta', 'informes', borradores.pk)
+        self.assertEqual(respuesta.status_code, 200)
+        html = respuesta.content.decode()
+        self.assertIn('(sin destinatario)', html)
+        self.assertIn('ana@cliente.example', html)
