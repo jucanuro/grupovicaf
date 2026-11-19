@@ -28,6 +28,19 @@ def iniciales(texto):
 
 
 @register.filter
+def primer_destinatario(mensaje):
+    """Nombre (o correo) del primer destinatario; '' si el borrador aún no tiene ninguno.
+
+    En la plantilla, `para.0.correo` como argumento de un filtro rompe con
+    error 500 cuando la lista está vacía (un borrador sin destinatarios).
+    """
+    for d in (mensaje.para or []):
+        if isinstance(d, dict):
+            return d.get('nombre') or d.get('correo') or ''
+    return ''
+
+
+@register.filter
 def remitente(mensaje):
     return mensaje.de_nombre or mensaje.de
 
