@@ -72,6 +72,28 @@ def _es_spam(msg):
     return bandera == 'yes' or estado.startswith('yes')
 
 
+def _suplanta_dominio(msg, remitente):
+    """True si dice venir de nuestro dominio pero no lo respalda ninguna firma.
+
+    Lo legítimo de @grupovicaf.com sale por SES y trae DKIM (d=grupovicaf.com o
+    amazonses.com). Un estafador que escribe «De: algo@grupovicaf.com» no la tiene.
+    También cuenta un SPF/DKIM/DMARC fallido declarado en Authentication-Results.
+    Solo actúa con CORREO_FILTRAR_SUPLANTACION=True (en dev no hay DKIM).
+    """
+    if not getattr(settings, 'CORREO_FILTRAR_SUPLANTACION', False):
+        return False
+    dominio = remitente['correo'].rpartition('@')[2]
+    if dominio not in settings.CORREO_DOMINIOS:
+        return False
+    resultados = ' '.join(_texto(v).lower() for v in (msg.get_all('Authentication-Results') or []))
+    resultados += ' ' + _texto(msg.get('Received-SPF')).lower()
+    if any(f'{m}={r}' in resultados for m in ('spf', 'dkim', 'dmarc') for r in ('fail', 'softfail', 'none')):
+        return True
+    firmas = ' '.join(_texto(v).lower().replace(' ', '') for v in (msg.get_all('DKIM-Signature') or []))
+    respaldado = any(f'd={d}' in firmas for d in (*settings.CORREO_DOMINIOS, 'amazonses.com'))
+    return not respaldado
+
+
 def _cuerpo_y_adjuntos(msg):
     """(html, texto, [(nombre, mime, bytes, content_id, incrustado)])."""
     parte_html = msg.get_body(preferencelist=('html',))
@@ -126,7 +148,12 @@ class RecepcionEML(ServicioRecepcion):
         message_id = _texto(msg.get('Message-ID'))
         html, texto, adjuntos = _cuerpo_y_adjuntos(msg)
         fecha = _fecha(msg)
-        carpeta = 'spam' if _es_spam(msg) else 'entrada'
+        suplantado = _suplanta_dominio(msg, remitente)
+        carpeta = 'spam' if (suplantado or _es_spam(msg)) else 'entrada'
+        asunto = _texto(msg.get('Subject'))[:500]
+        if suplantado:
+            logger.warning('Posible suplantación de %s: va a No deseado.', remitente['correo'])
+            asunto = f'[POSIBLE SUPLANTACIÓN] {asunto}'[:500]
 
         sha = hashlib.sha256(crudo).hexdigest()
         creados = []
@@ -141,7 +168,7 @@ class RecepcionEML(ServicioRecepcion):
                 creados.append(crear_mensaje(
                     cuenta, carpeta,
                     de=remitente['correo'], de_nombre=remitente['nombre'], para=para, cc=cc,
-                    asunto=_texto(msg.get('Subject'))[:500], html=html, texto=texto if not html else '',
+                    asunto=asunto, html=html, texto=texto if not html else '',
                     fecha=fecha, message_id=message_id[:998],
                     in_reply_to=_texto(msg.get('In-Reply-To'))[:998], references=_texto(msg.get('References')),
                     adjuntos=adjuntos, eml=crudo,

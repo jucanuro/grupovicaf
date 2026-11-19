@@ -114,6 +114,18 @@ class RecepcionTests(BasePlataforma):
         with self.assertRaises(CorreoRechazado):
             self.recibir(eml())
 
+    def test_suplantacion_del_propio_dominio_va_a_no_deseado(self):
+        with self.settings(CORREO_FILTRAR_SUPLANTACION=True):
+            [m] = self.recibir(eml(de='Soporte <soporte@grupovicaf.com>'))
+            self.assertEqual(m.carpeta.tipo, 'spam')
+            self.assertTrue(m.asunto.startswith('[POSIBLE SUPLANTACIÓN]'))
+            [ok] = self.recibir(eml(
+                de='Lab <laboratorio@grupovicaf.com>', message_id='<firmado@x>',
+                cabeceras={'DKIM-Signature': 'v=1; a=rsa-sha256; d=grupovicaf.com; s=abc; b=xx'}))
+            self.assertEqual(ok.carpeta.tipo, 'entrada')
+            [ext] = self.recibir(eml(de='Cliente <c@externo.example>', message_id='<ext@x>'))
+            self.assertEqual(ext.carpeta.tipo, 'entrada')
+
     def test_marcado_como_spam_va_a_no_deseado(self):
         [m] = self.recibir(eml(cabeceras={'X-Spam-Flag': 'YES'}))
         self.assertEqual(m.carpeta.tipo, 'spam')
