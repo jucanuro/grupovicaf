@@ -16,6 +16,7 @@ Reglas:
 import hashlib
 import logging
 import mimetypes
+import re
 from datetime import timezone as dt_timezone
 from email import policy
 from email.parser import BytesParser
@@ -114,7 +115,22 @@ def _fraccion_cjk(texto):
     return cjk / len(letras)
 
 
-def _puntaje_phishing(msg, remitente):
+EXTENSIONES_PELIGROSAS = ('.exe', '.js', '.html', '.htm', '.scr', '.iso', '.bat', '.cmd', '.vbs', '.jar', '.lnk', '.msi')
+_PLANTILLA = re.compile(r'\{\{\s*[\w.]+\s*\}\}|%%\s*\w+\s*%%|\[\[\s*\w+\s*\]\]')
+_ENLACE_IP = re.compile(r'https?://\d{1,3}(?:\.\d{1,3}){3}(?:[:/]|\b)')
+
+
+def _tiene_dkim(msg):
+    return bool(msg.get_all('DKIM-Signature'))
+
+
+def _sin_verificar(msg, remitente):
+    """Remitente externo sin firma DKIM: solo se avisa al leerlo."""
+    dominio = remitente['correo'].rpartition('@')[2]
+    return dominio not in settings.CORREO_DOMINIOS and not _tiene_dkim(msg)
+
+
+def _puntaje_phishing(msg, remitente, html='', texto='', adjuntos=()):
     """Señales típicas de phishing masivo; con 2 o más puntos va a No deseado."""
     puntos = 0
     dominio = remitente['correo'].rpartition('@')[2]
@@ -126,9 +142,19 @@ def _puntaje_phishing(msg, remitente):
     resultados += ' ' + _texto(msg.get('Received-SPF')).lower()
     if any(f'{m}={r}' in resultados for m in ('spf', 'dkim', 'dmarc') for r in ('fail', 'softfail')):
         puntos += 2
-    if not msg.get_all('DKIM-Signature'):
+    if not _tiene_dkim(msg):
         puntos += 1
     if _fraccion_cjk(_texto(msg.get('Subject')) + ' ' + remitente['nombre']) > 0.3:
+        puntos += 1
+    contenido = f'{_texto(msg.get("Subject"))} {texto} {html}'
+    # Plantilla de spam sin rellenar: {{EMAIL}}, %%nombre%%…
+    if _PLANTILLA.search(contenido):
+        puntos += 2
+    # Adjunto ejecutable o página/script que se abre localmente.
+    if any((a[0] or '').lower().endswith(EXTENSIONES_PELIGROSAS) for a in adjuntos):
+        puntos += 2
+    # Enlaces a una IP en vez de un dominio.
+    if _ENLACE_IP.search(contenido):
         puntos += 1
     return puntos
 
@@ -189,7 +215,7 @@ class RecepcionEML(ServicioRecepcion):
         fecha = _fecha(msg)
         suplantado = _suplanta_dominio(msg, remitente)
         bloqueado = _bloqueado(remitente)
-        phishing = _puntaje_phishing(msg, remitente) >= 2 if getattr(settings, 'CORREO_FILTRAR_SUPLANTACION', False) else False
+        phishing = _puntaje_phishing(msg, remitente, html, texto, adjuntos) >= 2 if getattr(settings, 'CORREO_FILTRAR_SUPLANTACION', False) else False
         carpeta = 'spam' if (suplantado or bloqueado or phishing or _es_spam(msg)) else 'entrada'
         asunto = _texto(msg.get('Subject'))[:500]
         if bloqueado or phishing:
@@ -198,6 +224,7 @@ class RecepcionEML(ServicioRecepcion):
             logger.warning('Posible suplantación de %s: va a No deseado.', remitente['correo'])
             asunto = f'[POSIBLE SUPLANTACIÓN] {asunto}'[:500]
 
+        sin_verificar = suplantado or _sin_verificar(msg, remitente)
         sha = hashlib.sha256(crudo).hexdigest()
         creados = []
         for cuenta in cuentas:
@@ -214,7 +241,7 @@ class RecepcionEML(ServicioRecepcion):
                     asunto=asunto, html=html, texto=texto if not html else '',
                     fecha=fecha, message_id=message_id[:998],
                     in_reply_to=_texto(msg.get('In-Reply-To'))[:998], references=_texto(msg.get('References')),
-                    adjuntos=adjuntos, eml=crudo,
+                    adjuntos=adjuntos, eml=crudo, sin_verificar=sin_verificar,
                 ))
         return creados
 

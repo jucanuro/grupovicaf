@@ -120,7 +120,7 @@ def preparar_cuerpo(*, html='', texto=''):
 def crear_mensaje(cuenta, tipo_carpeta, *, de, de_nombre='', para=(), cc=(), cco=(), asunto='',
                   html='', texto='', fecha=None, leido=False, message_id='', in_reply_to='',
                   references='', estado=Mensaje.RECIBIDO, creado_por=None, adjuntos=(), eml=None,
-                  hilo=None, carpeta_obj=None):
+                  hilo=None, carpeta_obj=None, sin_verificar=False):
     """Crea un Mensaje completo. `adjuntos`: [(nombre, mime, bytes, content_id, incrustado)]."""
     fecha = fecha or timezone.now()
     limpio, plano, previa = preparar_cuerpo(html=html, texto=texto)
@@ -130,7 +130,7 @@ def crear_mensaje(cuenta, tipo_carpeta, *, de, de_nombre='', para=(), cc=(), cco
         message_id=message_id or nuevo_message_id(cuenta), in_reply_to=in_reply_to, references=references,
         de=de.lower(), de_nombre=de_nombre, para=list(para), cc=list(cc), cco=list(cco), asunto=asunto,
         cuerpo_texto=plano, cuerpo_html=limpio, vista_previa=previa, fecha=fecha, leido=leido,
-        estado_envio=estado, creado_por=creado_por,
+        estado_envio=estado, creado_por=creado_por, sin_verificar=sin_verificar,
     )
     if eml is not None:
         mensaje.eml_sha256 = hashlib.sha256(eml).hexdigest()

@@ -141,6 +141,21 @@ class RecepcionTests(BasePlataforma):
             [c] = self.recibir(eml(de='Ana <ana@cliente.example>', message_id='<b5@x>'))
             self.assertEqual(c.carpeta.tipo, 'entrada')
 
+    def test_senales_nuevas_y_aviso_sin_verificar(self):
+        with self.settings(CORREO_FILTRAR_SUPLANTACION=True):
+            firma = {'DKIM-Signature': 'v=1; d=cliente.example; s=x; b=y'}
+            [t] = self.recibir(eml(de='SSA <a@secure.example>', message_id='<s1@x>', texto='Hola {{EMAIL}}, descarga'))
+            self.assertEqual(t.carpeta.tipo, 'spam')
+            [a] = self.recibir(eml(de='Ana <ana@cliente.example>', message_id='<s2@x>', cabeceras=firma,
+                                   adjuntos=[('factura.exe', b'MZ')]))
+            self.assertEqual(a.carpeta.tipo, 'spam')
+            [ok] = self.recibir(eml(de='Ana <ana@cliente.example>', message_id='<s3@x>', cabeceras=firma))
+            self.assertEqual(ok.carpeta.tipo, 'entrada')
+            self.assertFalse(ok.sin_verificar)
+            [nv] = self.recibir(eml(de='Pedro <p@pyme.example>', message_id='<s4@x>'))
+            self.assertEqual(nv.carpeta.tipo, 'entrada')
+            self.assertTrue(nv.sin_verificar)
+
     def test_marcado_como_spam_va_a_no_deseado(self):
         [m] = self.recibir(eml(cabeceras={'X-Spam-Flag': 'YES'}))
         self.assertEqual(m.carpeta.tipo, 'spam')

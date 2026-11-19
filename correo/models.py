@@ -165,6 +165,8 @@ class Mensaje(models.Model):
     fecha = models.DateTimeField(db_index=True)
     leido = models.BooleanField(default=False)
     tiene_adjuntos = models.BooleanField(default=False)
+    sin_verificar = models.BooleanField(
+        default=False, help_text='Remitente externo sin firma DKIM: se muestra un aviso al leerlo.')
 
     eml = models.FileField(storage=obtener_almacen, upload_to=_ruta_eml, blank=True, max_length=300)
     eml_sha256 = models.CharField(max_length=64, blank=True)
