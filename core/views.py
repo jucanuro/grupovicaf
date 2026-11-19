@@ -1,6 +1,9 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.views import LoginView
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.views import LoginView, PasswordChangeView
+from django.core.exceptions import ValidationError
+from django.urls import reverse_lazy
 from django.shortcuts import render
 from django.utils import timezone
 
@@ -35,3 +38,34 @@ def dashboard_view(request):
 @login_required
 def dashboard_view_analitycs(request):
     return render(request, 'administracion.html')
+
+
+class CambiarClaveForm(PasswordChangeForm):
+    """Cambio de contraseña propio: la nueva no puede ser igual a la actual."""
+
+    def clean_new_password2(self):
+        nueva = super().clean_new_password2()
+        if nueva and nueva == self.cleaned_data.get('old_password'):
+            raise ValidationError('La nueva contraseña debe ser distinta de la actual.', code='igual')
+        return nueva
+
+
+class CambiarClaveView(PasswordChangeView):
+    """«Cambiar mi contraseña»: la ve cualquier usuario con sesión; apaga el aviso de clave temporal."""
+    template_name = 'registration/cambiar_clave.html'
+    form_class = CambiarClaveForm
+    success_url = reverse_lazy('dashboard')
+
+    def form_valid(self, form):
+        from trabajadores.models import TrabajadorProfile
+        respuesta = super().form_valid(form)
+        TrabajadorProfile.objects.filter(user=self.request.user).update(debe_cambiar_clave=False)
+        messages.success(self.request, 'Tu contraseña se cambió correctamente.')
+        return respuesta
+
+    def get_context_data(self, **kwargs):
+        from trabajadores.models import TrabajadorProfile
+        contexto = super().get_context_data(**kwargs)
+        contexto['obligatorio'] = TrabajadorProfile.objects.filter(
+            user=self.request.user, debe_cambiar_clave=True).exists()
+        return contexto
