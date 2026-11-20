@@ -967,6 +967,18 @@ def cambiar_estado_solicitud(request, pk, nuevo_estado):
         messages.error(request, "Estado no válido.")
         return redirect('proyectos:lista_solicitudes')
 
+    if nuevo_estado == 'finalizado':
+        # Secuencia obligatoria: sin todos los resultados terminados no se finaliza.
+        terminadas, total = solicitud.avance_resultados()
+        if not total or terminadas < total:
+            messages.error(
+                request,
+                f"No se puede finalizar {solicitud.codigo_solicitud}: hay {terminadas} de {total} "
+                "resultados terminados. Cada técnico debe registrar y terminar sus ensayos en "
+                "«Resultados de ensayo».",
+            )
+            return redirect('proyectos:lista_solicitudes')
+
     solicitud.estado = nuevo_estado
 
     if nuevo_estado == 'finalizado':

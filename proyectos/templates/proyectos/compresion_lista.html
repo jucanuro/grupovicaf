@@ -1,6 +1,6 @@
 {% extends "base_vicafpro.html" %}
 {% load static %}
-{% block title %}Ensayos de compresión | VICAF LIMS{% endblock %}
+{% block title %}Resultados de ensayo | VICAF LIMS{% endblock %}
 
 {% block extra_css %}<link rel="stylesheet" href="{% static 'css/ensayos.css' %}">{% endblock %}
 
@@ -10,8 +10,8 @@
         <div class="v-cabecera__icono"><i data-lucide="camera"></i>
         </div>
         <div class="min-w-0">
-            <h1 class="text-lg font-bold text-slate-800 leading-tight">Ensayos de compresión</h1>
-            <p class="text-xs text-slate-500">Datos y fotos de cada probeta (ASTM C39)</p>
+            <h1 class="text-lg font-bold text-slate-800 leading-tight">Resultados de ensayo</h1>
+            <p class="text-xs text-slate-500">Datos, fotos y hoja de cada ensayo que tienes asignado</p>
         </div>
     </div>
 
@@ -52,7 +52,7 @@
         <div class="flex items-center justify-between gap-3">
             <div class="min-w-0">
                 <p class="text-sm font-bold text-slate-800">Sin sesión abierta</p>
-                <p class="text-xs text-slate-500">Para terminar probetas abre una sesión con la temperatura, la humedad y los equipos.</p>
+                <p class="text-xs text-slate-500">Las probetas de compresión se terminan con una sesión abierta (temperatura, humedad y equipos).</p>
             </div>
             {% if puede_abrir %}
             <a href="{% url 'proyectos:abrir_sesion_ensayo' %}" class="v-btn v-btn--primario v-btn--sm flex-shrink-0"><i data-lucide="play"></i> Abrir sesión</a>
@@ -63,7 +63,7 @@
 
     <ul class="space-y-3" data-lista-compresion>
         {% for d in detalles %}
-        {% with e=d.ensayo_compresion %}
+        {% with e=d.resultado %}
         <li>
             <a href="{% url 'proyectos:registrar_compresion' d.pk %}"
                class="block v-tarjeta p-4 active:bg-slate-50 hover:border-blue-300 hover:shadow-md transition">
@@ -71,6 +71,7 @@
                     <div class="min-w-0">
                         <p class="font-mono font-bold text-slate-900 break-all" data-codigo>{{ d.muestra.codigo_laboratorio }}</p>
                         <p class="text-xs text-slate-500 mt-0.5">{{ d.solicitud.codigo_solicitud }} · {{ d.norma }}</p>
+                        <p class="text-xs text-slate-700 font-semibold mt-0.5 truncate">{% if d.plantilla == 'compresion' %}Compresión de probeta{% else %}{{ d.descripcion_ensayo|default:d.norma }}{% endif %}</p>
                     </div>
                     {% if e and e.terminado %}
                         <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-green-100 text-green-700 flex-shrink-0">Terminado</span>
@@ -84,8 +85,8 @@
                 </div>
                 <div class="mt-3 flex items-center justify-between text-xs text-slate-600">
                     <span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Entrega {{ d.fecha_entrega_programada|date:"d/m/Y" }}</span>
-                    <span class="flex items-center gap-1 font-semibold {% if d.n_fotos == total_fotos %}text-green-700{% endif %}">
-                        <i data-lucide="image" class="w-3.5 h-3.5"></i> {{ d.n_fotos }}/{{ total_fotos }} fotos
+                    <span class="flex items-center gap-1 font-semibold {% if d.n_fotos >= d.total_fotos %}text-green-700{% endif %}">
+                        <i data-lucide="image" class="w-3.5 h-3.5"></i> {{ d.n_fotos }}/{{ d.total_fotos }} fotos
                     </span>
                 </div>
             </a>
@@ -93,7 +94,7 @@
         {% endwith %}
         {% empty %}
         <li class="text-center text-sm text-slate-500 bg-white border border-dashed border-slate-300 rounded-2xl p-8">
-            {% if vista == 'terminados' %}Aún no hay probetas terminadas.{% else %}No tienes probetas de compresión pendientes.{% endif %}
+            {% if vista == 'terminados' %}Aún no hay ensayos terminados.{% else %}No tienes ensayos pendientes.{% endif %}
         </li>
         {% endfor %}
     </ul>

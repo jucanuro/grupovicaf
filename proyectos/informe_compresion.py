@@ -15,7 +15,7 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from .models import DetalleSolicitudEnsayo, EnsayoCompresion, FotoEnsayo, Proyecto, SesionEnsayo
+from .models import DetalleSolicitudEnsayo, ResultadoEnsayo, FotoEnsayo, Proyecto, SesionEnsayo
 from .views_compresion import FILTRO_COMPRESION
 
 FORMATO_CARATULA = {'codigo': 'VCF-LAB-FOR-064', 'fecha': '2026-05-22', 'version': '12', 'aprobacion': 'JL'}
@@ -71,11 +71,21 @@ class InformeIncompleto(Exception):
     pass
 
 
+def lineas_resultados(solicitud):
+    """Todas las líneas de la solicitud, con su resultado (cualquier plantilla)."""
+    return (
+        DetalleSolicitudEnsayo.objects.filter(solicitud=solicitud)
+        .select_related('muestra', 'resultado', 'resultado__tecnico',
+                        'resultado__sesion', 'tecnico_asignado')
+        .order_by('muestra__nro_item', 'muestra__codigo_laboratorio')
+    )
+
+
 def lineas_compresion(solicitud):
     return (
         DetalleSolicitudEnsayo.objects.filter(FILTRO_COMPRESION, solicitud=solicitud)
-        .select_related('muestra', 'ensayo_compresion', 'ensayo_compresion__tecnico',
-                        'ensayo_compresion__sesion', 'tecnico_asignado')
+        .select_related('muestra', 'resultado', 'resultado__tecnico',
+                        'resultado__sesion', 'tecnico_asignado')
         .order_by('muestra__nro_item', 'muestra__codigo_laboratorio')
     )
 
@@ -103,7 +113,7 @@ def contexto_informe(informe):
 
     probetas = []
     for detalle in lineas_compresion(solicitud):
-        ensayo = getattr(detalle, 'ensayo_compresion', None)
+        ensayo = getattr(detalle, 'resultado', None)
         if ensayo is None or not ensayo.aprobado:
             raise InformeIncompleto(f"La probeta {detalle.muestra.codigo_laboratorio} no está aprobada.")
         fotos = {f.tipo: _uri(f.imagen) for f in ensayo.fotos.all()}
@@ -166,7 +176,7 @@ def contexto_informe(informe):
             for norma, cantidad in normas.items()
         ],
         'probetas': probetas,
-        'fotos_tipos': FotoEnsayo.TIPOS,
+        'fotos_tipos': FotoEnsayo.tipos_de(ResultadoEnsayo.PLANTILLA_COMPRESION),
         'fracturas': FRACTURAS,
         'notas_items': NOTAS_ITEMS,
         'notas': [n.format(direccion=direccion) for n in NOTAS],
@@ -252,7 +262,7 @@ def exportar_excel(ensayos):
 
 def ensayos_para_excel(solicitud=None, desde=None, hasta=None):
     qs = (
-        EnsayoCompresion.objects.filter(estado__in=EnsayoCompresion.ESTADOS_CERRADOS)
+        ResultadoEnsayo.objects.filter(estado__in=ResultadoEnsayo.ESTADOS_CERRADOS)
         .select_related('detalle__muestra', 'detalle__solicitud', 'tecnico', 'sesion__prensa',
                         'sesion__balanza', 'sesion__vernier', 'sesion__termohigrometro',
                         'sesion__cuna', 'sesion__escuadra')

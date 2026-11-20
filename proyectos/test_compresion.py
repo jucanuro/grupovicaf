@@ -18,7 +18,7 @@ from clientes.models import Cliente
 from proyectos.calculos_compresion import DatosInsuficientes, calcular, factor_correccion
 from proyectos.models import (
     DetalleSolicitudEnsayo,
-    EnsayoCompresion,
+    ResultadoEnsayo,
     Equipo,
     FotoEnsayo,
     SesionEnsayo,
@@ -130,34 +130,50 @@ class CompresionBase(TestCase):
         return self.client.post(reverse('proyectos:abrir_sesion_ensayo'), datos)
 
     def subir_las_cinco(self, detalle):
-        for tipo, _ in FotoEnsayo.TIPOS:
+        for tipo in FotoEnsayo.TIPOS_COMPRESION:
             ancho, alto = FotoEnsayo.PROPORCIONES[tipo]
             self.assertEqual(self.subir(detalle, tipo, jpeg(ancho * 100, alto * 100)).status_code, 200)
 
 
 class ListaYAccesoTests(CompresionBase):
 
-    def test_tecnico_ve_solo_sus_probetas_de_compresion_y_sin_cliente(self):
+    def test_tecnico_ve_solo_sus_ensayos_y_sin_cliente(self):
         self.client.force_login(self.user_tec)
         r = self.client.get(reverse('proyectos:mis_ensayos_compresion'))
         self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Resultados de ensayo')
         self.assertContains(r, self.mia.muestra.codigo_laboratorio)
+        self.assertContains(r, self.proctor.muestra.codigo_laboratorio)
         self.assertNotContains(r, self.ajena.muestra.codigo_laboratorio)
-        self.assertNotContains(r, self.proctor.muestra.codigo_laboratorio)
         self.assertNotContains(r, 'Constructora Secreta')
 
-    def test_supervisor_ve_todas_las_de_compresion(self):
+    def test_supervisor_ve_todos(self):
         self.client.force_login(self.user_sup)
         r = self.client.get(reverse('proyectos:mis_ensayos_compresion'))
         self.assertContains(r, self.mia.muestra.codigo_laboratorio)
         self.assertContains(r, self.ajena.muestra.codigo_laboratorio)
-        self.assertNotContains(r, self.proctor.muestra.codigo_laboratorio)
+        self.assertContains(r, self.proctor.muestra.codigo_laboratorio)
 
-    def test_probeta_ajena_o_que_no_es_compresion_da_404(self):
+    def test_linea_ajena_da_404(self):
         self.client.force_login(self.user_tec)
         self.assertEqual(self.client.get(self.url_registro(self.ajena)).status_code, 404)
-        self.assertEqual(self.client.get(self.url_registro(self.proctor)).status_code, 404)
         self.assertEqual(self.subir(self.ajena, 'carga', jpeg(180, 70)).status_code, 404)
+
+    def test_cada_linea_usa_su_plantilla(self):
+        self.client.force_login(self.user_tec)
+        r = self.client.get(self.url_registro(self.mia))
+        self.assertContains(r, 'name="tipo_fractura"')
+        r = self.client.get(self.url_registro(self.proctor))
+        self.assertContains(r, 'data-datos-generales')
+        self.assertNotContains(r, 'name="tipo_fractura"')
+        # Una foto de compresión no vale para la plantilla general.
+        self.assertEqual(self.subir(self.proctor, 'carga', jpeg(180, 70)).status_code, 404)
+
+    def test_las_rutas_viejas_de_compresion_redirigen(self):
+        self.client.force_login(self.user_tec)
+        r = self.client.get('/proyectos/compresion/')
+        self.assertEqual(r.status_code, 301)
+        self.assertEqual(r['Location'], reverse('proyectos:mis_ensayos_compresion'))
 
     def test_sin_permiso_registrar_da_403(self):
         self.client.force_login(self.user_com)
@@ -247,28 +263,28 @@ class TerminarTests(CompresionBase):
         self.subir(self.mia, 'carga', jpeg(1800, 700))
         r = self.terminar()
         self.assertRedirects(r, self.url_registro(self.mia), fetch_redirect_response=False)
-        ensayo = EnsayoCompresion.objects.get(detalle=self.mia)
-        self.assertEqual(ensayo.estado, EnsayoCompresion.ESTADO_BORRADOR)
+        ensayo = ResultadoEnsayo.objects.get(detalle=self.mia)
+        self.assertEqual(ensayo.estado, ResultadoEnsayo.ESTADO_BORRADOR)
         self.assertEqual(len(ensayo.tipos_faltantes()), 4)
 
     def test_no_termina_sin_fecha_de_ensayo(self):
         self.client.force_login(self.user_tec)
         self.subir_las_cinco(self.mia)
         self.client.post(self.url_registro(self.mia), {'accion': 'terminar', 'fecha_ensayo': ''})
-        self.assertFalse(EnsayoCompresion.objects.get(detalle=self.mia).terminado)
+        self.assertFalse(ResultadoEnsayo.objects.get(detalle=self.mia).terminado)
 
     def test_rechaza_fecha_futura(self):
         self.client.force_login(self.user_tec)
         self.subir_las_cinco(self.mia)
         self.terminar(fecha=(date.today() + timedelta(days=1)).isoformat())
-        self.assertFalse(EnsayoCompresion.objects.get(detalle=self.mia).terminado)
+        self.assertFalse(ResultadoEnsayo.objects.get(detalle=self.mia).terminado)
 
     def test_con_fecha_y_cinco_fotos_termina_y_registra_al_tecnico(self):
         self.client.force_login(self.user_tec)
         self.subir_las_cinco(self.mia)
         r = self.terminar()
         self.assertRedirects(r, reverse('proyectos:mis_ensayos_compresion'), fetch_redirect_response=False)
-        ensayo = EnsayoCompresion.objects.get(detalle=self.mia)
+        ensayo = ResultadoEnsayo.objects.get(detalle=self.mia)
         self.assertTrue(ensayo.terminado)
         self.assertEqual(ensayo.tecnico, self.tecnico)
         self.assertIsNotNone(ensayo.terminado_en)
@@ -283,7 +299,7 @@ class TerminarTests(CompresionBase):
 
         self.client.force_login(self.user_sup)
         self.client.post(self.url_registro(self.mia), {'accion': 'reabrir'})
-        self.assertFalse(EnsayoCompresion.objects.get(detalle=self.mia).terminado)
+        self.assertFalse(ResultadoEnsayo.objects.get(detalle=self.mia).terminado)
 
     def test_pantalla_de_registro_muestra_los_cinco_recuadros(self):
         self.client.force_login(self.user_tec)
@@ -300,7 +316,7 @@ class TerminarConMedidasTests(TerminarTests):
         self.client.force_login(self.user_tec)
         self.subir_las_cinco(self.mia)
         self.terminar()
-        e = EnsayoCompresion.objects.get(detalle=self.mia)
+        e = ResultadoEnsayo.objects.get(detalle=self.mia)
         self.assertTrue(e.terminado)
         self.assertEqual(e.diametro_prom, Decimal('102.00'))
         self.assertEqual(e.longitud_prom, Decimal('205.35'))
@@ -319,14 +335,14 @@ class TerminarConMedidasTests(TerminarTests):
         self.client.force_login(self.user_tec)
         self.subir_las_cinco(self.mia)
         self.terminar(d1='102,12', d2='101,82')
-        self.assertEqual(EnsayoCompresion.objects.get(detalle=self.mia).d1, Decimal('102.12'))
+        self.assertEqual(ResultadoEnsayo.objects.get(detalle=self.mia).d1, Decimal('102.12'))
 
     def test_medida_fuera_de_rango_no_se_guarda(self):
         self.client.force_login(self.user_tec)
         self.subir_las_cinco(self.mia)
         r = self.terminar(d1='1021.2')
         self.assertRedirects(r, self.url_registro(self.mia), fetch_redirect_response=False)
-        e = EnsayoCompresion.objects.get(detalle=self.mia)
+        e = ResultadoEnsayo.objects.get(detalle=self.mia)
         self.assertFalse(e.terminado)
         self.assertIsNone(e.d1)
 
@@ -334,7 +350,7 @@ class TerminarConMedidasTests(TerminarTests):
         self.client.force_login(self.user_tec)
         self.subir_las_cinco(self.mia)
         self.terminar(carga_kn='', tipo_fractura='')
-        e = EnsayoCompresion.objects.get(detalle=self.mia)
+        e = ResultadoEnsayo.objects.get(detalle=self.mia)
         self.assertFalse(e.terminado)
         faltan = ' '.join(e.faltantes_para_terminar())
         self.assertIn('Carga máxima', faltan)
@@ -345,20 +361,20 @@ class TerminarConMedidasTests(TerminarTests):
         self.client.force_login(self.user_tec)
         self.subir_las_cinco(self.mia)
         self.terminar()
-        self.assertFalse(EnsayoCompresion.objects.get(detalle=self.mia).terminado)
+        self.assertFalse(ResultadoEnsayo.objects.get(detalle=self.mia).terminado)
 
     def test_no_termina_sin_sesion_abierta(self):
         SesionEnsayo.objects.update(cerrada_en=timezone.now(), temperatura_final=22, humedad_final=50)
         self.client.force_login(self.user_tec)
         self.subir_las_cinco(self.mia)
         self.terminar()
-        self.assertFalse(EnsayoCompresion.objects.get(detalle=self.mia).terminado)
+        self.assertFalse(ResultadoEnsayo.objects.get(detalle=self.mia).terminado)
 
     def test_no_termina_si_la_fecha_no_es_la_de_la_sesion(self):
         self.client.force_login(self.user_tec)
         self.subir_las_cinco(self.mia)
         self.terminar(fecha=(date.today() - timedelta(days=2)).isoformat())
-        self.assertFalse(EnsayoCompresion.objects.get(detalle=self.mia).terminado)
+        self.assertFalse(ResultadoEnsayo.objects.get(detalle=self.mia).terminado)
 
     def test_pantalla_muestra_datos_de_probeta_y_calculo(self):
         self.client.force_login(self.user_tec)

@@ -90,9 +90,21 @@ y quejas de SES (`procesar_evento_ses`: rebote permanente = «Falló el envío»
 `CORREO_SES_CONFIG_SET` añade la cabecera de conjunto de configuración. Guía:
 `deploy/cloudflare/README.md`.
 
+**Resultados de ensayo (fase 1).** Cada línea de la solicitud
+(`DetalleSolicitudEnsayo`) tiene un `ResultadoEnsayo` (antes `EnsayoCompresion`)
+con `plantilla`: «compresion» (ASTM C39 / EC001, lo de abajo) o «general»
+(fecha, resumen, hoja de cálculo privada en `ENSAYOS_FOTOS_DIR` y 2 fotos; no
+pide sesión). Rutas en `/proyectos/resultados/` (las viejas `/compresion/`
+redirigen con 301). El estado de la `SolicitudEnsayo` lo pone
+`sincronizar_estado()`: en proceso con el primer resultado, finalizado cuando
+todas las líneas terminan; «Finalizar» a mano se bloquea sin todos los
+resultados. Quien ejecutó una línea no la devuelve ni la aprueba (ISO 17025).
+Si la solicitud no es toda de compresión, aprobar lleva a subir el informe
+(`gestionar_informe`).
+
 **Ensayo de compresión (HU-LIMS-14).** `proyectos/views_compresion.py`:
 el técnico registra en el celular cada probeta de ASTM C39 / EC001 asignada
-(`/proyectos/compresion/`) con 5 fotos obligatorias recortadas con proporción
+(`/proyectos/resultados/`) con 5 fotos obligatorias recortadas con proporción
 fija (Cropper.js 1.6.2 vendorizado; carga 18:7, probeta 4:7, en
 `FotoEnsayo.PROPORCIONES`). Al abrir el recorte, `static/js/centrado_foto.js`
 coloca el marco sobre la probeta o el display (en el celular, sin librerías;
@@ -109,7 +121,7 @@ y registra masa, D1-D2, L1-L3, carga y fractura. Las reglas de cálculo están e
 su copia de vista previa en `static/js/compresion_calculos.js`: si cambia una,
 cambiar la otra.
 Revisión e informe (HU-LIMS-15 a 19, `views_informe_compresion.py`): quien
-tiene `informes.aprobar` devuelve o aprueba en `/proyectos/compresion/revision/`;
+tiene `informes.aprobar` devuelve o aprueba en `/proyectos/resultados/revision/`;
 al aprobar (todas terminadas y sesiones cerradas) se crea el `InformeFinal` de
 la solicitud y Celery (`generar_informe_compresion`) arma el PDF con WeasyPrint
 (`informe_compresion.py` + `informe_compresion_pdf.html`, QR ya impreso).
