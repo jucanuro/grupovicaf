@@ -1,0 +1,13 @@
+<div class="bloque firmas">
+  <div class="firma">
+    {% if datos.firma %}
+      {% if datos.firma.imagen %}<img src="{{ datos.firma.imagen }}" alt="Firma">{% endif %}
+      <div class="linea"><b>{{ datos.firma.nombre }}</b><br>{{ datos.firma.cargo }}</div>
+    {% else %}
+      <div class="linea pendiente">Firma de quien emite el informe</div>
+    {% endif %}
+  </div>
+  {% if datos.qr %}
+  <div class="qr"><img src="{{ datos.qr }}" alt="QR de validación"><p>Valide este informe escaneando el código QR.</p></div>
+  {% endif %}
+</div>

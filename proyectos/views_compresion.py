@@ -454,10 +454,14 @@ def subir_foto_compresion(request, detalle_id, tipo):
 def foto_compresion(request, foto_id):
     """Sirve la foto desde la carpeta privada, solo a quien puede ver la probeta."""
     foto = get_object_or_404(FotoEnsayo.objects.select_related('ensayo__detalle'), pk=foto_id)
-    puede = trabajador_tiene_permiso(request.user, PERMISO_REGISTRAR) or trabajador_tiene_permiso(
-        request.user, 'informes.ver'
+    # Quien revisa o redacta informes ve todas; el técnico, solo las de sus líneas.
+    revisor = trabajador_tiene_permiso(request.user, 'informes.ver') or trabajador_tiene_permiso(
+        request.user, 'informes.aprobar'
     )
-    if not puede or not _detalles_visibles(request.user).filter(pk=foto.ensayo.detalle_id).exists():
+    tecnico = trabajador_tiene_permiso(request.user, PERMISO_REGISTRAR) and _detalles_visibles(
+        request.user
+    ).filter(pk=foto.ensayo.detalle_id).exists()
+    if not (revisor or tecnico):
         raise Http404("Foto no encontrada.")
     try:
         archivo = foto.imagen.open('rb')

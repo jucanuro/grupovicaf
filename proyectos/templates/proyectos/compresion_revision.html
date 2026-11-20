@@ -97,7 +97,7 @@
     </div>
 
     <div class="v-barra">
-        <p class="v-barra__nota">{% if informe and informe.pdf_estado == 'listo' %}{% if correo_cliente %}Se enviará a {{ correo_cliente }}.{% else %}El cliente no tiene correo registrado.{% endif %}{% elif informe and informe.pdf_estado == 'generando' %}Generando el PDF… recarga en unos segundos.{% elif not todas_terminadas %}Se habilita cuando todos los ensayos estén terminados.{% elif solo_compresion %}Al aprobar se firma y se genera el PDF del informe.{% else %}Al aprobar pasas a subir el informe de la solicitud.{% endif %}</p>
+        <p class="v-barra__nota">{% if informe and informe.pdf_estado == 'listo' %}{% if correo_cliente %}Se enviará a {{ correo_cliente }}.{% else %}El cliente no tiene correo registrado.{% endif %}{% elif informe and informe.pdf_estado == 'generando' %}Generando el PDF… recarga en unos segundos.{% elif not todas_terminadas %}Se habilita cuando todos los ensayos estén terminados.{% elif solo_compresion %}Al aprobar se firma y se genera el PDF del informe.{% elif aprobadas %}Resultados aprobados: redacta y emite el informe en el editor.{% else %}Al aprobar pasas al editor del informe.{% endif %}</p>
         <div class="v-barra__fila">
             {% if puede_exportar %}
             <a href="{% url 'proyectos:excel_compresion' %}?solicitud={{ solicitud.pk }}" class="v-btn v-btn--secundario"><i data-lucide="sheet"></i> Excel</a>
@@ -111,6 +111,10 @@
             {% elif informe and informe.pdf_estado == 'error' %}
                 <form method="post">{% csrf_token %}<button type="submit" name="accion" value="regenerar" class="v-btn v-btn--peligro"><i data-lucide="refresh-cw"></i> Volver a generar el PDF</button></form>
             {% elif informe and informe.pdf_estado == 'generando' %}
+            {% elif aprobadas and not solo_compresion %}
+                <a href="{% url 'proyectos:editor_informe' solicitud.pk %}" class="v-btn v-btn--primario" data-abrir-editor>
+                    <i data-lucide="file-pen-line"></i> {% if borrador %}Seguir con el informe{% else %}Redactar el informe{% endif %}
+                </a>
             {% else %}
                 <form method="post">{% csrf_token %}
                     <button type="submit" name="accion" value="aprobar" {% if not todas_terminadas %}disabled{% endif %} data-aprobar class="v-btn v-btn--exito">

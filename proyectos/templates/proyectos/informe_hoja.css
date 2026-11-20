@@ -1,0 +1,31 @@
+/* Estilo de la hoja del informe: el mismo en el editor, la vista previa y el PDF. */
+.hoja { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 9.5pt; line-height: 1.45; color: #111; }
+.hoja h1 { font-size: 14pt; text-align: center; color: #0b3a6e; margin: 6pt 0 8pt; font-weight: 700; }
+.hoja h2 { font-size: 10pt; background: #0b3a6e; color: #fff; padding: 2pt 6pt; margin: 12pt 0 4pt; font-weight: 700; }
+.hoja h3 { font-size: 9.5pt; color: #0b3a6e; margin: 10pt 0 3pt; font-weight: 700; }
+.hoja p { margin: 3pt 0; }
+.hoja ul, .hoja ol { margin: 3pt 0; padding-left: 16pt; }
+.hoja ul { list-style: disc; }
+.hoja ol { list-style: decimal; }
+.hoja hr { border: 0; border-top: 0.75pt solid #9aa5b1; margin: 8pt 0; }
+.hoja table { width: 100%; border-collapse: collapse; margin: 4pt 0; }
+.hoja td, .hoja th { border: 0.5pt solid #9aa5b1; padding: 2pt 4pt; vertical-align: top; }
+.hoja th { background: #e8eef5; font-weight: 700; text-align: center; }
+.hoja .kv td:first-child { width: 30%; font-weight: 700; background: #f4f7fa; }
+.hoja .num { text-align: right; font-family: "DejaVu Sans Mono", monospace; }
+.hoja .c { text-align: center; }
+.hoja .bloque { margin: 4pt 0; page-break-inside: avoid; }
+.hoja .bloque--vacio { color: #b45309; font-style: italic; }
+.hoja .resumen { white-space: pre-line; }
+.hoja .fotos { display: flex; flex-wrap: wrap; gap: 6pt; }
+.hoja .fotos figure { margin: 0; text-align: center; font-size: 7.5pt; color: #333; }
+.hoja .fotos img { height: 110pt; width: auto; border: 0.5pt solid #999; display: block; }
+.hoja .firmas { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 28pt; gap: 16pt; }
+.hoja .firma { text-align: center; width: 45%; }
+.hoja .firma img { height: 36pt; }
+.hoja .firma .linea { border-top: 0.75pt solid #111; padding-top: 2pt; }
+.hoja .pendiente { color: #64748b; font-style: italic; }
+.hoja .tabla-compacta { font-size: 7.5pt; table-layout: fixed; }
+.hoja .tabla-compacta td, .hoja .tabla-compacta th { padding: 1.5pt 2pt; overflow-wrap: anywhere; }
+.hoja .firmas .qr { text-align: center; font-size: 7pt; color: #333; width: 30%; }
+.hoja .firmas .qr img { width: 64pt; height: 64pt; }

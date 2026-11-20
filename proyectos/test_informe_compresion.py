@@ -329,10 +329,10 @@ class FlujoResultadosTests(CompresionBase):
         self.client.force_login(self.user_jefe)
         r = self.client.get(self.url_revision)
         self.assertContains(r, 'Máxima densidad seca')
-        self.assertContains(r, 'Al aprobar pasas a subir el informe')
+        self.assertContains(r, 'Al aprobar pasas al editor del informe')
         r = self.client.post(self.url_revision, {'accion': 'aprobar'})
         self.assertRedirects(
-            r, reverse('proyectos:gestionar_informe', args=[self.solicitud.pk]), fetch_redirect_response=False,
+            r, reverse('proyectos:editor_informe', args=[self.solicitud.pk]), fetch_redirect_response=False,
         )
         self.assertEqual(ResultadoEnsayo.objects.filter(estado=ResultadoEnsayo.ESTADO_APROBADO).count(), 3)
         self.assertFalse(InformeFinal.objects.filter(solicitud=self.solicitud).exists())

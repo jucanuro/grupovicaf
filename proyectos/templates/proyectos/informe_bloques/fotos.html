@@ -1,0 +1,11 @@
+<div class="bloque">
+{% if linea.fotos %}
+<div class="fotos">
+  {% for f in linea.fotos %}
+  <figure><img src="{{ f.src }}" alt="{{ f.etiqueta }}"{% if f.ancho and f.alto %} width="{{ f.ancho }}" height="{{ f.alto }}"{% endif %}><figcaption>{{ f.etiqueta }}</figcaption></figure>
+  {% endfor %}
+</div>
+{% else %}
+<p class="bloque--vacio">Sin fotos de {{ linea.muestra.codigo_laboratorio }}.</p>
+{% endif %}
+</div>

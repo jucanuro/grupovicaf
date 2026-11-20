@@ -102,6 +102,19 @@ resultados. Quien ejecutó una línea no la devuelve ni la aprueba (ISO 17025).
 Si la solicitud no es toda de compresión, aprobar lleva a subir el informe
 (`gestionar_informe`).
 
+**Informe tipo Word (fase 2).** Con los resultados aprobados, una solicitud que no
+es toda de compresión abre `/proyectos/resultados/informe/<id>/editor/`
+(`views_informe_editor.py`, `informe_editor.py`, permiso `informes.aprobar`).
+TipTap 2.27.1 va empaquetado en `static/vendor/tiptap-2.27.1/` (sin CDN). El
+`BorradorInforme` guarda el JSON del editor con autoguardado y control de
+versión (409 si otra pestaña guardó antes) y un `VersionInforme` cada 10 min o
+al cambiar de autor. Los «bloques de datos» (carátula, resultados, fotos,
+equipos, firmas) solo guardan tipo y referencia y se dibujan desde la base
+(`templates/proyectos/informe_bloques/`); el JSON se valida con lista blanca
+antes de guardar y de renderizar. Emitir exige los bloques obligatorios y que
+quien firma no haya ejecutado ningún ensayo; congela `html_emitido` y Celery
+(`generar_informe_editor`) arma el PDF con WeasyPrint.
+
 **Ensayo de compresión (HU-LIMS-14).** `proyectos/views_compresion.py`:
 el técnico registra en el celular cada probeta de ASTM C39 / EC001 asignada
 (`/proyectos/resultados/`) con 5 fotos obligatorias recortadas con proporción

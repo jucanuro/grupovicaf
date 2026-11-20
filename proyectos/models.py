@@ -909,3 +909,53 @@ class FotoEnsayo(models.Model):
     def proporcion(cls, tipo):
         ancho, alto = cls.PROPORCIONES[tipo]
         return ancho / alto
+
+
+class BorradorInforme(models.Model):
+    """Informe de la solicitud que se redacta en el editor tipo Word (fase 2).
+
+    ``contenido`` es el documento del editor (JSON de TipTap/ProseMirror). Los
+    bloques de datos (carátula, resultados, fotos, equipos, firmas) solo guardan
+    su tipo y referencia: se dibujan siempre desde lo registrado, así el informe
+    no puede contradecir los resultados. Al emitir se congela ``html_emitido``.
+    """
+    ESTADO_BORRADOR = 'borrador'
+    ESTADO_EMITIDO = 'emitido'
+    ESTADOS = [(ESTADO_BORRADOR, 'Borrador'), (ESTADO_EMITIDO, 'Emitido')]
+
+    solicitud = models.OneToOneField(SolicitudEnsayo, on_delete=models.CASCADE, related_name='borrador_informe')
+    contenido = models.JSONField(default=dict)
+    version = models.PositiveIntegerField(default=1)
+    estado = models.CharField(max_length=12, choices=ESTADOS, default=ESTADO_BORRADOR)
+    html_emitido = models.TextField(blank=True, default='')
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+    actualizado_por = models.ForeignKey(
+        TrabajadorProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+    )
+
+    class Meta:
+        verbose_name = "Borrador de informe"
+        verbose_name_plural = "Borradores de informe"
+
+    def __str__(self):
+        return f"Informe de {self.solicitud.codigo_solicitud}"
+
+    @property
+    def emitido(self):
+        return self.estado == self.ESTADO_EMITIDO
+
+
+class VersionInforme(models.Model):
+    """Copia del borrador para el historial: quién cambió y cuándo."""
+    borrador = models.ForeignKey(BorradorInforme, on_delete=models.CASCADE, related_name='versiones')
+    numero = models.PositiveIntegerField()
+    contenido = models.JSONField()
+    autor = models.ForeignKey(TrabajadorProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    nota = models.CharField(max_length=120, blank=True, default='')
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Versión de informe"
+        verbose_name_plural = "Versiones de informe"
+        ordering = ['-numero']
