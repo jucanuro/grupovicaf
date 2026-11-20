@@ -3,6 +3,7 @@ from django.urls import path, re_path
 from . import views
 from . import views_compresion
 from . import views_informe_compresion
+from . import views_informe_editor
 
 app_name = 'proyectos'
 
@@ -46,6 +47,11 @@ urlpatterns = [
     path('resultados/revision/<int:solicitud_id>/', views_informe_compresion.revision_compresion, name='revision_compresion'),
     path('resultados/informe/<int:informe_id>/pdf/', views_informe_compresion.pdf_informe_compresion, name='pdf_informe_compresion'),
     path('resultados/excel/', views_informe_compresion.excel_compresion, name='excel_compresion'),
+    path('resultados/informe/<int:solicitud_id>/editor/', views_informe_editor.editor_informe, name='editor_informe'),
+    path('resultados/informe/<int:solicitud_id>/guardar/', views_informe_editor.guardar_informe, name='guardar_informe'),
+    path('resultados/informe/<int:solicitud_id>/vista-previa/', views_informe_editor.vista_previa_informe, name='vista_previa_informe'),
+    path('resultados/informe/<int:solicitud_id>/version/<int:version_id>/restaurar/', views_informe_editor.restaurar_version, name='restaurar_version_informe'),
+    path('resultados/informe/<int:solicitud_id>/emitir/', views_informe_editor.emitir_informe, name='emitir_informe'),
 
     # --- INFORMES FINALES Y CERTIFICACIÓN ---
     path('informes/', views.lista_informes_finales, name='lista_informes'),

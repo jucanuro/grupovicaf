@@ -21,8 +21,8 @@ from trabajadores.models import TrabajadorProfile
 from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso
 
 from .informe_compresion import ensayos_para_excel, exportar_excel, lineas_resultados
-from .models import ResultadoEnsayo, InformeFinal, SolicitudEnsayo
-from .tasks import enviar_informe_cliente, generar_informe_compresion
+from .models import BorradorInforme, ResultadoEnsayo, InformeFinal, SolicitudEnsayo
+from .tasks import enviar_informe_cliente, generar_informe_compresion, generar_informe_editor
 
 PERMISO_APROBAR = 'informes.aprobar'
 PERMISO_EXPORTAR = 'informes.exportar'
@@ -86,7 +86,10 @@ def revision_compresion(request, solicitud_id):
             return _aprobar_y_emitir(request, solicitud, lineas, informe)
         if accion == 'regenerar' and informe and informe.pdf_estado == InformeFinal.PDF_ERROR:
             InformeFinal.objects.filter(pk=informe.pk).update(pdf_estado=InformeFinal.PDF_GENERANDO, pdf_error='')
-            generar_informe_compresion.delay(informe.pk)
+            if BorradorInforme.objects.filter(solicitud=solicitud, estado=BorradorInforme.ESTADO_EMITIDO).exists():
+                generar_informe_editor.delay(informe.pk)
+            else:
+                generar_informe_compresion.delay(informe.pk)
             messages.success(request, "Se volvió a pedir el PDF.")
             return redirect('proyectos:revision_compresion', solicitud_id=solicitud.pk)
         if accion == 'enviar':
@@ -106,6 +109,7 @@ def revision_compresion(request, solicitud_id):
         'todas_terminadas': todas_terminadas,
         'aprobadas': aprobadas,
         'solo_compresion': all(f['ensayo'] and f['ensayo'].es_compresion for f in filas),
+        'borrador': BorradorInforme.objects.filter(solicitud=solicitud).only('estado', 'actualizado_en').first(),
         'puede_exportar': trabajador_tiene_permiso(request.user, PERMISO_EXPORTAR),
         'correo_cliente': _correo_cliente(solicitud),
     })
@@ -167,8 +171,8 @@ def _aprobar_y_emitir(request, solicitud, lineas, informe):
             estado=ResultadoEnsayo.ESTADO_APROBADO, aprobado_por=perfil, aprobado_en=timezone.now(),
             observacion_revision='',
         )
-        messages.success(request, "Resultados aprobados. Ahora sube el informe de esta solicitud.")
-        return redirect('proyectos:gestionar_informe', solicitud_id=solicitud.pk)
+        messages.success(request, "Resultados aprobados. Revisa y emite el informe en el editor.")
+        return redirect('proyectos:editor_informe', solicitud_id=solicitud.pk)
 
     with transaction.atomic():
         ahora = timezone.now()

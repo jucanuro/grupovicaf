@@ -1,0 +1,33 @@
+{% with d=linea.detalle e=linea.ensayo m=linea.muestra %}
+<div class="bloque">
+<table class="kv">
+  <tr><td>Muestra</td><td>{{ m.codigo_laboratorio }}{% if m.codigo_cliente %} (cliente: {{ m.codigo_cliente }}){% endif %}</td></tr>
+  <tr><td>Ensayo</td><td>{{ d.descripcion_ensayo|default:"-" }}</td></tr>
+  <tr><td>Norma</td><td>{{ d.norma }}{% if d.metodo %} · {{ d.metodo }}{% endif %}</td></tr>
+  <tr><td>Fecha de ensayo</td><td>{{ e.fecha_ensayo|date:"d/m/Y"|default:"-" }}</td></tr>
+</table>
+{% if not e %}
+<p class="bloque--vacio">Sin resultados registrados.</p>
+{% elif linea.es_compresion %}
+<table class="tabla-compacta">
+  <tr><th>Elemento</th><th>f'c (kg/cm²)</th><th>Edad (días)</th><th>Diámetro (mm)</th><th>Longitud (mm)</th><th>Área (mm²)</th><th>Carga (kN)</th><th>f'c obtenido (kg/cm²)</th><th>f'c obtenido (MPa)</th><th>% f'c</th><th>Fractura</th></tr>
+  <tr>
+    <td>{{ m.elemento_estructural|default:"-" }}</td>
+    <td class="num">{{ m.fc_diseno|floatformat:0|default:"-" }}</td>
+    <td class="num">{{ e.edad_dias|default_if_none:"-" }}</td>
+    <td class="num">{{ e.diametro_prom|default_if_none:"-" }}</td>
+    <td class="num">{{ e.longitud_prom|default_if_none:"-" }}</td>
+    <td class="num">{{ e.area|default_if_none:"-" }}</td>
+    <td class="num">{{ e.carga_kn|default_if_none:"-" }}</td>
+    <td class="num"><b>{{ e.resistencia_kgcm2|default_if_none:"-" }}</b></td>
+    <td class="num">{{ e.resistencia_mpa|default_if_none:"-" }}</td>
+    <td class="num">{{ e.porcentaje|default_if_none:"-" }}</td>
+    <td class="c">{% if e.tipo_fractura %}Tipo {{ e.tipo_fractura }}{% else %}-{% endif %}</td>
+  </tr>
+</table>
+{% else %}
+<p class="resumen">{{ e.resumen|default:"Sin resumen." }}</p>
+{% endif %}
+{% if e.observaciones %}<p><b>Observaciones del ensayo:</b> {{ e.observaciones }}</p>{% endif %}
+</div>
+{% endwith %}

@@ -146,8 +146,8 @@
 }
 /* Icono de cabecera que solo se muestra desde tablet (deja ancho al código). */
 @media (max-width: 639px) { .v-solo-pc { display: none !important; } }
-/* La clase utilitaria `hidden` (Tailwind) debe seguir ocultando un botón. */
-.v-btn.hidden, .v-barra .hidden { display: none !important; }
+/* La clase utilitaria `hidden` (Tailwind) debe seguir ocultando un botón o un aviso. */
+.v-btn.hidden, .v-barra .hidden, .v-aviso.hidden { display: none !important; }
 /* Botones de cámara/galería bajo cada foto: en celular, icono sobre el texto
  * para que quepan dos por columna. */
 @media (max-width: 639px) {
