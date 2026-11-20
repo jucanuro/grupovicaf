@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("trabajadores", "0008_permiso_ensayos_registrar"),
+        ("trabajadores", "0009_permiso_ensayos_registrar"),
         ("proyectos", "0001_initial"),
     ]
 

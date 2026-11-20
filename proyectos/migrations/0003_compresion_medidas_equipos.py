@@ -9,7 +9,7 @@ import django.utils.timezone
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("trabajadores", "0008_permiso_ensayos_registrar"),
+        ("trabajadores", "0009_permiso_ensayos_registrar"),
         ("proyectos", "0002_ensayo_compresion_fotos"),
     ]
 

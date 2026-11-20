@@ -39,7 +39,7 @@ def backwards(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('trabajadores', '0007_permiso_ensayos_ver_todos'),
+        ('trabajadores', '0008_debe_cambiar_clave'),
     ]
 
     operations = [
