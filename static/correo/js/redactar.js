@@ -175,6 +175,22 @@
         if (barraPeso) { barraPeso.max = r.maximo; barraPeso.value = r.total; }
         if (textoPeso) { textoPeso.textContent = peso(r.total) + ' de ' + peso(r.maximo); }
     };
+    // Etiqueta de tipo por extensión (misma tabla que correo/tipos_archivo.py).
+    var TIPOS = [
+        ['pdf', 'PDF', ['pdf']], ['excel', 'XLS', ['xls', 'xlsx', 'xlsm', 'xlsb', 'csv', 'ods']],
+        ['word', 'DOC', ['doc', 'docx', 'docm', 'rtf', 'odt']], ['ppt', 'PPT', ['ppt', 'pptx', 'pps', 'ppsx', 'odp']],
+        ['imagen', 'IMG', ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg', 'heic', 'tif', 'tiff']],
+        ['zip', 'ZIP', ['zip', 'rar', '7z', 'tar', 'gz']], ['texto', 'TXT', ['txt', 'log', 'md']],
+        ['xml', 'XML', ['xml', 'json']], ['cad', 'CAD', ['dwg', 'dxf']], ['correo', 'EML', ['eml', 'msg']]
+    ];
+    var etiquetaTipo = function (nombre) {
+        var ext = (/\.([^.]+)$/.exec(nombre || '') || [])[1];
+        ext = (ext || '').toLowerCase();
+        var tipo = TIPOS.filter(function (t) { return t[2].indexOf(ext) !== -1; })[0];
+        var el = crear('span', { 'class': 'tipo tipo--' + (tipo ? tipo[0] : 'otro'), 'aria-hidden': 'true' },
+            tipo ? tipo[1] : (ext && ext.length <= 4 ? ext.toUpperCase() : 'ARCH'));
+        return el;
+    };
     var pintarAdjuntos = function (r) {
         pintarPeso(r);
         estadoAdj.n = r.adjuntos.length;
@@ -188,7 +204,7 @@
                 pedir(form.dataset.quitar.replace('/0/', '/' + a.id + '/'), { method: 'POST' })
                     .then(pintarAdjuntos).catch(function (err) { avisar(err.message); });
             });
-            li.appendChild(enlace); li.appendChild(pesoEl); li.appendChild(quitar);
+            li.appendChild(etiquetaTipo(a.nombre)); li.appendChild(enlace); li.appendChild(pesoEl); li.appendChild(quitar);
             listaAdj.appendChild(li);
         });
     };

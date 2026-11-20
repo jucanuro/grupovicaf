@@ -10,8 +10,9 @@ from django.utils import timezone
 from .cuentas import GESTIONA, cuentas_de, permite, roles_de
 from .enlaces import url_adjunto
 from .mensajeria import registrar_evento
+from .tipos_archivo import tipo_de
 from .sanitizar import tiene_imagenes_remotas
-from .models import AccesoCuenta, Carpeta, EventoMensaje, Hilo, Mensaje
+from .models import AccesoCuenta, Adjunto, Carpeta, EventoMensaje, Hilo, Mensaje
 
 POR_PAGINA = 40
 
@@ -75,6 +76,16 @@ def filas_de_hilos(request, filtro, url_base, seleccionado=None):
         'pk', 'hilo_id', 'de', 'de_nombre', 'para', 'asunto', 'vista_previa', 'fecha', 'estado_envio', 'ultimo_error',
     ):
         ultimos.setdefault(m.hilo_id, m)
+    # Tipos de archivo de cada conversación (máx. 3 etiquetas distintas por fila).
+    tipos = {}
+    adjuntos = Adjunto.objects.filter(
+        incrustado=False, mensaje__hilo__in=ids, **{f'mensaje__{k}': v for k, v in filtro.items()},
+    ).order_by('mensaje__fecha', 'pk').values_list('mensaje__hilo_id', 'nombre', 'tipo_mime')
+    for hilo_id, nombre, mime in adjuntos:
+        clave, etiqueta = tipo_de(nombre, mime)
+        vistos = tipos.setdefault(hilo_id, {})
+        if clave not in vistos and len(vistos) < 3:
+            vistos[clave] = {'clave': clave, 'etiqueta': etiqueta}
     filas = []
     for h in pagina:
         m = ultimos.get(h.pk)
@@ -82,6 +93,7 @@ def filas_de_hilos(request, filtro, url_base, seleccionado=None):
             continue
         filas.append({
             'hilo': h, 'mensaje': m, 'n': h.n, 'no_leido': h.sin_leer > 0, 'adjunto': h.con_adjuntos > 0,
+            'tipos': list(tipos.get(h.pk, {}).values()),
             'asignacion': getattr(h, 'asignacion', None), 'seleccionado': h.pk == seleccionado,
             'url': f'{url_base}{"&" if "?" in url_base else "?"}h={h.pk}' + (f'&p={pagina.number}' if pagina.number > 1 else ''),
             'url_completa': reverse('mensaje', args=[m.pk]),
@@ -110,7 +122,8 @@ def abrir_hilo(request, hilo, carpeta_actual=None):
 
     for m in mensajes:
         m.lista_adjuntos = [
-            {'nombre': a.nombre, 'tamano': a.tamano, 'url': url_adjunto(a), 'es_imagen': a.es_imagen}
+            {'nombre': a.nombre, 'tamano': a.tamano, 'url': url_adjunto(a), 'es_imagen': a.es_imagen,
+             'tipo_mime': a.tipo_mime}
             for a in m.adjuntos.all() if not a.incrustado
         ]
         m.lista_para = ', '.join(d.get('nombre') or d['correo'] for d in m.para)

@@ -43,7 +43,7 @@
                     <span class="fila__cuerpo">
                         <span class="fila__linea">
                             <span class="fila__de">{% if f.enviado %}Para: {{ f.mensaje|primer_destinatario|default:'(sin destinatario)' }}{% else %}{{ f.mensaje|remitente }}{% endif %}{% if f.n > 1 %} <span class="fila__n">({{ f.n }})</span>{% endif %}</span>
-                            {% if f.adjunto %}<span class="fila__clip" title="Con adjuntos">{% include 'correo/_iconos.html' with nombre='clip' %}<span class="solo-lector">Con adjuntos</span></span>{% endif %}
+                            {% if f.tipos %}<span class="fila__tipos" title="Con adjuntos">{% for t in f.tipos %}<span class="tipo tipo--{{ t.clave }}" aria-hidden="true">{{ t.etiqueta }}</span>{% endfor %}<span class="solo-lector">Con adjuntos</span></span>{% elif f.adjunto %}<span class="fila__clip" title="Con adjuntos">{% include 'correo/_iconos.html' with nombre='clip' %}<span class="solo-lector">Con adjuntos</span></span>{% endif %}
                         </span>
                         <span class="fila__linea">
                             <span class="fila__asunto">{% if f.no_leido %}<span class="solo-lector">No leído. </span>{% endif %}{{ f.mensaje.asunto|default:'(sin asunto)' }}</span>

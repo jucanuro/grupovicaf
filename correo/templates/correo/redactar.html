@@ -1,5 +1,5 @@
 {% extends 'correo/_app.html' %}
-{% load static %}
+{% load static correo_tags %}
 {% block title %}{{ b.asunto|default:'Nuevo correo' }} · Correo VICAF{% endblock %}
 {% block head_extra %}
 <link rel="stylesheet" href="{% static 'vendor/quill-2.0.3/quill.snow.css' %}">
@@ -87,7 +87,7 @@
         <section class="redactor__adjuntos" aria-label="Adjuntos">
             <ul class="adjuntos" data-lista-adjuntos>
                 {% for a in adjuntos.adjuntos %}
-                <li class="adjunto" data-id="{{ a.id }}">{% include 'correo/_iconos.html' with nombre='documento' %}<a class="adjunto__nombre" href="{{ a.url }}" download>{{ a.nombre }}</a><span class="adjunto__peso mono">{{ a.tamano|filesizeformat }}</span></li>
+                <li class="adjunto" data-id="{{ a.id }}">{% tipo_archivo a.nombre %}<a class="adjunto__nombre" href="{{ a.url }}" download>{{ a.nombre }}</a><span class="adjunto__peso mono">{{ a.tamano|filesizeformat }}</span></li>
                 {% endfor %}
             </ul>
             <div class="peso">
