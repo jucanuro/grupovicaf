@@ -28,6 +28,7 @@
         fotos: 'Dato del sistema · Registro fotográfico',
         equipos: 'Dato del sistema · Equipos y condiciones',
         firmas: 'Dato del sistema · Firmas',
+        notas: 'Dato del sistema · Notas del laboratorio',
     };
 
     const BloqueDatos = T.Node.create({

@@ -14,6 +14,7 @@ body { margin: 0; {% if modo == 'web' %}background: #e2e8f0; padding: 24px 0;{% 
 @media (max-width: 820px) { .pagina, .aviso-previa { width: auto; margin: 0 8px; padding: 18px 14px; } }{% endif %}
 .cab { display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5pt solid #0b3a6e; padding-bottom: 4pt; margin-bottom: 6pt; }
 .cab img { height: 30pt; }
+.fin { text-align: center; font: 700 8pt "DejaVu Sans", Arial, sans-serif; letter-spacing: 1pt; margin-top: 10pt; }
 .cab .acred { text-align: right; font: 700 7.5pt "DejaVu Sans", Arial, sans-serif; color: #0b3a6e; max-width: 70%; }
 {% include "proyectos/informe_hoja.css" %}
 </style>
@@ -26,6 +27,7 @@ body { margin: 0; {% if modo == 'web' %}background: #e2e8f0; padding: 24px 0;{% 
     <div class="acred">LABORATORIO DE ENSAYO ACREDITADO POR EL ORGANISMO DE ACREDITACIÓN {{ negocio.acreditacion_entidad|default:'INACAL' }} - DA CON REGISTRO Nº {{ negocio.acreditacion_codigo|default:'LE-230' }}</div>
   </div>
   <div class="hoja">{{ cuerpo|safe }}</div>
+  <p class="fin">— Fin del Informe —</p>
 </div>
 </body>
 </html>

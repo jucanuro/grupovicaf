@@ -1,0 +1,9 @@
+<div class="bloque notas">
+{% if datos.hay_compresion %}
+<ol>{% for n in datos.notas_items %}<li>{{ n }}</li>{% endfor %}</ol>
+{% endif %}
+<p><b>Notas</b></p>
+<ul>{% for n in datos.notas %}<li>{{ n }}</li>{% endfor %}</ul>
+<p><b>Anexos</b></p>
+<ul>{% for n in datos.anexos %}<li>{{ n }}</li>{% endfor %}</ul>
+</div>

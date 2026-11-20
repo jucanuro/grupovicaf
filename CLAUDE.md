@@ -102,8 +102,8 @@ resultados. Quien ejecutó una línea no la devuelve ni la aprueba (ISO 17025).
 Si la solicitud no es toda de compresión, aprobar lleva a subir el informe
 (`gestionar_informe`).
 
-**Informe tipo Word (fase 2).** Con los resultados aprobados, una solicitud que no
-es toda de compresión abre `/proyectos/resultados/informe/<id>/editor/`
+**Informe tipo Word (fase 2).** Todo informe, también el de compresión, pasa por el
+editor: al aprobar los resultados se abre `/proyectos/resultados/informe/<id>/editor/`
 (`views_informe_editor.py`, `informe_editor.py`, permiso `informes.aprobar`).
 TipTap 2.27.1 va empaquetado en `static/vendor/tiptap-2.27.1/` (sin CDN). El
 `BorradorInforme` guarda el JSON del editor con autoguardado y control de
@@ -135,10 +135,9 @@ su copia de vista previa en `static/js/compresion_calculos.js`: si cambia una,
 cambiar la otra.
 Revisión e informe (HU-LIMS-15 a 19, `views_informe_compresion.py`): quien
 tiene `informes.aprobar` devuelve o aprueba en `/proyectos/resultados/revision/`;
-al aprobar (todas terminadas y sesiones cerradas) se crea el `InformeFinal` de
-la solicitud y Celery (`generar_informe_compresion`) arma el PDF con WeasyPrint
-(`informe_compresion.py` + `informe_compresion_pdf.html`, QR ya impreso).
-Excel con openpyxl (`informes.exportar`); envío al cliente con
+al aprobar (todas terminadas y sesiones cerradas) se pasa al editor del informe;
+el PDF antiguo (`informe_compresion_pdf.html`, `generar_informe_compresion`)
+solo queda para regenerar informes emitidos antes del editor. Excel con openpyxl (`informes.exportar`); envío al cliente con
 `enviar_informe_cliente`.
 
 ### Capa web (pública) — prefijo `web_` obligatorio

@@ -29,3 +29,5 @@
 .hoja .tabla-compacta td, .hoja .tabla-compacta th { padding: 1.5pt 2pt; overflow-wrap: anywhere; }
 .hoja .firmas .qr { text-align: center; font-size: 7pt; color: #333; width: 30%; }
 .hoja .firmas .qr img { width: 64pt; height: 64pt; }
+.hoja .notas { font-size: 7.5pt; color: #333; }
+.hoja .notas li { margin-bottom: 1pt; }
