@@ -1,12 +1,14 @@
 {% extends "base_vicafpro.html" %}
+{% load static %}
 {% block title %}Equipos | VICAF LIMS{% endblock %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/ensayos.css' %}">{% endblock %}
 
 {% block content %}
 <div class="max-w-5xl mx-auto px-4 py-5 space-y-4">
     <div class="flex items-center justify-between gap-3">
-        <div class="flex items-center gap-3 min-w-0">
-            <div class="w-10 h-10 rounded-xl bg-cyan-50 border border-cyan-100 flex items-center justify-center text-cyan-600 flex-shrink-0">
-                <i data-lucide="gauge" class="w-5 h-5"></i>
+        <div class="v-cabecera min-w-0">
+            <div class="v-cabecera__icono"><i data-lucide="gauge"></i>
             </div>
             <div class="min-w-0">
                 <h1 class="text-lg font-bold text-slate-800 leading-tight">Equipos del laboratorio</h1>
@@ -14,8 +16,8 @@
             </div>
         </div>
         {% if puede_editar %}
-        <a href="{% url 'proyectos:crear_equipo' %}" class="flex-shrink-0 inline-flex items-center gap-1 rounded-xl bg-slate-900 text-white px-3 py-2 text-sm font-bold">
-            <i data-lucide="plus" class="w-4 h-4"></i> Nuevo
+        <a href="{% url 'proyectos:crear_equipo' %}" class="v-btn v-btn--primario v-btn--sm flex-shrink-0">
+            <i data-lucide="plus"></i> Nuevo
         </a>
         {% endif %}
     </div>
@@ -28,7 +30,7 @@
 
     <ul class="grid grid-cols-1 md:grid-cols-2 gap-3">
         {% for e in equipos %}
-        <li class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm {% if not e.activo %}opacity-60{% endif %}" data-equipo="{{ e.codigo }}">
+        <li class="v-tarjeta p-4 {% if not e.activo %}opacity-60{% endif %}" data-equipo="{{ e.codigo }}">
             <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
                     <p class="font-mono font-bold text-slate-900 break-all">{{ e.codigo }}</p>
@@ -51,7 +53,7 @@
             </div>
             <div class="mt-2 flex items-center justify-between text-xs text-slate-600">
                 <span>{% if e.vence_calibracion %}Vence {{ e.vence_calibracion|date:"d/m/Y" }}{% if e.certificado %} · cert. {{ e.certificado }}{% endif %}{% else %}Calibración por registrar{% endif %}</span>
-                {% if puede_editar %}<a href="{% url 'proyectos:editar_equipo' e.pk %}" class="font-semibold text-slate-900 underline">Editar</a>{% endif %}
+                {% if puede_editar %}<a href="{% url 'proyectos:editar_equipo' e.pk %}" class="v-btn v-btn--secundario v-btn--sm"><i data-lucide="pencil"></i> Editar</a>{% endif %}
             </div>
         </li>
         {% empty %}

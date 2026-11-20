@@ -1,13 +1,16 @@
 {% extends "base_vicafpro.html" %}
+{% load static %}
 {% block title %}Revisión {{ solicitud.codigo_solicitud }} | VICAF LIMS{% endblock %}
 
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/ensayos.css' %}">{% endblock %}
+
 {% block content %}
-<div class="max-w-5xl mx-auto px-4 pt-5 pb-28 space-y-4">
-    <a href="{% url 'proyectos:revision_compresion_lista' %}" class="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900">
-        <i data-lucide="arrow-left" class="w-4 h-4"></i> Revisión de compresión
+<div class="max-w-5xl mx-auto px-4 pt-5 pb-4 space-y-4">
+    <a href="{% url 'proyectos:revision_compresion_lista' %}" class="v-volver">
+        <i data-lucide="arrow-left"></i> Revisión de compresión
     </a>
 
-    <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-wrap items-start justify-between gap-3">
+    <div class="v-tarjeta p-4 flex flex-wrap items-start justify-between gap-3">
         <div class="min-w-0">
             <p class="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">Solicitud</p>
             <h1 class="font-mono text-xl font-bold text-slate-900">{{ solicitud.codigo_solicitud }}</h1>
@@ -35,7 +38,7 @@
         {% endfor %}
     {% endif %}
 
-    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-x-auto">
+    <div class="v-tarjeta overflow-x-auto">
         <table class="w-full text-sm">
             <thead class="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
                 <tr>
@@ -72,7 +75,7 @@
                                 <input type="hidden" name="accion" value="devolver">
                                 <input type="hidden" name="detalle_id" value="{{ f.detalle.pk }}">
                                 <textarea name="observacion" rows="2" required placeholder="Qué debe corregir" class="w-48 rounded-lg border border-slate-300 px-2 py-1 text-xs"></textarea>
-                                <button type="submit" class="rounded-lg bg-amber-600 text-white px-3 py-1 text-xs font-bold">Devolver al técnico</button>
+                                <button type="submit" class="v-btn v-btn--aviso v-btn--sm"><i data-lucide="undo-2"></i> Devolver al técnico</button>
                             </form>
                         </details>
                         {% endif %}
@@ -85,28 +88,27 @@
         </table>
     </div>
 
-    <div class="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-slate-200 px-4 py-3">
-        <div class="max-w-5xl mx-auto flex flex-wrap gap-2 justify-end">
+    <div class="v-barra">
+        <p class="v-barra__nota">{% if informe and informe.pdf_estado == 'listo' %}{% if correo_cliente %}Se enviará a {{ correo_cliente }}.{% else %}El cliente no tiene correo registrado.{% endif %}{% elif informe and informe.pdf_estado == 'generando' %}Generando el PDF… recarga en unos segundos.{% elif not todas_terminadas %}Se habilita cuando todas las probetas estén terminadas.{% else %}Al aprobar se firma y se genera el PDF del informe.{% endif %}</p>
+        <div class="v-barra__fila">
             {% if puede_exportar %}
-            <a href="{% url 'proyectos:excel_compresion' %}?solicitud={{ solicitud.pk }}" class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 inline-flex items-center gap-1"><i data-lucide="sheet" class="w-4 h-4"></i> Excel</a>
+            <a href="{% url 'proyectos:excel_compresion' %}?solicitud={{ solicitud.pk }}" class="v-btn v-btn--secundario"><i data-lucide="sheet"></i> Excel</a>
             {% endif %}
             {% if informe and informe.pdf_estado == 'listo' %}
                 <form method="post">{% csrf_token %}
-                    <button type="submit" name="accion" value="enviar" {% if not correo_cliente %}disabled title="El cliente no tiene correo registrado"{% endif %}
-                            class="rounded-xl bg-slate-900 text-white px-4 py-2.5 text-sm font-bold disabled:bg-slate-300">
-                        {% if informe.estado_envio == 'enviado' %}Reenviar al cliente{% else %}Enviar al cliente{% endif %}{% if correo_cliente %} ({{ correo_cliente }}){% endif %}
+                    <button type="submit" name="accion" value="enviar" {% if not correo_cliente %}disabled title="El cliente no tiene correo registrado"{% endif %} class="v-btn v-btn--primario">
+                        <i data-lucide="send"></i> {% if informe.estado_envio == 'enviado' %}Reenviar al cliente{% else %}Enviar al cliente{% endif %}
                     </button>
                 </form>
             {% elif informe and informe.pdf_estado == 'error' %}
-                <form method="post">{% csrf_token %}<button type="submit" name="accion" value="regenerar" class="rounded-xl bg-red-600 text-white px-4 py-2.5 text-sm font-bold">Volver a generar el PDF</button></form>
+                <form method="post">{% csrf_token %}<button type="submit" name="accion" value="regenerar" class="v-btn v-btn--peligro"><i data-lucide="refresh-cw"></i> Volver a generar el PDF</button></form>
             {% elif informe and informe.pdf_estado == 'generando' %}
-                <span class="text-sm text-slate-500 py-2.5">Generando el PDF…</span>
             {% else %}
                 <form method="post">{% csrf_token %}
-                    <button type="submit" name="accion" value="aprobar" {% if not todas_terminadas %}disabled{% endif %} data-aprobar
-                            class="rounded-xl bg-green-600 text-white px-4 py-2.5 text-sm font-bold disabled:bg-slate-300 disabled:text-slate-500">Aprobar y emitir informe</button>
+                    <button type="submit" name="accion" value="aprobar" {% if not todas_terminadas %}disabled{% endif %} data-aprobar class="v-btn v-btn--exito">
+                        <i data-lucide="badge-check"></i> Aprobar y emitir informe
+                    </button>
                 </form>
-                {% if not todas_terminadas %}<p class="w-full text-right text-[11px] text-slate-500">Se habilita cuando todas las probetas estén terminadas.</p>{% endif %}
             {% endif %}
         </div>
     </div>

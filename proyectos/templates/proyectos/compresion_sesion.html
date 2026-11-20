@@ -1,62 +1,77 @@
 {% extends "base_vicafpro.html" %}
+{% load static %}
 {% block title %}Abrir sesión de ensayo | VICAF LIMS{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/ensayos.css' %}">{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 pt-5 pb-28 space-y-4">
-    <a href="{% url 'proyectos:mis_ensayos_compresion' %}" class="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900">
-        <i data-lucide="arrow-left" class="w-4 h-4"></i> Mis ensayos
+<div class="max-w-3xl mx-auto px-4 pt-5 pb-4 space-y-5">
+    <a href="{% url 'proyectos:mis_ensayos_compresion' %}" class="v-volver">
+        <i data-lucide="arrow-left"></i> Mis ensayos
     </a>
-    <div>
-        <h1 class="text-lg font-bold text-slate-800">Abrir sesión de ensayo</h1>
-        <p class="text-xs text-slate-500">Condiciones al empezar y equipos que usarás. Valen para todas las probetas que termines en esta sesión.</p>
-    </div>
+    <header class="v-cabecera">
+        <div class="v-cabecera__icono"><i data-lucide="flask-conical"></i></div>
+        <div class="min-w-0">
+            <h1>Abrir sesión de ensayo</h1>
+            <p>Condiciones al empezar y equipos que usarás. Valen para todas las probetas que termines en esta sesión.</p>
+        </div>
+    </header>
 
     {% if faltan_tipos %}
-    <div class="rounded-xl px-4 py-3 text-sm bg-amber-50 text-amber-800 border border-amber-200" role="note">
-        No hay equipo vigente de: {{ faltan_tipos|join:", " }}. Los equipos con la calibración vencida no se pueden elegir; avisa al supervisor.
+    <div class="v-aviso v-aviso--ambar" role="note">
+        <i data-lucide="triangle-alert"></i>
+        <span>No hay equipo vigente de: {{ faltan_tipos|join:", " }}. Los equipos con la calibración vencida no se pueden elegir; avisa al supervisor.</span>
     </div>
     {% endif %}
 
     <form method="post" class="space-y-4">
         {% csrf_token %}
-        {{ form.non_field_errors }}
-        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
-            <h2 class="font-bold text-slate-800">Condiciones ambientales iniciales</h2>
-            <label class="block">
-                <span class="text-sm font-semibold text-slate-700">Fecha de ensayo</span>
-                {{ form.fecha }}
-                {% for e in form.fecha.errors %}<span class="block text-xs text-red-600">{{ e }}</span>{% endfor %}
-            </label>
-            <div class="grid grid-cols-2 gap-3">
-                <label class="block">
-                    <span class="text-sm font-semibold text-slate-700">Temperatura (°C)</span>
-                    {{ form.temperatura_inicial }}
-                    {% for e in form.temperatura_inicial.errors %}<span class="block text-xs text-red-600">{{ e }}</span>{% endfor %}
+        {% if form.non_field_errors %}<div class="v-aviso v-aviso--error">{{ form.non_field_errors }}</div>{% endif %}
+
+        <section class="v-tarjeta">
+            <div class="v-tarjeta__cab">
+                <span class="v-paso">1</span>
+                <div><h2>Condiciones ambientales iniciales</h2><p>Lee el termohigrómetro antes de la primera probeta.</p></div>
+            </div>
+            <div class="v-tarjeta__cuerpo grid grid-cols-2 gap-3">
+                <label class="col-span-2 sm:col-span-1">
+                    <span class="v-etiqueta">Fecha de ensayo</span>
+                    <span class="v-campo block">{{ form.fecha }}</span>
+                    {% for e in form.fecha.errors %}<span class="v-error">{{ e }}</span>{% endfor %}
                 </label>
-                <label class="block">
-                    <span class="text-sm font-semibold text-slate-700">Humedad relativa (%)</span>
-                    {{ form.humedad_inicial }}
-                    {% for e in form.humedad_inicial.errors %}<span class="block text-xs text-red-600">{{ e }}</span>{% endfor %}
+                <div class="hidden sm:block"></div>
+                <label>
+                    <span class="v-etiqueta">Temperatura</span>
+                    <span class="v-campo block" data-unidad="°C">{{ form.temperatura_inicial }}</span>
+                    {% for e in form.temperatura_inicial.errors %}<span class="v-error">{{ e }}</span>{% endfor %}
+                </label>
+                <label>
+                    <span class="v-etiqueta">Humedad relativa</span>
+                    <span class="v-campo block" data-unidad="%">{{ form.humedad_inicial }}</span>
+                    {% for e in form.humedad_inicial.errors %}<span class="v-error">{{ e }}</span>{% endfor %}
                 </label>
             </div>
-        </div>
+        </section>
 
-        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
-            <h2 class="font-bold text-slate-800">Equipos empleados</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <section class="v-tarjeta">
+            <div class="v-tarjeta__cab">
+                <span class="v-paso">2</span>
+                <div><h2>Equipos empleados</h2><p>Solo aparecen los equipos con la calibración vigente.</p></div>
+            </div>
+            <div class="v-tarjeta__cuerpo grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {% for campo in campos_equipo %}
-                <label class="block">
-                    <span class="text-sm font-semibold text-slate-700">{{ campo.label }}</span>
-                    {{ campo }}
-                    {% for e in campo.errors %}<span class="block text-xs text-red-600">{{ e }}</span>{% endfor %}
+                <label>
+                    <span class="v-etiqueta">{{ campo.label }}</span>
+                    <span class="v-campo block">{{ campo }}</span>
+                    {% for e in campo.errors %}<span class="v-error">{{ e }}</span>{% endfor %}
                 </label>
                 {% endfor %}
             </div>
-        </div>
+        </section>
 
-        <div class="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-slate-200 px-4 py-3">
-            <div class="max-w-3xl mx-auto">
-                <button type="submit" class="w-full rounded-xl bg-slate-900 text-white py-3 text-sm font-bold">Abrir sesión</button>
+        <div class="v-barra">
+            <p class="v-barra__nota">Al cerrar la sesión registrarás la temperatura y la humedad finales.</p>
+            <div class="v-barra__fila">
+                <button type="submit" class="v-btn v-btn--primario"><i data-lucide="play"></i> Abrir sesión</button>
             </div>
         </div>
     </form>
