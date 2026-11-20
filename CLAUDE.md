@@ -98,6 +98,14 @@ fija (Cropper.js 1.6.2 vendorizado; carga 18:7, probeta 4:7, en
 Las fotos van a `ENSAYOS_FOTOS_DIR` (privado, nunca MEDIA_ROOT; en prod debe
 existir, ser escribible por el servicio y entrar en el backup) y se sirven
 por una vista con sesión. Permiso `ensayos.registrar`.
+Medidas y cálculos (HU-LIMS-11 a 13): recepción llena los datos FOR-004 de
+cada probeta (`/proyectos/recepcion/<id>/probetas/`, permiso `muestras.editar`);
+el técnico abre una `SesionEnsayo` (T/HR y los 6 equipos con calibración
+vigente; `Equipo` en `/proyectos/equipos/`, permisos `equipos.ver`/`equipos.editar`)
+y registra masa, D1-D2, L1-L3, carga y fractura. Las reglas de cálculo están en
+`proyectos/calculos_compresion.py` (π = 3,1416 como la hoja del laboratorio) y
+su copia de vista previa en `static/js/compresion_calculos.js`: si cambia una,
+cambiar la otra.
 
 ### Capa web (pública) — prefijo `web_` obligatorio
 

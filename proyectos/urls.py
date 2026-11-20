@@ -32,6 +32,12 @@ urlpatterns = [
     path('compresion/<int:detalle_id>/', views_compresion.registrar_ensayo_compresion, name='registrar_compresion'),
     path('compresion/<int:detalle_id>/foto/<str:tipo>/', views_compresion.subir_foto_compresion, name='subir_foto_compresion'),
     path('compresion/foto/<int:foto_id>/', views_compresion.foto_compresion, name='foto_compresion'),
+    path('compresion/sesion/abrir/', views_compresion.abrir_sesion_ensayo, name='abrir_sesion_ensayo'),
+    path('compresion/sesion/cerrar/', views_compresion.cerrar_sesion_ensayo, name='cerrar_sesion_ensayo'),
+    path('recepcion/<int:recepcion_id>/probetas/', views_compresion.datos_probetas_recepcion, name='datos_probetas'),
+    path('equipos/', views_compresion.lista_equipos, name='lista_equipos'),
+    path('equipos/nuevo/', views_compresion.editar_equipo, name='crear_equipo'),
+    path('equipos/<int:equipo_id>/', views_compresion.editar_equipo, name='editar_equipo'),
 
     # --- INFORMES FINALES Y CERTIFICACIÓN ---
     path('informes/', views.lista_informes_finales, name='lista_informes'),

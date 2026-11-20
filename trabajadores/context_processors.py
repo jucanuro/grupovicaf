@@ -20,6 +20,7 @@ def permisos_usuario(request):
         'puede_ver_muestras': trabajador_tiene_permiso(user, 'muestras.ver'),
         'puede_ver_ensayos': trabajador_tiene_permiso(user, 'ensayos.ver'),
         'puede_registrar_ensayos': trabajador_tiene_permiso(user, 'ensayos.registrar'),
+        'puede_ver_equipos': trabajador_tiene_permiso(user, 'equipos.ver'),
         'puede_ver_informes': trabajador_tiene_permiso(user, 'informes.ver'),
         'puede_ver_calendario': trabajador_tiene_permiso(user, 'calendario.ver'),
         'puede_ver_gantt': trabajador_tiene_permiso(user, 'gantt.ver'),

@@ -145,6 +145,12 @@
                             Enviar WhatsApp
                         </button>
 
+                        <a href="{% url 'proyectos:datos_probetas' recepcion.id %}"
+                        class="command-header__action">
+                            <i data-lucide="cylinder" class="w-3.5 h-3.5"></i>
+                            Datos de probetas
+                        </a>
+
                         <a href="{% url 'proyectos:editar_recepcion' recepcion.id %}"
                         class="command-header__action">
                             <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>

@@ -55,15 +55,66 @@
         {% endfor %}
     {% endif %}
 
-    <form method="post" id="form-registro" class="space-y-4">
+    <section class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm" data-datos-probeta>
+        <div class="flex items-center justify-between gap-2 mb-2">
+            <h2 class="font-bold text-slate-800">Datos de la probeta</h2>
+            {% if not datos_probeta_completos %}<span class="text-[11px] font-bold px-2 py-1 rounded-full bg-red-100 text-red-700">Falta en recepción</span>{% endif %}
+        </div>
+        <dl class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
+            <dt class="text-slate-500">ID del cliente</dt><dd class="font-semibold text-slate-800 break-all">{{ muestra.codigo_cliente|default:"—" }}</dd>
+            <dt class="text-slate-500">Elemento</dt><dd class="font-semibold text-slate-800">{{ muestra.elemento_estructural|default:"—" }}</dd>
+            <dt class="text-slate-500">f'c de diseño</dt><dd class="font-semibold text-slate-800">{% if muestra.fc_diseno %}{{ muestra.fc_diseno|floatformat:0 }} kg/cm²{% else %}—{% endif %}</dd>
+            <dt class="text-slate-500">Fabricación</dt><dd class="font-semibold text-slate-800">{{ muestra.fecha_fabricacion|date:"d/m/Y"|default:"—" }}</dd>
+            <dt class="text-slate-500">Edad solicitada</dt><dd class="font-semibold text-slate-800">{% if muestra.edad_ensayo_dias is not None %}{{ muestra.edad_ensayo_dias }} días{% if muestra.fecha_ensayo_solicitada %} ({{ muestra.fecha_ensayo_solicitada|date:"d/m/Y" }}){% endif %}{% else %}—{% endif %}</dd>
+        </dl>
+        {% if not datos_probeta_completos %}
+        <p class="text-xs text-red-600 mt-2">Sin la fecha de fabricación y el f'c no se puede terminar: pide a recepción que completen los datos de la probeta.</p>
+        {% endif %}
+        <div class="mt-3 pt-3 border-t border-slate-100 text-xs" data-sesion-registro>
+            {% if sesion_ensayo %}
+                <p class="text-slate-600">Sesión del {{ sesion_ensayo.fecha|date:"d/m/Y" }} · {{ sesion_ensayo.temperatura_inicial|floatformat:1 }} °C / {{ sesion_ensayo.humedad_inicial|floatformat:0 }} % HR al inicio.</p>
+            {% elif sesion %}
+                <p class="text-green-700 font-semibold">Sesión abierta del {{ sesion.fecha|date:"d/m/Y" }}: al terminar, esta probeta toma sus condiciones y equipos.</p>
+            {% elif not solo_lectura %}
+                <p class="text-amber-700 font-semibold">No tienes sesión abierta. Puedes guardar datos, pero para terminar <a class="underline" href="{% url 'proyectos:abrir_sesion_ensayo' %}">abre una sesión</a>.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <form method="post" id="form-registro" class="space-y-4" novalidate>
         {% csrf_token %}
-        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3" data-medidas data-fc="{{ muestra.fc_diseno|default_if_none:''|stringformat:'s' }}">
+            <h2 class="font-bold text-slate-800">Medidas y carga</h2>
             <label class="block">
                 <span class="text-sm font-semibold text-slate-700">Fecha de ensayo</span>
                 <input type="date" name="fecha_ensayo" id="fecha_ensayo"
-                       value="{{ ensayo.fecha_ensayo|date:'Y-m-d' }}"
+                       value="{% if ensayo.fecha_ensayo %}{{ ensayo.fecha_ensayo|date:'Y-m-d' }}{% elif sesion %}{{ sesion.fecha|date:'Y-m-d' }}{% endif %}"
                        {% if fecha_minima %}min="{{ fecha_minima|date:'Y-m-d' }}"{% endif %}
                        max="{{ hoy|date:'Y-m-d' }}"
+                       {% if solo_lectura %}disabled{% endif %}
+                       class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base">
+            </label>
+            <div class="grid grid-cols-2 gap-3">
+                {% for m in medidas %}
+                <label class="block {% if m.campo == 'masa_g' or m.campo == 'carga_kn' %}col-span-1{% endif %}">
+                    <span class="text-sm font-semibold text-slate-700">{{ m.etiqueta }}</span>
+                    <input type="text" inputmode="decimal" name="{{ m.campo }}" value="{{ m.valor }}" data-medida="{{ m.campo }}"
+                           autocomplete="off" {% if solo_lectura %}disabled{% endif %}
+                           class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base font-mono">
+                </label>
+                {% endfor %}
+                <label class="block">
+                    <span class="text-sm font-semibold text-slate-700">Tipo de fractura</span>
+                    <select name="tipo_fractura" id="tipo_fractura" {% if solo_lectura %}disabled{% endif %}
+                            class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base bg-white">
+                        <option value="">Elige…</option>
+                        {% for n in fracturas %}<option value="{{ n }}" {% if ensayo.tipo_fractura == n %}selected{% endif %}>Tipo {{ n }}</option>{% endfor %}
+                    </select>
+                </label>
+            </div>
+            <label class="block">
+                <span class="text-sm font-semibold text-slate-700">Defectos del espécimen</span>
+                <input type="text" name="defectos" maxlength="255" value="{{ ensayo.defectos|default:'' }}" placeholder="Ninguno"
                        {% if solo_lectura %}disabled{% endif %}
                        class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base">
             </label>
@@ -72,6 +123,30 @@
                 <textarea name="observaciones" rows="2" {% if solo_lectura %}disabled{% endif %}
                           class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-base">{{ ensayo.observaciones|default:'' }}</textarea>
             </label>
+        </div>
+
+        <div class="bg-slate-900 text-white rounded-2xl p-4 shadow-sm" data-resultados>
+            <div class="flex items-center justify-between gap-2">
+                <h2 class="font-bold">Resultados</h2>
+                <span class="text-[11px] text-slate-300" data-origen>{% if solo_lectura %}Guardados al terminar{% else %}Se recalculan mientras escribes{% endif %}</span>
+            </div>
+            <p class="text-xs text-red-300 mt-1 {% if not error_calculo %}hidden{% endif %}" data-error-calculo>{{ error_calculo|default:'' }}</p>
+            <dl class="mt-3 grid grid-cols-3 gap-2 text-center">
+                <div class="col-span-3 bg-white/10 rounded-xl py-3">
+                    <dt class="text-[11px] text-slate-300">Resistencia</dt>
+                    <dd class="text-2xl font-bold font-mono"><span data-r="kgcm2">{% if solo_lectura %}{{ ensayo.resistencia_kgcm2|default_if_none:'—' }}{% else %}{{ resultado.resistencia_kgcm2|default_if_none:'—' }}{% endif %}</span> <span class="text-sm font-semibold">kg/cm²</span></dd>
+                    <dd class="text-xs text-slate-300"><span data-r="mpa">{% if solo_lectura %}{{ ensayo.resistencia_mpa|default_if_none:'—' }}{% else %}{{ resultado.resistencia_mpa|default_if_none:'—' }}{% endif %}</span> MPa · <span data-r="porcentaje">{% if solo_lectura %}{{ ensayo.porcentaje|default_if_none:'—' }}{% else %}{{ resultado.porcentaje|default_if_none:'—' }}{% endif %}</span> % de f'c</dd>
+                </div>
+                {% with r=resultado %}
+                <div class="bg-white/5 rounded-xl py-2"><dt class="text-[11px] text-slate-300">Diámetro</dt><dd class="font-mono text-sm" data-r="diametro">{{ r.diametro_prom|default_if_none:'—' }}</dd></div>
+                <div class="bg-white/5 rounded-xl py-2"><dt class="text-[11px] text-slate-300">Longitud</dt><dd class="font-mono text-sm" data-r="longitud">{{ r.longitud_prom|default_if_none:'—' }}</dd></div>
+                <div class="bg-white/5 rounded-xl py-2"><dt class="text-[11px] text-slate-300">Área mm²</dt><dd class="font-mono text-sm" data-r="area">{{ r.area|default_if_none:'—' }}</dd></div>
+                <div class="bg-white/5 rounded-xl py-2"><dt class="text-[11px] text-slate-300">L/D</dt><dd class="font-mono text-sm" data-r="ld">{{ r.relacion_ld|default_if_none:'—' }}</dd></div>
+                <div class="bg-white/5 rounded-xl py-2"><dt class="text-[11px] text-slate-300">Factor</dt><dd class="font-mono text-sm" data-r="factor">{{ r.factor|default_if_none:'—' }}</dd></div>
+                <div class="bg-white/5 rounded-xl py-2"><dt class="text-[11px] text-slate-300">Densidad</dt><dd class="font-mono text-sm" data-r="densidad">{{ r.densidad|default_if_none:'—' }}</dd></div>
+                {% endwith %}
+            </dl>
+            {% if solo_lectura and ensayo.edad_dias is not None %}<p class="text-xs text-slate-300 mt-2">Edad al ensayo: {{ ensayo.edad_dias }} días.</p>{% endif %}
         </div>
 
         <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-4">
@@ -157,6 +232,7 @@
 {% block extra_scripts %}
 {% if not solo_lectura %}
 <script src="{% static 'vendor/cropperjs-1.6.2/cropper.min.js' %}"></script>
+<script src="{% static 'js/compresion_calculos.js' %}"></script>
 <script>
 (function () {
     const raiz = document.querySelector('[data-registro-compresion]');
@@ -180,6 +256,10 @@
     function actualizarTerminar() {
         const faltan = [];
         if (!fecha.value) faltan.push('fecha de ensayo');
+        document.querySelectorAll('[data-medida]').forEach(function (i) {
+            if (!i.value.trim()) faltan.push(i.closest('label').querySelector('span').textContent.trim());
+        });
+        if (!document.getElementById('tipo_fractura').value) faltan.push('tipo de fractura');
         document.querySelectorAll('[data-slot]').forEach(function (s) {
             if (s.querySelector('[data-marco]').dataset.estado !== 'ok') faltan.push(etiquetas[s.dataset.slot]);
         });
@@ -288,6 +368,36 @@
     });
 
     fecha.addEventListener('input', actualizarTerminar);
+
+    const cajaMedidas = document.querySelector('[data-medidas]');
+    function recalcular() {
+        const datos = { fc: cajaMedidas.dataset.fc };
+        document.querySelectorAll('[data-medida]').forEach(function (i) { datos[i.dataset.medida] = i.value; });
+        const r = window.CompresionCalculos.calcular(datos);
+        const fmt = function (v, dec) {
+            return (v === null || v === undefined) ? '—' : Number(v).toFixed(dec).replace('.', ',');
+        };
+        const pon = function (clave, texto) {
+            const el = document.querySelector('[data-r="' + clave + '"]');
+            if (el) el.textContent = texto;
+        };
+        const err = document.querySelector('[data-error-calculo]');
+        err.classList.toggle('hidden', !(r && r.error));
+        err.textContent = (r && r.error) || '';
+        pon('diametro', r ? fmt(r.diametro, 2) : '—');
+        pon('longitud', r ? fmt(r.longitud, 2) : '—');
+        pon('area', r ? fmt(r.area, 2) : '—');
+        pon('ld', r ? fmt(r.ld, 2) : '—');
+        pon('factor', r && r.factor !== null ? fmt(r.factor, 2) : '—');
+        pon('mpa', r && !r.error ? fmt(r.mpa, 1) : '—');
+        pon('kgcm2', r && !r.error ? fmt(r.kgcm2, 1) : '—');
+        pon('porcentaje', r && !r.error && r.porcentaje !== null ? fmt(r.porcentaje, 0) : '—');
+        pon('densidad', r && !r.error && r.densidad !== null ? fmt(r.densidad, 0) : '—');
+    }
+    document.querySelectorAll('[data-medida]').forEach(function (i) {
+        i.addEventListener('input', function () { recalcular(); actualizarTerminar(); });
+    });
+    document.getElementById('tipo_fractura').addEventListener('change', actualizarTerminar);
     window.addEventListener('beforeunload', function (ev) {
         if (document.querySelector('[data-marco][data-estado="subiendo"]')) { ev.preventDefault(); ev.returnValue = ''; }
     });

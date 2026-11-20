@@ -1,0 +1,32 @@
+{% extends "base_vicafpro.html" %}
+{% block title %}{% if equipo %}{{ equipo.codigo }}{% else %}Nuevo equipo{% endif %} | VICAF LIMS{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-5 space-y-4">
+    <a href="{% url 'proyectos:lista_equipos' %}" class="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i> Equipos
+    </a>
+    <h1 class="text-lg font-bold text-slate-800">{% if equipo %}Editar {{ equipo.codigo }}{% else %}Nuevo equipo{% endif %}</h1>
+
+    <form method="post" class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {% for campo in form %}
+            {% if campo.name == 'activo' %}
+            <label class="flex items-center gap-2 sm:col-span-2 pt-1">
+                {{ campo }} <span class="text-sm font-semibold text-slate-700">Activo (se puede elegir en las sesiones)</span>
+            </label>
+            {% else %}
+            <label class="block">
+                <span class="text-sm font-semibold text-slate-700">{{ campo.label }}</span>
+                {{ campo }}
+                {% for e in campo.errors %}<span class="block text-xs text-red-600">{{ e }}</span>{% endfor %}
+            </label>
+            {% endif %}
+            {% endfor %}
+        </div>
+        <button type="submit" class="w-full sm:w-auto sm:px-8 rounded-xl bg-slate-900 text-white py-3 text-sm font-bold">Guardar</button>
+    </form>
+</div>
+{% endblock %}

@@ -158,7 +158,17 @@ class RecepcionMuestra(models.Model):
     fecha_ensayo_programado = models.DateField(null=True, blank=True)
     
     responsable_recepcion = models.ForeignKey(User, on_delete=models.PROTECT)
-    
+
+    # FOR-004 / informe: ubicación de la obra (PM-C03). Si está vacía, se usa
+    # la procedencia.
+    ubicacion_proyecto = models.CharField(
+        max_length=255, blank=True, default='', verbose_name="Ubicación del proyecto",
+    )
+
+    @property
+    def ubicacion_informe(self):
+        return self.ubicacion_proyecto or self.procedencia
+
 class MuestraDetalle(models.Model):
     recepcion = models.ForeignKey(RecepcionMuestra, related_name='muestras', on_delete=models.CASCADE)
     tipo_muestra = models.ForeignKey(TipoMuestra, on_delete=models.PROTECT)
@@ -169,6 +179,25 @@ class MuestraDetalle(models.Model):
     cantidad = models.IntegerField(default=1)
     unidad_medida = models.ForeignKey(UnidadMedida, on_delete=models.CASCADE, null=True, blank=True)
     observaciones = models.TextField(null=True, blank=True)
+
+    # Datos de la orden FOR-004 que da el cliente (HU-LIMS-11). Opcionales:
+    # las muestras de suelos no los usan.
+    codigo_cliente = models.CharField(max_length=100, blank=True, default='', verbose_name="ID del cliente")
+    elemento_estructural = models.CharField(max_length=150, blank=True, default='', verbose_name="Elemento estructural")
+    fc_diseno = models.DecimalField(
+        max_digits=7, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(0)], verbose_name="Resistencia de diseño f'c (kg/cm²)",
+    )
+    fecha_fabricacion = models.DateField(null=True, blank=True, verbose_name="Fecha de fabricación / extracción")
+    edad_ensayo_dias = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name="Edad de ensayo solicitada (días)")
+    material = models.CharField(max_length=60, blank=True, default='', verbose_name="Material")
+    tipo_probeta = models.CharField(max_length=60, blank=True, default='', verbose_name="Tipo de muestra (informe)")
+
+    @property
+    def fecha_ensayo_solicitada(self):
+        if self.fecha_fabricacion and self.edad_ensayo_dias is not None:
+            return self.fecha_fabricacion + datetime.timedelta(days=self.edad_ensayo_dias)
+        return None
 
     codigo_laboratorio = models.CharField(max_length=50, unique=True, blank=True)
 
@@ -493,6 +522,105 @@ def ruta_foto_ensayo(instance, filename):
     return f"compresion/{timezone.now():%Y/%m}/{uuid.uuid4().hex}.jpg"
 
 
+class Equipo(models.Model):
+    """Equipo del laboratorio que se declara en el informe (HU-LIMS-12)."""
+    TIPO_PRENSA = 'PRC'
+    TIPO_BALANZA = 'BAL'
+    TIPO_VERNIER = 'VER'
+    TIPO_TERMOHIGROMETRO = 'TMG'
+    TIPO_CUNA = 'CUÑ'
+    TIPO_ESCUADRA = 'ESC'
+    TIPO_OTRO = 'OTR'
+    TIPOS = [
+        (TIPO_PRENSA, 'Prensa'),
+        (TIPO_BALANZA, 'Balanza'),
+        (TIPO_VERNIER, 'Vernier'),
+        (TIPO_TERMOHIGROMETRO, 'Termohigrómetro'),
+        (TIPO_CUNA, 'Cuña'),
+        (TIPO_ESCUADRA, 'Escuadra'),
+        (TIPO_OTRO, 'Otro'),
+    ]
+
+    codigo = models.CharField(max_length=40, unique=True, verbose_name="Código interno")
+    nombre = models.CharField(max_length=120, verbose_name="Nombre")
+    tipo = models.CharField(max_length=3, choices=TIPOS, verbose_name="Tipo")
+    marca = models.CharField(max_length=80, blank=True, default='')
+    modelo = models.CharField(max_length=80, blank=True, default='')
+    serie = models.CharField(max_length=80, blank=True, default='', verbose_name="N.º de serie")
+    fecha_calibracion = models.DateField(null=True, blank=True, verbose_name="Fecha de calibración")
+    vence_calibracion = models.DateField(null=True, blank=True, verbose_name="Vencimiento de la calibración")
+    certificado = models.CharField(max_length=80, blank=True, default='', verbose_name="N.º de certificado")
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Equipo"
+        verbose_name_plural = "Equipos"
+        ordering = ['tipo', 'codigo']
+
+    def __str__(self):
+        return f"{self.codigo} · {self.nombre}"
+
+    def vencido(self, fecha=None):
+        """DP-LIMS-18 A: con la calibración vencida no se puede elegir."""
+        fecha = fecha or timezone.localdate()
+        return bool(self.vence_calibracion and self.vence_calibracion < fecha)
+
+    @classmethod
+    def disponibles(cls, tipo, fecha=None):
+        fecha = fecha or timezone.localdate()
+        return cls.objects.filter(tipo=tipo, activo=True).filter(
+            models.Q(vence_calibracion__isnull=True) | models.Q(vence_calibracion__gte=fecha)
+        )
+
+
+class SesionEnsayo(models.Model):
+    """Una tanda de ensayos del técnico: condiciones ambientales inicial y
+    final y los equipos usados, comunes a todas sus probetas (como en el
+    informe real, donde las 3 probetas comparten esos datos)."""
+    # Equipos del FOR-039, en el orden del informe.
+    EQUIPOS = [
+        ('prensa', Equipo.TIPO_PRENSA),
+        ('balanza', Equipo.TIPO_BALANZA),
+        ('vernier', Equipo.TIPO_VERNIER),
+        ('termohigrometro', Equipo.TIPO_TERMOHIGROMETRO),
+        ('cuna', Equipo.TIPO_CUNA),
+        ('escuadra', Equipo.TIPO_ESCUADRA),
+    ]
+
+    tecnico = models.ForeignKey(TrabajadorProfile, on_delete=models.PROTECT, related_name='sesiones_ensayo')
+    fecha = models.DateField(default=timezone.localdate)
+    temperatura_inicial = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Temperatura inicial (°C)")
+    humedad_inicial = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Humedad relativa inicial (%)")
+    temperatura_final = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Temperatura final (°C)")
+    humedad_final = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Humedad relativa final (%)")
+    prensa = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+')
+    balanza = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+')
+    vernier = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+')
+    termohigrometro = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+')
+    cuna = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+')
+    escuadra = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+')
+    abierta_en = models.DateTimeField(auto_now_add=True)
+    cerrada_en = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Sesión de ensayo"
+        verbose_name_plural = "Sesiones de ensayo"
+        ordering = ['-abierta_en']
+
+    def __str__(self):
+        return f"Sesión {self.fecha:%d/%m/%Y} · {self.tecnico}"
+
+    @property
+    def abierta(self):
+        return self.cerrada_en is None
+
+    @classmethod
+    def abierta_de(cls, perfil):
+        if perfil is None:
+            return None
+        return cls.objects.filter(tecnico=perfil, cerrada_en__isnull=True).first()
+
+
 class EnsayoCompresion(models.Model):
     ESTADO_BORRADOR = 'borrador'
     ESTADO_TERMINADO = 'terminado'
@@ -517,9 +645,41 @@ class EnsayoCompresion(models.Model):
         related_name='ensayos_compresion',
         verbose_name="Ejecutado por",
     )
+    sesion = models.ForeignKey(
+        SesionEnsayo, on_delete=models.PROTECT, null=True, blank=True,
+        related_name='ensayos', verbose_name="Sesión de ensayo",
+    )
+
+    # Datos medidos (HU-LIMS-13). mm, g y kN como en el FOR-039.
+    masa_g = models.DecimalField(max_digits=8, decimal_places=1, null=True, blank=True, verbose_name="Masa (g)")
+    d1 = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name="D1 (mm)")
+    d2 = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name="D2 (mm)")
+    l1 = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name="L1 (mm)")
+    l2 = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name="L2 (mm)")
+    l3 = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name="L3 (mm)")
+    carga_kn = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, verbose_name="Carga máxima (kN)")
+    tipo_fractura = models.PositiveSmallIntegerField(
+        null=True, blank=True, choices=[(n, f'Tipo {n}') for n in range(1, 7)], verbose_name="Tipo de fractura",
+    )
+    defectos = models.CharField(max_length=255, blank=True, default='', verbose_name="Defectos del espécimen")
+
+    # Resultados calculados (proyectos.calculos_compresion), guardados al terminar.
+    edad_dias = models.PositiveSmallIntegerField(null=True, blank=True)
+    diametro_prom = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    longitud_prom = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    area = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    relacion_ld = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    factor = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True)
+    resistencia_mpa = models.DecimalField(max_digits=7, decimal_places=1, null=True, blank=True)
+    resistencia_kgcm2 = models.DecimalField(max_digits=8, decimal_places=1, null=True, blank=True)
+    porcentaje = models.PositiveIntegerField(null=True, blank=True)
+    densidad = models.PositiveIntegerField(null=True, blank=True)
+
     terminado_en = models.DateTimeField(null=True, blank=True)
     creado_en = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)
+
+    CAMPOS_MEDIDOS = ['masa_g', 'd1', 'd2', 'l1', 'l2', 'l3', 'carga_kn']
 
     class Meta:
         verbose_name = "Ensayo de compresión"
@@ -532,6 +692,32 @@ class EnsayoCompresion(models.Model):
     def terminado(self):
         return self.estado == self.ESTADO_TERMINADO
 
+    def calcular(self):
+        """Resultado de los cálculos con las medidas actuales (o DatosInsuficientes)."""
+        from .calculos_compresion import calcular
+        muestra = self.detalle.muestra
+        return calcular(
+            self.d1, self.d2, self.l1, self.l2, self.l3, self.carga_kn,
+            masa_g=self.masa_g, fc_kgcm2=muestra.fc_diseno,
+        )
+
+    def guardar_resultados(self):
+        r = self.calcular()
+        muestra = self.detalle.muestra
+        self.edad_dias = (
+            (self.fecha_ensayo - muestra.fecha_fabricacion).days
+            if self.fecha_ensayo and muestra.fecha_fabricacion else None
+        )
+        self.diametro_prom = r.diametro_prom
+        self.longitud_prom = r.longitud_prom
+        self.area = r.area
+        self.relacion_ld = r.relacion_ld
+        self.factor = r.factor
+        self.resistencia_mpa = r.resistencia_mpa
+        self.resistencia_kgcm2 = r.resistencia_kgcm2
+        self.porcentaje = int(r.porcentaje) if r.porcentaje is not None else None
+        self.densidad = int(r.densidad) if r.densidad is not None else None
+
     def tipos_faltantes(self):
         """Códigos de los tipos de foto que aún no se cargaron, en orden."""
         cargados = set(self.fotos.values_list('tipo', flat=True))
@@ -540,8 +726,17 @@ class EnsayoCompresion(models.Model):
     def faltantes_para_terminar(self):
         """Lista legible de lo que falta para poder terminar (vacía = listo)."""
         faltan = []
+        muestra = self.detalle.muestra
+        if not muestra.fecha_fabricacion or not muestra.fc_diseno:
+            faltan.append("la fecha de fabricación y el f'c de la probeta (datos FOR-004 de la recepción)")
         if not self.fecha_ensayo:
             faltan.append("la fecha de ensayo")
+        etiquetas_campos = {f.name: f.verbose_name for f in self._meta.fields}
+        for campo in self.CAMPOS_MEDIDOS:
+            if getattr(self, campo) in (None, ''):
+                faltan.append(str(etiquetas_campos[campo]))
+        if not self.tipo_fractura:
+            faltan.append("el tipo de fractura")
         etiquetas = dict(FotoEnsayo.TIPOS)
         faltan += [f"la foto «{etiquetas[t]}»" for t in self.tipos_faltantes()]
         return faltan
