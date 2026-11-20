@@ -58,9 +58,13 @@ def revision_compresion_lista(request):
         c = por_solicitud[s.pk]
         s.total, s.terminadas, s.aprobadas = c['total'], c['terminadas'], c['aprobadas']
         s.informe = getattr(s, 'informe_final', None) if hasattr(s, 'informe_final') else None
+        s.emitido = bool(s.informe and s.informe.pdf_estado == InformeFinal.PDF_LISTO)
+        s.por_emitir = s.aprobadas == s.total and not s.emitido
     filtro = request.GET.get('vista', 'por_revisar')
     if filtro == 'por_revisar':
         solicitudes = [s for s in solicitudes if s.aprobadas < s.total]
+    elif filtro == 'por_emitir':
+        solicitudes = [s for s in solicitudes if s.por_emitir]
     return render(request, 'proyectos/compresion_revision_lista.html', {
         'solicitudes': solicitudes,
         'vista': filtro,

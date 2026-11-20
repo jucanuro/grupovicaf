@@ -17,9 +17,10 @@
         </div>
     </div>
 
-    <nav class="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl text-sm font-semibold" aria-label="Filtro">
+    <nav class="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl text-sm font-semibold" aria-label="Filtro">
         <a href="?vista=por_revisar" class="text-center py-2 rounded-lg {% if vista == 'por_revisar' %}bg-white shadow text-slate-900{% else %}text-slate-500{% endif %}">Por revisar</a>
-        <a href="?vista=todas" class="text-center py-2 rounded-lg {% if vista != 'por_revisar' %}bg-white shadow text-slate-900{% else %}text-slate-500{% endif %}">Todas</a>
+        <a href="?vista=por_emitir" class="text-center py-2 rounded-lg {% if vista == 'por_emitir' %}bg-white shadow text-slate-900{% else %}text-slate-500{% endif %}">Por emitir</a>
+        <a href="?vista=todas" class="text-center py-2 rounded-lg {% if vista == 'todas' %}bg-white shadow text-slate-900{% else %}text-slate-500{% endif %}">Todas</a>
     </nav>
 
     {% if puede_exportar %}
@@ -37,14 +38,16 @@
     <ul class="space-y-3">
         {% for s in solicitudes %}
         <li>
-            <a href="{% url 'proyectos:revision_compresion' s.pk %}" class="block v-tarjeta p-4 hover:border-blue-300 hover:shadow-md transition">
+            <a href="{% if s.por_emitir %}{% url 'proyectos:editor_informe' s.pk %}{% else %}{% url 'proyectos:revision_compresion' s.pk %}{% endif %}" {% if s.por_emitir %}data-abrir-editor {% endif %}class="block v-tarjeta p-4 hover:border-blue-300 hover:shadow-md transition">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         <p class="font-mono font-bold text-slate-900">{{ s.codigo_solicitud }}</p>
                         <p class="text-xs text-slate-500">{{ s.terminadas }} de {{ s.total }} terminadas · {{ s.aprobadas }} aprobadas</p>
                     </div>
-                    {% if s.informe and s.informe.pdf_estado == 'listo' %}
+                    {% if s.emitido %}
                         <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-green-100 text-green-700 flex-shrink-0">Emitido {{ s.informe.codigo_informe }}</span>
+                    {% elif s.por_emitir %}
+                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-blue-100 text-blue-700 flex-shrink-0">Informe por emitir</span>
                     {% elif s.terminadas == s.total %}
                         <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-violet-100 text-violet-700 flex-shrink-0">Lista para revisar</span>
                     {% else %}
@@ -54,7 +57,7 @@
             </a>
         </li>
         {% empty %}
-        <li class="text-center text-sm text-slate-500 bg-white border border-dashed border-slate-300 rounded-2xl p-8">No hay solicitudes con resultados por revisar.</li>
+        <li class="text-center text-sm text-slate-500 bg-white border border-dashed border-slate-300 rounded-2xl p-8">{% if vista == 'por_emitir' %}No hay informes por emitir.{% else %}No hay solicitudes con resultados por revisar.{% endif %}</li>
         {% endfor %}
     </ul>
 </div>

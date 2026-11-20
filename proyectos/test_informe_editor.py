@@ -222,3 +222,12 @@ class EditorInformeTests(CompresionBase):
         self.assertEqual(self.client.get(url).status_code, 404)
         self.client.force_login(self.user_com)
         self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_lista_por_emitir_lleva_al_editor(self):
+        self.aprobar_todo()
+        self.client.force_login(self.user_jefe)
+        url = reverse('proyectos:revision_compresion_lista')
+        r = self.client.get(url + '?vista=por_emitir')
+        self.assertContains(r, self.url_editor)
+        self.assertContains(r, 'Informe por emitir')
+        self.assertNotContains(self.client.get(url), self.url_editor)
