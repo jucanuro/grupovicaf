@@ -10,7 +10,6 @@ from datetime import date
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
 from django.db.models import Count, Q
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
@@ -83,7 +82,7 @@ def revision_compresion(request, solicitud_id):
         if accion == 'devolver':
             return _devolver(request, solicitud, lineas)
         if accion == 'aprobar':
-            return _aprobar_y_emitir(request, solicitud, lineas, informe)
+            return _aprobar(request, solicitud, lineas, informe)
         if accion == 'regenerar' and informe and informe.pdf_estado == InformeFinal.PDF_ERROR:
             InformeFinal.objects.filter(pk=informe.pk).update(pdf_estado=InformeFinal.PDF_GENERANDO, pdf_error='')
             if BorradorInforme.objects.filter(solicitud=solicitud, estado=BorradorInforme.ESTADO_EMITIDO).exists():
@@ -108,7 +107,6 @@ def revision_compresion(request, solicitud_id):
         'informe': informe,
         'todas_terminadas': todas_terminadas,
         'aprobadas': aprobadas,
-        'solo_compresion': all(f['ensayo'] and f['ensayo'].es_compresion for f in filas),
         'borrador': BorradorInforme.objects.filter(solicitud=solicitud).only('estado', 'actualizado_en').first(),
         'puede_exportar': trabajador_tiene_permiso(request.user, PERMISO_EXPORTAR),
         'correo_cliente': _correo_cliente(solicitud),
@@ -140,7 +138,7 @@ def _devolver(request, solicitud, lineas):
     return url
 
 
-def _aprobar_y_emitir(request, solicitud, lineas, informe):
+def _aprobar(request, solicitud, lineas, informe):
     url = redirect('proyectos:revision_compresion', solicitud_id=solicitud.pk)
     perfil = _perfil(request.user)
     if perfil is None:
@@ -165,33 +163,13 @@ def _aprobar_y_emitir(request, solicitud, lineas, informe):
         messages.error(request, f"Falta cerrar la sesión de ensayo (temperatura y humedad finales) de: {tecnicos}.")
         return url
 
-    if not all(e.es_compresion for e in ensayos):
-        # Hay ensayos sin plantilla de informe: se aprueban y el informe se sube a mano como hoy.
-        ResultadoEnsayo.objects.filter(pk__in=[e.pk for e in ensayos]).update(
-            estado=ResultadoEnsayo.ESTADO_APROBADO, aprobado_por=perfil, aprobado_en=timezone.now(),
-            observacion_revision='',
-        )
-        messages.success(request, "Resultados aprobados. Revisa y emite el informe en el editor.")
-        return redirect('proyectos:editor_informe', solicitud_id=solicitud.pk)
-
-    with transaction.atomic():
-        ahora = timezone.now()
-        ResultadoEnsayo.objects.filter(pk__in=[e.pk for e in ensayos]).update(
-            estado=ResultadoEnsayo.ESTADO_APROBADO, aprobado_por=perfil, aprobado_en=ahora,
-            observacion_revision='',
-        )
-        if informe is None:
-            informe = InformeFinal(solicitud=solicitud, responsable_firma=perfil, fecha_emision=ahora)
-        else:
-            informe.responsable_firma = perfil
-            informe.fecha_emision = ahora
-        informe.pdf_estado = InformeFinal.PDF_GENERANDO
-        informe.pdf_error = ''
-        informe.save()
-        transaction.on_commit(lambda: generar_informe_compresion.delay(informe.pk))
-
-    messages.success(request, f"Probetas aprobadas. El informe {informe.codigo_informe} se está generando.")
-    return url
+    # Todo informe pasa por el editor: aquí solo se aprueban los resultados.
+    ResultadoEnsayo.objects.filter(pk__in=[e.pk for e in ensayos]).update(
+        estado=ResultadoEnsayo.ESTADO_APROBADO, aprobado_por=perfil, aprobado_en=timezone.now(),
+        observacion_revision='',
+    )
+    messages.success(request, "Resultados aprobados. Revisa el informe en el editor y emítelo.")
+    return redirect('proyectos:editor_informe', solicitud_id=solicitud.pk)
 
 
 def _correo_cliente(solicitud):

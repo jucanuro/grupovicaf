@@ -13,7 +13,7 @@ from openpyxl import load_workbook
 from pypdf import PdfReader
 
 from proyectos.models import DetalleSolicitudEnsayo, ResultadoEnsayo, FotoEnsayo, InformeFinal, RecepcionMuestra, SolicitudEnsayo
-from proyectos.tasks import enviar_informe_cliente, generar_informe_compresion
+from proyectos.tasks import enviar_informe_cliente, generar_informe_editor
 from proyectos.test_compresion import CompresionBase, TerminarTests, jpeg
 from trabajadores.testing import crear_trabajador, rol_con_permisos
 
@@ -103,16 +103,22 @@ class InformeCompresionTests(CompresionBase):
         self.assertContains(self.client.get(self.url_registro(self.mia)), 'está borrosa')
         self.assertContains(self.client.get(reverse('proyectos:mis_ensayos_compresion')), 'Devuelta')
 
-    @patch('proyectos.views_informe_compresion.generar_informe_compresion')
-    def test_aprobar_bloquea_las_probetas_y_pide_el_pdf(self, tarea):
+    @patch('proyectos.views_informe_editor.generar_informe_editor')
+    def test_aprobar_lleva_al_editor_y_emitir_pide_el_pdf(self, tarea):
         self.terminar_todas()
+        r = self.client.post(self.url, {'accion': 'aprobar'})
+        # También la compresión pasa por el editor: aprobar no emite nada.
+        url_editor = reverse('proyectos:editor_informe', args=[self.mia.solicitud_id])
+        self.assertRedirects(r, url_editor, fetch_redirect_response=False)
+        self.assertTrue(all(e.aprobado for e in ResultadoEnsayo.objects.all()))
+        self.assertFalse(InformeFinal.objects.filter(solicitud=self.mia.solicitud).exists())
+        self.client.get(url_editor)
         with self.captureOnCommitCallbacks(execute=True):
-            self.client.post(self.url, {'accion': 'aprobar'})
+            self.client.post(reverse('proyectos:emitir_informe', args=[self.mia.solicitud_id]))
         informe = InformeFinal.objects.get(solicitud=self.mia.solicitud)
         self.assertEqual(informe.pdf_estado, InformeFinal.PDF_GENERANDO)
         self.assertEqual(informe.responsable_firma, self.jefe)
         tarea.delay.assert_called_once_with(informe.pk)
-        self.assertTrue(all(e.aprobado for e in ResultadoEnsayo.objects.all()))
 
         # Aprobada: ni el técnico la modifica ni el supervisor la reabre.
         self.client.force_login(self.user_tec)
@@ -123,19 +129,20 @@ class InformeCompresionTests(CompresionBase):
 
     def emitir(self):
         self.terminar_todas()
-        with patch('proyectos.views_informe_compresion.generar_informe_compresion'):
-            self.client.post(self.url, {'accion': 'aprobar'})
+        self.client.post(self.url, {'accion': 'aprobar'})
+        self.client.get(reverse('proyectos:editor_informe', args=[self.mia.solicitud_id]))
+        with patch('proyectos.views_informe_editor.generar_informe_editor'):
+            self.client.post(reverse('proyectos:emitir_informe', args=[self.mia.solicitud_id]))
         informe = InformeFinal.objects.get(solicitud=self.mia.solicitud)
-        generar_informe_compresion.apply(args=[informe.pk])
+        generar_informe_editor.apply(args=[informe.pk])
         informe.refresh_from_db()
         return informe
 
-    def test_pdf_con_caratula_una_pagina_por_probeta_y_fin(self):
+    def test_pdf_con_los_datos_de_cada_probeta_y_fin(self):
         informe = self.emitir()
         self.assertEqual(informe.pdf_estado, InformeFinal.PDF_LISTO, informe.pdf_error)
         with informe.archivo_pdf.open('rb') as f:
             lector = PdfReader(BytesIO(f.read()))
-        self.assertEqual(len(lector.pages), 3)
         texto = '\n'.join(p.extract_text() for p in lector.pages)
         self.assertIn(informe.codigo_informe, texto)
         self.assertIn(self.mia.muestra.codigo_laboratorio, texto)
@@ -143,6 +150,7 @@ class InformeCompresionTests(CompresionBase):
         self.assertIn('621,0', texto)
         self.assertIn('VCF-EQ-PRC-001', texto)
         self.assertIn('Fin del Informe', lector.pages[-1].extract_text())
+        self.assertIn('NTP ISO/IEC 17025', texto)
         self.assertIn('19,42', texto)  # T final de la sesión
 
         r = self.client.get(reverse('proyectos:pdf_informe_compresion', args=[informe.pk]))

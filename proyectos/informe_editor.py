@@ -16,7 +16,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import escape
 
-from .informe_compresion import _negocio, _uri, lineas_resultados
+from .informe_compresion import ANEXOS, FRACTURAS, NOTAS, NOTAS_ITEMS, _negocio, _uri, lineas_resultados
 from .models import FotoEnsayo, Proyecto, ResultadoEnsayo, SesionEnsayo
 
 # --- Bloques de datos ---------------------------------------------------------
@@ -26,15 +26,20 @@ BLOQUE_RESULTADOS = 'resultados'
 BLOQUE_FOTOS = 'fotos'
 BLOQUE_EQUIPOS = 'equipos'
 BLOQUE_FIRMAS = 'firmas'
+BLOQUE_NOTAS = 'notas'
 TIPOS_BLOQUE = {
     BLOQUE_CARATULA: 'Datos del cliente y del ensayo',
     BLOQUE_RESULTADOS: 'Resultados',
     BLOQUE_FOTOS: 'Registro fotográfico',
     BLOQUE_EQUIPOS: 'Equipos y condiciones ambientales',
+    BLOQUE_NOTAS: 'Notas del laboratorio',
     BLOQUE_FIRMAS: 'Firmas',
 }
 # Bloques que llevan una línea de la solicitud como referencia.
 BLOQUES_POR_LINEA = (BLOQUE_RESULTADOS, BLOQUE_FOTOS)
+
+ETIQUETAS_EQUIPO = {'prensa': 'Prensa', 'balanza': 'Balanza', 'vernier': 'Vernier',
+                    'termohigrometro': 'Termohigrómetro', 'cuna': 'Cuña', 'escuadra': 'Escuadra'}
 
 MODO_WEB = 'web'
 MODO_PDF = 'pdf'
@@ -75,13 +80,12 @@ def documento_inicial(solicitud):
         contenido.append(_titulo(3, f"{d.muestra.codigo_laboratorio} · {d.descripcion_ensayo or d.norma}"))
         contenido.append(_bloque(BLOQUE_RESULTADOS, d.pk))
         contenido.append(_bloque(BLOQUE_FOTOS, d.pk))
-    if _hay_sesiones(lineas):
-        contenido.append(_bloque(BLOQUE_EQUIPOS))
     contenido += [
         _titulo(2, 'Observaciones'),
         _parrafo(),
         _titulo(2, 'Conclusiones'),
         _parrafo(),
+        _bloque(BLOQUE_NOTAS),
         _bloque(BLOQUE_FIRMAS),
     ]
     return {'type': 'doc', 'content': contenido}
@@ -99,6 +103,7 @@ def bloques_disponibles(solicitud, lineas=None):
             })
     if _hay_sesiones(lineas):
         lista.append({'tipo': BLOQUE_EQUIPOS, 'ref': '', 'titulo': TIPOS_BLOQUE[BLOQUE_EQUIPOS]})
+    lista.append({'tipo': BLOQUE_NOTAS, 'ref': '', 'titulo': TIPOS_BLOQUE[BLOQUE_NOTAS]})
     lista.append({'tipo': BLOQUE_FIRMAS, 'ref': '', 'titulo': TIPOS_BLOQUE[BLOQUE_FIRMAS]})
     return lista
 
@@ -249,16 +254,28 @@ def datos_informe(solicitud, modo=MODO_WEB, informe=None, firmante=None, lineas=
                 fechas.add(e.fecha_ensayo)
             if e.sesion_id:
                 sesiones[e.sesion_id] = e.sesion
+        sesion = e.sesion if e is not None and e.sesion_id else None
         por_linea[str(d.pk)] = {
             'detalle': d,
             'muestra': d.muestra,
             'ensayo': e,
             'es_compresion': bool(e and e.plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION),
             'fotos': fotos,
+            'sesion': sesion,
+            'equipos': [(ETIQUETAS_EQUIPO.get(c, c), getattr(sesion, c).codigo) for c, _ in SesionEnsayo.EQUIPOS]
+            if sesion else [],
+            'fractura': dict(FRACTURAS).get(e.tipo_fractura) if e is not None and e.tipo_fractura else '',
         }
 
-    etiquetas = {'prensa': 'Prensa', 'balanza': 'Balanza', 'vernier': 'Vernier',
-                 'termohigrometro': 'Termohigrómetro', 'cuna': 'Cuña', 'escuadra': 'Escuadra'}
+    etiquetas = ETIQUETAS_EQUIPO
+    metodos = {}
+    for d in lineas:
+        clave = (d.descripcion_ensayo or d.norma, d.norma)
+        metodos[clave] = metodos.get(clave, 0) + 1
+    negocio = _negocio()
+    direccion = (
+        f"{negocio.direccion_calle} - {negocio.direccion_localidad}" if negocio else "Jr. Los Topacios 440 - Cajamarca"
+    )
     equipos = []
     for s in sorted(sesiones.values(), key=lambda s: (s.fecha, s.pk)):
         equipos.append({
@@ -294,6 +311,11 @@ def datos_informe(solicitud, modo=MODO_WEB, informe=None, firmante=None, lineas=
         'lineas': por_linea,
         'equipos': equipos,
         'firma': firma,
+        'metodos': [{'nombre': n, 'norma': norma, 'cantidad': c} for (n, norma), c in metodos.items()],
+        'hay_compresion': any(v['es_compresion'] for v in por_linea.values()),
+        'notas_items': NOTAS_ITEMS,
+        'notas': [n.format(direccion=direccion) for n in NOTAS],
+        'anexos': ANEXOS,
         'qr': '',
         'modo': modo,
     }
