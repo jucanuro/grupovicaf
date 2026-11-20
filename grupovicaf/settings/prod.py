@@ -11,10 +11,10 @@ ALLOWED_HOSTS = os.environ.get(
     'laboratorio.grupovicaf.com,email.grupovicaf.com,grupovicaf.com,www.grupovicaf.com,localhost,127.0.0.1'
 ).split(',')
 
-CSRF_TRUSTED_ORIGINS = os.environ.get(
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.environ.get(
     'CSRF_TRUSTED_ORIGINS',
     'https://laboratorio.grupovicaf.com,https://email.grupovicaf.com,https://grupovicaf.com,https://www.grupovicaf.com'
-).split(',')
+).split(',') if o.strip()]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -32,6 +32,12 @@ CORREO_HOST = os.environ.get('CORREO_HOST') or 'email.grupovicaf.com'
 LAB_HOST = os.environ.get('LAB_HOST') or 'laboratorio.grupovicaf.com'
 CORREO_BASE_URL = CORREO_BASE_URL or f'https://{CORREO_HOST}'
 LAB_BASE_URL = LAB_BASE_URL or f'https://{LAB_HOST}'
+
+# Los hosts propios del LIMS y del correo siempre son origen confiable,
+# aunque el .env defina CSRF_TRUSTED_ORIGINS vacío o sin ellos.
+for _host in (CORREO_HOST, LAB_HOST):
+    if f'https://{_host}' not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(f'https://{_host}')
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
