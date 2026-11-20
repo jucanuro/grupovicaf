@@ -367,6 +367,7 @@ class TerminarConMedidasTests(TerminarTests):
         self.assertContains(r, 'data-medida=', count=7)
         self.assertContains(r, '621,0')  # es-PE: coma decimal, como el informe
         self.assertContains(r, 'compresion_calculos.js')
+        self.assertContains(r, 'centrado_foto.js')
         self.assertNotContains(r, 'Constructora Secreta')
 
 
