@@ -1,0 +1,64 @@
+{% extends "base_vicafpro.html" %}
+{% block title %}Abrir sesión de ensayo | VICAF LIMS{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 pt-5 pb-28 space-y-4">
+    <a href="{% url 'proyectos:mis_ensayos_compresion' %}" class="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i> Mis ensayos
+    </a>
+    <div>
+        <h1 class="text-lg font-bold text-slate-800">Abrir sesión de ensayo</h1>
+        <p class="text-xs text-slate-500">Condiciones al empezar y equipos que usarás. Valen para todas las probetas que termines en esta sesión.</p>
+    </div>
+
+    {% if faltan_tipos %}
+    <div class="rounded-xl px-4 py-3 text-sm bg-amber-50 text-amber-800 border border-amber-200" role="note">
+        No hay equipo vigente de: {{ faltan_tipos|join:", " }}. Los equipos con la calibración vencida no se pueden elegir; avisa al supervisor.
+    </div>
+    {% endif %}
+
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
+            <h2 class="font-bold text-slate-800">Condiciones ambientales iniciales</h2>
+            <label class="block">
+                <span class="text-sm font-semibold text-slate-700">Fecha de ensayo</span>
+                {{ form.fecha }}
+                {% for e in form.fecha.errors %}<span class="block text-xs text-red-600">{{ e }}</span>{% endfor %}
+            </label>
+            <div class="grid grid-cols-2 gap-3">
+                <label class="block">
+                    <span class="text-sm font-semibold text-slate-700">Temperatura (°C)</span>
+                    {{ form.temperatura_inicial }}
+                    {% for e in form.temperatura_inicial.errors %}<span class="block text-xs text-red-600">{{ e }}</span>{% endfor %}
+                </label>
+                <label class="block">
+                    <span class="text-sm font-semibold text-slate-700">Humedad relativa (%)</span>
+                    {{ form.humedad_inicial }}
+                    {% for e in form.humedad_inicial.errors %}<span class="block text-xs text-red-600">{{ e }}</span>{% endfor %}
+                </label>
+            </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
+            <h2 class="font-bold text-slate-800">Equipos empleados</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {% for campo in campos_equipo %}
+                <label class="block">
+                    <span class="text-sm font-semibold text-slate-700">{{ campo.label }}</span>
+                    {{ campo }}
+                    {% for e in campo.errors %}<span class="block text-xs text-red-600">{{ e }}</span>{% endfor %}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-slate-200 px-4 py-3">
+            <div class="max-w-3xl mx-auto">
+                <button type="submit" class="w-full rounded-xl bg-slate-900 text-white py-3 text-sm font-bold">Abrir sesión</button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -90,6 +90,30 @@ y quejas de SES (`procesar_evento_ses`: rebote permanente = «Falló el envío»
 `CORREO_SES_CONFIG_SET` añade la cabecera de conjunto de configuración. Guía:
 `deploy/cloudflare/README.md`.
 
+**Ensayo de compresión (HU-LIMS-14).** `proyectos/views_compresion.py`:
+el técnico registra en el celular cada probeta de ASTM C39 / EC001 asignada
+(`/proyectos/compresion/`) con 5 fotos obligatorias recortadas con proporción
+fija (Cropper.js 1.6.2 vendorizado; carga 18:7, probeta 4:7, en
+`FotoEnsayo.PROPORCIONES`). Sin las 5 fotos y la fecha no se puede terminar.
+Las fotos van a `ENSAYOS_FOTOS_DIR` (privado, nunca MEDIA_ROOT; en prod debe
+existir, ser escribible por el servicio y entrar en el backup) y se sirven
+por una vista con sesión. Permiso `ensayos.registrar`.
+Medidas y cálculos (HU-LIMS-11 a 13): recepción llena los datos FOR-004 de
+cada probeta (`/proyectos/recepcion/<id>/probetas/`, permiso `muestras.editar`);
+el técnico abre una `SesionEnsayo` (T/HR y los 6 equipos con calibración
+vigente; `Equipo` en `/proyectos/equipos/`, permisos `equipos.ver`/`equipos.editar`)
+y registra masa, D1-D2, L1-L3, carga y fractura. Las reglas de cálculo están en
+`proyectos/calculos_compresion.py` (π = 3,1416 como la hoja del laboratorio) y
+su copia de vista previa en `static/js/compresion_calculos.js`: si cambia una,
+cambiar la otra.
+Revisión e informe (HU-LIMS-15 a 19, `views_informe_compresion.py`): quien
+tiene `informes.aprobar` devuelve o aprueba en `/proyectos/compresion/revision/`;
+al aprobar (todas terminadas y sesiones cerradas) se crea el `InformeFinal` de
+la solicitud y Celery (`generar_informe_compresion`) arma el PDF con WeasyPrint
+(`informe_compresion.py` + `informe_compresion_pdf.html`, QR ya impreso).
+Excel con openpyxl (`informes.exportar`); envío al cliente con
+`enviar_informe_cliente`.
+
 ### Capa web (pública) — prefijo `web_` obligatorio
 
 | App | Responsabilidad |

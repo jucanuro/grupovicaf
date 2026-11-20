@@ -36,6 +36,14 @@
                 <span class="command-header__trigger-label">Panel</span>
             </button>
 
+            {% if puede_registrar_ensayos %}
+            <a href="{% url 'proyectos:mis_ensayos_compresion' %}"
+            class="command-header__action">
+                <i data-lucide="camera" class="w-3.5 h-3.5"></i>
+                Compresión
+            </a>
+            {% endif %}
+
             <a href="{% url 'proyectos:crear_solicitud' %}"
             class="command-header__action">
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>

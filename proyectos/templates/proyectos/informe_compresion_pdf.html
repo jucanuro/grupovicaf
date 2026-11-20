@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>{{ informe.codigo_informe }}</title>
+<style>
+@page { size: A4; margin: 9mm 11mm 13mm 11mm;
+        @bottom-left { content: "{{ negocio.nombre|default:'GRUPO VICAF SAC.' }} | {{ direccion_laboratorio }} | {{ negocio.telefono|default:'' }} | {{ negocio.correo|default:'informes@grupovicaf.com' }}"; font-size: 6.5pt; color: #555; }
+        @bottom-right { content: "Página " counter(page) " de " counter(pages); font-size: 7pt; color: #555; } }
+* { box-sizing: border-box; }
+body { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 6.8pt; color: #111; }
+.pagina { page-break-after: always; }
+.pagina:last-child { page-break-after: auto; }
+.cab { display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5pt solid #0b3a6e; padding-bottom: 4pt; margin-bottom: 4pt; }
+.cab img { height: 28pt; }
+.cab .acred { text-align: right; font-size: 7pt; font-weight: bold; color: #0b3a6e; max-width: 70%; }
+.formato { font-size: 6.5pt; color: #333; text-align: right; margin-bottom: 4pt; }
+h1 { font-size: 10pt; text-align: center; margin: 2pt 0; color: #0b3a6e; }
+h2 { font-size: 7.3pt; background: #0b3a6e; color: #fff; padding: 1.5pt 4pt; margin: 4pt 0 1.5pt; }
+h3 { font-size: 7pt; margin: 3pt 0 1.5pt; color: #0b3a6e; }
+table { width: 100%; border-collapse: collapse; }
+td, th { border: 0.5pt solid #9aa5b1; padding: 1.2pt 3pt; vertical-align: top; }
+th { background: #e8eef5; font-weight: bold; text-align: center; }
+.kv td:first-child { width: 28%; font-weight: bold; background: #f4f7fa; }
+.num { text-align: right; font-family: "DejaVu Sans Mono", monospace; }
+.c { text-align: center; }
+.notas { margin: 2pt 0 0 0; padding-left: 10pt; }
+.notas li { margin-bottom: 0.5pt; }
+.pie-firma { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 4pt; }
+.qr img { width: 62pt; height: 62pt; }
+.firma { text-align: center; width: 45%; }
+.firma img { height: 30pt; }
+.firma .linea { border-top: 0.5pt solid #111; padding-top: 2pt; }
+.fotos { display: flex; gap: 4pt; align-items: flex-start; }
+.fotos figure { margin: 0; text-align: center; font-size: 6.5pt; }
+.fotos .probeta img { width: 56pt; height: 98pt; object-fit: cover; border: 0.5pt solid #999; }
+.fotos .carga img { width: 162pt; height: 63pt; object-fit: cover; border: 0.5pt solid #999; }
+.fractura td { font-size: 5.6pt; width: 16.6%; }
+.fractura .marcado { background: #fde68a; font-weight: bold; }
+.fin { text-align: center; font-weight: bold; margin-top: 4pt; letter-spacing: 1pt; }
+.dos { display: flex; gap: 6pt; }
+.dos > div { flex: 1; }
+p { margin: 2pt 0; }
+</style>
+</head>
+<body>
+
+{# ---------------- Carátula (FOR-064) ---------------- #}
+<section class="pagina">
+  <div class="cab">
+    <img src="{{ logo }}" alt="Grupo VICAF">
+    <div class="acred">LABORATORIO DE ENSAYO ACREDITADO POR EL ORGANISMO DE ACREDITACIÓN {{ negocio.acreditacion_entidad|default:'INACAL' }} - DA CON REGISTRO Nº {{ negocio.acreditacion_codigo|default:'LE-230' }}</div>
+  </div>
+  <div class="formato">Código: {{ formato_caratula.codigo }} | Fecha: {{ formato_caratula.fecha }} | Versión: {{ formato_caratula.version }} | Aprobación: {{ formato_caratula.aprobacion }}</div>
+  <h1>INFORME DE ENSAYOS</h1>
+  <p class="c"><b>CÓDIGO DE INFORME : {{ informe.codigo_informe }}</b></p>
+
+  <h2>1. INFORMACIÓN DEL CLIENTE (*)</h2>
+  <table class="kv">
+    <tr><td>Razón Social</td><td>{{ cliente.razon_social }}</td></tr>
+    <tr><td>RUC</td><td>{{ cliente.ruc }}</td></tr>
+    <tr><td>Dirección</td><td>{{ cliente.direccion }}</td></tr>
+    <tr><td>Página web</td><td>{{ cliente.sitio_web }}</td></tr>
+    <tr><td>Contacto</td><td>{{ cliente.contacto }}</td></tr>
+    <tr><td>Cargo</td><td>{{ cliente.cargo }}</td></tr>
+    <tr><td>Celular</td><td>{{ cliente.celular }}</td></tr>
+    <tr><td>e-mail</td><td>{{ cliente.correo }}</td></tr>
+  </table>
+
+  <h2>2. INFORMACIÓN DEL PROYECTO (*)</h2>
+  <table class="kv">
+    <tr><td>Proyecto</td><td>{{ proyecto }}</td></tr>
+    <tr><td>Ubicación</td><td>{{ ubicacion }}</td></tr>
+  </table>
+
+  <h2>3. LÍNEA DE TIEMPO DEL SERVICIO</h2>
+  <table>
+    <tr><th>Recepción de Ítems de Ensayo</th><th>Fecha Solicitada de Ensayo(s) (*)</th><th>Fecha de Ejecución de Ensayo(s)</th><th>Emisión de Informe</th></tr>
+    <tr class="c">
+      <td>{{ linea_tiempo.recepcion|date:"Y-m-d"|default:"-" }}</td>
+      <td>{{ linea_tiempo.solicitada|date:"Y-m-d"|default:"-" }}</td>
+      <td>{% for f in linea_tiempo.ejecucion %}{{ f|date:"Y-m-d" }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</td>
+      <td>{{ linea_tiempo.emision|date:"Y-m-d" }}</td>
+    </tr>
+  </table>
+
+  <h2>4. INFORMACIÓN DE ÍTEMS DE ENSAYO</h2>
+  <ul class="notas">{% for n in notas_items %}<li>{{ n }}</li>{% endfor %}</ul>
+  <h3>Tabla No.01. ÍTEMS DE ENSAYO</h3>
+  <table>
+    <tr><th>ÍTEM</th><th>ID (LABORATORIO)</th><th>ID (CLIENTE) (*)</th><th>RESIST. DE DISEÑO (kg/cm²) (*)</th><th>FECHA DE FABRICACIÓN (*)</th><th>MATERIAL</th><th>TIPO DE MUESTRA</th></tr>
+    {% for p in probetas %}
+    <tr class="c">
+      <td>{{ forloop.counter }}</td><td>{{ p.muestra.codigo_laboratorio }}</td><td>{{ p.muestra.codigo_cliente|default:"-" }}</td>
+      <td>{{ p.muestra.fc_diseno|floatformat:0 }}</td><td>{{ p.muestra.fecha_fabricacion|date:"Y-m-d" }}</td>
+      <td>{{ p.muestra.material|default:"Concreto" }}</td><td>{{ p.muestra.tipo_probeta|default:"Probeta cilíndrica" }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <h2>5. MÉTODOS DE ENSAYO EJECUTADOS</h2>
+  <h3>Tabla No.02. ENSAYOS EJECUTADOS</h3>
+  <table>
+    <tr><th>MÉTODO DE ENSAYO</th><th>NORMA</th><th>CANTIDAD</th></tr>
+    {% for m in metodos %}<tr><td>{{ m.nombre }}</td><td class="c">{{ m.norma }}</td><td class="c">{{ m.cantidad|stringformat:"02d" }}</td></tr>{% endfor %}
+  </table>
+
+  <h2>6. NOTAS</h2>
+  <ul class="notas">{% for n in notas %}<li>{{ n }}</li>{% endfor %}</ul>
+  <table class="kv" style="margin-top:3pt">
+    <tr><td>Código de informe al que reemplaza</td><td>-</td></tr>
+    <tr><td>Motivo del reemplazo de informe</td><td>-</td></tr>
+  </table>
+
+  <h2>7. ANEXOS</h2>
+  <ul class="notas">{% for n in anexos %}<li>{{ n }}</li>{% endfor %}</ul>
+
+  <div class="pie-firma">
+    <div class="qr">{% if qr %}<p><b>Verifica el documento online:</b></p><img src="{{ qr }}" alt="QR de verificación">{% endif %}</div>
+    <div class="firma">
+      <p><b>INFORME AUTORIZADO POR:</b></p>
+      {% if firmante.firma %}<img src="{{ firmante.firma }}" alt="Firma">{% endif %}
+      <div class="linea">{{ firmante.nombre }}<br>{{ firmante.cargo }}</div>
+    </div>
+  </div>
+</section>
+
+{# ---------------- Una página por probeta (FOR-039) ---------------- #}
+{% for p in probetas %}
+<section class="pagina" data-probeta="{{ p.muestra.codigo_laboratorio }}">
+  <div class="cab">
+    <img src="{{ logo }}" alt="Grupo VICAF">
+    <div class="acred">RESISTENCIA A LA COMPRESIÓN DE ESPECÍMENES CILÍNDRICOS DE CONCRETO<br>
+      <span style="font-weight:normal">Standard Test Method for Compressive Strength of Cylindrical Concrete Specimens ({{ p.detalle.norma }})</span></div>
+  </div>
+  <div class="formato">Código: {{ formato_probeta.codigo }} | Fecha: {{ formato_probeta.fecha }} | Versión: {{ formato_probeta.version }} | Aprobación: {{ formato_probeta.aprobacion }} | Muestra No. {{ forloop.counter|stringformat:"02d" }}</div>
+
+  <h2>I. DATOS DEL CLIENTE</h2>
+  <div class="dos">
+    <div><table class="kv">
+      <tr><td>Cliente</td><td>{{ cliente.razon_social }}</td></tr>
+      <tr><td>Proyecto (**)</td><td>{{ proyecto }}</td></tr>
+      <tr><td>Ubicación (**)</td><td>{{ ubicacion }}</td></tr>
+      <tr><td>Código de Informe</td><td>{{ informe.codigo_informe }}</td></tr>
+    </table></div>
+    <div><table>
+      <tr><th>Condiciones Ambientales</th><th>Inicial</th><th>Final</th></tr>
+      <tr><td>Temperatura (T°)</td><td class="num">{{ p.sesion.temperatura_inicial|floatformat:2 }} °C</td><td class="num">{{ p.sesion.temperatura_final|floatformat:2|default:"-" }} °C</td></tr>
+      <tr><td>Humedad Relativa (HR)</td><td class="num">{{ p.sesion.humedad_inicial|floatformat:2 }} %</td><td class="num">{{ p.sesion.humedad_final|floatformat:2|default:"-" }} %</td></tr>
+    </table></div>
+  </div>
+
+  <h2>II. IDENTIFICACIÓN DE LA MUESTRA ENSAYADA</h2>
+  <table>
+    <tr><th>ID de Laboratorio</th><th>ID de Cliente (*)</th><th>Elemento Estructural (*)</th><th>Resistencia de Diseño f'c (*)</th><th>Tipo de Muestra</th></tr>
+    <tr class="c"><td>{{ p.muestra.codigo_laboratorio }}</td><td>{{ p.muestra.codigo_cliente|default:"-" }}</td><td>{{ p.muestra.elemento_estructural|default:"-" }}</td><td>{{ p.muestra.fc_diseno|floatformat:0 }} kg/cm²</td><td>{{ p.muestra.tipo_probeta|default:"Probeta cilíndrica" }}</td></tr>
+  </table>
+
+  <h2>III. LÍNEA DE TIEMPO DEL SERVICIO</h2>
+  <table>
+    <tr><th>Fabricación de Ítems de Ensayo (*)</th><th>Recepción de Ítems de Ensayo</th><th>Ejecución del Ensayo(s)</th><th>Emisión de Informe</th></tr>
+    <tr class="c"><td>{{ p.muestra.fecha_fabricacion|date:"Y-m-d" }}</td><td>{{ linea_tiempo.recepcion|date:"Y-m-d" }}</td><td>{{ p.ensayo.fecha_ensayo|date:"Y-m-d" }}</td><td>{{ linea_tiempo.emision|date:"Y-m-d" }}</td></tr>
+  </table>
+
+  <h2>IV. EJECUCIÓN DEL MÉTODO</h2>
+  <div class="dos">
+    <div>
+      <h3>DATOS DEL CILINDRO A ENSAYAR</h3>
+      <table>
+        <tr><td>Edad de la muestra (*)</td><td class="num">{{ p.ensayo.edad_dias }}</td><td>días</td></tr>
+        <tr><td>Masa</td><td class="num">{{ p.ensayo.masa_g|floatformat:0 }}</td><td>g</td></tr>
+        <tr><td>Diámetro</td><td class="num">D1 = {{ p.ensayo.d1|floatformat:2 }}<br>D2 = {{ p.ensayo.d2|floatformat:2 }}</td><td>mm</td></tr>
+        <tr><td>Longitud</td><td class="num">L1 = {{ p.ensayo.l1|floatformat:2 }}<br>L2 = {{ p.ensayo.l2|floatformat:2 }}<br>L3 = {{ p.ensayo.l3|floatformat:2 }}</td><td>mm</td></tr>
+      </table>
+    </div>
+    <div>
+      <h3>RESULTADOS DE ENSAYO</h3>
+      <table>
+        <tr><td>Diámetro promedio</td><td class="num">{{ p.ensayo.diametro_prom|floatformat:2 }}</td><td>mm</td></tr>
+        <tr><td>Longitud promedio</td><td class="num">{{ p.ensayo.longitud_prom|floatformat:2 }}</td><td>mm</td></tr>
+        <tr><td>Área de la sección transversal</td><td class="num">{{ p.ensayo.area|floatformat:2 }}</td><td>mm²</td></tr>
+        <tr><td>Relación L/D</td><td class="num">{{ p.ensayo.relacion_ld|floatformat:2 }}</td><td>-</td></tr>
+        <tr><td>Factor</td><td class="num">{{ p.ensayo.factor|floatformat:2 }}</td><td>-</td></tr>
+        <tr><td>Carga Máxima Registrada</td><td class="num">{{ p.ensayo.carga_kn|floatformat:2 }}</td><td>kN</td></tr>
+        <tr><td>Resistencia a la compresión</td><td class="num">{{ p.ensayo.resistencia_mpa|floatformat:1 }}</td><td>MPa</td></tr>
+        <tr><td>Resistencia a la compresión</td><td class="num"><b>{{ p.ensayo.resistencia_kgcm2|floatformat:1 }}</b></td><td>kg/cm²</td></tr>
+        <tr><td>Porcentaje obtenido</td><td class="num">{{ p.ensayo.porcentaje }}</td><td>%</td></tr>
+        <tr><td>Densidad</td><td class="num">{{ p.ensayo.densidad }}</td><td>kg/m³</td></tr>
+        <tr><td>Tipo de fractura</td><td class="num">TIPO {{ p.ensayo.tipo_fractura }}</td><td></td></tr>
+      </table>
+    </div>
+  </div>
+  <p><b>Defectos del Espécimen Ensayado :</b> {{ p.ensayo.defectos|default:"-" }}</p>
+
+  <h3>REGISTRO FOTOGRÁFICO</h3>
+  <div class="fotos">
+    <figure class="carga"><img src="{{ p.foto.carga }}" alt=""><figcaption>Carga Máxima Registrada</figcaption></figure>
+    <figure class="probeta"><img src="{{ p.foto.antes }}" alt=""><figcaption>Muestra antes</figcaption></figure>
+    <figure class="probeta"><img src="{{ p.foto.antes_pizarra }}" alt=""><figcaption>Antes, con pizarra</figcaption></figure>
+    <figure class="probeta"><img src="{{ p.foto.despues }}" alt=""><figcaption>Muestra después</figcaption></figure>
+    <figure class="probeta"><img src="{{ p.foto.despues_pizarra }}" alt=""><figcaption>Después, con pizarra</figcaption></figure>
+  </div>
+
+  <h3>ESQUEMA DE FRACTURAS TÍPICAS ({{ p.detalle.norma }})</h3>
+  <table class="fractura"><tr>
+    {% for n, texto in fracturas %}<td class="{% if n == p.ensayo.tipo_fractura %}marcado{% endif %}"><b>TIPO {{ n }}</b><br>{{ texto }}</td>{% endfor %}
+  </tr></table>
+
+  <p><b>OBSERVACIONES:</b> {{ p.ensayo.observaciones|default:"-" }}</p>
+  <p style="font-size:6.5pt">(*) Los datos indicados han sido proporcionados por el Cliente.</p>
+
+  <h3>IDENTIFICACIÓN DEL EQUIPAMIENTO EMPLEADO</h3>
+  <table><tr>{% for etiqueta, codigo in p.equipos %}<td><b>{{ etiqueta }}</b>: {{ codigo }}</td>{% if forloop.counter == 3 %}</tr><tr>{% endif %}{% endfor %}</tr></table>
+
+  <div class="pie-firma">
+    <div><b>EJECUTADO POR:</b> {% if p.ensayo.tecnico %}Téc. {{ p.ensayo.tecnico.nombre_completo }}{% endif %}</div>
+    <div class="firma">
+      <p><b>AUTORIZADO POR:</b></p>
+      {% if firmante.firma %}<img src="{{ firmante.firma }}" alt="Firma">{% endif %}
+      <div class="linea">{{ firmante.nombre }}<br>{{ firmante.cargo }}</div>
+    </div>
+  </div>
+  {% if forloop.last %}<p class="fin">» » » » » Fin del Informe « « « « «</p>{% endif %}
+</section>
+{% endfor %}
+</body>
+</html>
