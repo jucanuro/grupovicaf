@@ -20,10 +20,9 @@ from django.views.decorators.http import require_POST
 from trabajadores.models import TrabajadorProfile
 from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso
 
-from .informe_compresion import ensayos_para_excel, exportar_excel, lineas_compresion
-from .models import EnsayoCompresion, InformeFinal, SolicitudEnsayo
+from .informe_compresion import ensayos_para_excel, exportar_excel, lineas_resultados
+from .models import ResultadoEnsayo, InformeFinal, SolicitudEnsayo
 from .tasks import enviar_informe_cliente, generar_informe_compresion
-from .views_compresion import FILTRO_COMPRESION
 
 PERMISO_APROBAR = 'informes.aprobar'
 PERMISO_EXPORTAR = 'informes.exportar'
@@ -41,13 +40,15 @@ def _perfil(user):
 def revision_compresion_lista(request):
     from .models import DetalleSolicitudEnsayo
     conteos = (
-        DetalleSolicitudEnsayo.objects.filter(FILTRO_COMPRESION)
+        DetalleSolicitudEnsayo.objects.all()
         .values('solicitud')
         .annotate(
             total=Count('pk'),
-            terminadas=Count('pk', filter=Q(ensayo_compresion__estado__in=EnsayoCompresion.ESTADOS_CERRADOS)),
-            aprobadas=Count('pk', filter=Q(ensayo_compresion__estado=EnsayoCompresion.ESTADO_APROBADO)),
+            terminadas=Count('pk', filter=Q(resultado__estado__in=ResultadoEnsayo.ESTADOS_CERRADOS)),
+            aprobadas=Count('pk', filter=Q(resultado__estado=ResultadoEnsayo.ESTADO_APROBADO)),
+            con_resultado=Count('resultado'),
         )
+        .filter(con_resultado__gt=0)
     )
     por_solicitud = {c['solicitud']: c for c in conteos}
     solicitudes = list(
@@ -72,9 +73,9 @@ def revision_compresion_lista(request):
 @permiso_requerido(PERMISO_APROBAR)
 def revision_compresion(request, solicitud_id):
     solicitud = get_object_or_404(SolicitudEnsayo.objects.select_related('recepcion'), pk=solicitud_id)
-    lineas = list(lineas_compresion(solicitud))
+    lineas = list(lineas_resultados(solicitud))
     if not lineas:
-        raise Http404("La solicitud no tiene probetas de compresión.")
+        raise Http404("La solicitud no tiene ensayos.")
     informe = InformeFinal.objects.filter(solicitud=solicitud).first()
 
     if request.method == 'POST':
@@ -94,7 +95,7 @@ def revision_compresion(request, solicitud_id):
 
     filas = []
     for d in lineas:
-        e = getattr(d, 'ensayo_compresion', None)
+        e = getattr(d, 'resultado', None)
         filas.append({'detalle': d, 'ensayo': e, 'fotos': list(e.fotos.all()) if e else []})
     todas_terminadas = all(f['ensayo'] and f['ensayo'].terminado for f in filas)
     aprobadas = all(f['ensayo'] and f['ensayo'].aprobado for f in filas)
@@ -104,6 +105,7 @@ def revision_compresion(request, solicitud_id):
         'informe': informe,
         'todas_terminadas': todas_terminadas,
         'aprobadas': aprobadas,
+        'solo_compresion': all(f['ensayo'] and f['ensayo'].es_compresion for f in filas),
         'puede_exportar': trabajador_tiene_permiso(request.user, PERMISO_EXPORTAR),
         'correo_cliente': _correo_cliente(solicitud),
     })
@@ -114,18 +116,23 @@ def _devolver(request, solicitud, lineas):
     observacion = (request.POST.get('observacion') or '').strip()
     url = redirect('proyectos:revision_compresion', solicitud_id=solicitud.pk)
     detalle = next((d for d in lineas if str(d.pk) == detalle_id), None)
-    ensayo = getattr(detalle, 'ensayo_compresion', None) if detalle else None
-    if ensayo is None or ensayo.estado != EnsayoCompresion.ESTADO_TERMINADO:
-        messages.error(request, "Solo se puede devolver una probeta terminada y aún no aprobada.")
+    ensayo = getattr(detalle, 'resultado', None) if detalle else None
+    if ensayo is None or ensayo.estado != ResultadoEnsayo.ESTADO_TERMINADO:
+        messages.error(request, "Solo se puede devolver un ensayo terminado y aún no aprobado.")
+        return url
+    perfil = _perfil(request.user)
+    if perfil is not None and ensayo.tecnico_id == perfil.pk:
+        messages.error(request, "No puedes revisar un ensayo que ejecutaste tú.")
         return url
     if not observacion:
         messages.error(request, "Escribe la observación para el técnico.")
         return url
-    ensayo.estado = EnsayoCompresion.ESTADO_BORRADOR
+    ensayo.estado = ResultadoEnsayo.ESTADO_BORRADOR
     ensayo.terminado_en = None
     ensayo.observacion_revision = observacion[:2000]
     ensayo.save(update_fields=['estado', 'terminado_en', 'observacion_revision', 'actualizado_en'])
-    messages.success(request, f"Probeta {detalle.muestra.codigo_laboratorio} devuelta al técnico.")
+    solicitud.sincronizar_estado()
+    messages.success(request, f"{detalle.muestra.codigo_laboratorio} devuelta al técnico.")
     return url
 
 
@@ -139,9 +146,14 @@ def _aprobar_y_emitir(request, solicitud, lineas, informe):
         # CA-15.4 (informe de reemplazo con código nuevo) llega en una entrega posterior.
         messages.error(request, f"El informe {informe.codigo_informe} ya fue emitido.")
         return url
-    ensayos = [getattr(d, 'ensayo_compresion', None) for d in lineas]
+    ensayos = [getattr(d, 'resultado', None) for d in lineas]
     if any(e is None or not e.terminado for e in ensayos):
-        messages.error(request, "Todas las probetas de la solicitud deben estar terminadas para emitir.")
+        messages.error(request, "Todos los ensayos de la solicitud deben estar terminados para aprobar.")
+        return url
+    propios = [d.muestra.codigo_laboratorio for d, e in zip(lineas, ensayos) if e.tecnico_id == perfil.pk]
+    if propios:
+        # Separación de funciones (ISO/IEC 17025): quien ejecuta no revisa su propio ensayo.
+        messages.error(request, "No puedes aprobar ensayos que ejecutaste tú: " + ", ".join(propios) + ".")
         return url
     abiertas = {e.sesion for e in ensayos if e.sesion and e.sesion.abierta}
     if abiertas:
@@ -149,10 +161,19 @@ def _aprobar_y_emitir(request, solicitud, lineas, informe):
         messages.error(request, f"Falta cerrar la sesión de ensayo (temperatura y humedad finales) de: {tecnicos}.")
         return url
 
+    if not all(e.es_compresion for e in ensayos):
+        # Hay ensayos sin plantilla de informe: se aprueban y el informe se sube a mano como hoy.
+        ResultadoEnsayo.objects.filter(pk__in=[e.pk for e in ensayos]).update(
+            estado=ResultadoEnsayo.ESTADO_APROBADO, aprobado_por=perfil, aprobado_en=timezone.now(),
+            observacion_revision='',
+        )
+        messages.success(request, "Resultados aprobados. Ahora sube el informe de esta solicitud.")
+        return redirect('proyectos:gestionar_informe', solicitud_id=solicitud.pk)
+
     with transaction.atomic():
         ahora = timezone.now()
-        EnsayoCompresion.objects.filter(pk__in=[e.pk for e in ensayos]).update(
-            estado=EnsayoCompresion.ESTADO_APROBADO, aprobado_por=perfil, aprobado_en=ahora,
+        ResultadoEnsayo.objects.filter(pk__in=[e.pk for e in ensayos]).update(
+            estado=ResultadoEnsayo.ESTADO_APROBADO, aprobado_por=perfil, aprobado_en=ahora,
             observacion_revision='',
         )
         if informe is None:

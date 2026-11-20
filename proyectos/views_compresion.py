@@ -1,4 +1,10 @@
-"""Registro del ensayo de compresión de probetas desde el celular.
+"""Resultados de ensayo: el técnico registra cada línea asignada desde el celular.
+
+Cada línea (muestra × ensayo) usa una plantilla: «compresion» (ASTM C39) o
+«general» (resumen, hoja de cálculo y 2 fotos) para los ensayos sin formato
+propio todavía. Al terminar la última línea la solicitud queda finalizada sola
+(``SolicitudEnsayo.sincronizar_estado``).
+
 
 - HU-LIMS-11: la recepción completa los datos FOR-004 de cada probeta
   (ID del cliente, elemento, f'c, fabricación, edad) en ``datos_probetas``.
@@ -33,7 +39,7 @@ from .calculos_compresion import DatosInsuficientes
 from .forms_compresion import AbrirSesionForm, CerrarSesionForm, DatosProbetaForm, EquipoForm
 from .fotos import FotoInvalida, procesar_foto
 from .models import (
-    DetalleSolicitudEnsayo, EnsayoCompresion, Equipo, FotoEnsayo, MuestraDetalle,
+    DetalleSolicitudEnsayo, ResultadoEnsayo, Equipo, FotoEnsayo, MuestraDetalle,
     RecepcionMuestra, SesionEnsayo,
 )
 
@@ -62,17 +68,17 @@ FILTRO_COMPRESION = (
 
 
 def _detalles_visibles(user):
-    qs = DetalleSolicitudEnsayo.objects.filter(FILTRO_COMPRESION)
+    qs = DetalleSolicitudEnsayo.objects.all()
     if not ve_todos_los_ensayos(user):
         qs = qs.filter(tecnico_asignado__user=user)
     return qs
 
 
 def _detalle_o_404(user, detalle_id):
-    """La probeta si es de compresión y el usuario puede verla; si no, 404 (CA-20.2)."""
+    """La línea si el usuario puede verla; si no, 404 (CA-20.2)."""
     return get_object_or_404(
         _detalles_visibles(user).select_related(
-            'muestra', 'solicitud', 'tecnico_asignado', 'ensayo_compresion',
+            'muestra', 'solicitud', 'tecnico_asignado', 'resultado', 'servicio_cotizado__servicio',
         ),
         pk=detalle_id,
     )
@@ -80,8 +86,8 @@ def _detalle_o_404(user, detalle_id):
 
 def _ensayo_de(detalle):
     try:
-        return detalle.ensayo_compresion
-    except EnsayoCompresion.DoesNotExist:
+        return detalle.resultado
+    except ResultadoEnsayo.DoesNotExist:
         return None
 
 
@@ -105,18 +111,22 @@ def mis_ensayos_compresion(request):
     vista = request.GET.get('vista', 'pendientes')
     detalles = (
         _detalles_visibles(request.user)
-        .select_related('muestra', 'solicitud', 'ensayo_compresion', 'tecnico_asignado')
-        .annotate(n_fotos=Count('ensayo_compresion__fotos'))
+        .select_related('muestra', 'solicitud', 'resultado', 'tecnico_asignado')
+        .annotate(n_fotos=Count('resultado__fotos'))
         .order_by('fecha_entrega_programada', 'muestra__codigo_laboratorio')
     )
-    terminado = Q(ensayo_compresion__estado__in=EnsayoCompresion.ESTADOS_CERRADOS)
+    terminado = Q(resultado__estado__in=ResultadoEnsayo.ESTADOS_CERRADOS)
     detalles = detalles.filter(terminado) if vista == 'terminados' else detalles.exclude(terminado)
 
+    detalles = list(detalles.select_related('servicio_cotizado__servicio')[:200])
+    for d in detalles:
+        e = _ensayo_de(d)
+        d.plantilla = e.plantilla if e else ResultadoEnsayo.plantilla_para(d)
+        d.total_fotos = len(FotoEnsayo.tipos_de(d.plantilla))
     sesion = SesionEnsayo.abierta_de(_perfil(request.user))
     return render(request, 'proyectos/compresion_lista.html', {
-        'detalles': detalles[:200],
+        'detalles': detalles,
         'vista': vista,
-        'total_fotos': len(FotoEnsayo.TIPOS),
         'hoy': timezone.localdate(),
         'sesion': sesion,
         'form_cerrar': CerrarSesionForm(instance=sesion) if sesion else None,
@@ -141,9 +151,10 @@ def registrar_ensayo_compresion(request, detalle_id):
             if ensayo.aprobado:
                 messages.error(request, "La probeta ya está aprobada en un informe; no se puede reabrir.")
                 return redirect(url)
-            ensayo.estado = EnsayoCompresion.ESTADO_BORRADOR
+            ensayo.estado = ResultadoEnsayo.ESTADO_BORRADOR
             ensayo.terminado_en = None
             ensayo.save(update_fields=['estado', 'terminado_en', 'actualizado_en'])
+            detalle.solicitud.sincronizar_estado()
             messages.success(request, "El ensayo volvió a quedar abierto para el técnico.")
             return redirect(url)
 
@@ -152,12 +163,24 @@ def registrar_ensayo_compresion(request, detalle_id):
             return redirect(url)
 
         if ensayo is None:
-            ensayo = EnsayoCompresion.objects.create(detalle=detalle)
+            ensayo = ResultadoEnsayo.objects.create(
+                detalle=detalle, plantilla=ResultadoEnsayo.plantilla_para(detalle),
+            )
+            detalle.solicitud.sincronizar_estado()
 
-        error = _aplicar_datos(request, detalle, ensayo)
+        aplicar = _aplicar_datos if ensayo.es_compresion else _aplicar_datos_generales
+        error = aplicar(request, detalle, ensayo)
         if error:
             messages.error(request, error)
             return redirect(url)
+
+        if accion == 'terminar' and not ensayo.es_compresion:
+            faltan = ensayo.faltantes_para_terminar()
+            if faltan:
+                messages.error(request, "Para terminar falta " + ", ".join(faltan) + ".")
+                return redirect(url)
+            _cerrar_linea(request, detalle, ensayo, sesion=SesionEnsayo.abierta_de(_perfil(request.user)))
+            return redirect('proyectos:mis_ensayos_compresion')
 
         if accion == 'terminar':
             faltan = ensayo.faltantes_para_terminar()
@@ -180,17 +203,13 @@ def registrar_ensayo_compresion(request, detalle_id):
             except DatosInsuficientes as exc:
                 messages.error(request, str(exc))
                 return redirect(url)
-            ensayo.sesion = sesion
-            ensayo.estado = EnsayoCompresion.ESTADO_TERMINADO
-            ensayo.terminado_en = timezone.now()
-            ensayo.tecnico = _perfil(request.user)
-            ensayo.save()
-            messages.success(request, f"Probeta {detalle.muestra.codigo_laboratorio} terminada.")
+            _cerrar_linea(request, detalle, ensayo, sesion=sesion)
             return redirect('proyectos:mis_ensayos_compresion')
 
         messages.success(request, "Datos guardados.")
         return redirect(url)
 
+    plantilla = ensayo.plantilla if ensayo else ResultadoEnsayo.plantilla_para(detalle)
     fotos = {f.tipo: f for f in ensayo.fotos.all()} if ensayo else {}
     slots = [
         {
@@ -201,11 +220,11 @@ def registrar_ensayo_compresion(request, detalle_id):
             'alto': FotoEnsayo.PROPORCIONES[codigo][1],
             'foto': fotos.get(codigo),
         }
-        for codigo, etiqueta in FotoEnsayo.TIPOS
+        for codigo, etiqueta in FotoEnsayo.tipos_de(plantilla)
     ]
     sesion = SesionEnsayo.abierta_de(_perfil(request.user))
     resultado, error_calculo = None, None
-    if ensayo is not None:
+    if ensayo is not None and ensayo.es_compresion:
         try:
             resultado = ensayo.calcular()
         except DatosInsuficientes as exc:
@@ -214,6 +233,8 @@ def registrar_ensayo_compresion(request, detalle_id):
     return render(request, 'proyectos/compresion_registro.html', {
         'detalle': detalle,
         'ensayo': ensayo,
+        'plantilla': plantilla,
+        'es_compresion': plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION,
         'muestra': muestra,
         'datos_probeta_completos': bool(muestra.fecha_fabricacion and muestra.fc_diseno),
         'sesion': sesion,
@@ -231,8 +252,95 @@ def registrar_ensayo_compresion(request, detalle_id):
     })
 
 
+def _cerrar_linea(request, detalle, ensayo, sesion=None):
+    """Termina la línea: queda bloqueada, con su técnico y fecha real, y la solicitud se sincroniza."""
+    ensayo.sesion = sesion
+    ensayo.estado = ResultadoEnsayo.ESTADO_TERMINADO
+    ensayo.terminado_en = timezone.now()
+    ensayo.tecnico = _perfil(request.user)
+    ensayo.observacion_revision = ''
+    ensayo.save()
+    DetalleSolicitudEnsayo.objects.filter(pk=detalle.pk).update(fecha_entrega_real=timezone.localdate())
+    solicitud = detalle.solicitud
+    solicitud.sincronizar_estado()
+    terminadas, total = solicitud.avance_resultados()
+    texto = f"{detalle.muestra.codigo_laboratorio} terminada ({terminadas} de {total} de la solicitud)."
+    if terminadas == total:
+        texto += " La solicitud quedó finalizada y pasa a revisión."
+    messages.success(request, texto)
+
+
+EXTENSIONES_HOJA = ('.xlsx', '.xls', '.ods', '.csv', '.pdf')
+HOJA_MAXIMO = 15 * 1024 * 1024
+
+
+def _leer_fecha(request, detalle):
+    """(fecha o None, error o None) de ``fecha_ensayo``."""
+    texto_fecha = (request.POST.get('fecha_ensayo') or '').strip()
+    if not texto_fecha:
+        return None, None
+    try:
+        fecha = date.fromisoformat(texto_fecha)
+    except ValueError:
+        return None, "La fecha de ensayo no es válida."
+    if fecha > timezone.localdate():
+        return None, "La fecha de ensayo no puede ser futura."
+    minima = _fecha_minima(detalle)
+    if minima and fecha < minima:
+        return None, f"La fecha de ensayo no puede ser anterior a la recepción ({minima:%d/%m/%Y})."
+    return fecha, None
+
+
+def _aplicar_datos_generales(request, detalle, ensayo):
+    """Plantilla general: fecha, resumen, observaciones y la hoja de cálculo del ensayo."""
+    fecha, error = _leer_fecha(request, detalle)
+    if error:
+        return error
+    hoja = request.FILES.get('hoja_calculo')
+    if hoja:
+        if not hoja.name.lower().endswith(EXTENSIONES_HOJA):
+            return "La hoja debe ser Excel, ODS, CSV o PDF."
+        if hoja.size > HOJA_MAXIMO:
+            return "La hoja pesa más de 15 MB."
+        anterior = ensayo.hoja_calculo.name if ensayo.hoja_calculo else None
+        ensayo.hoja_calculo.save(hoja.name, hoja, save=False)
+        if anterior:
+            try:
+                ensayo.hoja_calculo.storage.delete(anterior)
+            except OSError:
+                logger.warning("No se pudo borrar la hoja reemplazada %s", anterior)
+    ensayo.fecha_ensayo = fecha
+    ensayo.resumen = (request.POST.get('resumen') or '').strip()[:5000]
+    ensayo.observaciones = (request.POST.get('observaciones') or '').strip()
+    ensayo.save()
+    return None
+
+
+@login_required
+def hoja_resultado(request, detalle_id):
+    """Descarga la hoja de cálculo desde la carpeta privada, solo a quien ve la línea."""
+    revisor = trabajador_tiene_permiso(request.user, 'informes.ver') or trabajador_tiene_permiso(
+        request.user, 'informes.aprobar'
+    )
+    if revisor:
+        detalle = get_object_or_404(DetalleSolicitudEnsayo.objects.select_related('muestra'), pk=detalle_id)
+    elif trabajador_tiene_permiso(request.user, PERMISO_REGISTRAR):
+        detalle = get_object_or_404(_detalles_visibles(request.user).select_related('muestra'), pk=detalle_id)
+    else:
+        detalle = None
+    ensayo = _ensayo_de(detalle) if detalle else None
+    if ensayo is None or not ensayo.hoja_calculo:
+        raise Http404("Hoja no encontrada.")
+    try:
+        archivo = ensayo.hoja_calculo.open('rb')
+    except FileNotFoundError:
+        raise Http404("La hoja ya no está disponible.")
+    nombre = f"{detalle.muestra.codigo_laboratorio}{ensayo.hoja_calculo.name[ensayo.hoja_calculo.name.rfind('.'):]}"
+    return FileResponse(archivo, as_attachment=True, filename=nombre)
+
+
 def _medidas_para_formulario(ensayo):
-    etiquetas = {f.name: f.verbose_name for f in EnsayoCompresion._meta.fields}
+    etiquetas = {f.name: f.verbose_name for f in ResultadoEnsayo._meta.fields}
     return [
         {
             'campo': campo,
@@ -240,7 +348,7 @@ def _medidas_para_formulario(ensayo):
             'valor': '' if ensayo is None or getattr(ensayo, campo) is None else getattr(ensayo, campo),
             'paso': '0.1' if campo == 'masa_g' else '0.01',
         }
-        for campo in EnsayoCompresion.CAMPOS_MEDIDOS
+        for campo in ResultadoEnsayo.CAMPOS_MEDIDOS
     ]
 
 
@@ -263,21 +371,12 @@ def _leer_decimal(texto, etiqueta, rango):
 
 def _aplicar_datos(request, detalle, ensayo):
     """Valida y guarda fecha, medidas, fractura y observaciones. Devuelve un error o None."""
-    texto_fecha = (request.POST.get('fecha_ensayo') or '').strip()
-    fecha = None
-    if texto_fecha:
-        try:
-            fecha = date.fromisoformat(texto_fecha)
-        except ValueError:
-            return "La fecha de ensayo no es válida."
-        if fecha > timezone.localdate():
-            return "La fecha de ensayo no puede ser futura."
-        minima = _fecha_minima(detalle)
-        if minima and fecha < minima:
-            return f"La fecha de ensayo no puede ser anterior a la recepción ({minima:%d/%m/%Y})."
-    etiquetas = {f.name: str(f.verbose_name) for f in EnsayoCompresion._meta.fields}
+    fecha, error = _leer_fecha(request, detalle)
+    if error:
+        return error
+    etiquetas = {f.name: str(f.verbose_name) for f in ResultadoEnsayo._meta.fields}
     medidas = {}
-    for campo in EnsayoCompresion.CAMPOS_MEDIDOS:
+    for campo in ResultadoEnsayo.CAMPOS_MEDIDOS:
         try:
             medidas[campo] = _leer_decimal(request.POST.get(campo), etiquetas[campo], RANGOS_MEDIDAS[campo])
         except ValueError as exc:
@@ -297,7 +396,7 @@ def _aplicar_datos(request, detalle, ensayo):
     ensayo.observaciones = (request.POST.get('observaciones') or '').strip()
     ensayo.save(update_fields=[
         'fecha_ensayo', 'observaciones', 'tipo_fractura', 'defectos', 'actualizado_en',
-        *EnsayoCompresion.CAMPOS_MEDIDOS,
+        *ResultadoEnsayo.CAMPOS_MEDIDOS,
     ])
     return None
 
@@ -311,6 +410,9 @@ def subir_foto_compresion(request, detalle_id, tipo):
         raise Http404("Tipo de foto desconocido.")
 
     detalle = _detalle_o_404(request.user, detalle_id)
+    plantilla = detalle.resultado.plantilla if _ensayo_de(detalle) else ResultadoEnsayo.plantilla_para(detalle)
+    if tipo not in dict(FotoEnsayo.tipos_de(plantilla)):
+        raise Http404("Este ensayo no pide esa foto.")
     archivo = request.FILES.get('foto')
     if not archivo:
         return JsonResponse({'ok': False, 'error': 'No llegó ninguna foto.'}, status=400)
@@ -326,7 +428,7 @@ def subir_foto_compresion(request, detalle_id, tipo):
 
     with transaction.atomic():
         if ensayo is None:
-            ensayo, _ = EnsayoCompresion.objects.get_or_create(detalle=detalle)
+            ensayo, _ = ResultadoEnsayo.objects.get_or_create(detalle=detalle, defaults={'plantilla': plantilla})
         foto = FotoEnsayo.objects.select_for_update().filter(ensayo=ensayo, tipo=tipo).first()
         anterior = foto.imagen.name if foto and foto.imagen else None
         if foto is None:
@@ -491,3 +593,11 @@ def editar_equipo(request, equipo_id=None):
         messages.success(request, f"Equipo {equipo.codigo} guardado.")
         return redirect('proyectos:lista_equipos')
     return render(request, 'proyectos/equipos_form.html', {'form': form, 'equipo': equipo})
+
+
+def redirigir_compresion(request, resto):
+    """/proyectos/compresion/… → /proyectos/resultados/… (enlaces guardados)."""
+    destino = request.path.replace('/compresion/', '/resultados/', 1)
+    if request.META.get('QUERY_STRING'):
+        destino += '?' + request.META['QUERY_STRING']
+    return redirect(destino, permanent=True)

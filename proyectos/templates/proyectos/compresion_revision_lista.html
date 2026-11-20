@@ -1,6 +1,6 @@
 {% extends "base_vicafpro.html" %}
 {% load static %}
-{% block title %}Revisión de compresión | VICAF LIMS{% endblock %}
+{% block title %}Revisión de resultados | VICAF LIMS{% endblock %}
 
 {% block extra_css %}<link rel="stylesheet" href="{% static 'css/ensayos.css' %}">{% endblock %}
 
@@ -11,8 +11,8 @@
             <div class="v-cabecera__icono"><i data-lucide="clipboard-check"></i>
             </div>
             <div class="min-w-0">
-                <h1 class="text-lg font-bold text-slate-800 leading-tight">Revisión de compresión</h1>
-                <p class="text-xs text-slate-500">Revisa las probetas terminadas, devuélvelas o aprueba y emite el informe.</p>
+                <h1 class="text-lg font-bold text-slate-800 leading-tight">Revisión de resultados</h1>
+                <p class="text-xs text-slate-500">Revisa los ensayos terminados, devuélvelos o apruébalos para el informe.</p>
             </div>
         </div>
     </div>
@@ -54,7 +54,7 @@
             </a>
         </li>
         {% empty %}
-        <li class="text-center text-sm text-slate-500 bg-white border border-dashed border-slate-300 rounded-2xl p-8">No hay solicitudes de compresión por revisar.</li>
+        <li class="text-center text-sm text-slate-500 bg-white border border-dashed border-slate-300 rounded-2xl p-8">No hay solicitudes con resultados por revisar.</li>
         {% endfor %}
     </ul>
 </div>

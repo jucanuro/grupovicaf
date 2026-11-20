@@ -288,6 +288,37 @@ class SolicitudEnsayo(models.Model):
     def __str__(self):
         return f"{self.codigo_solicitud} - {self.cotizacion.cliente.razon_social}"
 
+    def avance_resultados(self):
+        """(terminadas, total) de las líneas de la solicitud."""
+        estados = list(self.detalles.values_list('resultado__estado', flat=True))
+        terminadas = sum(1 for e in estados if e in ResultadoEnsayo.ESTADOS_CERRADOS)
+        return terminadas, len(estados)
+
+    def sincronizar_estado(self):
+        """El estado sale de los resultados: nadie finaliza sin todas las líneas terminadas.
+
+        - Todas terminadas → finalizado (con fecha real de entrega).
+        - Alguna con resultado (o una devuelta) → en proceso.
+        """
+        terminadas, total = self.avance_resultados()
+        if total and terminadas == total:
+            nuevo = 'finalizado'
+        elif self.detalles.filter(resultado__isnull=False).exists():
+            nuevo = 'proceso'
+        else:
+            return
+        cambios = {}
+        if self.estado != nuevo:
+            cambios['estado'] = nuevo
+        if nuevo == 'finalizado' and not self.fecha_entrega_real:
+            cambios['fecha_entrega_real'] = timezone.localdate()
+        if nuevo == 'proceso' and self.fecha_entrega_real:
+            cambios['fecha_entrega_real'] = None
+        if cambios:
+            SolicitudEnsayo.objects.filter(pk=self.pk).update(**cambios)
+            for campo, valor in cambios.items():
+                setattr(self, campo, valor)
+
 class DetalleSolicitudEnsayo(models.Model):
     """
     Detalle línea por línea de los ensayos a realizar por cada muestra.
@@ -531,6 +562,11 @@ def ruta_foto_ensayo(instance, filename):
     return f"compresion/{timezone.now():%Y/%m}/{uuid.uuid4().hex}.jpg"
 
 
+def ruta_hoja_ensayo(instance, filename):
+    extension = os.path.splitext(filename)[1].lower()[:6]
+    return f"hojas/{timezone.now():%Y/%m}/{uuid.uuid4().hex}{extension}"
+
+
 class Equipo(models.Model):
     """Equipo del laboratorio que se declara en el informe (HU-LIMS-12)."""
     TIPO_PRENSA = 'PRC'
@@ -630,7 +666,19 @@ class SesionEnsayo(models.Model):
         return cls.objects.filter(tecnico=perfil, cerrada_en__isnull=True).first()
 
 
-class EnsayoCompresion(models.Model):
+class ResultadoEnsayo(models.Model):
+    """Resultado de una línea de la solicitud (muestra × ensayo).
+
+    La plantilla dice qué se registra: «compresion» (ASTM C39, medidas,
+    cálculo y 5 fotos) o «general» (resumen, hoja de cálculo y 2 fotos) para
+    los ensayos que aún no tienen formato propio.
+    """
+    PLANTILLA_COMPRESION = 'compresion'
+    PLANTILLA_GENERAL = 'general'
+    PLANTILLAS = [
+        (PLANTILLA_COMPRESION, 'Compresión de probetas (ASTM C39)'),
+        (PLANTILLA_GENERAL, 'General'),
+    ]
     ESTADO_BORRADOR = 'borrador'
     ESTADO_TERMINADO = 'terminado'
     ESTADO_APROBADO = 'aprobado'
@@ -645,17 +693,23 @@ class EnsayoCompresion(models.Model):
     detalle = models.OneToOneField(
         DetalleSolicitudEnsayo,
         on_delete=models.CASCADE,
-        related_name='ensayo_compresion',
+        related_name='resultado',
         verbose_name="Ensayo de la solicitud",
     )
+    plantilla = models.CharField(max_length=20, choices=PLANTILLAS, default=PLANTILLA_GENERAL)
     estado = models.CharField(max_length=20, choices=ESTADOS, default=ESTADO_BORRADOR)
+    resumen = models.TextField(blank=True, default='', verbose_name="Resumen de resultados")
+    hoja_calculo = models.FileField(
+        storage=_almacen_fotos_ensayo, upload_to=ruta_hoja_ensayo, blank=True,
+        verbose_name="Hoja de cálculo",
+    )
     fecha_ensayo = models.DateField(null=True, blank=True, verbose_name="Fecha de ensayo")
     observaciones = models.TextField(blank=True, default='', verbose_name="Observaciones")
     tecnico = models.ForeignKey(
         TrabajadorProfile,
         on_delete=models.SET_NULL,
         null=True, blank=True,
-        related_name='ensayos_compresion',
+        related_name='resultados_ejecutados',
         verbose_name="Ejecutado por",
     )
     sesion = models.ForeignKey(
@@ -694,7 +748,7 @@ class EnsayoCompresion(models.Model):
     observacion_revision = models.TextField(blank=True, default='', verbose_name="Observación del revisor")
     aprobado_por = models.ForeignKey(
         TrabajadorProfile, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='ensayos_compresion_aprobados',
+        related_name='resultados_aprobados',
     )
     aprobado_en = models.DateTimeField(null=True, blank=True)
 
@@ -704,11 +758,25 @@ class EnsayoCompresion(models.Model):
     CAMPOS_MEDIDOS = ['masa_g', 'd1', 'd2', 'l1', 'l2', 'l3', 'carga_kn']
 
     class Meta:
-        verbose_name = "Ensayo de compresión"
-        verbose_name_plural = "Ensayos de compresión"
+        verbose_name = "Resultado de ensayo"
+        verbose_name_plural = "Resultados de ensayo"
 
     def __str__(self):
-        return f"Compresión {self.detalle.muestra.codigo_laboratorio}"
+        return f"Resultado {self.detalle.muestra.codigo_laboratorio}"
+
+    @classmethod
+    def plantilla_para(cls, detalle):
+        servicio = getattr(detalle.servicio_cotizado, 'servicio', None)
+        codigo = getattr(servicio, 'codigo_facturacion', '') or ''
+        return cls.PLANTILLA_COMPRESION if es_ensayo_compresion(detalle.norma, codigo) else cls.PLANTILLA_GENERAL
+
+    @property
+    def es_compresion(self):
+        return self.plantilla == self.PLANTILLA_COMPRESION
+
+    @property
+    def tipos_foto(self):
+        return FotoEnsayo.tipos_de(self.plantilla)
 
     @property
     def terminado(self):
@@ -747,11 +815,20 @@ class EnsayoCompresion(models.Model):
     def tipos_faltantes(self):
         """Códigos de los tipos de foto que aún no se cargaron, en orden."""
         cargados = set(self.fotos.values_list('tipo', flat=True))
-        return [codigo for codigo, _ in FotoEnsayo.TIPOS if codigo not in cargados]
+        return [codigo for codigo, _ in self.tipos_foto if codigo not in cargados]
 
     def faltantes_para_terminar(self):
         """Lista legible de lo que falta para poder terminar (vacía = listo)."""
         faltan = []
+        etiquetas = dict(FotoEnsayo.TIPOS)
+        if not self.es_compresion:
+            if not self.fecha_ensayo:
+                faltan.append("la fecha de ensayo")
+            if not self.resumen.strip():
+                faltan.append("el resumen de resultados")
+            if not self.hoja_calculo:
+                faltan.append("la hoja de cálculo")
+            return faltan + [f"la foto «{etiquetas[t]}»" for t in self.tipos_faltantes()]
         muestra = self.detalle.muestra
         if not muestra.fecha_fabricacion or not muestra.fc_diseno:
             faltan.append("la fecha de fabricación y el f'c de la probeta (datos FOR-004 de la recepción)")
@@ -763,7 +840,6 @@ class EnsayoCompresion(models.Model):
                 faltan.append(str(etiquetas_campos[campo]))
         if not self.tipo_fractura:
             faltan.append("el tipo de fractura")
-        etiquetas = dict(FotoEnsayo.TIPOS)
         faltan += [f"la foto «{etiquetas[t]}»" for t in self.tipos_faltantes()]
         return faltan
 
@@ -780,7 +856,11 @@ class FotoEnsayo(models.Model):
         (TIPO_ANTES_PIZARRA, 'Probeta antes del ensayo, con pizarra'),
         (TIPO_DESPUES, 'Probeta fallada'),
         (TIPO_DESPUES_PIZARRA, 'Probeta fallada, con pizarra'),
+        ('general_muestra', 'Muestra o montaje del ensayo'),
+        ('general_resultado', 'Resultado o lectura del equipo'),
     ]
+    TIPOS_COMPRESION = [TIPO_CARGA, TIPO_ANTES, TIPO_ANTES_PIZARRA, TIPO_DESPUES, TIPO_DESPUES_PIZARRA]
+    TIPOS_GENERAL = ['general_muestra', 'general_resultado']
     # Proporción ancho:alto de cada recuadro, medida en el informe real
     # VCF-INF-2026-4582 (FOR-039 v17): carga 111,5 x 43,3 pt; probeta 55,6 x 97,6 pt.
     PROPORCIONES = {
@@ -789,11 +869,13 @@ class FotoEnsayo(models.Model):
         TIPO_ANTES_PIZARRA: (4, 7),
         TIPO_DESPUES: (4, 7),
         TIPO_DESPUES_PIZARRA: (4, 7),
+        'general_muestra': (4, 3),
+        'general_resultado': (4, 3),
     }
     # Lado mayor de la foto guardada, en px.
     LADO_MAXIMO = 1600
 
-    ensayo = models.ForeignKey(EnsayoCompresion, on_delete=models.CASCADE, related_name='fotos')
+    ensayo = models.ForeignKey(ResultadoEnsayo, on_delete=models.CASCADE, related_name='fotos')
     tipo = models.CharField(max_length=20, choices=TIPOS)
     imagen = models.ImageField(
         storage=_almacen_fotos_ensayo,
@@ -815,6 +897,13 @@ class FotoEnsayo(models.Model):
 
     def __str__(self):
         return f"{self.get_tipo_display()} · {self.ensayo}"
+
+    @classmethod
+    def tipos_de(cls, plantilla):
+        """(código, etiqueta) de las fotos que pide la plantilla, en orden."""
+        codigos = cls.TIPOS_COMPRESION if plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION else cls.TIPOS_GENERAL
+        etiquetas = dict(cls.TIPOS)
+        return [(c, etiquetas[c]) for c in codigos]
 
     @classmethod
     def proporcion(cls, tipo):
