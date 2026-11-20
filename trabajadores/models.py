@@ -145,6 +145,9 @@ class TrabajadorProfile(models.Model):
     foto = models.ImageField(upload_to='trabajadores_fotos/', blank=True, null=True, verbose_name="Foto de Perfil")
     firma_electronica = models.ImageField(upload_to='firmas/', blank=True, null=True, verbose_name="Firma Electrónica para Informes")
     linkedin = models.URLField(blank=True, null=True, verbose_name="URL de LinkedIn")
+    debe_cambiar_clave = models.BooleanField(
+        default=False, verbose_name="Debe cambiar su contraseña",
+        help_text="Se activa con una contraseña temporal: al entrar, el sistema le pide cambiarla.")
     creado_en = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Creación")
     actualizado_en = models.DateTimeField(auto_now=True, verbose_name="Última Actualización")
 

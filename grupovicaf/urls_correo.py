@@ -9,9 +9,14 @@ from correo import views_correo as v
 from correo import views_firmas as f
 from correo import views_redactar as r
 from correo import views_admin as ad
+from correo import views_pwa as pwa
 from correo import webhooks as wh
 
 urlpatterns = [
+    # App instalable (PWA)
+    path('manifest.webmanifest', pwa.manifiesto, name='manifest'),
+    path('sw.js', pwa.service_worker, name='service_worker'),
+
     # Sesión
     path('entrar/', v.entrar, name='entrar'),
     path('login/', v.ir_al_login, name='login'),
@@ -37,6 +42,7 @@ urlpatterns = [
     # Búsqueda e historial
     path('buscar/', v.buscar, name='buscar'),
     path('api/buscar/', v.api_buscar, name='api_buscar'),
+    path('api/avisos/', v.api_avisos, name='api_avisos'),
     path('contacto/', v.contacto, name='contacto'),
 
     # Redactar

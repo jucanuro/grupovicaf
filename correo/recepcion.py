@@ -16,6 +16,7 @@ Reglas:
 import hashlib
 import logging
 import mimetypes
+import re
 from datetime import timezone as dt_timezone
 from email import policy
 from email.parser import BytesParser
@@ -26,7 +27,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from .mensajeria import crear_mensaje
-from .models import CuentaCorreo, Mensaje
+from .models import CuentaCorreo, Mensaje, ReglaBloqueo
 from .servicios import ServicioRecepcion
 
 logger = logging.getLogger(__name__)
@@ -70,6 +71,92 @@ def _es_spam(msg):
     bandera = _texto(msg.get('X-Spam-Flag')).lower()
     estado = _texto(msg.get('X-Spam-Status')).lower()
     return bandera == 'yes' or estado.startswith('yes')
+
+
+def _suplanta_dominio(msg, remitente):
+    """True si dice venir de nuestro dominio pero no lo respalda ninguna firma.
+
+    Lo legítimo de @grupovicaf.com sale por SES y trae DKIM (d=grupovicaf.com o
+    amazonses.com). Un estafador que escribe «De: algo@grupovicaf.com» no la tiene.
+    También cuenta un SPF/DKIM/DMARC fallido declarado en Authentication-Results.
+    Solo actúa con CORREO_FILTRAR_SUPLANTACION=True (en dev no hay DKIM).
+    """
+    if not getattr(settings, 'CORREO_FILTRAR_SUPLANTACION', False):
+        return False
+    dominio = remitente['correo'].rpartition('@')[2]
+    if dominio not in settings.CORREO_DOMINIOS:
+        return False
+    resultados = ' '.join(_texto(v).lower() for v in (msg.get_all('Authentication-Results') or []))
+    resultados += ' ' + _texto(msg.get('Received-SPF')).lower()
+    if any(f'{m}={r}' in resultados for m in ('spf', 'dkim', 'dmarc') for r in ('fail', 'softfail', 'none')):
+        return True
+    firmas = ' '.join(_texto(v).lower().replace(' ', '') for v in (msg.get_all('DKIM-Signature') or []))
+    respaldado = any(f'd={d}' in firmas for d in (*settings.CORREO_DOMINIOS, 'amazonses.com'))
+    return not respaldado
+
+
+def _bloqueado(remitente):
+    """Regla de bloqueo activa (dirección exacta o dominio, incluidos subdominios)."""
+    correo = remitente['correo']
+    dominio = correo.rpartition('@')[2]
+    for regla in ReglaBloqueo.objects.filter(activa=True):
+        if regla.tipo == ReglaBloqueo.CORREO and regla.valor == correo:
+            return True
+        if regla.tipo == ReglaBloqueo.DOMINIO and (dominio == regla.valor or dominio.endswith('.' + regla.valor)):
+            return True
+    return False
+
+
+def _fraccion_cjk(texto):
+    letras = [c for c in texto if c.isalpha()]
+    if not letras:
+        return 0.0
+    cjk = sum(1 for c in letras if '\u3040' <= c <= '\u9fff' or '\uac00' <= c <= '\ud7af')
+    return cjk / len(letras)
+
+
+EXTENSIONES_PELIGROSAS = ('.exe', '.js', '.html', '.htm', '.scr', '.iso', '.bat', '.cmd', '.vbs', '.jar', '.lnk', '.msi')
+_PLANTILLA = re.compile(r'\{\{\s*[\w.]+\s*\}\}|%%\s*\w+\s*%%|\[\[\s*\w+\s*\]\]')
+_ENLACE_IP = re.compile(r'https?://\d{1,3}(?:\.\d{1,3}){3}(?:[:/]|\b)')
+
+
+def _tiene_dkim(msg):
+    return bool(msg.get_all('DKIM-Signature'))
+
+
+def _sin_verificar(msg, remitente):
+    """Remitente externo sin firma DKIM: solo se avisa al leerlo."""
+    dominio = remitente['correo'].rpartition('@')[2]
+    return dominio not in settings.CORREO_DOMINIOS and not _tiene_dkim(msg)
+
+
+def _puntaje_phishing(msg, remitente, html='', texto='', adjuntos=()):
+    """Señales típicas de phishing masivo; con 2 o más puntos va a No deseado."""
+    puntos = 0
+    dominio = remitente['correo'].rpartition('@')[2]
+    nombre = remitente['nombre'].lower()
+    # Nombre «Grupovicaf» en un remitente que no es nuestro dominio.
+    if 'vicaf' in nombre and dominio not in settings.CORREO_DOMINIOS:
+        puntos += 3
+    resultados = ' '.join(_texto(v).lower() for v in (msg.get_all('Authentication-Results') or []))
+    resultados += ' ' + _texto(msg.get('Received-SPF')).lower()
+    if any(f'{m}={r}' in resultados for m in ('spf', 'dkim', 'dmarc') for r in ('fail', 'softfail')):
+        puntos += 2
+    if not _tiene_dkim(msg):
+        puntos += 1
+    if _fraccion_cjk(_texto(msg.get('Subject')) + ' ' + remitente['nombre']) > 0.3:
+        puntos += 1
+    contenido = f'{_texto(msg.get("Subject"))} {texto} {html}'
+    # Plantilla de spam sin rellenar: {{EMAIL}}, %%nombre%%…
+    if _PLANTILLA.search(contenido):
+        puntos += 2
+    # Adjunto ejecutable o página/script que se abre localmente.
+    if any((a[0] or '').lower().endswith(EXTENSIONES_PELIGROSAS) for a in adjuntos):
+        puntos += 2
+    # Enlaces a una IP en vez de un dominio.
+    if _ENLACE_IP.search(contenido):
+        puntos += 1
+    return puntos
 
 
 def _cuerpo_y_adjuntos(msg):
@@ -126,8 +213,18 @@ class RecepcionEML(ServicioRecepcion):
         message_id = _texto(msg.get('Message-ID'))
         html, texto, adjuntos = _cuerpo_y_adjuntos(msg)
         fecha = _fecha(msg)
-        carpeta = 'spam' if _es_spam(msg) else 'entrada'
+        suplantado = _suplanta_dominio(msg, remitente)
+        bloqueado = _bloqueado(remitente)
+        phishing = _puntaje_phishing(msg, remitente, html, texto, adjuntos) >= 2 if getattr(settings, 'CORREO_FILTRAR_SUPLANTACION', False) else False
+        carpeta = 'spam' if (suplantado or bloqueado or phishing or _es_spam(msg)) else 'entrada'
+        asunto = _texto(msg.get('Subject'))[:500]
+        if bloqueado or phishing:
+            logger.warning('Correo de %s a No deseado (bloqueo o phishing).', remitente['correo'])
+        if suplantado:
+            logger.warning('Posible suplantación de %s: va a No deseado.', remitente['correo'])
+            asunto = f'[POSIBLE SUPLANTACIÓN] {asunto}'[:500]
 
+        sin_verificar = suplantado or _sin_verificar(msg, remitente)
         sha = hashlib.sha256(crudo).hexdigest()
         creados = []
         for cuenta in cuentas:
@@ -141,10 +238,10 @@ class RecepcionEML(ServicioRecepcion):
                 creados.append(crear_mensaje(
                     cuenta, carpeta,
                     de=remitente['correo'], de_nombre=remitente['nombre'], para=para, cc=cc,
-                    asunto=_texto(msg.get('Subject'))[:500], html=html, texto=texto if not html else '',
+                    asunto=asunto, html=html, texto=texto if not html else '',
                     fecha=fecha, message_id=message_id[:998],
                     in_reply_to=_texto(msg.get('In-Reply-To'))[:998], references=_texto(msg.get('References')),
-                    adjuntos=adjuntos, eml=crudo,
+                    adjuntos=adjuntos, eml=crudo, sin_verificar=sin_verificar,
                 ))
         return creados
 

@@ -39,10 +39,10 @@
                 <label class="casilla"><input type="checkbox" name="hilos" value="{{ f.hilo.pk }}" aria-label="Seleccionar «{{ f.mensaje.asunto|default:'(sin asunto)' }}»"></label>
                 {% endif %}
                 <a class="fila__enlace" href="{{ f.url }}"{% if f.seleccionado %} aria-current="true"{% endif %}>
-                    <span class="avatar" aria-hidden="true">{% if f.enviado %}{{ f.mensaje.para.0.nombre|default:f.mensaje.para.0.correo|iniciales }}{% else %}{{ f.mensaje|remitente|iniciales }}{% endif %}</span>
+                    <span class="avatar" aria-hidden="true">{% if f.enviado %}{{ f.mensaje|primer_destinatario|iniciales }}{% else %}{{ f.mensaje|remitente|iniciales }}{% endif %}</span>
                     <span class="fila__cuerpo">
                         <span class="fila__linea">
-                            <span class="fila__de">{% if f.enviado %}Para: {{ f.mensaje.para.0.nombre|default:f.mensaje.para.0.correo|default:'(sin destinatario)' }}{% else %}{{ f.mensaje|remitente }}{% endif %}{% if f.n > 1 %} <span class="fila__n">({{ f.n }})</span>{% endif %}</span>
+                            <span class="fila__de">{% if f.enviado %}Para: {{ f.mensaje|primer_destinatario|default:'(sin destinatario)' }}{% else %}{{ f.mensaje|remitente }}{% endif %}{% if f.n > 1 %} <span class="fila__n">({{ f.n }})</span>{% endif %}</span>
                             {% if f.adjunto %}<span class="fila__clip" title="Con adjuntos">{% include 'correo/_iconos.html' with nombre='clip' %}<span class="solo-lector">Con adjuntos</span></span>{% endif %}
                         </span>
                         <span class="fila__linea">

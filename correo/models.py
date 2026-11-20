@@ -165,6 +165,8 @@ class Mensaje(models.Model):
     fecha = models.DateTimeField(db_index=True)
     leido = models.BooleanField(default=False)
     tiene_adjuntos = models.BooleanField(default=False)
+    sin_verificar = models.BooleanField(
+        default=False, help_text='Remitente externo sin firma DKIM: se muestra un aviso al leerlo.')
 
     eml = models.FileField(storage=obtener_almacen, upload_to=_ruta_eml, blank=True, max_length=300)
     eml_sha256 = models.CharField(max_length=64, blank=True)
@@ -332,3 +334,28 @@ class EventoCuenta(models.Model):
 
     def __str__(self):
         return f'{self.get_tipo_display()} · {self.detalle.get("cuenta", "")}'
+
+
+class ReglaBloqueo(models.Model):
+    """Remitente o dominio cuyo correo entrante va siempre a «No deseado»."""
+    CORREO, DOMINIO = 'correo', 'dominio'
+    TIPOS = [(CORREO, 'Dirección exacta'), (DOMINIO, 'Dominio completo')]
+
+    tipo = models.CharField(max_length=8, choices=TIPOS, default=DOMINIO)
+    valor = models.CharField(max_length=254, help_text='Dirección (x@y.com) o dominio (y.com), sin espacios.')
+    activa = models.BooleanField(default=True)
+    nota = models.CharField(max_length=200, blank=True)
+    creada_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['valor']
+        verbose_name = 'regla de bloqueo'
+        verbose_name_plural = 'reglas de bloqueo'
+        constraints = [models.UniqueConstraint(fields=['tipo', 'valor'], name='correo_regla_bloqueo_unica')]
+
+    def save(self, *args, **kwargs):
+        self.valor = (self.valor or '').strip().lower().lstrip('@')
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.get_tipo_display()}: {self.valor}'

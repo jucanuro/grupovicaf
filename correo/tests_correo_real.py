@@ -114,6 +114,48 @@ class RecepcionTests(BasePlataforma):
         with self.assertRaises(CorreoRechazado):
             self.recibir(eml())
 
+    def test_suplantacion_del_propio_dominio_va_a_no_deseado(self):
+        with self.settings(CORREO_FILTRAR_SUPLANTACION=True):
+            [m] = self.recibir(eml(de='Soporte <soporte@grupovicaf.com>'))
+            self.assertEqual(m.carpeta.tipo, 'spam')
+            self.assertTrue(m.asunto.startswith('[POSIBLE SUPLANTACIÓN]'))
+            [ok] = self.recibir(eml(
+                de='Lab <laboratorio@grupovicaf.com>', message_id='<firmado@x>',
+                cabeceras={'DKIM-Signature': 'v=1; a=rsa-sha256; d=grupovicaf.com; s=abc; b=xx'}))
+            self.assertEqual(ok.carpeta.tipo, 'entrada')
+            [ext] = self.recibir(eml(de='Cliente <c@externo.example>', message_id='<ext@x>'))
+            self.assertEqual(ext.carpeta.tipo, 'entrada')
+
+    def test_regla_de_bloqueo_y_phishing_con_nombre_vicaf(self):
+        from .models import ReglaBloqueo
+        ReglaBloqueo.objects.create(tipo='dominio', valor='@Malo.example')
+        [b] = self.recibir(eml(de='X <a@envios.malo.example>', message_id='<b1@x>'))
+        self.assertEqual(b.carpeta.tipo, 'spam')
+        [n] = self.recibir(eml(de='Ana <ana@cliente.example>', message_id='<b2@x>'))
+        self.assertEqual(n.carpeta.tipo, 'entrada')
+        with self.settings(CORREO_FILTRAR_SUPLANTACION=True):
+            [f] = self.recibir(eml(de='Grupovicaf <x@otro.example>', message_id='<b3@x>', asunto='Envío Restringido'))
+            self.assertEqual(f.carpeta.tipo, 'spam')
+            [j] = self.recibir(eml(de='Tarjeta <x@smbc.example>', message_id='<b4@x>', asunto='確認のお願い セキュリティ警告'))
+            self.assertEqual(j.carpeta.tipo, 'spam')
+            [c] = self.recibir(eml(de='Ana <ana@cliente.example>', message_id='<b5@x>'))
+            self.assertEqual(c.carpeta.tipo, 'entrada')
+
+    def test_senales_nuevas_y_aviso_sin_verificar(self):
+        with self.settings(CORREO_FILTRAR_SUPLANTACION=True):
+            firma = {'DKIM-Signature': 'v=1; d=cliente.example; s=x; b=y'}
+            [t] = self.recibir(eml(de='SSA <a@secure.example>', message_id='<s1@x>', texto='Hola {{EMAIL}}, descarga'))
+            self.assertEqual(t.carpeta.tipo, 'spam')
+            [a] = self.recibir(eml(de='Ana <ana@cliente.example>', message_id='<s2@x>', cabeceras=firma,
+                                   adjuntos=[('factura.exe', b'MZ')]))
+            self.assertEqual(a.carpeta.tipo, 'spam')
+            [ok] = self.recibir(eml(de='Ana <ana@cliente.example>', message_id='<s3@x>', cabeceras=firma))
+            self.assertEqual(ok.carpeta.tipo, 'entrada')
+            self.assertFalse(ok.sin_verificar)
+            [nv] = self.recibir(eml(de='Pedro <p@pyme.example>', message_id='<s4@x>'))
+            self.assertEqual(nv.carpeta.tipo, 'entrada')
+            self.assertTrue(nv.sin_verificar)
+
     def test_marcado_como_spam_va_a_no_deseado(self):
         [m] = self.recibir(eml(cabeceras={'X-Spam-Flag': 'YES'}))
         self.assertEqual(m.carpeta.tipo, 'spam')

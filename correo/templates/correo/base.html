@@ -9,6 +9,15 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'correo/css/correo.css' %}">
+    {% if request.es_host_correo %}{# PWA: solo en email.<dominio>; las pantallas del LIMS que usan esta base no la tienen #}
+    <link rel="manifest" href="{% url 'manifest' %}">
+    <meta name="theme-color" content="#1D4ED8">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Correo VICAF">
+    <link rel="apple-touch-icon" href="{% static 'correo/pwa/apple-touch-icon.png' %}">
+    <script src="{% static 'correo/js/pwa.js' %}" defer></script>
+    {% endif %}
     {% block head %}{% endblock %}
 </head>
 <body>
