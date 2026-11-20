@@ -240,6 +240,7 @@
 {% if not solo_lectura %}
 <script src="{% static 'vendor/cropperjs-1.6.2/cropper.min.js' %}"></script>
 <script src="{% static 'js/compresion_calculos.js' %}"></script>
+<script src="{% static 'js/centrado_foto.js' %}"></script>
 <script>
 (function () {
     const raiz = document.querySelector('[data-registro-compresion]');
@@ -248,6 +249,7 @@
     const csrf = document.querySelector('#form-registro [name=csrfmiddlewaretoken]').value;
     const modal = document.getElementById('recorte-modal');
     const imagen = document.getElementById('recorte-imagen');
+    const aviso = document.getElementById('recorte-titulo');
     const fecha = document.getElementById('fecha_ensayo');
     const btnTerminar = document.querySelector('[data-terminar]');
     const textoFaltan = document.querySelector('[data-faltan]');
@@ -295,7 +297,22 @@
             autoCropArea: 0.9,
             background: false,
             toggleDragModeOnDblclick: false,
-            checkOrientation: true,
+            // Los navegadores actuales ya giran la foto según su EXIF; si Cropper
+            // también lo hiciera, el centrado calcularía sobre la foto sin girar.
+            checkOrientation: false,
+            ready: function () {
+                // Centrado automático: el marco se coloca sobre la probeta o el display.
+                const instancia = this.cropper;
+                const datos = instancia.getImageData();
+                const sugerido = window.CentradoFoto && window.CentradoFoto.sugerir(
+                    imagen, an / al, datos.naturalWidth, datos.naturalHeight,
+                );
+                if (sugerido) instancia.setData(sugerido);
+                aviso.textContent = sugerido
+                    ? 'Marco centrado automáticamente. Ajústalo si hace falta.'
+                    : 'Ajusta el marco sobre la probeta o el display.';
+                modal.dataset.centrado = sugerido ? 'auto' : 'manual';
+            },
         });
     }
 

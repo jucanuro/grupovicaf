@@ -94,7 +94,9 @@ y quejas de SES (`procesar_evento_ses`: rebote permanente = «Falló el envío»
 el técnico registra en el celular cada probeta de ASTM C39 / EC001 asignada
 (`/proyectos/compresion/`) con 5 fotos obligatorias recortadas con proporción
 fija (Cropper.js 1.6.2 vendorizado; carga 18:7, probeta 4:7, en
-`FotoEnsayo.PROPORCIONES`). Sin las 5 fotos y la fecha no se puede terminar.
+`FotoEnsayo.PROPORCIONES`). Al abrir el recorte, `static/js/centrado_foto.js`
+coloca el marco sobre la probeta o el display (en el celular, sin librerías;
+si no encuentra nada claro deja el marco centrado). Sin las 5 fotos y la fecha no se puede terminar.
 Las fotos van a `ENSAYOS_FOTOS_DIR` (privado, nunca MEDIA_ROOT; en prod debe
 existir, ser escribible por el servicio y entrar en el backup) y se sirven
 por una vista con sesión. Permiso `ensayos.registrar`.
