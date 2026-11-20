@@ -39,7 +39,7 @@
                 <p class="text-xs text-slate-500">Solicitud {{ detalle.solicitud.codigo_solicitud }} · entrega {{ detalle.fecha_entrega_programada|date:"d/m/Y" }}</p>
             </div>
             {% if solo_lectura %}
-                <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-green-100 text-green-700 flex-shrink-0">Terminado</span>
+                <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-green-100 text-green-700 flex-shrink-0">{{ ensayo.get_estado_display }}</span>
             {% else %}
                 <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-700 flex-shrink-0">En registro</span>
             {% endif %}
@@ -48,6 +48,13 @@
         <p class="text-xs text-slate-600 mt-2">Ejecutado por {{ ensayo.tecnico.nombre_completo }} · {{ ensayo.terminado_en|date:"d/m/Y H:i" }}</p>
         {% endif %}
     </div>
+
+    {% if ensayo.observacion_revision and not solo_lectura %}
+    <div class="rounded-xl px-4 py-3 text-sm bg-amber-50 text-amber-900 border border-amber-200" role="alert" data-observacion-revision>
+        <p class="font-bold">El revisor devolvió esta probeta</p>
+        <p class="mt-0.5 whitespace-pre-line">{{ ensayo.observacion_revision }}</p>
+    </div>
+    {% endif %}
 
     {% if messages %}
         {% for message in messages %}
@@ -192,7 +199,7 @@
         <div class="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-slate-200 px-4 py-3">
             <div class="max-w-3xl mx-auto">
                 {% if solo_lectura %}
-                    {% if ve_todos %}
+                    {% if ve_todos and not ensayo.aprobado %}
                     <button type="submit" name="accion" value="reabrir"
                             class="w-full rounded-xl border border-slate-300 py-3 text-sm font-bold text-slate-700">Reabrir para corrección</button>
                     {% else %}

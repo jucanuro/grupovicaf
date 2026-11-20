@@ -2,6 +2,7 @@
 from django.urls import path
 from . import views
 from . import views_compresion
+from . import views_informe_compresion
 
 app_name = 'proyectos'
 
@@ -38,6 +39,10 @@ urlpatterns = [
     path('equipos/', views_compresion.lista_equipos, name='lista_equipos'),
     path('equipos/nuevo/', views_compresion.editar_equipo, name='crear_equipo'),
     path('equipos/<int:equipo_id>/', views_compresion.editar_equipo, name='editar_equipo'),
+    path('compresion/revision/', views_informe_compresion.revision_compresion_lista, name='revision_compresion_lista'),
+    path('compresion/revision/<int:solicitud_id>/', views_informe_compresion.revision_compresion, name='revision_compresion'),
+    path('compresion/informe/<int:informe_id>/pdf/', views_informe_compresion.pdf_informe_compresion, name='pdf_informe_compresion'),
+    path('compresion/excel/', views_informe_compresion.excel_compresion, name='excel_compresion'),
 
     # --- INFORMES FINALES Y CERTIFICACIÓN ---
     path('informes/', views.lista_informes_finales, name='lista_informes'),

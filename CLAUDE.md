@@ -106,6 +106,13 @@ y registra masa, D1-D2, L1-L3, carga y fractura. Las reglas de cálculo están e
 `proyectos/calculos_compresion.py` (π = 3,1416 como la hoja del laboratorio) y
 su copia de vista previa en `static/js/compresion_calculos.js`: si cambia una,
 cambiar la otra.
+Revisión e informe (HU-LIMS-15 a 19, `views_informe_compresion.py`): quien
+tiene `informes.aprobar` devuelve o aprueba en `/proyectos/compresion/revision/`;
+al aprobar (todas terminadas y sesiones cerradas) se crea el `InformeFinal` de
+la solicitud y Celery (`generar_informe_compresion`) arma el PDF con WeasyPrint
+(`informe_compresion.py` + `informe_compresion_pdf.html`, QR ya impreso).
+Excel con openpyxl (`informes.exportar`); envío al cliente con
+`enviar_informe_cliente`.
 
 ### Capa web (pública) — prefijo `web_` obligatorio
 

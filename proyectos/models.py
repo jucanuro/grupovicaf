@@ -429,6 +429,15 @@ class InformeFinal(models.Model):
     )
     descargas_count = models.PositiveIntegerField(default=0)
 
+    # Informe que arma el propio sistema (compresión, HU-LIMS-16). Vacío en
+    # los informes que se suben a mano como PDF.
+    PDF_GENERANDO = 'generando'
+    PDF_LISTO = 'listo'
+    PDF_ERROR = 'error'
+    ESTADOS_PDF = [(PDF_GENERANDO, 'Generando'), (PDF_LISTO, 'Listo'), (PDF_ERROR, 'Error al generar')]
+    pdf_estado = models.CharField(max_length=12, choices=ESTADOS_PDF, blank=True, default='')
+    pdf_error = models.CharField(max_length=255, blank=True, default='')
+
     class Meta:
         verbose_name = "Informe Final"
         verbose_name_plural = "Informes Finales"
@@ -624,10 +633,14 @@ class SesionEnsayo(models.Model):
 class EnsayoCompresion(models.Model):
     ESTADO_BORRADOR = 'borrador'
     ESTADO_TERMINADO = 'terminado'
+    ESTADO_APROBADO = 'aprobado'
     ESTADOS = [
         (ESTADO_BORRADOR, 'En registro'),
         (ESTADO_TERMINADO, 'Terminado'),
+        (ESTADO_APROBADO, 'Aprobado'),
     ]
+    # Terminado o aprobado: el técnico ya no puede modificarlo.
+    ESTADOS_CERRADOS = (ESTADO_TERMINADO, ESTADO_APROBADO)
 
     detalle = models.OneToOneField(
         DetalleSolicitudEnsayo,
@@ -676,6 +689,15 @@ class EnsayoCompresion(models.Model):
     densidad = models.PositiveIntegerField(null=True, blank=True)
 
     terminado_en = models.DateTimeField(null=True, blank=True)
+
+    # Revisión del supervisor (HU-LIMS-15).
+    observacion_revision = models.TextField(blank=True, default='', verbose_name="Observación del revisor")
+    aprobado_por = models.ForeignKey(
+        TrabajadorProfile, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='ensayos_compresion_aprobados',
+    )
+    aprobado_en = models.DateTimeField(null=True, blank=True)
+
     creado_en = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)
 
@@ -690,7 +712,11 @@ class EnsayoCompresion(models.Model):
 
     @property
     def terminado(self):
-        return self.estado == self.ESTADO_TERMINADO
+        return self.estado in self.ESTADOS_CERRADOS
+
+    @property
+    def aprobado(self):
+        return self.estado == self.ESTADO_APROBADO
 
     def calcular(self):
         """Resultado de los cálculos con las medidas actuales (o DatosInsuficientes)."""

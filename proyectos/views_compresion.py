@@ -109,7 +109,7 @@ def mis_ensayos_compresion(request):
         .annotate(n_fotos=Count('ensayo_compresion__fotos'))
         .order_by('fecha_entrega_programada', 'muestra__codigo_laboratorio')
     )
-    terminado = Q(ensayo_compresion__estado=EnsayoCompresion.ESTADO_TERMINADO)
+    terminado = Q(ensayo_compresion__estado__in=EnsayoCompresion.ESTADOS_CERRADOS)
     detalles = detalles.filter(terminado) if vista == 'terminados' else detalles.exclude(terminado)
 
     sesion = SesionEnsayo.abierta_de(_perfil(request.user))
@@ -138,6 +138,9 @@ def registrar_ensayo_compresion(request, detalle_id):
         if accion == 'reabrir':
             if not ve_todos or ensayo is None:
                 return HttpResponseForbidden("Solo el supervisor puede reabrir un ensayo terminado.")
+            if ensayo.aprobado:
+                messages.error(request, "La probeta ya está aprobada en un informe; no se puede reabrir.")
+                return redirect(url)
             ensayo.estado = EnsayoCompresion.ESTADO_BORRADOR
             ensayo.terminado_en = None
             ensayo.save(update_fields=['estado', 'terminado_en', 'actualizado_en'])
