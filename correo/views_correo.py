@@ -3,7 +3,9 @@
 Toda consulta pasa por correo.cuentas (acceso validado en el servidor).
 """
 import mimetypes
+import os
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
@@ -223,6 +225,16 @@ def imprimir(request, pk):
     return respuesta
 
 
+def _descarga_por_servidor():
+    """CORREO_R2_DESCARGA=servidor: el adjunto no sale con URL prefirmada de R2 sino por Django.
+
+    Hace falta cuando el token de R2 está limitado por IP (solo el servidor puede
+    leer el bucket): la URL prefirmada la abre el navegador del usuario, con otra IP.
+    """
+    valor = getattr(settings, 'CORREO_R2_DESCARGA', None) or os.environ.get('CORREO_R2_DESCARGA', '')
+    return valor.strip().lower() == 'servidor'
+
+
 @never_cache
 def adjunto(request, token):
     """Descarga con enlace firmado de corta duración (como una URL prefirmada de R2).
@@ -235,7 +247,7 @@ def adjunto(request, token):
     adj = get_object_or_404(Adjunto, pk=pk)
     seguro_en_linea = adj.tipo_mime in ('image/png', 'image/jpeg', 'image/gif', 'image/webp')
     tipo = adj.tipo_mime if seguro_en_linea else (mimetypes.guess_type(adj.nombre)[0] or adj.tipo_mime)
-    if es_r2() and not adj.incrustado:
+    if es_r2() and not adj.incrustado and not _descarga_por_servidor():
         # R2: el archivo no pasa por el servidor (2 GB de RAM); se redirige a una URL
         # prefirmada de 300 s. Las imágenes del cuerpo (cid:) siguen por aquí porque
         # la CSP del iframe solo admite imágenes del propio origen.
