@@ -1,12 +1,14 @@
 {% extends "base_vicafpro.html" %}
+{% load static %}
 {% block title %}Revisión de compresión | VICAF LIMS{% endblock %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/ensayos.css' %}">{% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto px-4 py-5 space-y-4">
     <div class="flex items-center justify-between gap-3">
-        <div class="flex items-center gap-3 min-w-0">
-            <div class="w-10 h-10 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center text-violet-600 flex-shrink-0">
-                <i data-lucide="clipboard-check" class="w-5 h-5"></i>
+        <div class="v-cabecera min-w-0">
+            <div class="v-cabecera__icono"><i data-lucide="clipboard-check"></i>
             </div>
             <div class="min-w-0">
                 <h1 class="text-lg font-bold text-slate-800 leading-tight">Revisión de compresión</h1>
@@ -21,13 +23,13 @@
     </nav>
 
     {% if puede_exportar %}
-    <form method="get" action="{% url 'proyectos:excel_compresion' %}" class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-3 items-end">
-        <label class="block"><span class="text-xs font-semibold text-slate-700">Ensayados desde</span>
+    <form method="get" action="{% url 'proyectos:excel_compresion' %}" class="v-tarjeta p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 items-end">
+        <label class="v-campo block"><span class="v-etiqueta">Ensayados desde</span>
             <input type="date" name="desde" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"></label>
-        <label class="block"><span class="text-xs font-semibold text-slate-700">Hasta</span>
+        <label class="v-campo block"><span class="v-etiqueta">Hasta</span>
             <input type="date" name="hasta" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"></label>
-        <button type="submit" class="col-span-2 rounded-xl border border-slate-300 py-2.5 text-sm font-bold text-slate-700 inline-flex items-center justify-center gap-1">
-            <i data-lucide="sheet" class="w-4 h-4"></i> Exportar a Excel
+        <button type="submit" class="col-span-2 v-btn v-btn--secundario">
+            <i data-lucide="sheet"></i> Exportar a Excel
         </button>
     </form>
     {% endif %}
@@ -35,7 +37,7 @@
     <ul class="space-y-3">
         {% for s in solicitudes %}
         <li>
-            <a href="{% url 'proyectos:revision_compresion' s.pk %}" class="block bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:border-slate-300">
+            <a href="{% url 'proyectos:revision_compresion' s.pk %}" class="block v-tarjeta p-4 hover:border-blue-300 hover:shadow-md transition">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         <p class="font-mono font-bold text-slate-900">{{ s.codigo_solicitud }}</p>

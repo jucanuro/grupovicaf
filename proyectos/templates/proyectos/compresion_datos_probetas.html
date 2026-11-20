@@ -1,15 +1,17 @@
 {% extends "base_vicafpro.html" %}
+{% load static %}
 {% block title %}Datos de probetas · Recepción | VICAF LIMS{% endblock %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/ensayos.css' %}">{% endblock %}
 
 {% block content %}
 <div class="max-w-5xl mx-auto px-4 py-5 space-y-4">
-    <a href="{% url 'proyectos:lista_muestras_recepcion' recepcion.pk %}" class="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900">
-        <i data-lucide="arrow-left" class="w-4 h-4"></i> Muestras de la recepción
+    <a href="{% url 'proyectos:lista_muestras_recepcion' recepcion.pk %}" class="v-volver">
+        <i data-lucide="arrow-left"></i> Muestras de la recepción
     </a>
 
-    <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600 flex-shrink-0">
-            <i data-lucide="cylinder" class="w-5 h-5"></i>
+    <div class="v-cabecera">
+        <div class="v-cabecera__icono"><i data-lucide="cylinder"></i>
         </div>
         <div class="min-w-0">
             <h1 class="text-lg font-bold text-slate-800 leading-tight">Datos de las probetas (FOR-004)</h1>
@@ -32,9 +34,9 @@
 
     <form method="post" class="space-y-4" data-form-probetas>
         {% csrf_token %}
-        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-            <label class="block">
-                <span class="text-sm font-semibold text-slate-700">Ubicación del proyecto</span>
+        <div class="v-tarjeta p-4">
+            <label class="v-campo block">
+                <span class="v-etiqueta">Ubicación del proyecto</span>
                 <input type="text" name="ubicacion_proyecto" value="{{ ubicacion }}" maxlength="255"
                        placeholder="{{ recepcion.procedencia }}"
                        class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base">
@@ -57,8 +59,8 @@
             {{ f.form.non_field_errors }}
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {% for campo in f.form %}
-                <label class="block {% if campo.name == 'elemento_estructural' %}col-span-2{% endif %}">
-                    <span class="text-xs font-semibold text-slate-700">{{ campo.label }}</span>
+                <label class="v-campo block {% if campo.name == 'elemento_estructural' %}col-span-2{% endif %}">
+                    <span class="v-etiqueta">{{ campo.label }}</span>
                     {{ campo }}
                     {% for e in campo.errors %}<span class="block text-[11px] text-red-600">{{ e }}</span>{% endfor %}
                 </label>
@@ -70,8 +72,11 @@
         {% endfor %}
 
         {% if filas %}
-        <div class="sticky bottom-0 bg-white/95 backdrop-blur border-t border-slate-200 -mx-4 px-4 py-3">
-            <button type="submit" class="w-full md:w-auto md:px-8 rounded-xl bg-slate-900 text-white py-3 text-sm font-bold">Guardar datos</button>
+        <div class="v-barra">
+            <p class="v-barra__nota">Se guardan todas las probetas de la recepción a la vez.</p>
+            <div class="v-barra__fila">
+                <button type="submit" class="v-btn v-btn--primario"><i data-lucide="save"></i> Guardar datos</button>
+            </div>
         </div>
         {% endif %}
     </form>
