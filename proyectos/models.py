@@ -673,6 +673,11 @@ class SesionEnsayo(models.Model):
     neopreno = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+', null=True, blank=True)
     neopreno_usos = models.CharField(max_length=20, blank=True, default='', verbose_name="N.º de usos de neoprenos")
     comprobacion = models.JSONField(default=dict, blank=True, verbose_name="Comprobación funcional de equipos")
+    # Quien la abrió en el sistema cuando no es el técnico (pasa a limpio el formato en papel).
+    registrada_por = models.ForeignKey(
+        TrabajadorProfile, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name="Registrada por",
+    )
     abierta_en = models.DateTimeField(auto_now_add=True)
     cerrada_en = models.DateTimeField(null=True, blank=True)
 
@@ -768,6 +773,11 @@ class ResultadoEnsayo(models.Model):
         null=True, blank=True,
         related_name='resultados_ejecutados',
         verbose_name="Ejecutado por",
+    )
+    # Quien lo pasó al sistema cuando no es el técnico que ejecutó (formato en papel).
+    registrado_por = models.ForeignKey(
+        TrabajadorProfile, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name="Registrado por",
     )
     sesion = models.ForeignKey(
         SesionEnsayo, on_delete=models.PROTECT, null=True, blank=True,

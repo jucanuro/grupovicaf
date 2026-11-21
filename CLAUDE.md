@@ -99,8 +99,13 @@ redirigen con 301). El estado de la `SolicitudEnsayo` lo pone
 `sincronizar_estado()`: en proceso con el primer resultado, finalizado cuando
 todas las líneas terminan; «Finalizar» a mano se bloquea sin todos los
 resultados. Quien ejecutó una línea no la devuelve ni la aprueba (ISO 17025).
-Si la solicitud no es toda de compresión, aprobar lleva a subir el informe
-(`gestionar_informe`).
+En la lista de solicitudes, ▶ inicia (pasa a «en proceso») y el icono verde
+abre `/proyectos/resultados/solicitud/<id>/` (pantalla completa con los pasos
+Iniciar → Registrar resultados → Revisión → Informe y cada ensayo por
+registrar); ya no se finaliza a mano. Quien ve todos los ensayos puede pasar el
+formato en papel a nombre del técnico asignado: abre su sesión
+(`?tecnico=<id>`) y la línea queda «Ejecutado por» el técnico y
+`registrado_por` quien la escribió.
 
 **Informe tipo Word (fase 2).** Todo informe, también el de compresión, pasa por el
 editor: al aprobar los resultados se abre `/proyectos/resultados/informe/<id>/editor/`

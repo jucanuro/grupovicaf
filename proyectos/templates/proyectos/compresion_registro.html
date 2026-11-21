@@ -27,8 +27,8 @@
      data-subir-url="{% url 'proyectos:subir_foto_compresion' detalle.pk 'TIPO' %}"
      data-lado-maximo="{{ lado_maximo }}">
 
-    <a href="{% url 'proyectos:mis_ensayos_compresion' %}" class="v-volver">
-        <i data-lucide="arrow-left"></i> Mis ensayos
+    <a href="{{ url_salida }}" class="v-volver">
+        <i data-lucide="arrow-left"></i> {% if desde_solicitud %}Solicitud {{ detalle.solicitud.codigo_solicitud }}{% else %}Mis ensayos{% endif %}
     </a>
 
     <div class="v-tarjeta p-4">
@@ -49,9 +49,16 @@
             {% endif %}
         </div>
         {% if solo_lectura and ensayo.tecnico %}
-        <p class="text-xs text-slate-600 mt-2">Ejecutado por {{ ensayo.tecnico.nombre_completo }} · {{ ensayo.terminado_en|date:"d/m/Y H:i" }}</p>
+        <p class="text-xs text-slate-600 mt-2">Ejecutado por {{ ensayo.tecnico.nombre_completo }} · {{ ensayo.terminado_en|date:"d/m/Y H:i" }}{% if ensayo.registrado_por %} · pasado al sistema por {{ ensayo.registrado_por.nombre_completo }}{% endif %}</p>
         {% endif %}
     </div>
+
+    {% if a_nombre_de and not solo_lectura %}
+    <div class="rounded-xl px-4 py-3 text-sm bg-blue-50 text-blue-900 border border-blue-200" role="note" data-a-nombre-de>
+        <p class="font-bold">Registras a nombre de {{ a_nombre_de.nombre_completo }}</p>
+        <p class="mt-0.5">Copia los datos de su formato en papel. El ensayo queda como ejecutado por {{ a_nombre_de.nombre_completo }} y registrado por ti. Las fotos las puede subir el técnico desde su celular o tú aquí.</p>
+    </div>
+    {% endif %}
 
     {% if ensayo.observacion_revision and not solo_lectura %}
     <div class="rounded-xl px-4 py-3 text-sm bg-amber-50 text-amber-900 border border-amber-200" role="alert" data-observacion-revision>
@@ -88,7 +95,7 @@
             {% elif sesion %}
                 <p class="text-green-700 font-semibold">Sesión abierta del {{ sesion.fecha|date:"d/m/Y" }}: al terminar, esta probeta toma sus condiciones y equipos.</p>
             {% elif not solo_lectura %}
-                <p class="text-amber-700 font-semibold">No tienes sesión abierta. Puedes guardar datos, pero para terminar <a class="underline" href="{% url 'proyectos:abrir_sesion_ensayo' %}">abre una sesión</a>.</p>
+                <p class="text-amber-700 font-semibold">{% if a_nombre_de %}{{ a_nombre_de.nombre_completo }} no tiene sesión abierta. Puedes guardar datos, pero para terminar <a class="underline" href="{{ url_abrir_sesion }}">abre su sesión con los datos del formato</a>.{% else %}No tienes sesión abierta. Puedes guardar datos, pero para terminar <a class="underline" href="{{ url_abrir_sesion }}">abre una sesión</a>.{% endif %}</p>
             {% endif %}
         </div>
     </section>
