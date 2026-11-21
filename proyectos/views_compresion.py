@@ -243,6 +243,13 @@ def registrar_ensayo_compresion(request, detalle_id):
         'error_calculo': error_calculo,
         'medidas': _medidas_para_formulario(ensayo),
         'fracturas': [n for n in range(1, 7)],
+        'verificaciones': [
+            {'campo': c, 'etiqueta': ResultadoEnsayo._meta.get_field(c).verbose_name,
+             'valor': getattr(ensayo, c) if ensayo else None}
+            for c in ('verif_perpendicularidad', 'verif_planitud')
+        ],
+        'tipos_defecto': ResultadoEnsayo.TIPOS_DEFECTO,
+        'defectos_marcados': ensayo.lista_defectos if ensayo else [],
         'slots': slots,
         'solo_lectura': bool(ensayo and ensayo.terminado),
         've_todos': ve_todos,
@@ -392,10 +399,18 @@ def _aplicar_datos(request, detalle, ensayo):
     for campo, valor in medidas.items():
         setattr(ensayo, campo, valor)
     ensayo.tipo_fractura = fractura
+    validos = dict(ResultadoEnsayo.TIPOS_DEFECTO)
+    ensayo.tipos_defecto = ','.join(c for c, _ in ResultadoEnsayo.TIPOS_DEFECTO
+                                    if c in set(request.POST.getlist('tipos_defecto')) and c in validos)
     ensayo.defectos = (request.POST.get('defectos') or '').strip()[:255]
+    for campo in ('verif_perpendicularidad', 'verif_planitud'):
+        valor = request.POST.get(campo)
+        setattr(ensayo, campo, {'1': True, '0': False}.get(valor))
+    ensayo.video_grabado = request.POST.get('video_grabado') == '1'
     ensayo.observaciones = (request.POST.get('observaciones') or '').strip()
     ensayo.save(update_fields=[
         'fecha_ensayo', 'observaciones', 'tipo_fractura', 'defectos', 'actualizado_en',
+        'tipos_defecto', 'verif_perpendicularidad', 'verif_planitud', 'video_grabado',
         *ResultadoEnsayo.CAMPOS_MEDIDOS,
     ])
     return None
@@ -494,14 +509,16 @@ def abrir_sesion_ensayo(request):
                                   f"{sesion.fecha:%d/%m/%Y}.")
         return redirect('proyectos:mis_ensayos_compresion')
     faltan_tipos = [
-        etiqueta for campo, tipo in SesionEnsayo.EQUIPOS
+        etiqueta for campo, tipo in SesionEnsayo.EQUIPOS + SesionEnsayo.ACCESORIOS
         for codigo, etiqueta in Equipo.TIPOS
         if codigo == tipo and not form.fields[campo].queryset.exists()
     ]
     return render(request, 'proyectos/compresion_sesion.html', {
         'form': form,
         'faltan_tipos': faltan_tipos,
-        'campos_equipo': [form[c] for c, _ in SesionEnsayo.EQUIPOS],
+        'campos_equipo': [form[c] for c, _ in SesionEnsayo.EQUIPOS + SesionEnsayo.ACCESORIOS]
+                         + [form['neopreno_usos']],
+        'campos_comprobacion': form.campos_comprobacion(),
     })
 
 

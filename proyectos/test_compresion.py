@@ -124,8 +124,11 @@ class CompresionBase(TestCase):
             'fecha': (fecha or date.today() - timedelta(days=1)).isoformat(),
             'temperatura_inicial': '22.5', 'humedad_inicial': '51',
         }
-        for campo, tipo in SesionEnsayo.EQUIPOS:
+        for campo, tipo in SesionEnsayo.EQUIPOS + SesionEnsayo.ACCESORIOS:
             datos[campo] = Equipo.objects.filter(tipo=tipo).first().pk
+        datos['neopreno_usos'] = '59-60'
+        for clave, _, _, esperado in SesionEnsayo.COMPROBACION:
+            datos['comp_' + clave] = '1' if esperado else '0'
         datos.update(extra)
         return self.client.post(reverse('proyectos:abrir_sesion_ensayo'), datos)
 
@@ -244,6 +247,7 @@ class TerminarTests(CompresionBase):
     MEDIDAS_P1 = {
         'masa_g': '3914', 'd1': '102.12', 'd2': '101.82',
         'l1': '205.32', 'l2': '205.26', 'l3': '205.48', 'carga_kn': '497.32', 'tipo_fractura': '3',
+        'verif_perpendicularidad': '1', 'verif_planitud': '1',
     }
 
     def setUp(self):

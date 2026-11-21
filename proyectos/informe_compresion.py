@@ -120,9 +120,7 @@ def contexto_informe(informe):
         sesion = ensayo.sesion
         equipos = []
         if sesion:
-            etiquetas = {'prensa': 'ID Prensa', 'balanza': 'ID Balanza', 'vernier': 'ID Vernier',
-                         'termohigrometro': 'ID Termohigrómetro', 'cuna': 'ID Cuña', 'escuadra': 'ID Escuadra'}
-            equipos = [(etiquetas[c], getattr(sesion, c).codigo) for c, _ in SesionEnsayo.EQUIPOS]
+            equipos = [(f"ID {etiqueta}", codigo) for etiqueta, codigo in sesion.equipos_usados()]
         probetas.append({
             'detalle': detalle,
             'muestra': detalle.muestra,
@@ -211,12 +209,19 @@ COLUMNAS_EXCEL = [
     ('Resistencia (MPa)', '0.0'), ('Resistencia (kg/cm²)', '0.0'), ('% obtenido', '0'),
     ('Densidad (kg/m³)', '0'), ('Tipo de fractura', '0'), ('T inicial (°C)', '0.00'), ('HR inicial (%)', '0.00'),
     ('T final (°C)', '0.00'), ('HR final (%)', '0.00'), ('Prensa', None), ('Balanza', None), ('Vernier', None),
-    ('Termohigrómetro', None), ('Cuña', None), ('Escuadra', None), ('Técnico', None), ('Estado', None),
+    ('Termohigrómetro', None), ('Cuña', None), ('Escuadra', None), ('Anillos retenedores', None),
+    ('Neoprenos', None), ('Usos neopreno', None), ('Dif. diámetros (%)', '0.00'), ('Diámetro ≤ 2 %', None),
+    ('Perpendicularidad ≤ 0,5°', None), ('Planitud ≤ 0,05 mm', None), ('Defectos', None), ('Video', None),
+    ('Técnico', None), ('Estado', None),
 ]
 
 
 def _num(valor):
     return float(valor) if valor is not None else None
+
+
+def _cumple(valor):
+    return '' if valor is None else ('Cumple' if valor else 'No cumple')
 
 
 def exportar_excel(ensayos):
@@ -234,7 +239,15 @@ def exportar_excel(ensayos):
     for e in ensayos:
         m = e.detalle.muestra
         s = e.sesion
-        equipos = [getattr(s, c).codigo if s else '' for c, _ in SesionEnsayo.EQUIPOS]
+        equipos = [getattr(getattr(s, c), 'codigo', '') if s else ''
+                   for c, _ in SesionEnsayo.EQUIPOS + SesionEnsayo.ACCESORIOS]
+        vd = e.verificacion_diametro
+        verificaciones = [
+            s.neopreno_usos if s else '',
+            _num(vd[0]) if vd else None, _cumple(vd[1]) if vd else '',
+            _cumple(e.verif_perpendicularidad), _cumple(e.verif_planitud),
+            e.defectos_texto, 'Sí' if e.video_grabado else 'No',
+        ]
         hoja.append([
             e.detalle.solicitud.codigo_solicitud, m.codigo_laboratorio, m.codigo_cliente, m.elemento_estructural,
             _num(m.fc_diseno), m.fecha_fabricacion, e.fecha_ensayo, e.edad_dias,
@@ -243,7 +256,7 @@ def exportar_excel(ensayos):
             _num(e.resistencia_mpa), _num(e.resistencia_kgcm2), e.porcentaje, e.densidad, e.tipo_fractura,
             _num(s.temperatura_inicial) if s else None, _num(s.humedad_inicial) if s else None,
             _num(s.temperatura_final) if s else None, _num(s.humedad_final) if s else None,
-            *equipos,
+            *equipos, *verificaciones,
             e.tecnico.nombre_completo if e.tecnico else '', e.get_estado_display(),
         ])
 

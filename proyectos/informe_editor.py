@@ -262,8 +262,7 @@ def datos_informe(solicitud, modo=MODO_WEB, informe=None, firmante=None, lineas=
             'es_compresion': bool(e and e.plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION),
             'fotos': fotos,
             'sesion': sesion,
-            'equipos': [(ETIQUETAS_EQUIPO.get(c, c), getattr(sesion, c).codigo) for c, _ in SesionEnsayo.EQUIPOS]
-            if sesion else [],
+            'equipos': sesion.equipos_usados() if sesion else [],
             'fractura': dict(FRACTURAS).get(e.tipo_fractura) if e is not None and e.tipo_fractura else '',
         }
 
@@ -281,7 +280,8 @@ def datos_informe(solicitud, modo=MODO_WEB, informe=None, firmante=None, lineas=
         equipos.append({
             'sesion': s,
             'tecnico': s.tecnico.nombre_completo if s.tecnico_id else '',
-            'equipos': [(etiquetas.get(c, c), getattr(s, c).codigo) for c, _ in SesionEnsayo.EQUIPOS],
+            'equipos': s.equipos_usados(),
+            'comprobacion': s.comprobacion_items(),
         })
 
     firma = None
