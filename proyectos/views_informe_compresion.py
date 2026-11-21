@@ -102,7 +102,11 @@ def revision_compresion(request, solicitud_id):
     filas = []
     for d in lineas:
         e = getattr(d, 'resultado', None)
-        filas.append({'detalle': d, 'ensayo': e, 'fotos': list(e.fotos.all()) if e else []})
+        filas.append({
+            'detalle': d, 'ensayo': e, 'fotos': list(e.fotos.all()) if e else [],
+            # Trazabilidad: lo que se digitó mal y lo que quedó (CambioResultado).
+            'cambios': list(e.cambios.select_related('usuario')) if e else [],
+        })
     todas_terminadas = all(f['ensayo'] and f['ensayo'].terminado for f in filas)
     aprobadas = all(f['ensayo'] and f['ensayo'].aprobado for f in filas)
     return render(request, 'proyectos/compresion_revision.html', {
@@ -111,6 +115,7 @@ def revision_compresion(request, solicitud_id):
         'informe': informe,
         'todas_terminadas': todas_terminadas,
         'aprobadas': aprobadas,
+        'total_cambios': sum(len(f['cambios']) for f in filas),
         'borrador': BorradorInforme.objects.filter(solicitud=solicitud).only('estado', 'actualizado_en').first(),
         'puede_exportar': trabajador_tiene_permiso(request.user, PERMISO_EXPORTAR),
         'correo_cliente': _correo_cliente(solicitud),

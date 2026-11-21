@@ -75,21 +75,8 @@
 
     {% if es_compresion %}
     <section class="v-tarjeta p-4" data-datos-probeta>
-        <div class="flex items-center justify-between gap-2 mb-2">
-            <h2 class="font-bold text-slate-800">Datos de la probeta</h2>
-            {% if not datos_probeta_completos %}<span class="text-[11px] font-bold px-2 py-1 rounded-full bg-red-100 text-red-700">Falta en recepción</span>{% endif %}
-        </div>
-        <dl class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
-            <dt class="text-slate-500">ID del cliente</dt><dd class="font-semibold text-slate-800 break-all">{{ muestra.codigo_cliente|default:"—" }}</dd>
-            <dt class="text-slate-500">Elemento</dt><dd class="font-semibold text-slate-800">{{ muestra.elemento_estructural|default:"—" }}</dd>
-            <dt class="text-slate-500">f'c de diseño</dt><dd class="font-semibold text-slate-800">{% if muestra.fc_diseno %}{{ muestra.fc_diseno|floatformat:0 }} kg/cm²{% else %}—{% endif %}</dd>
-            <dt class="text-slate-500">Fabricación</dt><dd class="font-semibold text-slate-800">{{ muestra.fecha_fabricacion|date:"d/m/Y"|default:"—" }}</dd>
-            <dt class="text-slate-500">Edad solicitada</dt><dd class="font-semibold text-slate-800">{% if muestra.edad_ensayo_dias is not None %}{{ muestra.edad_ensayo_dias }} días{% if muestra.fecha_ensayo_solicitada %} ({{ muestra.fecha_ensayo_solicitada|date:"d/m/Y" }}){% endif %}{% else %}—{% endif %}</dd>
-        </dl>
-        {% if not datos_probeta_completos %}
-        <p class="text-xs text-red-600 mt-2">Sin la fecha de fabricación y el f'c no se puede terminar: pide a recepción que completen los datos de la probeta.</p>
-        {% endif %}
-        <div class="mt-3 pt-3 border-t border-slate-100 text-xs" data-sesion-registro>
+        <h2 class="font-bold text-slate-800 text-sm">Sesión de ensayo</h2>
+        <div class="mt-1 text-xs" data-sesion-registro>
             {% if sesion_ensayo %}
                 <p class="text-slate-600">Sesión del {{ sesion_ensayo.fecha|date:"d/m/Y" }} · {{ sesion_ensayo.temperatura_inicial|floatformat:1 }} °C / {{ sesion_ensayo.humedad_inicial|floatformat:0 }} % HR al inicio.</p>
             {% elif sesion %}
@@ -148,10 +135,37 @@
             </div>
         </div>
         {% else %}
-        <div class="v-tarjeta" data-medidas data-fc="{{ muestra.fc_diseno|default_if_none:''|stringformat:'s' }}">
+        <div class="v-tarjeta" data-datos-cliente>
             <div class="v-tarjeta__cab">
                 <span class="v-paso">1</span>
-                <div><h2>Medidas y carga</h2><p>Con el vernier y la balanza de la sesión. Usa coma o punto decimal.</p></div>
+                <div><h2>Datos del cliente</h2><p>Cópialos de la solicitud o del formato: código del cliente, f&#39;c de diseño, fecha de moldeo y edad.</p></div>
+            </div>
+            <div class="v-tarjeta__cuerpo">
+            {% if solo_lectura %}
+            <dl class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
+                <dt class="text-slate-500">ID del cliente</dt><dd class="font-semibold text-slate-800 break-all">{{ muestra.codigo_cliente|default:"—" }}</dd>
+                <dt class="text-slate-500">Elemento</dt><dd class="font-semibold text-slate-800">{{ muestra.elemento_estructural|default:"—" }}</dd>
+                <dt class="text-slate-500">f'c de diseño</dt><dd class="font-semibold text-slate-800">{% if muestra.fc_diseno %}{{ muestra.fc_diseno|floatformat:0 }} kg/cm²{% else %}—{% endif %}</dd>
+                <dt class="text-slate-500">Moldeo</dt><dd class="font-semibold text-slate-800">{{ muestra.fecha_fabricacion|date:"d/m/Y"|default:"—" }}</dd>
+                <dt class="text-slate-500">Edad</dt><dd class="font-semibold text-slate-800">{% if muestra.edad_ensayo_dias is not None %}{{ muestra.edad_ensayo_dias }} días{% else %}—{% endif %}</dd>
+            </dl>
+            {% else %}
+            <div class="grid grid-cols-2 gap-3">
+                {% for campo in form_cliente %}
+                <label class="v-campo block {% if campo.name == 'elemento_estructural' %}col-span-2{% endif %}">
+                    <span class="v-etiqueta">{{ campo.label }}</span>
+                    {{ campo }}
+                </label>
+                {% endfor %}
+            </div>
+            {% endif %}
+            </div>
+        </div>
+
+        <div class="v-tarjeta" data-medidas data-fc="{{ muestra.fc_diseno|default_if_none:''|stringformat:'s' }}">
+            <div class="v-tarjeta__cab">
+                <span class="v-paso">2</span>
+                <div><h2>Medidas y masa</h2><p>Con el vernier y la balanza de la sesión, antes de llevarla a la prensa. Usa coma o punto decimal.</p></div>
             </div>
             <div class="v-tarjeta__cuerpo space-y-3">
             <label class="v-campo block">
@@ -164,22 +178,14 @@
                        class="w-full">
             </label>
             <div class="grid grid-cols-2 gap-3">
-                {% for m in medidas %}
-                <label class="v-campo block {% if m.campo == 'masa_g' or m.campo == 'carga_kn' %}col-span-1{% endif %}">
+                {% for m in medidas %}{% if m.campo != 'carga_kn' %}
+                <label class="v-campo block">
                     <span class="v-etiqueta">{{ m.etiqueta }}</span>
                     <input type="text" inputmode="decimal" name="{{ m.campo }}" value="{{ m.valor }}" data-medida="{{ m.campo }}"
                            autocomplete="off" {% if solo_lectura %}disabled{% endif %}
                            class="w-full font-mono">
                 </label>
-                {% endfor %}
-                <label class="v-campo block">
-                    <span class="v-etiqueta">Tipo de fractura</span>
-                    <select name="tipo_fractura" id="tipo_fractura" {% if solo_lectura %}disabled{% endif %}
-                            class="w-full">
-                        <option value="">Elige…</option>
-                        {% for n in fracturas %}<option value="{{ n }}" {% if ensayo.tipo_fractura == n %}selected{% endif %}>Tipo {{ n }}</option>{% endfor %}
-                    </select>
-                </label>
+                {% endif %}{% endfor %}
             </div>
             <fieldset class="v-campo block" data-verificaciones>
                 <legend class="v-etiqueta">Verificaciones</legend>
@@ -210,28 +216,46 @@
                        {% if solo_lectura %}disabled{% endif %}
                        class="w-full mt-1">
             </fieldset>
-            <label class="inline-flex items-center gap-2 text-sm">
-                <input type="checkbox" name="video_grabado" value="1" {% if ensayo.video_grabado %}checked{% endif %} {% if solo_lectura %}disabled{% endif %}>
-                Se grabó video del ensayo
-            </label>
-            <label class="v-campo block">
-                <span class="v-etiqueta">Observaciones</span>
-                <textarea name="observaciones" rows="2" {% if solo_lectura %}disabled{% endif %}
-                          class="w-full">{{ ensayo.observaciones|default:'' }}</textarea>
-            </label>
             </div>
         </div>
 
-        <div class="bg-slate-900 text-white rounded-2xl p-4 shadow-sm" data-resultados>
+        <div class="v-tarjeta" data-paso-antes>
+            <div class="v-tarjeta__cab">
+                <span class="v-paso">3</span>
+                <div><h2>En la prensa, antes de ensayar</h2><p>Toma las 2 fotos con la probeta ya colocada en la prensa.</p></div>
+            </div>
+            <div class="v-tarjeta__cuerpo">
+            <div class="grid grid-cols-2 gap-3">
+                {% include "proyectos/_slot_foto.html" with s=foto.antes ancho=False %}
+                {% include "proyectos/_slot_foto.html" with s=foto.antes_pizarra ancho=False %}
+            </div>
+            </div>
+        </div>
+
+        <div class="v-tarjeta" data-paso-carga>
+            <div class="v-tarjeta__cab">
+                <span class="v-paso">4</span>
+                <div><h2>Carga de rotura</h2><p>Escribe la carga máxima y fotografía el display <b>antes</b> de retirar la probeta.</p></div>
+            </div>
+            <div class="v-tarjeta__cuerpo space-y-3">
+            {% for m in medidas %}{% if m.campo == 'carga_kn' %}
+                <label class="v-campo block">
+                    <span class="v-etiqueta">{{ m.etiqueta }}</span>
+                    <input type="text" inputmode="decimal" name="{{ m.campo }}" value="{{ m.valor }}" data-medida="{{ m.campo }}"
+                           autocomplete="off" {% if solo_lectura %}disabled{% endif %}
+                           class="w-full font-mono">
+                </label>
+            {% endif %}{% endfor %}
+        <div class="bg-slate-900 text-white rounded-2xl p-4 shadow-sm" data-resultados data-preliminar>
             <div class="flex items-center justify-between gap-2">
-                <h2 class="font-bold">Resultados</h2>
+                <h2 class="font-bold">Resultado preliminar</h2>
                 <span class="text-[11px] text-slate-300" data-origen>{% if solo_lectura %}Guardados al terminar{% else %}Se recalculan mientras escribes{% endif %}</span>
             </div>
             <p class="text-xs text-red-300 mt-1 {% if not error_calculo %}hidden{% endif %}" data-error-calculo>{{ error_calculo|default:'' }}</p>
             <dl class="mt-3 grid grid-cols-3 gap-2 text-center">
                 <div class="col-span-3 bg-white/10 rounded-xl py-3">
                     <dt class="text-[11px] text-slate-300">Resistencia</dt>
-                    <dd class="text-2xl font-bold font-mono"><span data-r="kgcm2">{% if solo_lectura %}{{ ensayo.resistencia_kgcm2|default_if_none:'—' }}{% else %}{{ resultado.resistencia_kgcm2|default_if_none:'—' }}{% endif %}</span> <span class="text-sm font-semibold">kg/cm²</span></dd>
+                    <dd class="text-4xl font-bold font-mono"><span data-r="kgcm2">{% if solo_lectura %}{{ ensayo.resistencia_kgcm2|default_if_none:'—' }}{% else %}{{ resultado.resistencia_kgcm2|default_if_none:'—' }}{% endif %}</span> <span class="text-sm font-semibold">kg/cm²</span></dd>
                     <dd class="text-xs text-slate-300"><span data-r="mpa">{% if solo_lectura %}{{ ensayo.resistencia_mpa|default_if_none:'—' }}{% else %}{{ resultado.resistencia_mpa|default_if_none:'—' }}{% endif %}</span> MPa · <span data-r="porcentaje">{% if solo_lectura %}{{ ensayo.porcentaje|default_if_none:'—' }}{% else %}{{ resultado.porcentaje|default_if_none:'—' }}{% endif %}</span> % de f'c</dd>
                 </div>
                 {% with r=resultado %}
@@ -245,8 +269,42 @@
             </dl>
             {% if solo_lectura and ensayo.edad_dias is not None %}<p class="text-xs text-slate-300 mt-2">Edad al ensayo: {{ ensayo.edad_dias }} días.</p>{% endif %}
         </div>
+            {% include "proyectos/_slot_foto.html" with s=foto.carga ancho=True %}
+            </div>
+        </div>
+
+        <div class="v-tarjeta" data-paso-rotura>
+            <div class="v-tarjeta__cab">
+                <span class="v-paso">5</span>
+                <div><h2>Probeta rota</h2><p>Tipo de falla y las 2 fotos de la probeta fallada.</p></div>
+            </div>
+            <div class="v-tarjeta__cuerpo space-y-3">
+                <label class="v-campo block">
+                    <span class="v-etiqueta">Tipo de fractura</span>
+                    <select name="tipo_fractura" id="tipo_fractura" {% if solo_lectura %}disabled{% endif %}
+                            class="w-full">
+                        <option value="">Elige…</option>
+                        {% for n in fracturas %}<option value="{{ n }}" {% if ensayo.tipo_fractura == n %}selected{% endif %}>Tipo {{ n }}</option>{% endfor %}
+                    </select>
+                </label>
+            <div class="grid grid-cols-2 gap-3">
+                {% include "proyectos/_slot_foto.html" with s=foto.despues ancho=False %}
+                {% include "proyectos/_slot_foto.html" with s=foto.despues_pizarra ancho=False %}
+            </div>
+            <label class="inline-flex items-center gap-2 text-sm">
+                <input type="checkbox" name="video_grabado" value="1" {% if ensayo.video_grabado %}checked{% endif %} {% if solo_lectura %}disabled{% endif %}>
+                Se grabó video del ensayo
+            </label>
+            <label class="v-campo block">
+                <span class="v-etiqueta">Observaciones</span>
+                <textarea name="observaciones" rows="2" {% if solo_lectura %}disabled{% endif %}
+                          class="w-full">{{ ensayo.observaciones|default:'' }}</textarea>
+            </label>
+            </div>
+        </div>
         {% endif %}
 
+        {% if not es_compresion %}
         <div class="v-tarjeta">
             <div class="v-tarjeta__cab">
                 <span class="v-paso">2</span>
@@ -255,39 +313,23 @@
             <div class="v-tarjeta__cuerpo">
 
             <div class="grid grid-cols-2 gap-3">
-                {% for s in slots %}
-                <div class="{% if forloop.first and es_compresion %}col-span-2{% endif %}" data-slot="{{ s.tipo }}" data-proporcion="{{ s.ancho }}/{{ s.alto }}">
-                    <p class="text-xs font-semibold text-slate-700 mb-1 leading-tight">{{ forloop.counter }}. {{ s.etiqueta }}</p>
-                    <div class="foto-marco" style="aspect-ratio: {{ s.ancho }} / {{ s.alto }};"
-                         data-marco data-estado="{% if s.foto %}ok{% else %}vacio{% endif %}">
-                        {% if s.foto %}
-                            <img src="{% url 'proyectos:foto_compresion' s.foto.pk %}?v={{ s.foto.subido_en|date:'U' }}" alt="{{ s.etiqueta }}" width="{{ s.foto.ancho }}" height="{{ s.foto.alto }}" loading="lazy">
-                        {% else %}
-                            <span class="text-slate-400 flex flex-col items-center gap-1 text-[11px]" data-vacio>
-                                <i data-lucide="image-plus" class="w-6 h-6"></i> Sin foto
-                            </span>
-                        {% endif %}
-                        <div class="foto-cargando">Subiendo…</div>
-                    </div>
-                    <p class="text-[11px] text-red-600 mt-1 hidden" data-error></p>
-                    {% if not solo_lectura %}
-                    <div class="mt-1.5 grid grid-cols-2 gap-1.5">
-                        <label class="v-btn v-btn--primario v-btn--sm v-btn--foto">
-                            <i data-lucide="camera"></i> Cámara
-                            <input type="file" accept="image/*" capture="environment" class="sr-only" data-entrada>
-                        </label>
-                        <label class="v-btn v-btn--secundario v-btn--sm v-btn--foto">
-                            <i data-lucide="images"></i> Galería
-                            <input type="file" accept="image/*" class="sr-only" data-entrada>
-                        </label>
-                    </div>
-                    <button type="button" class="hidden mt-1.5 v-btn v-btn--peligro v-btn--sm v-btn--block" data-reintentar>Reintentar envío</button>
-                    {% endif %}
-                </div>
-                {% endfor %}
+                {% for s in slots %}{% include "proyectos/_slot_foto.html" with s=s ancho=False %}{% endfor %}
             </div>
             </div>
         </div>
+
+        {% endif %}
+
+        {% if cambios %}
+        <details class="v-tarjeta p-4" data-cambios>
+            <summary class="cursor-pointer font-bold text-slate-800">Correcciones registradas ({{ cambios|length }})</summary>
+            <ul class="mt-2 text-sm divide-y divide-slate-100">
+                {% for c in cambios %}
+                <li class="py-1.5"><b>{{ c.etiqueta }}</b>: <span class="line-through text-red-700">{{ c.anterior }}</span> → <span class="text-green-700 font-semibold">{{ c.nuevo|default:"(vacío)" }}</span> <span class="block text-xs text-slate-500">{{ c.usuario.get_full_name|default:c.usuario.username|default:"—" }} · {{ c.registrado_en|date:"d/m/Y H:i" }}</span></li>
+                {% endfor %}
+            </ul>
+        </details>
+        {% endif %}
 
         <div class="v-barra">
             {% if solo_lectura %}
@@ -504,7 +546,8 @@
     const cajaMedidas = document.querySelector('[data-medidas]');
     function recalcular() {
         if (!cajaMedidas) return;
-        const datos = { fc: cajaMedidas.dataset.fc };
+        const campoFc = document.querySelector('[name="muestra-fc_diseno"]');
+        const datos = { fc: campoFc && campoFc.value.trim() ? campoFc.value.trim().replace(',', '.') : cajaMedidas.dataset.fc };
         document.querySelectorAll('[data-medida]').forEach(function (i) { datos[i.dataset.medida] = i.value; });
         const r = window.CompresionCalculos.calcular(datos);
         const fmt = function (v, dec) {
@@ -533,6 +576,8 @@
             celdaVd.classList.toggle('text-red-600', !!(vd && !vd.cumple));
         }
     }
+    const entradaFc = document.querySelector('[name="muestra-fc_diseno"]');
+    if (entradaFc) entradaFc.addEventListener('input', recalcular);
     document.querySelectorAll('[data-medida]').forEach(function (i) {
         i.addEventListener('input', function () { recalcular(); actualizarTerminar(); });
     });

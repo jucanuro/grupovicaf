@@ -42,6 +42,12 @@ class DatosProbetaForm(forms.ModelForm):
         return fecha
 
 
+class DatosClienteProbetaForm(DatosProbetaForm):
+    """Lo que el técnico copia de la solicitud al empezar: los datos que da el cliente."""
+    class Meta(DatosProbetaForm.Meta):
+        fields = ['codigo_cliente', 'elemento_estructural', 'fc_diseno', 'fecha_fabricacion', 'edad_ensayo_dias']
+
+
 class EquipoForm(forms.ModelForm):
     class Meta:
         model = Equipo

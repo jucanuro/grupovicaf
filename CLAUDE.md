@@ -106,6 +106,14 @@ registrar); ya no se finaliza a mano. Quien ve todos los ensayos puede pasar el
 formato en papel a nombre del técnico asignado: abre su sesión
 (`?tecnico=<id>`) y la línea queda «Ejecutado por» el técnico y
 `registrado_por` quien la escribió.
+El registro de compresión sigue el orden del laboratorio: 1 datos del cliente
+(el técnico los copia; `DatosClienteProbetaForm`), 2 medidas y masa, 3 fotos
+en la prensa antes de ensayar, 4 carga + resultado preliminar + foto del
+display, 5 probeta rota (falla y 2 fotos); orden en `FotoEnsayo.ORDEN_TOMA`.
+«Medir y pesar todas primero» (`/resultados/solicitud/<id>/medidas/`) guarda
+masa, D y L de todas las probetas de corrido. Trazabilidad: toda corrección de
+un dato ya guardado (también datos del cliente y fotos reemplazadas) queda en
+`CambioResultado` (`proyectos/trazabilidad.py`) y se ve en la revisión.
 
 **Informe tipo Word (fase 2).** Todo informe, también el de compresión, pasa por el
 editor: al aprobar los resultados se abre `/proyectos/resultados/informe/<id>/editor/`

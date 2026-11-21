@@ -38,7 +38,8 @@ from trabajadores.models import TrabajadorProfile
 from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso, ve_todos_los_ensayos
 
 from .calculos_compresion import DatosInsuficientes
-from .forms_compresion import AbrirSesionForm, CerrarSesionForm, DatosProbetaForm, EquipoForm
+from .forms_compresion import AbrirSesionForm, CerrarSesionForm, DatosClienteProbetaForm, DatosProbetaForm, EquipoForm
+from . import trazabilidad
 from .fotos import FotoInvalida, procesar_foto
 from .models import (
     DetalleSolicitudEnsayo, ResultadoEnsayo, Equipo, FotoEnsayo, InformeFinal, MuestraDetalle,
@@ -211,6 +212,11 @@ def registrar_ensayo_compresion(request, detalle_id):
             )
             detalle.solicitud.sincronizar_estado()
 
+        if ensayo.es_compresion and 'muestra-fc_diseno' in request.POST:
+            error = _aplicar_datos_cliente(request, detalle, ensayo)
+            if error:
+                messages.error(request, error)
+                return redirect(url)
         aplicar = _aplicar_datos if ensayo.es_compresion else _aplicar_datos_generales
         error = aplicar(request, detalle, ensayo)
         if error:
@@ -269,6 +275,10 @@ def registrar_ensayo_compresion(request, detalle_id):
         }
         for codigo, etiqueta in FotoEnsayo.tipos_de(plantilla)
     ]
+    orden = FotoEnsayo.ORDEN_TOMA if plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION else [x['tipo'] for x in slots]
+    slots.sort(key=lambda x: orden.index(x['tipo']))
+    for n, slot in enumerate(slots, 1):
+        slot['numero'] = n
     sesion = SesionEnsayo.abierta_de(ejecutor)
     resultado, error_calculo = None, None
     if ensayo is not None and ensayo.es_compresion:
@@ -284,6 +294,9 @@ def registrar_ensayo_compresion(request, detalle_id):
         'es_compresion': plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION,
         'muestra': muestra,
         'datos_probeta_completos': bool(muestra.fecha_fabricacion and muestra.fc_diseno),
+        'form_cliente': DatosClienteProbetaForm(instance=muestra, prefix='muestra'),
+        'foto': {s['tipo']: s for s in slots},
+        'cambios': list(ensayo.cambios.select_related('usuario')) if ensayo else [],
         'sesion': sesion,
         'sesion_ensayo': ensayo.sesion if ensayo else None,
         'resultado': resultado,
@@ -413,6 +426,104 @@ def resultados_solicitud(request, solicitud_id):
         'puede_iniciar': trabajador_tiene_permiso(request.user, 'ensayos.editar'),
         'sesiones': sesiones,
         'volver': volver,
+        'hay_compresion_pendiente': any(
+            d.plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION and not (d.ensayo and d.ensayo.terminado)
+            for d in propias),
+    })
+
+
+CAMPOS_MEDIDAS_LOTE = ['masa_g', 'd1', 'd2', 'l1', 'l2', 'l3']
+
+
+@login_required
+@permiso_requerido(PERMISO_REGISTRAR)
+def medidas_solicitud(request, solicitud_id):
+    """Medir y pesar todas las probetas de la solicitud de corrido, antes de romperlas.
+
+    Así trabaja el laboratorio cuando hay varias probetas: primero masa, D1-D2
+    y L1-L3 de todas; después cada una pasa a la prensa desde su registro.
+    """
+    solicitud = get_object_or_404(SolicitudEnsayo, pk=solicitud_id)
+    pantalla = reverse('proyectos:resultados_solicitud', args=[solicitud.pk])
+    ve_todos = ve_todos_los_ensayos(request.user)
+    lineas = []
+    for d in solicitud.detalles.select_related('muestra', 'resultado', 'tecnico_asignado',
+                                               'servicio_cotizado__servicio').order_by('muestra__codigo_laboratorio', 'pk'):
+        if not (ve_todos or (d.tecnico_asignado and d.tecnico_asignado.user_id == request.user.pk)):
+            continue
+        e = _ensayo_de(d)
+        plantilla = e.plantilla if e else ResultadoEnsayo.plantilla_para(d)
+        if plantilla != ResultadoEnsayo.PLANTILLA_COMPRESION:
+            continue
+        d.ensayo = e
+        lineas.append(d)
+    if not lineas:
+        messages.error(request, "Esta solicitud no tiene probetas de compresión tuyas para medir.")
+        return redirect(pantalla)
+
+    etiquetas = {f.name: str(f.verbose_name) for f in ResultadoEnsayo._meta.fields}
+    errores = []
+    if request.method == 'POST':
+        fecha, error = _leer_fecha(request, lineas[0])
+        if error:
+            errores.append(error)
+        lecturas = {}
+        for d in lineas:
+            if d.ensayo is not None and d.ensayo.terminado:
+                continue
+            valores = {}
+            for campo in CAMPOS_MEDIDAS_LOTE:
+                try:
+                    valores[campo] = _leer_decimal(request.POST.get(f'{campo}-{d.pk}'), etiquetas[campo],
+                                                   RANGOS_MEDIDAS[campo])
+                except ValueError as exc:
+                    errores.append(f"{d.muestra.codigo_laboratorio}: {exc}")
+            lecturas[d.pk] = valores
+        if not errores:
+            guardadas = 0
+            with transaction.atomic():
+                for d in lineas:
+                    valores = lecturas.get(d.pk)
+                    if valores is None or not any(v is not None for v in valores.values()):
+                        continue
+                    ensayo = d.ensayo or ResultadoEnsayo.objects.create(
+                        detalle=d, plantilla=ResultadoEnsayo.PLANTILLA_COMPRESION,
+                    )
+                    antes = trazabilidad.instantanea(ensayo, trazabilidad.CAMPOS_RESULTADO)
+                    for campo, valor in valores.items():
+                        setattr(ensayo, campo, valor)
+                    if fecha:
+                        ensayo.fecha_ensayo = fecha
+                    ensayo.save(update_fields=[*CAMPOS_MEDIDAS_LOTE, 'fecha_ensayo', 'actualizado_en'])
+                    trazabilidad.anotar_cambios(ensayo, ensayo, antes, trazabilidad.CAMPOS_RESULTADO, request.user)
+                    guardadas += 1
+                solicitud.sincronizar_estado()
+            messages.success(request, f"Medidas guardadas de {guardadas} probeta{'s' if guardadas != 1 else ''}. "
+                                      "Ahora ensaya cada una en la prensa.")
+            return redirect(pantalla)
+
+    filas = []
+    for d in lineas:
+        e = d.ensayo
+        filas.append({
+            'detalle': d,
+            'terminado': bool(e and e.terminado),
+            'campos': [
+                {'campo': c, 'etiqueta': etiquetas[c].split(' (')[0], 'nombre': f'{c}-{d.pk}',
+                 'valor': request.POST.get(f'{c}-{d.pk}', '') if request.method == 'POST'
+                 else ('' if e is None or getattr(e, c) is None else getattr(e, c))}
+                for c in CAMPOS_MEDIDAS_LOTE
+            ],
+        })
+    fecha_actual = next((d.ensayo.fecha_ensayo for d in lineas if d.ensayo and d.ensayo.fecha_ensayo), None)
+    return render(request, 'proyectos/medidas_solicitud.html', {
+        'solicitud': solicitud,
+        'filas': filas,
+        'errores': errores,
+        'pantalla': pantalla,
+        'fecha': request.POST.get('fecha_ensayo') if request.method == 'POST' else
+                 (fecha_actual.isoformat() if fecha_actual else timezone.localdate().isoformat()),
+        'hoy': timezone.localdate(),
     })
 
 
@@ -466,11 +577,26 @@ def _leer_fecha(request, detalle):
     return fecha, None
 
 
+def _aplicar_datos_cliente(request, detalle, ensayo):
+    """Datos que da el cliente (f'c, moldeo, edad, su código): el técnico los copia al empezar."""
+    muestra = detalle.muestra
+    antes = trazabilidad.instantanea(muestra, trazabilidad.CAMPOS_MUESTRA)
+    form = DatosClienteProbetaForm(request.POST, instance=muestra, prefix='muestra')
+    if not form.is_valid():
+        errores = [f"{form.fields[c].label}: {e}" if c in form.fields else str(e)
+                   for c, lista in form.errors.items() for e in lista]
+        return "Datos de la probeta: " + " ".join(errores)
+    form.save()
+    trazabilidad.anotar_cambios(ensayo, muestra, antes, trazabilidad.CAMPOS_MUESTRA, request.user, prefijo='probeta:')
+    return None
+
+
 def _aplicar_datos_generales(request, detalle, ensayo):
     """Plantilla general: fecha, resumen, observaciones y la hoja de cálculo del ensayo."""
     fecha, error = _leer_fecha(request, detalle)
     if error:
         return error
+    antes = trazabilidad.instantanea(ensayo, trazabilidad.CAMPOS_RESULTADO)
     hoja = request.FILES.get('hoja_calculo')
     if hoja:
         if not hoja.name.lower().endswith(EXTENSIONES_HOJA):
@@ -480,6 +606,11 @@ def _aplicar_datos_generales(request, detalle, ensayo):
         anterior = ensayo.hoja_calculo.name if ensayo.hoja_calculo else None
         ensayo.hoja_calculo.save(hoja.name, hoja, save=False)
         if anterior:
+            from .models import CambioResultado
+            CambioResultado.objects.create(
+                resultado=ensayo, campo='hoja_calculo', etiqueta='Hoja de cálculo',
+                anterior='hoja anterior', nuevo=hoja.name[:255], usuario=request.user,
+            )
             try:
                 ensayo.hoja_calculo.storage.delete(anterior)
             except OSError:
@@ -488,6 +619,7 @@ def _aplicar_datos_generales(request, detalle, ensayo):
     ensayo.resumen = (request.POST.get('resumen') or '').strip()[:5000]
     ensayo.observaciones = (request.POST.get('observaciones') or '').strip()
     ensayo.save()
+    trazabilidad.anotar_cambios(ensayo, ensayo, antes, trazabilidad.CAMPOS_RESULTADO, request.user)
     return None
 
 
@@ -563,6 +695,7 @@ def _aplicar_datos(request, detalle, ensayo):
             return "El tipo de fractura debe ser del 1 al 6."
         fractura = int(texto_fractura)
 
+    antes = trazabilidad.instantanea(ensayo, trazabilidad.CAMPOS_RESULTADO)
     ensayo.fecha_ensayo = fecha
     for campo, valor in medidas.items():
         setattr(ensayo, campo, valor)
@@ -581,6 +714,7 @@ def _aplicar_datos(request, detalle, ensayo):
         'tipos_defecto', 'verif_perpendicularidad', 'verif_planitud', 'video_grabado',
         *ResultadoEnsayo.CAMPOS_MEDIDOS,
     ])
+    trazabilidad.anotar_cambios(ensayo, ensayo, antes, trazabilidad.CAMPOS_RESULTADO, request.user)
     return None
 
 
@@ -620,6 +754,8 @@ def subir_foto_compresion(request, detalle_id, tipo):
         foto.imagen.save('foto.jpg', contenido, save=False)
         foto.save()
 
+    if anterior:
+        trazabilidad.anotar_foto_reemplazada(ensayo, dict(FotoEnsayo.TIPOS).get(tipo, tipo), request.user)
     if anterior and anterior != foto.imagen.name:
         try:
             foto.imagen.storage.delete(anterior)

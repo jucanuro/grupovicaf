@@ -7,7 +7,7 @@ from django.urls import reverse
 from proyectos.models import ResultadoEnsayo, SesionEnsayo, SolicitudEnsayo
 from proyectos import test_compresion
 from proyectos.models import Equipo
-from proyectos.test_compresion import CompresionBase
+from proyectos.test_compresion import CompresionBase, jpeg
 from trabajadores.testing import crear_trabajador, rol_con_permisos
 
 
@@ -156,3 +156,90 @@ class RegistroANombreDelTecnicoTests(CompresionBase):
         self.assertTrue(e.terminado)
         self.assertEqual(e.tecnico, self.tecnico)
         self.assertIsNone(e.registrado_por)
+
+
+class FlujoRealCompresionTests(CompresionBase):
+    """Orden del laboratorio, medir todas primero y trazabilidad de correcciones."""
+
+    def setUp(self):
+        super().setUp()
+        SolicitudEnsayo.objects.filter(pk=self.mia.solicitud_id).update(estado='proceso')
+        self.url_medidas = reverse('proyectos:medidas_solicitud', args=[self.mia.solicitud_id])
+
+    def guardar(self, **datos):
+        base = {'accion': 'guardar', 'fecha_ensayo': (date.today() - timedelta(days=1)).isoformat()}
+        base.update(datos)
+        return self.client.post(self.url_registro(self.mia), base)
+
+    def test_el_formulario_sigue_el_orden_del_laboratorio(self):
+        self.client.force_login(self.user_tec)
+        html = self.client.get(self.url_registro(self.mia)).content.decode()
+        orden = ['data-datos-cliente', 'data-medidas', 'data-paso-antes', 'data-slot="antes"',
+                 'data-slot="antes_pizarra"', 'data-paso-carga', 'name="carga_kn"', 'data-preliminar',
+                 'data-slot="carga"', 'data-paso-rotura', 'name="tipo_fractura"', 'data-slot="despues"']
+        posiciones = [html.index(x) for x in orden]
+        self.assertEqual(posiciones, sorted(posiciones))
+        self.assertIn('3. Lectura de carga máxima', html)
+
+    def test_corregir_un_dato_queda_en_la_trazabilidad(self):
+        self.client.force_login(self.user_tec)
+        self.guardar(masa_g='3914')
+        e = ResultadoEnsayo.objects.get(detalle=self.mia)
+        self.assertEqual(e.cambios.count(), 0)
+        self.guardar(masa_g='3941')
+        c = e.cambios.get()
+        self.assertEqual((c.campo, c.anterior, c.nuevo, c.usuario), ('masa_g', '3914', '3941', self.user_tec))
+
+        rol = rol_con_permisos('Jefe', 'informes.aprobar')
+        jefe, _ = crear_trabajador('jefe', rol)
+        self.client.force_login(jefe)
+        r = self.client.get(reverse('proyectos:revision_compresion', args=[self.mia.solicitud_id]))
+        self.assertContains(r, 'data-trazabilidad')
+        self.assertContains(r, 'Hay 1 corrección')
+        self.assertContains(r, '3914')
+
+    def test_el_tecnico_copia_los_datos_del_cliente_y_se_trazan(self):
+        self.client.force_login(self.user_tec)
+        muestra = self.mia.muestra
+        self.guardar(**{'muestra-fc_diseno': '280', 'muestra-codigo_cliente': 'P-01',
+                        'muestra-fecha_fabricacion': muestra.fecha_fabricacion.isoformat(),
+                        'muestra-edad_ensayo_dias': '28', 'muestra-elemento_estructural': 'Zapata Z-1'})
+        muestra.refresh_from_db()
+        self.assertEqual(muestra.fc_diseno, 280)
+        self.assertEqual(muestra.codigo_cliente, 'P-01')
+        c = ResultadoEnsayo.objects.get(detalle=self.mia).cambios.get(campo='probeta:fc_diseno')
+        self.assertEqual((c.anterior, c.nuevo), ('420', '280'))
+
+    def test_foto_reemplazada_queda_en_la_trazabilidad(self):
+        self.client.force_login(self.user_tec)
+        self.subir(self.mia, 'carga', jpeg(1800, 700))
+        self.subir(self.mia, 'carga', jpeg(1800, 700))
+        c = ResultadoEnsayo.objects.get(detalle=self.mia).cambios.get()
+        self.assertEqual(c.campo, 'foto')
+
+    def test_medir_todas_primero(self):
+        self.client.force_login(self.user_sup)
+        r = self.client.get(self.url_medidas)
+        self.assertContains(r, f'data-fila-medidas="{self.mia.pk}"')
+        self.assertContains(r, f'data-fila-medidas="{self.ajena.pk}"')
+        self.assertNotContains(r, f'data-fila-medidas="{self.proctor.pk}"')
+        r = self.client.post(self.url_medidas, {
+            'fecha_ensayo': (date.today() - timedelta(days=1)).isoformat(),
+            f'masa_g-{self.mia.pk}': '3914', f'd1-{self.mia.pk}': '102,12', f'd2-{self.mia.pk}': '101.82',
+            f'l1-{self.ajena.pk}': '205.32',
+        })
+        self.assertRedirects(r, reverse('proyectos:resultados_solicitud', args=[self.mia.solicitud_id]),
+                             fetch_redirect_response=False)
+        e = ResultadoEnsayo.objects.get(detalle=self.mia)
+        self.assertEqual(str(e.d1), '102.12')
+        self.assertEqual(e.fecha_ensayo, date.today() - timedelta(days=1))
+        self.assertEqual(str(ResultadoEnsayo.objects.get(detalle=self.ajena).l1), '205.32')
+
+    def test_medidas_con_error_no_guardan_nada(self):
+        self.client.force_login(self.user_tec)
+        r = self.client.post(self.url_medidas, {f'masa_g-{self.mia.pk}': '3914', f'd1-{self.mia.pk}': '1020'})
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'D1 (mm) debe estar entre')
+        self.assertFalse(ResultadoEnsayo.objects.filter(detalle=self.mia).exists())
+        # El técnico solo ve sus probetas.
+        self.assertNotContains(r, f'data-fila-medidas="{self.ajena.pk}"')

@@ -38,6 +38,11 @@
         {% endfor %}
     {% endif %}
 
+    <div class="v-aviso {% if total_cambios %}v-aviso--ambar{% else %}v-aviso--ok{% endif %}" role="note" data-trazabilidad>
+        <i data-lucide="history"></i>
+        <span>{% if total_cambios %}Hay {{ total_cambios }} correcci{{ total_cambios|pluralize:"ón,ones" }} de datos en esta solicitud. Revísalas debajo de cada muestra antes de aprobar: se ve lo que se digitó, lo que quedó, quién y cuándo.{% else %}Sin correcciones: ningún dato guardado se cambió después.{% endif %}</span>
+    </div>
+
     <div class="v-tarjeta overflow-x-auto">
         <table class="w-full text-sm">
             <thead class="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
@@ -90,6 +95,20 @@
                     {% else %}<span class="text-xs text-amber-700 font-semibold">En registro{% if e.observacion_revision %} (devuelta){% endif %}</span>{% endif %}
                 </td>
             </tr>
+            {% if f.cambios %}
+            <tr class="bg-amber-50/60" data-cambios-fila="{{ f.detalle.muestra.codigo_laboratorio }}">
+                <td colspan="8" class="px-3 py-2">
+                    <details open>
+                        <summary class="cursor-pointer text-xs font-bold text-amber-800">{{ f.cambios|length }} correcci{{ f.cambios|length|pluralize:"ón,ones" }} en {{ f.detalle.muestra.codigo_laboratorio }}</summary>
+                        <ul class="mt-1 text-xs space-y-0.5">
+                            {% for c in f.cambios %}
+                            <li><b>{{ c.etiqueta }}</b>: digitado <span class="line-through text-red-700">{{ c.anterior }}</span> → quedó <span class="font-semibold text-green-800">{{ c.nuevo|default:"(vacío)" }}</span> <span class="text-slate-500">· {{ c.usuario.get_full_name|default:c.usuario.username|default:"—" }}, {{ c.registrado_en|date:"d/m/Y H:i" }}</span></li>
+                            {% endfor %}
+                        </ul>
+                    </details>
+                </td>
+            </tr>
+            {% endif %}
             {% endwith %}
             {% endfor %}
             </tbody>

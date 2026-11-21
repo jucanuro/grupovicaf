@@ -954,6 +954,32 @@ class ResultadoEnsayo(models.Model):
         return faltan
 
 
+class CambioResultado(models.Model):
+    """Trazabilidad: cada corrección de un dato ya guardado (valor anterior → nuevo).
+
+    Solo se anota cuando un dato que ya tenía valor cambia, para que el revisor
+    vea qué se digitó mal y qué quedó al final. El primer valor no es una
+    corrección: es el ``anterior`` del primer cambio o el valor actual.
+    """
+    resultado = models.ForeignKey(
+        'ResultadoEnsayo', on_delete=models.CASCADE, related_name='cambios',
+    )
+    campo = models.CharField(max_length=40)
+    etiqueta = models.CharField(max_length=80)
+    anterior = models.CharField(max_length=255, blank=True, default='')
+    nuevo = models.CharField(max_length=255, blank=True, default='')
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    registrado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Corrección de resultado"
+        verbose_name_plural = "Correcciones de resultados"
+        ordering = ['registrado_en', 'pk']
+
+    def __str__(self):
+        return f"{self.etiqueta}: {self.anterior} → {self.nuevo}"
+
+
 class FotoEnsayo(models.Model):
     TIPO_CARGA = 'carga'
     TIPO_ANTES = 'antes'
@@ -970,6 +996,9 @@ class FotoEnsayo(models.Model):
         ('general_resultado', 'Resultado o lectura del equipo'),
     ]
     TIPOS_COMPRESION = [TIPO_CARGA, TIPO_ANTES, TIPO_ANTES_PIZARRA, TIPO_DESPUES, TIPO_DESPUES_PIZARRA]
+    # Orden en que se toman en el laboratorio: en la prensa antes de ensayar,
+    # el display con la carga de rotura y recién entonces la probeta rota.
+    ORDEN_TOMA = [TIPO_ANTES, TIPO_ANTES_PIZARRA, TIPO_CARGA, TIPO_DESPUES, TIPO_DESPUES_PIZARRA]
     TIPOS_GENERAL = ['general_muestra', 'general_resultado']
     # Proporción ancho:alto de cada recuadro, medida en el informe real
     # VCF-INF-2026-4582 (FOR-039 v17): carga 111,5 x 43,3 pt; probeta 55,6 x 97,6 pt.
