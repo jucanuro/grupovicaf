@@ -15,12 +15,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from trabajadores.permissions import permiso_requerido
+from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso
 
 from .informe_compresion import lineas_resultados
 from .informe_editor import (
-    MODO_PDF, MODO_WEB, DocumentoInvalido, bloques_disponibles, bloques_faltantes,
-    documento_inicial, html_de_bloques, html_informe, validar_contenido,
+    BLOQUES_CONVERTIBLES, MODO_PDF, MODO_WEB, PERMISO_EDITAR_DATOS, TIPOS_BLOQUE, DocumentoInvalido,
+    bloques_disponibles, bloques_editados, bloques_faltantes, documento_inicial, html_de_bloques, html_informe,
+    validar_contenido,
 )
 from .models import BorradorInforme, InformeFinal, SolicitudEnsayo, VersionInforme
 from .tasks import generar_informe_editor
@@ -85,7 +86,27 @@ def editor_informe(request, solicitud_id):
         'faltan': bloques_faltantes(borrador.contenido, solicitud, lineas),
         'versiones': borrador.versiones.select_related('autor')[:15],
         'solo_lectura': borrador.emitido,
+        'puede_editar_datos': trabajador_tiene_permiso(request.user, PERMISO_EDITAR_DATOS),
+        'bloques_convertibles': list(BLOQUES_CONVERTIBLES),
     })
+
+
+def _cambios_en_datos(anterior, nuevo):
+    """(claves recién convertidas en texto, claves convertidas cuyo texto cambió)."""
+    antes, ahora = bloques_editados(anterior), bloques_editados(nuevo)
+    convertidos = [c for c in ahora if c not in antes]
+    modificados = [c for c in ahora if c in antes and ahora[c] != antes[c]]
+    return convertidos, modificados
+
+
+def _nombre_bloque(clave, solicitud):
+    tipo, _, ref = clave.partition(':')
+    nombre = TIPOS_BLOQUE.get(tipo, tipo)
+    if ref:
+        detalle = solicitud.detalles.select_related('muestra').filter(pk=ref).first()
+        if detalle:
+            nombre += f" de {detalle.muestra.codigo_laboratorio}"
+    return nombre
 
 
 @login_required
@@ -118,11 +139,22 @@ def guardar_informe(request, solicitud_id):
                 'error': f"{quien} guardó cambios a las {timezone.localtime(borrador.actualizado_en):%H:%M}. "
                          "Recarga para ver su versión; lo tuyo sigue en esta pestaña.",
             }, status=409)
+        convertidos, modificados = _cambios_en_datos(borrador.contenido, contenido)
+        if (convertidos or modificados) and not trabajador_tiene_permiso(request.user, PERMISO_EDITAR_DATOS):
+            return JsonResponse({
+                'ok': False,
+                'error': 'No tienes permiso para editar los datos del sistema. Pide a quien lo tenga que lo haga.',
+            }, status=403)
         borrador.contenido = contenido
         borrador.version += 1
         borrador.actualizado_por = perfil
         borrador.save(update_fields=['contenido', 'version', 'actualizado_por', 'actualizado_en'])
-        _guardar_version(borrador, perfil)
+        if convertidos:
+            nota = "Convirtió en texto editable: " + ", ".join(
+                _nombre_bloque(c, borrador.solicitud) for c in convertidos)
+            _guardar_version(borrador, perfil, nota=nota[:120])
+        else:
+            _guardar_version(borrador, perfil)
 
     return JsonResponse({
         'ok': True,

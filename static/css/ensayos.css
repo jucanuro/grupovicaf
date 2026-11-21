@@ -114,6 +114,12 @@
 .v-tarjeta__cab p { font-size: .75rem; color: var(--v-suave); margin-top: .1rem; }
 
 /* ---------- Campos ---------- */
+/* Casillas y opciones (verificaciones, defectos, comprobación de equipos). */
+.v-campo input[type=radio], .v-campo input[type=checkbox], .v-opcion input {
+    width: 1.15rem; height: 1.15rem; min-height: 0; padding: 0; border-radius: 0; flex-shrink: 0;
+    accent-color: #2563eb; margin: 0;
+}
+.v-opcion { display: inline-flex; align-items: center; gap: .4rem; white-space: nowrap; }
 .v-etiqueta { display: block; font-size: .8rem; font-weight: 700; color: var(--v-texto); margin-bottom: .35rem; }
 .v-campo input, .v-campo select, .v-campo textarea {
     width: 100%; min-height: 2.875rem; border-radius: .8rem; border: 1px solid #d5dde8;

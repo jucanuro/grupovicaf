@@ -178,16 +178,16 @@
                 <legend class="v-etiqueta">Verificaciones</legend>
                 {% with vd=ensayo.verificacion_diametro %}
                 <p class="text-sm flex items-center justify-between gap-2 py-1.5">
-                    <span>Diámetro (≤ 2 %) <span class="text-xs text-slate-500">· lo calcula el sistema</span></span>
-                    <span class="font-semibold" data-verif-diametro>{% if vd %}{% if vd.1 %}Cumple{% else %}No cumple{% endif %} ({{ vd.0 }} %){% else %}—{% endif %}</span>
+                    <span>Diámetro (≤ 2 %) <span class="block text-xs text-slate-500">Lo calcula el sistema con D1 y D2</span></span>
+                    <span class="font-semibold whitespace-nowrap" data-verif-diametro>{% if vd %}{% if vd.1 %}Cumple{% else %}No cumple{% endif %} ({{ vd.0 }} %){% else %}—{% endif %}</span>
                 </p>
                 {% endwith %}
                 {% for v in verificaciones %}
                 <div class="flex items-center justify-between gap-2 py-1.5 border-t border-slate-100 text-sm">
                     <span>{{ v.etiqueta }}</span>
-                    <span class="flex gap-3">
-                        <label class="inline-flex items-center gap-1"><input type="radio" name="{{ v.campo }}" value="1" data-verif {% if v.valor == True %}checked{% endif %} {% if solo_lectura %}disabled{% endif %}> Cumple</label>
-                        <label class="inline-flex items-center gap-1"><input type="radio" name="{{ v.campo }}" value="0" data-verif {% if v.valor == False %}checked{% endif %} {% if solo_lectura %}disabled{% endif %}> No cumple</label>
+                    <span class="flex flex-col sm:flex-row gap-1.5 sm:gap-3">
+                        <label class="v-opcion"><input type="radio" name="{{ v.campo }}" value="1" data-verif {% if v.valor == True %}checked{% endif %} {% if solo_lectura %}disabled{% endif %}> Cumple</label>
+                        <label class="v-opcion"><input type="radio" name="{{ v.campo }}" value="0" data-verif {% if v.valor == False %}checked{% endif %} {% if solo_lectura %}disabled{% endif %}> No cumple</label>
                     </span>
                 </div>
                 {% endfor %}
@@ -196,7 +196,7 @@
                 <legend class="v-etiqueta">Defectos en el testigo</legend>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-1 text-sm">
                     {% for codigo, etiqueta in tipos_defecto %}
-                    <label class="inline-flex items-center gap-2 py-1"><input type="checkbox" name="tipos_defecto" value="{{ codigo }}" {% if codigo in defectos_marcados %}checked{% endif %} {% if solo_lectura %}disabled{% endif %}> ({{ codigo }}) {{ etiqueta }}</label>
+                    <label class="v-opcion py-1" style="white-space:normal"><input type="checkbox" name="tipos_defecto" value="{{ codigo }}" {% if codigo in defectos_marcados %}checked{% endif %} {% if solo_lectura %}disabled{% endif %}> ({{ codigo }}) {{ etiqueta }}</label>
                     {% endfor %}
                 </div>
                 <input type="text" name="defectos" maxlength="255" value="{{ ensayo.defectos|default:'' }}" placeholder="Otros (indicar). Sin marcar = ninguno"

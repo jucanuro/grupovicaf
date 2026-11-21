@@ -80,7 +80,7 @@
                     <div class="flex items-center justify-between gap-3 text-sm">
                         <span>{{ campo.label }}</span>
                         <span class="flex gap-3 flex-shrink-0">
-                            {% for opcion in campo %}<label class="inline-flex items-center gap-1">{{ opcion.tag }} {{ opcion.choice_label }}</label>{% endfor %}
+                            {% for opcion in campo %}<label class="v-opcion">{{ opcion.tag }} {{ opcion.choice_label }}</label>{% endfor %}
                         </span>
                     </div>
                     {% for e in campo.errors %}<span class="v-error">{{ e }}</span>{% endfor %}

@@ -13,6 +13,8 @@
     const contenido = JSON.parse(document.getElementById('informe-contenido').textContent);
     const bloques = JSON.parse(document.getElementById('informe-bloques').textContent);
     const soloLectura = raiz.dataset.soloLectura === '1';
+    const puedeEditarDatos = raiz.dataset.editarDatos === '1' && !soloLectura;
+    const convertibles = (raiz.dataset.convertibles || '').split(',');
     const urlGuardar = raiz.dataset.guardarUrl;
     const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
     const csrf = csrfInput ? csrfInput.value : '';
@@ -57,14 +59,96 @@
                 const clave = ref ? tipo + ':' + ref : tipo;
                 caja.className = 'bloque-dato';
                 caja.contentEditable = 'false';
-                caja.dataset.etiqueta = ETIQUETAS[tipo] || 'Dato del sistema';
                 caja.dataset.clave = clave;
+                // Cabecera: se arrastra o selecciona el bloque desde aquí.
+                const cab = document.createElement('div');
+                cab.className = 'bloque-dato__cab';
+                cab.dataset.asa = '';
+                const etiqueta = document.createElement('span');
+                etiqueta.textContent = ETIQUETAS[tipo] || 'Dato del sistema';
+                cab.appendChild(etiqueta);
+                const html = bloques[clave];
+                if (puedeEditarDatos && html && convertibles.indexOf(tipo) >= 0) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'bloque-dato__convertir';
+                    btn.dataset.convertir = '';
+                    btn.textContent = 'Convertir en texto editable';
+                    btn.addEventListener('click', function (ev) {
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        if (btn.dataset.paso !== 'confirmar') {
+                            btn.dataset.paso = 'confirmar';
+                            btn.textContent = '¿Seguro? Ya no se actualizará solo';
+                            setTimeout(function () {
+                                if (btn.isConnected) { btn.dataset.paso = ''; btn.textContent = 'Convertir en texto editable'; }
+                            }, 5000);
+                            return;
+                        }
+                        convertirEnTexto(props.getPos(), props.node, html);
+                    });
+                    cab.appendChild(btn);
+                }
+                caja.appendChild(cab);
+                const cuerpo = document.createElement('div');
+                cuerpo.className = 'bloque-dato__cuerpo';
                 // HTML generado por el servidor desde nuestras plantillas (con autoescape).
-                caja.innerHTML = bloques[clave] || '<p class="bloque--vacio">Este dato ya no está disponible.</p>';
-                return { dom: caja };
+                cuerpo.innerHTML = html || '<p class="bloque--vacio">Este dato ya no está disponible.</p>';
+                caja.appendChild(cuerpo);
+                // El bloque es arrastrable desde la cabecera; en el cuerpo se
+                // desactiva el arrastre para que el ratón seleccione texto.
+                cuerpo.addEventListener('mousedown', function () {
+                    caja.draggable = false;
+                    document.addEventListener('mouseup', function () { caja.draggable = true; }, { once: true });
+                });
+                return {
+                    dom: caja,
+                    // Dentro del cuerpo manda el navegador: se selecciona y copia
+                    // letra por letra, como en Word, pero no se escribe.
+                    stopEvent: function (ev) {
+                        return !!(ev.target && ev.target.closest && ev.target.closest('.bloque-dato__cuerpo, [data-convertir]'));
+                    },
+                    ignoreMutation: function () { return true; },
+                };
             };
         },
     });
+
+    // Bloque de datos convertido en texto: su contenido se edita como el
+    // resto, pero solo quien tiene el permiso (el servidor también lo exige).
+    const BloqueEditado = T.Node.create({
+        name: 'bloqueEditado',
+        group: 'block',
+        content: 'block+',
+        defining: true,
+        isolating: true,
+        addAttributes: function () {
+            return { tipo: { default: '' }, ref: { default: '' } };
+        },
+        parseHTML: function () {
+            return [{
+                tag: 'div[data-bloque-editado]',
+                getAttrs: function (el) { return { tipo: el.dataset.bloqueEditado, ref: el.dataset.ref || '' }; },
+            }];
+        },
+        renderHTML: function (props) {
+            return ['div', {
+                'data-bloque-editado': props.HTMLAttributes.tipo, 'data-ref': props.HTMLAttributes.ref,
+                'class': 'bloque-editado', 'contenteditable': puedeEditarDatos ? 'true' : 'false',
+            }, 0];
+        },
+    });
+
+    function convertirEnTexto(pos, nodo, html) {
+        if (typeof pos !== 'number') return;
+        const envoltura = document.createElement('div');
+        envoltura.dataset.bloqueEditado = nodo.attrs.tipo;
+        envoltura.dataset.ref = nodo.attrs.ref || '';
+        envoltura.innerHTML = html;
+        // Las imágenes no se convierten (fotos y firmas no son convertibles).
+        envoltura.querySelectorAll('img').forEach(function (i) { i.remove(); });
+        editor.chain().focus().insertContentAt({ from: pos, to: pos + nodo.nodeSize }, envoltura.outerHTML).run();
+    }
 
     const editor = new T.Editor({
         element: raiz.querySelector('[data-hoja]'),
@@ -78,6 +162,7 @@
             T.TableRow, T.TableHeader, T.TableCell,
             T.Placeholder.configure({ placeholder: 'Escribe aquí…' }),
             BloqueDatos,
+            BloqueEditado,
         ],
     });
 

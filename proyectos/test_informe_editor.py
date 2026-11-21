@@ -231,3 +231,97 @@ class EditorInformeTests(CompresionBase):
         self.assertContains(r, self.url_editor)
         self.assertContains(r, 'Informe por emitir')
         self.assertNotContains(self.client.get(url), self.url_editor)
+
+
+@override_settings(MEDIA_ROOT=MEDIA_TMP)
+class BloqueEditadoTests(CompresionBase):
+    """«Convertir en texto editable»: solo con informes.editar_datos."""
+
+    def setUp(self):
+        super().setUp()
+        rol = rol_con_permisos('Jefe de laboratorio', 'informes.aprobar', 'informes.ver')
+        self.user_jefe, self.jefe = crear_trabajador('jefe', rol, 'Carla Jefa')
+        rol_editor = rol_con_permisos('Jefe con edición', 'informes.aprobar', 'informes.ver', 'informes.editar_datos')
+        self.user_editor, self.editor = crear_trabajador('editor', rol_editor, 'Eva Editora')
+        self.solicitud = self.mia.solicitud
+        self.url_editor = reverse('proyectos:editor_informe', args=[self.solicitud.pk])
+        self.url_guardar = reverse('proyectos:guardar_informe', args=[self.solicitud.pk])
+        ayer = date.today() - timedelta(days=1)
+        for d, t in ((self.mia, self.tecnico), (self.ajena, self.otro), (self.proctor, self.tecnico)):
+            ResultadoEnsayo.objects.create(
+                detalle=d, plantilla=ResultadoEnsayo.plantilla_para(d), fecha_ensayo=ayer, resumen='ok',
+                estado=ResultadoEnsayo.ESTADO_APROBADO, tecnico=t, terminado_en=timezone.now(),
+            )
+
+    def convertido(self, contenido, detalle, texto='Resistencia corregida 210'):
+        nuevo = []
+        for n in contenido['content']:
+            if n['type'] == 'bloqueDatos' and n['attrs'] == {'tipo': 'resultados', 'ref': str(detalle.pk)}:
+                n = {'type': 'bloqueEditado', 'attrs': dict(n['attrs']),
+                     'content': [{'type': 'paragraph', 'content': [{'type': 'text', 'text': texto}]}]}
+            nuevo.append(n)
+        return {'type': 'doc', 'content': nuevo}
+
+    def guardar(self, contenido, version):
+        return self.client.post(self.url_guardar, json.dumps({'version': version, 'contenido': contenido}),
+                                content_type='application/json')
+
+    def test_validacion_solo_admite_bloques_convertibles_en_primer_nivel(self):
+        hijo = [{'type': 'paragraph', 'content': [{'type': 'text', 'text': 'x'}]}]
+        doc = {'type': 'doc', 'content': [
+            {'type': 'bloqueEditado', 'attrs': {'tipo': 'fotos', 'ref': '1'}, 'content': hijo},
+            {'type': 'bloqueEditado', 'attrs': {'tipo': 'firmas'}, 'content': hijo},
+            {'type': 'bloqueEditado', 'attrs': {'tipo': 'caratula'}, 'content': []},
+            {'type': 'bulletList', 'content': [{'type': 'listItem', 'content': [
+                {'type': 'bloqueEditado', 'attrs': {'tipo': 'notas'}, 'content': hijo}]}]},
+            {'type': 'bloqueEditado', 'attrs': {'tipo': 'resultados', 'ref': '7'}, 'content': hijo},
+        ]}
+        limpio = validar_contenido(doc)
+        editados = [n for n in limpio['content'] if n['type'] == 'bloqueEditado']
+        self.assertEqual([n['attrs'] for n in editados], [{'tipo': 'resultados', 'ref': '7'}])
+        self.assertNotIn('bloqueEditado', json.dumps(limpio['content'][0]))
+
+    def test_sin_permiso_no_convierte(self):
+        self.client.force_login(self.user_jefe)
+        r = self.client.get(self.url_editor)
+        self.assertNotContains(r, 'data-editar-datos="1"')
+        borrador = BorradorInforme.objects.get(solicitud=self.solicitud)
+        r = self.guardar(self.convertido(borrador.contenido, self.mia), borrador.version)
+        self.assertEqual(r.status_code, 403)
+        borrador.refresh_from_db()
+        self.assertNotIn('bloqueEditado', json.dumps(borrador.contenido))
+
+    def test_con_permiso_convierte_queda_en_historial_y_sale_en_el_informe(self):
+        self.client.force_login(self.user_editor)
+        r = self.client.get(self.url_editor)
+        self.assertContains(r, 'data-editar-datos="1"')
+        borrador = BorradorInforme.objects.get(solicitud=self.solicitud)
+        r = self.guardar(self.convertido(borrador.contenido, self.mia), borrador.version)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()['faltan'], [])
+        nota = borrador.versiones.first().nota
+        self.assertIn('Convirtió en texto editable', nota)
+        self.assertIn(self.mia.muestra.codigo_laboratorio, nota)
+        html = self.client.get(reverse('proyectos:vista_previa_informe', args=[self.solicitud.pk])).content.decode()
+        self.assertIn('<div class="bloque bloque-editado"><p>Resistencia corregida 210</p></div>', html)
+
+    def test_sin_permiso_no_cambia_un_bloque_ya_convertido(self):
+        self.client.force_login(self.user_editor)
+        self.client.get(self.url_editor)
+        borrador = BorradorInforme.objects.get(solicitud=self.solicitud)
+        self.guardar(self.convertido(borrador.contenido, self.mia), borrador.version)
+        borrador.refresh_from_db()
+        self.client.force_login(self.user_jefe)
+        # Texto libre fuera del bloque: sí puede.
+        libre = dict(borrador.contenido)
+        libre['content'] = libre['content'] + [{'type': 'paragraph', 'content': [{'type': 'text', 'text': 'Conforme.'}]}]
+        self.assertEqual(self.guardar(libre, borrador.version).status_code, 200)
+        borrador.refresh_from_db()
+        # Dentro del bloque convertido: no.
+        cambiado = json.loads(json.dumps(borrador.contenido).replace('Resistencia corregida 210', 'Otra cifra'))
+        self.assertEqual(self.guardar(cambiado, borrador.version).status_code, 403)
+        # Quitarlo entero sí (igual que un bloque de datos), y emitir lo exigirá de vuelta.
+        sin_bloque = {'type': 'doc', 'content': [n for n in borrador.contenido['content'] if n['type'] != 'bloqueEditado']}
+        r = self.guardar(sin_bloque, borrador.version)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()['faltan'], [f'Resultados de {self.mia.muestra.codigo_laboratorio}'])
