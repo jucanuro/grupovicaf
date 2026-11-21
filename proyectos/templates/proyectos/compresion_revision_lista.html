@@ -43,6 +43,7 @@
                     <div class="min-w-0">
                         <p class="font-mono font-bold text-slate-900">{{ s.codigo_solicitud }}</p>
                         <p class="text-xs text-slate-500">{{ s.terminadas }} de {{ s.total }} terminadas · {{ s.aprobadas }} aprobadas</p>
+                        {% if s.estado_plazo %}<p class="text-xs font-semibold {% if s.estado_plazo == 'vencido' %}text-red-700{% elif s.estado_plazo == 'hoy' %}text-amber-700{% else %}text-slate-600{% endif %}" data-plazo="{{ s.estado_plazo }}">Entregar al cliente {% if s.estado_plazo == 'hoy' %}hoy{% else %}hasta el {{ s.plazo|date:"D d/m" }}{% endif %}{% if s.estado_plazo == 'vencido' %} (vencido){% endif %}</p>{% endif %}
                     </div>
                     {% if s.emitido %}
                         <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-green-100 text-green-700 flex-shrink-0">Emitido {{ s.informe.codigo_informe }}</span>

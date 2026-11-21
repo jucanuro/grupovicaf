@@ -1,0 +1,172 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+{% block title %}Resultados {{ solicitud.codigo_solicitud }} | VICAF LIMS{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/ensayos.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="rs-completo" data-resultados-solicitud role="dialog" aria-modal="true" aria-labelledby="rs-titulo">
+    <header class="rs-barra">
+        <div class="min-w-0">
+            <h1 id="rs-titulo">Resultados · {{ solicitud.codigo_solicitud }}</h1>
+            <p>{% if ve_todos %}{{ solicitud.cotizacion.cliente.razon_social }} · {% endif %}Cotización {{ solicitud.cotizacion.numero_oferta|default:"—" }}</p>
+        </div>
+        <a href="{% url 'proyectos:lista_solicitudes' %}" class="rs-cerrar" aria-label="Cerrar y volver a las solicitudes" title="Cerrar (Esc)" data-cerrar>
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </a>
+    </header>
+
+    <div class="rs-cuerpo">
+        <ol class="rs-pasos" aria-label="Pasos de la solicitud">
+            {% for p in pasos %}
+            <li class="rs-paso" {% if p.hecho %}data-hecho{% endif %} {% if p.actual %}data-actual aria-current="step"{% endif %}>
+                <span class="rs-paso__n">{% if p.hecho %}<i data-lucide="check" class="w-3.5 h-3.5"></i>{% else %}{{ p.n }}{% endif %}</span>
+                <p class="rs-paso__t">{{ p.titulo }}</p>
+                <p class="rs-paso__d">{{ p.detalle }}</p>
+            </li>
+            {% endfor %}
+        </ol>
+
+        {% if messages %}
+            {% for message in messages %}
+            <div class="v-aviso {% if message.tags == 'error' %}v-aviso--error{% else %}v-aviso--ok{% endif %}" role="status">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        {% if faltan_datos_cliente and paso_actual <= 2 %}
+        <div class="v-aviso v-aviso--ambar" role="note" data-faltan-datos-cliente>
+            <i data-lucide="file-warning"></i>
+            <span>Faltan datos del cliente (orden FOR-004: f'c y fecha de moldeo) en {{ faltan_datos_cliente|join:", " }}. Sin ellos no se calcula la edad ni el % de f'c: pídelos al cliente o cópialos del formato al registrar.</span>
+        </div>
+        {% endif %}
+
+        {% if paso_actual == 1 %}
+        <section class="v-tarjeta p-4" data-paso-iniciar>
+            <p class="font-bold text-slate-800">Primero inicia el ensayo</p>
+            <p class="text-sm text-slate-600 mt-1">Al iniciar, la solicitud pasa a «En proceso» y ya se pueden registrar los resultados.</p>
+            {% if puede_iniciar %}
+            <form method="post" action="{% url 'proyectos:cambiar_estado' solicitud.pk 'proceso' %}" class="mt-3">
+                {% csrf_token %}
+                <input type="hidden" name="volver" value="{{ volver }}">
+                <button type="submit" class="v-btn v-btn--primario"><i data-lucide="play"></i> Iniciar ensayo</button>
+            </form>
+            {% else %}
+            <p class="text-xs text-amber-700 font-semibold mt-2">Pide a quien gestiona las solicitudes que la inicie.</p>
+            {% endif %}
+        </section>
+        {% endif %}
+
+        <section class="v-tarjeta p-4">
+            <div class="flex items-center justify-between gap-3 mb-2">
+                <p class="font-bold text-slate-800">Avance de resultados</p>
+                <p class="text-sm font-bold text-slate-700" data-avance>{{ terminadas }} de {{ total }}</p>
+            </div>
+            <div class="rs-avance" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ porcentaje }}"><span style="width: {{ porcentaje }}%"></span></div>
+            <p class="text-xs text-slate-500 mt-2">
+                {% if paso_actual == 2 %}Registra cada ensayo con sus datos y fotos. Al terminar el último, la solicitud se finaliza sola y pasa a revisión.
+                {% elif paso_actual == 3 %}Todos los ensayos están terminados. Falta que el supervisor los revise y apruebe.
+                {% elif paso_actual == 4 %}Resultados aprobados. Falta revisar el informe en el editor y emitirlo.
+                {% elif emitido %}Informe {{ informe.codigo_informe }} emitido.
+                {% endif %}
+            </p>
+            {% if estado_plazo %}
+            <p class="text-sm font-bold mt-2 {% if estado_plazo == 'vencido' %}text-red-700{% elif estado_plazo == 'hoy' %}text-amber-700{% else %}text-slate-700{% endif %}" data-plazo="{{ estado_plazo }}">
+                Entrega al cliente: {% if estado_plazo == 'hoy' %}hoy{% else %}hasta el {{ plazo|date:"l d/m/Y" }}{% endif %}{% if estado_plazo == 'vencido' %} (vencido){% endif %}
+                <span class="block text-xs font-normal text-slate-500">Probetas: 24 h después del ensayo; lo ensayado el sábado se entrega el lunes (oferta FOR-001).</span>
+            </p>
+            {% endif %}
+            {% if paso_actual == 3 and puede_aprobar %}
+            <a href="{% url 'proyectos:revision_compresion' solicitud.pk %}" class="v-btn v-btn--exito mt-3" data-ir-revision><i data-lucide="clipboard-check"></i> Revisar y aprobar resultados</a>
+            {% elif paso_actual == 4 and puede_aprobar %}
+            <a href="{% url 'proyectos:editor_informe' solicitud.pk %}" class="v-btn v-btn--primario mt-3" data-ir-editor><i data-lucide="file-pen-line"></i> Abrir el editor del informe</a>
+            {% endif %}
+        </section>
+
+        {% if sesiones and puede_registrar and paso_actual != 1 %}
+        <section class="v-tarjeta" data-sesiones>
+            <div class="px-4 pt-4 pb-2">
+                <p class="font-bold text-slate-800">Sesión de ensayo (compresión)</p>
+                <p class="text-xs text-slate-500">Temperatura, humedad, equipos y comprobación del día. Sin sesión abierta no se termina una probeta.</p>
+            </div>
+            {% for s in sesiones %}
+            <div class="rs-sesion" data-sesion-tecnico="{{ s.tecnico.pk }}">
+                <div class="min-w-0">
+                    <p class="text-sm font-bold text-slate-800">{{ s.tecnico.nombre_completo }}{% if not s.ajeno %} (tú){% endif %}</p>
+                    {% if s.sesion %}
+                    <p class="text-xs text-green-700 font-semibold">Abierta · {{ s.sesion.fecha|date:"d/m/Y" }} · {{ s.sesion.temperatura_inicial|floatformat:1 }} °C · {{ s.sesion.humedad_inicial|floatformat:0 }} % HR</p>
+                    {% else %}
+                    <p class="text-xs text-amber-700 font-semibold">Sin sesión abierta</p>
+                    {% endif %}
+                </div>
+                {% if s.sesion %}
+                <details class="flex-shrink-0">
+                    <summary class="cursor-pointer text-sm font-semibold text-slate-700">Cerrar sesión</summary>
+                    <form method="post" action="{% url 'proyectos:cerrar_sesion_ensayo' %}" class="mt-2 space-y-2">
+                        {% csrf_token %}
+                        {% if s.ajeno %}<input type="hidden" name="tecnico" value="{{ s.tecnico.pk }}">{% endif %}
+                        <input type="hidden" name="volver" value="{{ volver }}">
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="block"><span class="v-etiqueta">T final</span><span class="v-campo block" data-unidad="°C">{{ s.form_cerrar.temperatura_final }}</span></label>
+                            <label class="block"><span class="v-etiqueta">HR final</span><span class="v-campo block" data-unidad="%">{{ s.form_cerrar.humedad_final }}</span></label>
+                        </div>
+                        <button type="submit" class="v-btn v-btn--secundario v-btn--sm v-btn--block"><i data-lucide="square"></i> Cerrar</button>
+                    </form>
+                </details>
+                {% else %}
+                <a href="{{ s.url_abrir }}" class="v-btn v-btn--primario v-btn--sm flex-shrink-0"><i data-lucide="play"></i> Abrir sesión</a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <section class="v-tarjeta" data-lineas>
+            <div class="px-4 pt-4 pb-2">
+                <p class="font-bold text-slate-800">Ensayos de la solicitud</p>
+                {% if ve_todos %}<p class="text-xs text-slate-500">Si el técnico llenó el formato en papel, puedes pasarlo tú: queda a su nombre y registrado por ti.</p>{% endif %}
+                {% if hay_compresion_pendiente and puede_registrar and paso_actual != 1 %}
+                <a href="{% url 'proyectos:medidas_solicitud' solicitud.pk %}" class="v-btn v-btn--secundario v-btn--sm mt-2" data-medir-todas><i data-lucide="ruler"></i> Medir y pesar todas primero</a>
+                {% endif %}
+            </div>
+            {% for d in detalles %}
+            <div class="rs-linea" data-linea="{{ d.pk }}">
+                <div class="rs-linea__info">
+                    <p class="rs-codigo">{{ d.muestra.codigo_laboratorio }}</p>
+                    <p class="rs-sub">{{ d.descripcion_ensayo }}{% if d.norma %} · {{ d.norma }}{% endif %}</p>
+                    <p class="rs-sub">Técnico: {{ d.tecnico_asignado.nombre_completo|default:"sin asignar" }} · Fotos {{ d.n_fotos }} de {{ d.total_fotos }}</p>
+                </div>
+                <div class="rs-acciones">
+                    <span class="rs-chip rs-chip--{{ d.estado_color }}" data-estado-linea>{{ d.estado_texto }}</span>
+                    {% if puede_registrar and paso_actual != 1 %}
+                        {% if d.ensayo and d.ensayo.terminado %}
+                        <a href="{% url 'proyectos:registrar_compresion' d.pk %}?desde=solicitud" class="v-btn v-btn--secundario v-btn--sm"><i data-lucide="eye"></i> Ver</a>
+                        {% elif d.ensayo %}
+                        <a href="{% url 'proyectos:registrar_compresion' d.pk %}?desde=solicitud" class="v-btn v-btn--primario v-btn--sm" data-registrar><i data-lucide="pencil"></i> Continuar</a>
+                        {% else %}
+                        <a href="{% url 'proyectos:registrar_compresion' d.pk %}?desde=solicitud" class="v-btn v-btn--primario v-btn--sm" data-registrar><i data-lucide="clipboard-pen"></i> Registrar</a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+            {% if ocultas %}
+            <p class="px-4 py-3 text-xs text-slate-500 border-t border-slate-100">Hay {{ ocultas }} ensayo{{ ocultas|pluralize }} más de esta solicitud asignado{{ ocultas|pluralize }} a otros técnicos.</p>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    document.body.classList.add('rs-abierto');
+    var cerrar = document.querySelector('[data-resultados-solicitud] [data-cerrar]');
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && cerrar && !document.querySelector('details[open]')) { window.location.href = cerrar.href; }
+    });
+})();
+</script>
+{% endblock %}

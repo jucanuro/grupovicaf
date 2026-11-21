@@ -30,17 +30,20 @@ from django.http import FileResponse, Http404, HttpResponseForbidden, JsonRespon
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
+from urllib.parse import urlencode
 from django.views.decorators.http import require_POST
 
 from trabajadores.models import TrabajadorProfile
 from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso, ve_todos_los_ensayos
 
 from .calculos_compresion import DatosInsuficientes
-from .forms_compresion import AbrirSesionForm, CerrarSesionForm, DatosProbetaForm, EquipoForm
+from .forms_compresion import AbrirSesionForm, CerrarSesionForm, DatosClienteProbetaForm, DatosProbetaForm, EquipoForm
+from . import trazabilidad
 from .fotos import FotoInvalida, procesar_foto
 from .models import (
-    DetalleSolicitudEnsayo, ResultadoEnsayo, Equipo, FotoEnsayo, MuestraDetalle,
-    RecepcionMuestra, SesionEnsayo,
+    DetalleSolicitudEnsayo, ResultadoEnsayo, Equipo, FotoEnsayo, InformeFinal, MuestraDetalle,
+    RecepcionMuestra, SesionEnsayo, SolicitudEnsayo,
 )
 
 logger = logging.getLogger(__name__)
@@ -98,6 +101,40 @@ def _perfil(user):
         return None
 
 
+def _ejecutor(user, detalle):
+    """Técnico a cuyo nombre queda la línea.
+
+    El técnico asignado registra lo suyo. Quien ve todos los ensayos (supervisor,
+    o quien pasa a limpio el formato en papel) registra a nombre del técnico
+    asignado: la sesión y «Ejecutado por» son del técnico, no de quien escribe.
+    """
+    propio = _perfil(user)
+    asignado = detalle.tecnico_asignado
+    if asignado and asignado.user_id != user.pk and ve_todos_los_ensayos(user):
+        return asignado
+    return propio
+
+
+def _perfil_elegido(request, valor):
+    """El técnico que pide ``?tecnico=`` (solo quien ve todo); si no, el propio."""
+    propio = _perfil(request.user)
+    if valor and ve_todos_los_ensayos(request.user):
+        try:
+            return TrabajadorProfile.objects.get(pk=int(valor))
+        except (ValueError, TrabajadorProfile.DoesNotExist):
+            raise Http404("Técnico no encontrado.")
+    return propio
+
+
+def _volver(request, defecto):
+    """URL interna de regreso (``volver``) o la de por defecto."""
+    destino = request.POST.get('volver') or request.GET.get('volver') or ''
+    if destino and url_has_allowed_host_and_scheme(destino, allowed_hosts={request.get_host()},
+                                                   require_https=request.is_secure()):
+        return destino
+    return defecto
+
+
 def _fecha_minima(detalle):
     recepcion = detalle.solicitud.recepcion
     if recepcion and recepcion.fecha_recepcion:
@@ -140,10 +177,17 @@ def registrar_ensayo_compresion(request, detalle_id):
     detalle = _detalle_o_404(request.user, detalle_id)
     ensayo = _ensayo_de(detalle)
     ve_todos = ve_todos_los_ensayos(request.user)
+    ejecutor = _ejecutor(request.user, detalle)
+    a_nombre_de = ejecutor if ejecutor is not None and ejecutor != _perfil(request.user) else None
+    desde_solicitud = (request.GET.get('desde') or request.POST.get('desde')) == 'solicitud'
+    url = reverse('proyectos:registrar_compresion', args=[detalle.pk])
+    if desde_solicitud:
+        url += '?desde=solicitud'
+    url_salida = (reverse('proyectos:resultados_solicitud', args=[detalle.solicitud_id]) if desde_solicitud
+                  else reverse('proyectos:mis_ensayos_compresion'))
 
     if request.method == 'POST':
         accion = request.POST.get('accion', 'guardar')
-        url = reverse('proyectos:registrar_compresion', args=[detalle.pk])
 
         if accion == 'reabrir':
             if not ve_todos or ensayo is None:
@@ -168,6 +212,11 @@ def registrar_ensayo_compresion(request, detalle_id):
             )
             detalle.solicitud.sincronizar_estado()
 
+        if ensayo.es_compresion and 'muestra-fc_diseno' in request.POST:
+            error = _aplicar_datos_cliente(request, detalle, ensayo)
+            if error:
+                messages.error(request, error)
+                return redirect(url)
         aplicar = _aplicar_datos if ensayo.es_compresion else _aplicar_datos_generales
         error = aplicar(request, detalle, ensayo)
         if error:
@@ -179,17 +228,21 @@ def registrar_ensayo_compresion(request, detalle_id):
             if faltan:
                 messages.error(request, "Para terminar falta " + ", ".join(faltan) + ".")
                 return redirect(url)
-            _cerrar_linea(request, detalle, ensayo, sesion=SesionEnsayo.abierta_de(_perfil(request.user)))
-            return redirect('proyectos:mis_ensayos_compresion')
+            _cerrar_linea(request, detalle, ensayo, sesion=SesionEnsayo.abierta_de(ejecutor), ejecutor=ejecutor)
+            return redirect(url_salida)
 
         if accion == 'terminar':
             faltan = ensayo.faltantes_para_terminar()
             if faltan:
                 messages.error(request, "Para terminar falta " + ", ".join(faltan) + ".")
                 return redirect(url)
-            sesion = SesionEnsayo.abierta_de(_perfil(request.user))
+            sesion = SesionEnsayo.abierta_de(ejecutor)
             if sesion is None:
-                messages.error(request, "Abre primero tu sesión de ensayo (condiciones ambientales y equipos).")
+                if a_nombre_de:
+                    messages.error(request, f"Abre primero la sesión de ensayo de {a_nombre_de.nombre_completo} "
+                                            "(condiciones ambientales y equipos del formato).")
+                else:
+                    messages.error(request, "Abre primero tu sesión de ensayo (condiciones ambientales y equipos).")
                 return redirect(url)
             if sesion.fecha != ensayo.fecha_ensayo:
                 messages.error(
@@ -203,8 +256,8 @@ def registrar_ensayo_compresion(request, detalle_id):
             except DatosInsuficientes as exc:
                 messages.error(request, str(exc))
                 return redirect(url)
-            _cerrar_linea(request, detalle, ensayo, sesion=sesion)
-            return redirect('proyectos:mis_ensayos_compresion')
+            _cerrar_linea(request, detalle, ensayo, sesion=sesion, ejecutor=ejecutor)
+            return redirect(url_salida)
 
         messages.success(request, "Datos guardados.")
         return redirect(url)
@@ -222,7 +275,11 @@ def registrar_ensayo_compresion(request, detalle_id):
         }
         for codigo, etiqueta in FotoEnsayo.tipos_de(plantilla)
     ]
-    sesion = SesionEnsayo.abierta_de(_perfil(request.user))
+    orden = FotoEnsayo.ORDEN_TOMA if plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION else [x['tipo'] for x in slots]
+    slots.sort(key=lambda x: orden.index(x['tipo']))
+    for n, slot in enumerate(slots, 1):
+        slot['numero'] = n
+    sesion = SesionEnsayo.abierta_de(ejecutor)
     resultado, error_calculo = None, None
     if ensayo is not None and ensayo.es_compresion:
         try:
@@ -237,6 +294,9 @@ def registrar_ensayo_compresion(request, detalle_id):
         'es_compresion': plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION,
         'muestra': muestra,
         'datos_probeta_completos': bool(muestra.fecha_fabricacion and muestra.fc_diseno),
+        'form_cliente': DatosClienteProbetaForm(instance=muestra, prefix='muestra'),
+        'foto': {s['tipo']: s for s in slots},
+        'cambios': list(ensayo.cambios.select_related('usuario')) if ensayo else [],
         'sesion': sesion,
         'sesion_ensayo': ensayo.sesion if ensayo else None,
         'resultado': resultado,
@@ -256,15 +316,244 @@ def registrar_ensayo_compresion(request, detalle_id):
         'fecha_minima': _fecha_minima(detalle),
         'hoy': timezone.localdate(),
         'lado_maximo': FotoEnsayo.LADO_MAXIMO,
+        'a_nombre_de': a_nombre_de,
+        'desde_solicitud': desde_solicitud,
+        'url_salida': url_salida,
+        'url_abrir_sesion': _url_abrir_sesion(a_nombre_de, url),
     })
 
 
-def _cerrar_linea(request, detalle, ensayo, sesion=None):
+ESTADOS_LINEA = {
+    None: ('Sin empezar', 'gris'),
+    ResultadoEnsayo.ESTADO_BORRADOR: ('En registro', 'ambar'),
+    ResultadoEnsayo.ESTADO_TERMINADO: ('Terminado', 'verde'),
+    ResultadoEnsayo.ESTADO_APROBADO: ('Aprobado', 'azul'),
+}
+
+
+@login_required
+@permiso_requerido('ensayos.ver')
+def resultados_solicitud(request, solicitud_id):
+    """Pantalla completa de una solicitud: los 4 pasos y cada ensayo por registrar.
+
+    Se llega desde el icono verde de la lista de solicitudes. El técnico ve sus
+    líneas; quien ve todos los ensayos ve todas y puede registrarlas a nombre del
+    técnico asignado (formato en papel). La solicitud se finaliza sola al terminar
+    la última línea y pasa a revisión; después, el editor del informe.
+    """
+    solicitud = get_object_or_404(
+        SolicitudEnsayo.objects.select_related('cotizacion__cliente'), pk=solicitud_id,
+    )
+    ve_todos = ve_todos_los_ensayos(request.user)
+    todas = list(
+        solicitud.detalles.select_related(
+            'muestra', 'resultado', 'tecnico_asignado', 'servicio_cotizado__servicio',
+        ).annotate(n_fotos=Count('resultado__fotos')).order_by('muestra__codigo_laboratorio', 'pk')
+    )
+    propias = [d for d in todas if ve_todos or (d.tecnico_asignado and d.tecnico_asignado.user_id == request.user.pk)]
+    if not propias:
+        return HttpResponseForbidden("No tienes asignado ningún ensayo de esta solicitud.")
+
+    puede_registrar = trabajador_tiene_permiso(request.user, PERMISO_REGISTRAR)
+    propio = _perfil(request.user)
+    volver = reverse('proyectos:resultados_solicitud', args=[solicitud.pk])
+    tecnicos = {}
+    for d in propias:
+        e = _ensayo_de(d)
+        d.ensayo = e
+        d.plantilla = e.plantilla if e else ResultadoEnsayo.plantilla_para(d)
+        d.total_fotos = len(FotoEnsayo.tipos_de(d.plantilla))
+        estado = e.estado if e else None
+        d.estado_texto, d.estado_color = ESTADOS_LINEA[estado]
+        if e and e.observacion_revision and not e.terminado:
+            d.estado_texto, d.estado_color = 'Devuelto', 'rojo'
+        d.a_nombre = bool(d.tecnico_asignado and d.tecnico_asignado.user_id != request.user.pk)
+        if d.plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION and not (e and e.terminado):
+            ejecutor = _ejecutor(request.user, d)
+            if ejecutor is not None:
+                tecnicos[ejecutor.pk] = ejecutor
+
+    sesiones = []
+    for t in tecnicos.values():
+        abierta = SesionEnsayo.abierta_de(t)
+        ajeno = t != propio
+        sesiones.append({
+            'tecnico': t,
+            'ajeno': ajeno,
+            'sesion': abierta,
+            'url_abrir': _url_abrir_sesion(t if ajeno else None, volver),
+            'form_cerrar': CerrarSesionForm(instance=abierta) if abierta else None,
+        })
+
+    terminadas = sum(1 for d in todas if _ensayo_de(d) and _ensayo_de(d).terminado)
+    aprobadas = sum(1 for d in todas if _ensayo_de(d) and _ensayo_de(d).aprobado)
+    total = len(todas)
+    informe = getattr(solicitud, 'informe_final', None) if hasattr(solicitud, 'informe_final') else None
+    emitido = bool(informe and (informe.pdf_estado == InformeFinal.PDF_LISTO
+                                or (not informe.pdf_estado and informe.archivo_pdf)))
+    puede_aprobar = trabajador_tiene_permiso(request.user, 'informes.aprobar')
+    pasos = [
+        {'n': 1, 'titulo': 'Iniciar', 'hecho': solicitud.estado != 'pendiente',
+         'detalle': 'En proceso' if solicitud.estado != 'pendiente' else 'Pendiente'},
+        {'n': 2, 'titulo': 'Registrar resultados', 'hecho': total and terminadas == total,
+         'detalle': f'{terminadas} de {total} terminados'},
+        {'n': 3, 'titulo': 'Revisión', 'hecho': total and aprobadas == total,
+         'detalle': f'{aprobadas} de {total} aprobados'},
+        {'n': 4, 'titulo': 'Informe', 'hecho': emitido,
+         'detalle': informe.codigo_informe if emitido else 'Por emitir'},
+    ]
+    for p in pasos:
+        p['actual'] = False
+    actual = next((p for p in pasos if not p['hecho']), None)
+    if actual:
+        actual['actual'] = True
+
+    from .plazos import estado_plazo, plazo_solicitud
+    plazo = plazo_solicitud(solicitud)
+    faltan_datos_cliente = [
+        d.muestra.codigo_laboratorio for d in propias
+        if d.plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION
+        and not (d.muestra.fc_diseno and d.muestra.fecha_fabricacion)
+    ]
+    return render(request, 'proyectos/resultados_solicitud.html', {
+        'solicitud': solicitud,
+        'detalles': propias,
+        'ocultas': len(todas) - len(propias),
+        'pasos': pasos,
+        'paso_actual': actual['n'] if actual else None,
+        'terminadas': terminadas,
+        'aprobadas': aprobadas,
+        'total': total,
+        'porcentaje': round(terminadas * 100 / total) if total else 0,
+        'emitido': emitido,
+        'informe': informe,
+        've_todos': ve_todos,
+        'puede_registrar': puede_registrar,
+        'puede_aprobar': puede_aprobar,
+        'puede_iniciar': trabajador_tiene_permiso(request.user, 'ensayos.editar'),
+        'sesiones': sesiones,
+        'volver': volver,
+        'plazo': plazo,
+        'estado_plazo': estado_plazo(plazo, entregado=emitido),
+        'faltan_datos_cliente': faltan_datos_cliente,
+        'hay_compresion_pendiente': any(
+            d.plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION and not (d.ensayo and d.ensayo.terminado)
+            for d in propias),
+    })
+
+
+CAMPOS_MEDIDAS_LOTE = ['masa_g', 'd1', 'd2', 'l1', 'l2', 'l3']
+
+
+@login_required
+@permiso_requerido(PERMISO_REGISTRAR)
+def medidas_solicitud(request, solicitud_id):
+    """Medir y pesar todas las probetas de la solicitud de corrido, antes de romperlas.
+
+    Así trabaja el laboratorio cuando hay varias probetas: primero masa, D1-D2
+    y L1-L3 de todas; después cada una pasa a la prensa desde su registro.
+    """
+    solicitud = get_object_or_404(SolicitudEnsayo, pk=solicitud_id)
+    pantalla = reverse('proyectos:resultados_solicitud', args=[solicitud.pk])
+    ve_todos = ve_todos_los_ensayos(request.user)
+    lineas = []
+    for d in solicitud.detalles.select_related('muestra', 'resultado', 'tecnico_asignado',
+                                               'servicio_cotizado__servicio').order_by('muestra__codigo_laboratorio', 'pk'):
+        if not (ve_todos or (d.tecnico_asignado and d.tecnico_asignado.user_id == request.user.pk)):
+            continue
+        e = _ensayo_de(d)
+        plantilla = e.plantilla if e else ResultadoEnsayo.plantilla_para(d)
+        if plantilla != ResultadoEnsayo.PLANTILLA_COMPRESION:
+            continue
+        d.ensayo = e
+        lineas.append(d)
+    if not lineas:
+        messages.error(request, "Esta solicitud no tiene probetas de compresión tuyas para medir.")
+        return redirect(pantalla)
+
+    etiquetas = {f.name: str(f.verbose_name) for f in ResultadoEnsayo._meta.fields}
+    errores = []
+    if request.method == 'POST':
+        fecha, error = _leer_fecha(request, lineas[0])
+        if error:
+            errores.append(error)
+        lecturas = {}
+        for d in lineas:
+            if d.ensayo is not None and d.ensayo.terminado:
+                continue
+            valores = {}
+            for campo in CAMPOS_MEDIDAS_LOTE:
+                try:
+                    valores[campo] = _leer_decimal(request.POST.get(f'{campo}-{d.pk}'), etiquetas[campo],
+                                                   RANGOS_MEDIDAS[campo])
+                except ValueError as exc:
+                    errores.append(f"{d.muestra.codigo_laboratorio}: {exc}")
+            lecturas[d.pk] = valores
+        if not errores:
+            guardadas = 0
+            with transaction.atomic():
+                for d in lineas:
+                    valores = lecturas.get(d.pk)
+                    if valores is None or not any(v is not None for v in valores.values()):
+                        continue
+                    ensayo = d.ensayo or ResultadoEnsayo.objects.create(
+                        detalle=d, plantilla=ResultadoEnsayo.PLANTILLA_COMPRESION,
+                    )
+                    antes = trazabilidad.instantanea(ensayo, trazabilidad.CAMPOS_RESULTADO)
+                    for campo, valor in valores.items():
+                        setattr(ensayo, campo, valor)
+                    if fecha:
+                        ensayo.fecha_ensayo = fecha
+                    ensayo.save(update_fields=[*CAMPOS_MEDIDAS_LOTE, 'fecha_ensayo', 'actualizado_en'])
+                    trazabilidad.anotar_cambios(ensayo, ensayo, antes, trazabilidad.CAMPOS_RESULTADO, request.user)
+                    guardadas += 1
+                solicitud.sincronizar_estado()
+            messages.success(request, f"Medidas guardadas de {guardadas} probeta{'s' if guardadas != 1 else ''}. "
+                                      "Ahora ensaya cada una en la prensa.")
+            return redirect(pantalla)
+
+    filas = []
+    for d in lineas:
+        e = d.ensayo
+        filas.append({
+            'detalle': d,
+            'terminado': bool(e and e.terminado),
+            'campos': [
+                {'campo': c, 'etiqueta': etiquetas[c].split(' (')[0], 'nombre': f'{c}-{d.pk}',
+                 'valor': request.POST.get(f'{c}-{d.pk}', '') if request.method == 'POST'
+                 else ('' if e is None or getattr(e, c) is None else getattr(e, c))}
+                for c in CAMPOS_MEDIDAS_LOTE
+            ],
+        })
+    fecha_actual = next((d.ensayo.fecha_ensayo for d in lineas if d.ensayo and d.ensayo.fecha_ensayo), None)
+    return render(request, 'proyectos/medidas_solicitud.html', {
+        'solicitud': solicitud,
+        'filas': filas,
+        'errores': errores,
+        'pantalla': pantalla,
+        'fecha': request.POST.get('fecha_ensayo') if request.method == 'POST' else
+                 (fecha_actual.isoformat() if fecha_actual else timezone.localdate().isoformat()),
+        'hoy': timezone.localdate(),
+    })
+
+
+def _url_abrir_sesion(tecnico, volver):
+    """Abrir sesión propia o, al pasar el formato en papel, a nombre del técnico."""
+    url = reverse('proyectos:abrir_sesion_ensayo')
+    if tecnico is None:
+        return url
+    return f"{url}?{urlencode({'tecnico': tecnico.pk, 'volver': volver})}"
+
+
+def _cerrar_linea(request, detalle, ensayo, sesion=None, ejecutor=None):
     """Termina la línea: queda bloqueada, con su técnico y fecha real, y la solicitud se sincroniza."""
+    propio = _perfil(request.user)
+    ejecutor = ejecutor or propio
     ensayo.sesion = sesion
     ensayo.estado = ResultadoEnsayo.ESTADO_TERMINADO
     ensayo.terminado_en = timezone.now()
-    ensayo.tecnico = _perfil(request.user)
+    ensayo.tecnico = ejecutor
+    ensayo.registrado_por = propio if propio and propio != ejecutor else None
     ensayo.observacion_revision = ''
     ensayo.save()
     DetalleSolicitudEnsayo.objects.filter(pk=detalle.pk).update(fecha_entrega_real=timezone.localdate())
@@ -298,11 +587,26 @@ def _leer_fecha(request, detalle):
     return fecha, None
 
 
+def _aplicar_datos_cliente(request, detalle, ensayo):
+    """Datos que da el cliente (f'c, moldeo, edad, su código): el técnico los copia al empezar."""
+    muestra = detalle.muestra
+    antes = trazabilidad.instantanea(muestra, trazabilidad.CAMPOS_MUESTRA)
+    form = DatosClienteProbetaForm(request.POST, instance=muestra, prefix='muestra')
+    if not form.is_valid():
+        errores = [f"{form.fields[c].label}: {e}" if c in form.fields else str(e)
+                   for c, lista in form.errors.items() for e in lista]
+        return "Datos de la probeta: " + " ".join(errores)
+    form.save()
+    trazabilidad.anotar_cambios(ensayo, muestra, antes, trazabilidad.CAMPOS_MUESTRA, request.user, prefijo='probeta:')
+    return None
+
+
 def _aplicar_datos_generales(request, detalle, ensayo):
     """Plantilla general: fecha, resumen, observaciones y la hoja de cálculo del ensayo."""
     fecha, error = _leer_fecha(request, detalle)
     if error:
         return error
+    antes = trazabilidad.instantanea(ensayo, trazabilidad.CAMPOS_RESULTADO)
     hoja = request.FILES.get('hoja_calculo')
     if hoja:
         if not hoja.name.lower().endswith(EXTENSIONES_HOJA):
@@ -312,6 +616,11 @@ def _aplicar_datos_generales(request, detalle, ensayo):
         anterior = ensayo.hoja_calculo.name if ensayo.hoja_calculo else None
         ensayo.hoja_calculo.save(hoja.name, hoja, save=False)
         if anterior:
+            from .models import CambioResultado
+            CambioResultado.objects.create(
+                resultado=ensayo, campo='hoja_calculo', etiqueta='Hoja de cálculo',
+                anterior='hoja anterior', nuevo=hoja.name[:255], usuario=request.user,
+            )
             try:
                 ensayo.hoja_calculo.storage.delete(anterior)
             except OSError:
@@ -320,6 +629,7 @@ def _aplicar_datos_generales(request, detalle, ensayo):
     ensayo.resumen = (request.POST.get('resumen') or '').strip()[:5000]
     ensayo.observaciones = (request.POST.get('observaciones') or '').strip()
     ensayo.save()
+    trazabilidad.anotar_cambios(ensayo, ensayo, antes, trazabilidad.CAMPOS_RESULTADO, request.user)
     return None
 
 
@@ -395,6 +705,7 @@ def _aplicar_datos(request, detalle, ensayo):
             return "El tipo de fractura debe ser del 1 al 6."
         fractura = int(texto_fractura)
 
+    antes = trazabilidad.instantanea(ensayo, trazabilidad.CAMPOS_RESULTADO)
     ensayo.fecha_ensayo = fecha
     for campo, valor in medidas.items():
         setattr(ensayo, campo, valor)
@@ -413,6 +724,7 @@ def _aplicar_datos(request, detalle, ensayo):
         'tipos_defecto', 'verif_perpendicularidad', 'verif_planitud', 'video_grabado',
         *ResultadoEnsayo.CAMPOS_MEDIDOS,
     ])
+    trazabilidad.anotar_cambios(ensayo, ensayo, antes, trazabilidad.CAMPOS_RESULTADO, request.user)
     return None
 
 
@@ -452,6 +764,8 @@ def subir_foto_compresion(request, detalle_id, tipo):
         foto.imagen.save('foto.jpg', contenido, save=False)
         foto.save()
 
+    if anterior:
+        trazabilidad.anotar_foto_reemplazada(ensayo, dict(FotoEnsayo.TIPOS).get(tipo, tipo), request.user)
     if anterior and anterior != foto.imagen.name:
         try:
             foto.imagen.storage.delete(anterior)
@@ -492,22 +806,30 @@ def foto_compresion(request, foto_id):
 @login_required
 @permiso_requerido(PERMISO_REGISTRAR)
 def abrir_sesion_ensayo(request):
-    perfil = _perfil(request.user)
+    propio = _perfil(request.user)
+    perfil = _perfil_elegido(request, request.GET.get('tecnico'))
+    volver = _volver(request, reverse('proyectos:mis_ensayos_compresion'))
     if perfil is None:
         messages.error(request, "Tu usuario no tiene ficha de trabajador; pide que la creen para abrir sesiones.")
         return redirect('proyectos:mis_ensayos_compresion')
+    a_nombre_de = perfil if perfil != propio else None
     if SesionEnsayo.abierta_de(perfil):
-        messages.error(request, "Ya tienes una sesión abierta; ciérrala antes de abrir otra.")
-        return redirect('proyectos:mis_ensayos_compresion')
+        if a_nombre_de:
+            messages.error(request, f"{perfil.nombre_completo} ya tiene una sesión abierta; ciérrala antes de abrir otra.")
+        else:
+            messages.error(request, "Ya tienes una sesión abierta; ciérrala antes de abrir otra.")
+        return redirect(volver)
 
     form = AbrirSesionForm(request.POST or None, initial={'fecha': timezone.localdate()})
     if request.method == 'POST' and form.is_valid():
         sesion = form.save(commit=False)
         sesion.tecnico = perfil
+        sesion.registrada_por = propio if a_nombre_de else None
         sesion.save()
-        messages.success(request, "Sesión abierta. Ya puedes terminar probetas con fecha "
+        quien = f" de {perfil.nombre_completo}" if a_nombre_de else ""
+        messages.success(request, f"Sesión{quien} abierta. Ya se pueden terminar probetas con fecha "
                                   f"{sesion.fecha:%d/%m/%Y}.")
-        return redirect('proyectos:mis_ensayos_compresion')
+        return redirect(volver)
     faltan_tipos = [
         etiqueta for campo, tipo in SesionEnsayo.EQUIPOS + SesionEnsayo.ACCESORIOS
         for codigo, etiqueta in Equipo.TIPOS
@@ -519,6 +841,8 @@ def abrir_sesion_ensayo(request):
         'campos_equipo': [form[c] for c, _ in SesionEnsayo.EQUIPOS + SesionEnsayo.ACCESORIOS]
                          + [form['neopreno_usos']],
         'campos_comprobacion': form.campos_comprobacion(),
+        'a_nombre_de': a_nombre_de,
+        'volver': volver,
     })
 
 
@@ -526,21 +850,23 @@ def abrir_sesion_ensayo(request):
 @require_POST
 @permiso_requerido(PERMISO_REGISTRAR)
 def cerrar_sesion_ensayo(request):
-    sesion = SesionEnsayo.abierta_de(_perfil(request.user))
+    perfil = _perfil_elegido(request, request.POST.get('tecnico'))
+    volver = _volver(request, reverse('proyectos:mis_ensayos_compresion'))
+    sesion = SesionEnsayo.abierta_de(perfil)
     if sesion is None:
-        messages.error(request, "No tienes ninguna sesión abierta.")
-        return redirect('proyectos:mis_ensayos_compresion')
+        messages.error(request, "No hay ninguna sesión abierta.")
+        return redirect(volver)
     form = CerrarSesionForm(request.POST, instance=sesion)
     if not form.is_valid():
         errores = [e for lista in form.errors.values() for e in lista]
         messages.error(request, "Para cerrar la sesión: " + " ".join(errores))
-        return redirect('proyectos:mis_ensayos_compresion')
+        return redirect(volver)
     sesion = form.save(commit=False)
     sesion.cerrada_en = timezone.now()
     sesion.save()
     n = sesion.ensayos.count()
     messages.success(request, f"Sesión cerrada con {n} probeta{'s' if n != 1 else ''} terminada{'s' if n != 1 else ''}.")
-    return redirect('proyectos:mis_ensayos_compresion')
+    return redirect(volver)
 
 
 # --- Datos FOR-004 de las probetas, en recepción (HU-LIMS-11) -------------

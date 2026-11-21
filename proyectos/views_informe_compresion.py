@@ -10,7 +10,7 @@ from datetime import date
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q
+from django.db.models import Count, Max, Q
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -20,6 +20,7 @@ from trabajadores.models import TrabajadorProfile
 from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso
 
 from .informe_compresion import ensayos_para_excel, exportar_excel, lineas_resultados
+from .plazos import estado_plazo, plazo_probeta
 from .models import BorradorInforme, ResultadoEnsayo, InformeFinal, SolicitudEnsayo
 from .tasks import enviar_informe_cliente, generar_informe_compresion, generar_informe_editor
 
@@ -46,6 +47,7 @@ def revision_compresion_lista(request):
             terminadas=Count('pk', filter=Q(resultado__estado__in=ResultadoEnsayo.ESTADOS_CERRADOS)),
             aprobadas=Count('pk', filter=Q(resultado__estado=ResultadoEnsayo.ESTADO_APROBADO)),
             con_resultado=Count('resultado'),
+            ultima_fecha=Max('resultado__fecha_ensayo'),
         )
         .filter(con_resultado__gt=0)
     )
@@ -60,6 +62,8 @@ def revision_compresion_lista(request):
         s.informe = getattr(s, 'informe_final', None) if hasattr(s, 'informe_final') else None
         s.emitido = bool(s.informe and s.informe.pdf_estado == InformeFinal.PDF_LISTO)
         s.por_emitir = s.aprobadas == s.total and not s.emitido
+        s.plazo = plazo_probeta(c['ultima_fecha'])
+        s.estado_plazo = estado_plazo(s.plazo, entregado=s.emitido)
     filtro = request.GET.get('vista', 'por_revisar')
     if filtro == 'por_revisar':
         solicitudes = [s for s in solicitudes if s.aprobadas < s.total]
@@ -102,7 +106,11 @@ def revision_compresion(request, solicitud_id):
     filas = []
     for d in lineas:
         e = getattr(d, 'resultado', None)
-        filas.append({'detalle': d, 'ensayo': e, 'fotos': list(e.fotos.all()) if e else []})
+        filas.append({
+            'detalle': d, 'ensayo': e, 'fotos': list(e.fotos.all()) if e else [],
+            # Trazabilidad: lo que se digitó mal y lo que quedó (CambioResultado).
+            'cambios': list(e.cambios.select_related('usuario')) if e else [],
+        })
     todas_terminadas = all(f['ensayo'] and f['ensayo'].terminado for f in filas)
     aprobadas = all(f['ensayo'] and f['ensayo'].aprobado for f in filas)
     return render(request, 'proyectos/compresion_revision.html', {
@@ -111,6 +119,7 @@ def revision_compresion(request, solicitud_id):
         'informe': informe,
         'todas_terminadas': todas_terminadas,
         'aprobadas': aprobadas,
+        'total_cambios': sum(len(f['cambios']) for f in filas),
         'borrador': BorradorInforme.objects.filter(solicitud=solicitud).only('estado', 'actualizado_en').first(),
         'puede_exportar': trabajador_tiene_permiso(request.user, PERMISO_EXPORTAR),
         'correo_cliente': _correo_cliente(solicitud),

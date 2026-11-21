@@ -99,8 +99,24 @@ redirigen con 301). El estado de la `SolicitudEnsayo` lo pone
 `sincronizar_estado()`: en proceso con el primer resultado, finalizado cuando
 todas las líneas terminan; «Finalizar» a mano se bloquea sin todos los
 resultados. Quien ejecutó una línea no la devuelve ni la aprueba (ISO 17025).
-Si la solicitud no es toda de compresión, aprobar lleva a subir el informe
-(`gestionar_informe`).
+En la lista de solicitudes, ▶ inicia (pasa a «en proceso») y el icono verde
+abre `/proyectos/resultados/solicitud/<id>/` (pantalla completa con los pasos
+Iniciar → Registrar resultados → Revisión → Informe y cada ensayo por
+registrar); ya no se finaliza a mano. Quien ve todos los ensayos puede pasar el
+formato en papel a nombre del técnico asignado: abre su sesión
+(`?tecnico=<id>`) y la línea queda «Ejecutado por» el técnico y
+`registrado_por` quien la escribió.
+El registro de compresión sigue el orden del laboratorio: 1 datos del cliente
+(el técnico los copia; `DatosClienteProbetaForm`), 2 medidas y masa, 3 fotos
+en la prensa antes de ensayar, 4 carga + resultado preliminar + foto del
+display, 5 probeta rota (falla y 2 fotos); orden en `FotoEnsayo.ORDEN_TOMA`.
+«Medir y pesar todas primero» (`/resultados/solicitud/<id>/medidas/`) guarda
+masa, D y L de todas las probetas de corrido. Trazabilidad: toda corrección de
+un dato ya guardado (también datos del cliente y fotos reemplazadas) queda en
+`CambioResultado` (`proyectos/trazabilidad.py`) y se ve en la revisión.
+Plazo de entrega (oferta VCF-LAB-FOR-001, `proyectos/plazos.py`): probetas 24 h
+después del ensayo; sábado/domingo → lunes. Se ve en la pantalla de la
+solicitud y en la lista de revisión (vencido en rojo).
 
 **Informe tipo Word (fase 2).** Todo informe, también el de compresión, pasa por el
 editor: al aprobar los resultados se abre `/proyectos/resultados/informe/<id>/editor/`

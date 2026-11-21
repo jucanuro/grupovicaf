@@ -31,6 +31,8 @@ urlpatterns = [
 
     # --- ENSAYO DE COMPRESIÓN: REGISTRO Y FOTOS (HU-LIMS-14) ---
     path('resultados/', views_compresion.mis_ensayos_compresion, name='mis_ensayos_compresion'),
+    path('resultados/solicitud/<int:solicitud_id>/', views_compresion.resultados_solicitud, name='resultados_solicitud'),
+    path('resultados/solicitud/<int:solicitud_id>/medidas/', views_compresion.medidas_solicitud, name='medidas_solicitud'),
     path('resultados/<int:detalle_id>/', views_compresion.registrar_ensayo_compresion, name='registrar_compresion'),
     path('resultados/<int:detalle_id>/foto/<str:tipo>/', views_compresion.subir_foto_compresion, name='subir_foto_compresion'),
     path('resultados/foto/<int:foto_id>/', views_compresion.foto_compresion, name='foto_compresion'),
