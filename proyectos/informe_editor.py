@@ -37,6 +37,10 @@ TIPOS_BLOQUE = {
 }
 # Bloques que llevan una línea de la solicitud como referencia.
 BLOQUES_POR_LINEA = (BLOQUE_RESULTADOS, BLOQUE_FOTOS)
+# Bloques que quien tiene PERMISO_EDITAR_DATOS puede convertir en texto
+# editable. Fotos y firmas nunca: las imágenes y la firma salen del sistema.
+BLOQUES_CONVERTIBLES = (BLOQUE_CARATULA, BLOQUE_RESULTADOS, BLOQUE_EQUIPOS, BLOQUE_NOTAS)
+PERMISO_EDITAR_DATOS = 'informes.editar_datos'
 
 ETIQUETAS_EQUIPO = {'prensa': 'Prensa', 'balanza': 'Balanza', 'vernier': 'Vernier',
                     'termohigrometro': 'Termohigrómetro', 'cuna': 'Cuña', 'escuadra': 'Escuadra'}
@@ -108,12 +112,29 @@ def bloques_disponibles(solicitud, lineas=None):
     return lista
 
 
+def bloques_editados(doc):
+    """{clave: contenido} de los bloques que se convirtieron en texto editable."""
+    editados = {}
+
+    def recorrer(nodo):
+        if nodo.get('type') == 'bloqueEditado':
+            attrs = nodo.get('attrs') or {}
+            editados[clave_bloque(attrs.get('tipo', ''), attrs.get('ref', ''))] = nodo.get('content') or []
+            return
+        for hijo in nodo.get('content') or []:
+            recorrer(hijo)
+
+    recorrer(doc or {})
+    return editados
+
+
 def bloques_usados(doc):
-    """Claves de los bloques de datos que hay en el documento."""
+    """Claves de los bloques de datos que hay en el documento (también los
+    convertidos en texto editable, que cuentan como presentes)."""
     claves = []
 
     def recorrer(nodo):
-        if nodo.get('type') == 'bloqueDatos':
+        if nodo.get('type') in ('bloqueDatos', 'bloqueEditado'):
             attrs = nodo.get('attrs') or {}
             claves.append(clave_bloque(attrs.get('tipo', ''), attrs.get('ref', '')))
         for hijo in nodo.get('content') or []:
@@ -147,6 +168,7 @@ class DocumentoInvalido(ValueError):
 NODOS_PERMITIDOS = {
     'doc', 'paragraph', 'heading', 'text', 'bulletList', 'orderedList', 'listItem',
     'table', 'tableRow', 'tableHeader', 'tableCell', 'hardBreak', 'horizontalRule', 'bloqueDatos',
+    'bloqueEditado',
 }
 MARCAS_PERMITIDAS = {'bold', 'italic', 'underline', 'strike'}
 ALINEACIONES = {'left', 'center', 'right', 'justify'}
@@ -217,6 +239,14 @@ def validar_contenido(doc):
                 return None
             limpio['attrs'] = {'tipo': bloque, 'ref': ref if bloque in BLOQUES_POR_LINEA else ''}
             return limpio
+        if tipo == 'bloqueEditado':
+            bloque = attrs.get('tipo')
+            ref = str(attrs.get('ref') or '')
+            if bloque not in BLOQUES_CONVERTIBLES or profundidad != 1:
+                return None
+            if bloque in BLOQUES_POR_LINEA and not ref.isdigit():
+                return None
+            limpio['attrs'] = {'tipo': bloque, 'ref': ref if bloque in BLOQUES_POR_LINEA else ''}
         hijos = []
         for hijo in nodo.get('content') or []:
             h = limpiar(hijo, profundidad + 1)
@@ -224,6 +254,8 @@ def validar_contenido(doc):
                 hijos.append(h)
         if hijos:
             limpio['content'] = hijos
+        elif tipo == 'bloqueEditado':
+            return None
         return limpio
 
     return limpiar(doc, 0)
@@ -262,8 +294,7 @@ def datos_informe(solicitud, modo=MODO_WEB, informe=None, firmante=None, lineas=
             'es_compresion': bool(e and e.plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION),
             'fotos': fotos,
             'sesion': sesion,
-            'equipos': [(ETIQUETAS_EQUIPO.get(c, c), getattr(sesion, c).codigo) for c, _ in SesionEnsayo.EQUIPOS]
-            if sesion else [],
+            'equipos': sesion.equipos_usados() if sesion else [],
             'fractura': dict(FRACTURAS).get(e.tipo_fractura) if e is not None and e.tipo_fractura else '',
         }
 
@@ -281,7 +312,8 @@ def datos_informe(solicitud, modo=MODO_WEB, informe=None, firmante=None, lineas=
         equipos.append({
             'sesion': s,
             'tecnico': s.tecnico.nombre_completo if s.tecnico_id else '',
-            'equipos': [(etiquetas.get(c, c), getattr(s, c).codigo) for c, _ in SesionEnsayo.EQUIPOS],
+            'equipos': s.equipos_usados(),
+            'comprobacion': s.comprobacion_items(),
         })
 
     firma = None
@@ -414,6 +446,10 @@ def render_documento(doc, datos):
             partes.append('<hr>')
         elif tipo == 'bloqueDatos':
             partes.append(render_bloque(attrs.get('tipo'), attrs.get('ref', ''), datos))
+        elif tipo == 'bloqueEditado':
+            partes.append('<div class="bloque bloque-editado">')
+            hijos(nodo)
+            partes.append('</div>')
 
     dibujar(doc)
     return ''.join(partes)

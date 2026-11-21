@@ -11,6 +11,8 @@ tres probetas (RN-C01 a RN-C06 de VCF-LIMS_HU_CU_compresion):
 - Resistencia (kg/cm²) = MPa YA redondeado · 10,1972, a 0,1.
 - % obtenido = kg/cm² / f'c · 100, entero.
 - Densidad (kg/m³) = masa / (área · longitud), redondeada a 10.
+- Verificación del diámetro: |D1 − D2| / menor diámetro · 100 ≤ 2 %, a 0,01
+  (ASTM C39: los diámetros no deben diferir más de 2 %).
 
 ``static/js/compresion_calculos.js`` hace lo mismo en el navegador; si se
 cambia una regla aquí hay que cambiarla también allí.
@@ -94,3 +96,17 @@ def calcular(d1, d2, l1, l2, l3, carga_kn, masa_g=None, fc_kgcm2=None):
         densidad = _q(kg_m3 / 10, '1') * 10
 
     return Resultado(diametro, longitud, area, relacion_ld, factor, mpa, kgcm2, porcentaje, densidad)
+
+
+DIFERENCIA_DIAMETRO_MAXIMA = Decimal('2')
+
+
+def verificar_diametro(d1, d2):
+    """(diferencia en %, cumple) entre D1 y D2, o None si falta alguno."""
+    if d1 is None or d2 is None:
+        return None
+    d1, d2 = Decimal(str(d1)), Decimal(str(d2))
+    if min(d1, d2) <= 0:
+        return None
+    diferencia = _q(abs(d1 - d2) / min(d1, d2) * 100, '0.01')
+    return diferencia, diferencia <= DIFERENCIA_DIAMETRO_MAXIMA

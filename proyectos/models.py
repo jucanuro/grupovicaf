@@ -575,6 +575,8 @@ class Equipo(models.Model):
     TIPO_TERMOHIGROMETRO = 'TMG'
     TIPO_CUNA = 'CUÑ'
     TIPO_ESCUADRA = 'ESC'
+    TIPO_ANILLOS = 'ARE'
+    TIPO_NEOPRENO = 'NEO'
     TIPO_OTRO = 'OTR'
     TIPOS = [
         (TIPO_PRENSA, 'Prensa'),
@@ -583,6 +585,8 @@ class Equipo(models.Model):
         (TIPO_TERMOHIGROMETRO, 'Termohigrómetro'),
         (TIPO_CUNA, 'Cuña'),
         (TIPO_ESCUADRA, 'Escuadra'),
+        (TIPO_ANILLOS, 'Anillos retenedores'),
+        (TIPO_NEOPRENO, 'Neoprenos'),
         (TIPO_OTRO, 'Otro'),
     ]
 
@@ -631,6 +635,27 @@ class SesionEnsayo(models.Model):
         ('cuna', Equipo.TIPO_CUNA),
         ('escuadra', Equipo.TIPO_ESCUADRA),
     ]
+    # Accesorios del formato de registro (anillos retenedores y neoprenos). Son
+    # opcionales en el modelo solo por las sesiones anteriores; el formulario
+    # los exige.
+    ACCESORIOS = [
+        ('anillos', Equipo.TIPO_ANILLOS),
+        ('neopreno', Equipo.TIPO_NEOPRENO),
+    ]
+    # Orden en que el formato de registro lista el equipamiento empleado.
+    ORDEN_EQUIPOS = ['prensa', 'vernier', 'balanza', 'termohigrometro', 'anillos', 'cuna', 'escuadra', 'neopreno']
+    # Comprobación funcional de equipos del formato de registro:
+    # (clave, equipo, pregunta, respuesta esperada).
+    COMPROBACION = [
+        ('prensa_fugas', 'Prensa', 'Se evidencia fugas de aceite en la máquina.', False),
+        ('prensa_papel', 'Prensa', 'El rollo de papel térmico tiene suficiente papel para impresión de carga máxima.', True),
+        ('prensa_tornillo', 'Prensa', 'El tornillo sin fin gira libremente.', True),
+        ('prensa_indicadores', 'Prensa', 'Los indicadores y botones de control son legibles y están en buen estado.', True),
+        ('vernier_tornillo', 'Vernier', 'El tornillo de fijación se encuentra adecuadamente ajustado.', True),
+        ('vernier_escalas', 'Vernier', 'Las escalas graduadas son legibles.', True),
+        ('anillos_superficie', 'Anillos retenedores', 'Se evidencia una superficie libre de defectos, grietas o irregularidades.', True),
+        ('neoprenos_superficie', 'Neoprenos', 'Se evidencia una superficie libre de defectos, grietas o irregularidades.', True),
+    ]
 
     tecnico = models.ForeignKey(TrabajadorProfile, on_delete=models.PROTECT, related_name='sesiones_ensayo')
     fecha = models.DateField(default=timezone.localdate)
@@ -644,6 +669,10 @@ class SesionEnsayo(models.Model):
     termohigrometro = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+')
     cuna = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+')
     escuadra = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+')
+    anillos = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+', null=True, blank=True)
+    neopreno = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+', null=True, blank=True)
+    neopreno_usos = models.CharField(max_length=20, blank=True, default='', verbose_name="N.º de usos de neoprenos")
+    comprobacion = models.JSONField(default=dict, blank=True, verbose_name="Comprobación funcional de equipos")
     abierta_en = models.DateTimeField(auto_now_add=True)
     cerrada_en = models.DateTimeField(null=True, blank=True)
 
@@ -658,6 +687,34 @@ class SesionEnsayo(models.Model):
     @property
     def abierta(self):
         return self.cerrada_en is None
+
+    def equipos_usados(self):
+        """[(etiqueta, código)] en el orden del formato; omite lo que la sesión no tiene."""
+        etiquetas = dict(Equipo.TIPOS)
+        tipos = dict(self.EQUIPOS + self.ACCESORIOS)
+        filas = []
+        for campo in self.ORDEN_EQUIPOS:
+            equipo = getattr(self, campo)
+            if equipo is None:
+                continue
+            codigo = equipo.codigo
+            if campo == 'neopreno' and self.neopreno_usos:
+                codigo += f" (usos: {self.neopreno_usos})"
+            filas.append((etiquetas[tipos[campo]], codigo))
+        return filas
+
+    def comprobacion_items(self):
+        """Respuestas de la comprobación funcional; vacía en sesiones anteriores."""
+        if not self.comprobacion:
+            return []
+        filas = []
+        for clave, equipo, pregunta, esperado in self.COMPROBACION:
+            respuesta = self.comprobacion.get(clave)
+            filas.append({
+                'equipo': equipo, 'pregunta': pregunta, 'respuesta': respuesta,
+                'conforme': respuesta is not None and respuesta == esperado,
+            })
+        return filas
 
     @classmethod
     def abierta_de(cls, perfil):
@@ -729,6 +786,11 @@ class ResultadoEnsayo(models.Model):
         null=True, blank=True, choices=[(n, f'Tipo {n}') for n in range(1, 7)], verbose_name="Tipo de fractura",
     )
     defectos = models.CharField(max_length=255, blank=True, default='', verbose_name="Defectos del espécimen")
+    # Formato de registro: tipos de defecto (a-e), verificaciones y evidencia.
+    tipos_defecto = models.CharField(max_length=20, blank=True, default='', verbose_name="Tipos de defecto")
+    verif_perpendicularidad = models.BooleanField(null=True, blank=True, verbose_name="Perpendicularidad (≤ 0,5°)")
+    verif_planitud = models.BooleanField(null=True, blank=True, verbose_name="Planitud (≤ 0,05 mm)")
+    video_grabado = models.BooleanField(default=False, verbose_name="Se grabó video del ensayo")
 
     # Resultados calculados (proyectos.calculos_compresion), guardados al terminar.
     edad_dias = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -756,6 +818,14 @@ class ResultadoEnsayo(models.Model):
     actualizado_en = models.DateTimeField(auto_now=True)
 
     CAMPOS_MEDIDOS = ['masa_g', 'd1', 'd2', 'l1', 'l2', 'l3', 'carga_kn']
+    DEFECTO_OTROS = 'e'
+    TIPOS_DEFECTO = [
+        ('a', 'Espécimen mal moldeado'),
+        ('b', 'Espécimen quiñado'),
+        ('c', 'Dimensiones atípicas'),
+        ('d', 'Caras irregulares'),
+        (DEFECTO_OTROS, 'Otros'),
+    ]
 
     class Meta:
         verbose_name = "Resultado de ensayo"
@@ -785,6 +855,30 @@ class ResultadoEnsayo(models.Model):
     @property
     def aprobado(self):
         return self.estado == self.ESTADO_APROBADO
+
+    @property
+    def lista_defectos(self):
+        return [c for c in self.tipos_defecto.split(',') if c in dict(self.TIPOS_DEFECTO)]
+
+    @property
+    def defectos_texto(self):
+        """«Ninguno», los tipos marcados o, en registros anteriores, el texto libre."""
+        etiquetas = dict(self.TIPOS_DEFECTO)
+        partes = []
+        for c in self.lista_defectos:
+            if c == self.DEFECTO_OTROS:
+                partes.append(f"{etiquetas[c]}: {self.defectos}" if self.defectos else etiquetas[c])
+            else:
+                partes.append(f"({c}) {etiquetas[c]}")
+        if not partes and self.defectos:
+            partes.append(self.defectos)
+        return "; ".join(partes) or "Ninguno"
+
+    @property
+    def verificacion_diametro(self):
+        """(diferencia %, cumple) entre D1 y D2, o None si faltan."""
+        from .calculos_compresion import verificar_diametro
+        return verificar_diametro(self.d1, self.d2)
 
     def calcular(self):
         """Resultado de los cálculos con las medidas actuales (o DatosInsuficientes)."""
@@ -840,6 +934,12 @@ class ResultadoEnsayo(models.Model):
                 faltan.append(str(etiquetas_campos[campo]))
         if not self.tipo_fractura:
             faltan.append("el tipo de fractura")
+        if self.verif_perpendicularidad is None:
+            faltan.append("la verificación de perpendicularidad")
+        if self.verif_planitud is None:
+            faltan.append("la verificación de planitud")
+        if self.DEFECTO_OTROS in self.lista_defectos and not self.defectos.strip():
+            faltan.append("el detalle del defecto «Otros»")
         faltan += [f"la foto «{etiquetas[t]}»" for t in self.tipos_faltantes()]
         return faltan
 

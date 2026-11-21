@@ -70,7 +70,8 @@ class EquipoForm(forms.ModelForm):
 class AbrirSesionForm(forms.ModelForm):
     class Meta:
         model = SesionEnsayo
-        fields = ['fecha', 'temperatura_inicial', 'humedad_inicial'] + [c for c, _ in SesionEnsayo.EQUIPOS]
+        fields = (['fecha', 'temperatura_inicial', 'humedad_inicial']
+                  + [c for c, _ in SesionEnsayo.EQUIPOS + SesionEnsayo.ACCESORIOS] + ['neopreno_usos'])
         widgets = {
             'fecha': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
             'temperatura_inicial': forms.NumberInput(attrs={'step': '0.1', 'inputmode': 'decimal'}),
@@ -83,13 +84,27 @@ class AbrirSesionForm(forms.ModelForm):
         hoy = timezone.localdate()
         self.fields['fecha'].widget.attrs['max'] = hoy.isoformat()
         etiquetas = dict(Equipo.TIPOS)
-        for campo, tipo in SesionEnsayo.EQUIPOS:
+        for campo, tipo in SesionEnsayo.EQUIPOS + SesionEnsayo.ACCESORIOS:
             disponibles = Equipo.disponibles(tipo, hoy)
             self.fields[campo].queryset = disponibles
+            self.fields[campo].required = True
             self.fields[campo].label = etiquetas[tipo]
             self.fields[campo].empty_label = "Elige…"
             if not self.is_bound and disponibles.count() == 1:
                 self.initial[campo] = disponibles.first().pk
+        self.fields['neopreno_usos'].required = True
+        self.fields['neopreno_usos'].label = "N.º de usos de neoprenos"
+        self.fields['neopreno_usos'].widget.attrs.update({'placeholder': 'Ej.: 59-60', 'maxlength': '20'})
+        # Comprobación funcional de equipos (Sí / No por pregunta).
+        for clave, equipo, pregunta, _ in SesionEnsayo.COMPROBACION:
+            self.fields['comp_' + clave] = forms.TypedChoiceField(
+                label=pregunta, choices=[('1', 'Sí'), ('0', 'No')], widget=forms.RadioSelect,
+                coerce=lambda v: v == '1', error_messages={'required': "Responde Sí o No."},
+            )
+            self.fields['comp_' + clave].equipo = equipo
+
+    def campos_comprobacion(self):
+        return [self['comp_' + clave] for clave, _, _, _ in SesionEnsayo.COMPROBACION]
 
     def clean_fecha(self):
         fecha = self.cleaned_data['fecha']
@@ -100,13 +115,27 @@ class AbrirSesionForm(forms.ModelForm):
     def clean(self):
         datos = super().clean()
         _validar_ambiente(self, datos, 'temperatura_inicial', 'humedad_inicial')
+        for clave, equipo, _, esperado in SesionEnsayo.COMPROBACION:
+            respuesta = datos.get('comp_' + clave)
+            if respuesta is not None and respuesta != esperado:
+                self.add_error('comp_' + clave, f"{equipo} no pasa la comprobación: no se puede ensayar con él. "
+                                                "Avisa al supervisor.")
         fecha = datos.get('fecha')
         if fecha:
-            for campo, _ in SesionEnsayo.EQUIPOS:
+            for campo, _ in SesionEnsayo.EQUIPOS + SesionEnsayo.ACCESORIOS:
                 equipo = datos.get(campo)
                 if equipo and equipo.vencido(fecha):
                     self.add_error(campo, f"{equipo.codigo} tiene la calibración vencida para esa fecha.")
         return datos
+
+    def save(self, commit=True):
+        sesion = super().save(commit=False)
+        sesion.comprobacion = {
+            clave: self.cleaned_data['comp_' + clave] for clave, _, _, _ in SesionEnsayo.COMPROBACION
+        }
+        if commit:
+            sesion.save()
+        return sesion
 
 
 class CerrarSesionForm(forms.ModelForm):

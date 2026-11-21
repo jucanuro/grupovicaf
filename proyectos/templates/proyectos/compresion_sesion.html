@@ -68,6 +68,27 @@
             </div>
         </section>
 
+        <section class="v-tarjeta" data-comprobacion>
+            <div class="v-tarjeta__cab">
+                <span class="v-paso">3</span>
+                <div><h2>Comprobación funcional de equipos</h2><p>Revisa cada equipo antes de empezar. Si alguno no pasa, no se puede abrir la sesión.</p></div>
+            </div>
+            <div class="v-tarjeta__cuerpo divide-y divide-slate-100">
+                {% for campo in campos_comprobacion %}
+                {% ifchanged campo.field.equipo %}<p class="pt-3 pb-1 text-xs font-bold uppercase tracking-wide text-slate-500">{{ campo.field.equipo }}</p>{% endifchanged %}
+                <div class="py-2">
+                    <div class="flex items-center justify-between gap-3 text-sm">
+                        <span>{{ campo.label }}</span>
+                        <span class="flex gap-3 flex-shrink-0">
+                            {% for opcion in campo %}<label class="v-opcion">{{ opcion.tag }} {{ opcion.choice_label }}</label>{% endfor %}
+                        </span>
+                    </div>
+                    {% for e in campo.errors %}<span class="v-error">{{ e }}</span>{% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
         <div class="v-barra">
             <p class="v-barra__nota">Al cerrar la sesión registrarás la temperatura y la humedad finales.</p>
             <div class="v-barra__fila">

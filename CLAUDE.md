@@ -113,7 +113,12 @@ equipos, firmas) solo guardan tipo y referencia y se dibujan desde la base
 (`templates/proyectos/informe_bloques/`); el JSON se valida con lista blanca
 antes de guardar y de renderizar. Emitir exige los bloques obligatorios y que
 quien firma no haya ejecutado ningún ensayo; congela `html_emitido` y Celery
-(`generar_informe_editor`) arma el PDF con WeasyPrint.
+(`generar_informe_editor`) arma el PDF con WeasyPrint. El texto de los bloques
+se puede seleccionar y copiar; con el permiso `informes.editar_datos` (no se da a
+ningún rol por defecto) un bloque de carátula, resultados, equipos o notas se
+puede «Convertir en texto editable» (nodo `bloqueEditado`): queda en el
+historial, ya no se actualiza solo y el servidor rechaza (403) que alguien sin
+el permiso lo cree o cambie su texto.
 
 **Ensayo de compresión (HU-LIMS-14).** `proyectos/views_compresion.py`:
 el técnico registra en el celular cada probeta de ASTM C39 / EC001 asignada
@@ -129,7 +134,12 @@ Medidas y cálculos (HU-LIMS-11 a 13): recepción llena los datos FOR-004 de
 cada probeta (`/proyectos/recepcion/<id>/probetas/`, permiso `muestras.editar`);
 el técnico abre una `SesionEnsayo` (T/HR y los 6 equipos con calibración
 vigente; `Equipo` en `/proyectos/equipos/`, permisos `equipos.ver`/`equipos.editar`)
-y registra masa, D1-D2, L1-L3, carga y fractura. Las reglas de cálculo están en
+y registra masa, D1-D2, L1-L3, carga y fractura. Como en el formato de registro en papel
+(versión 09): la sesión también pide anillos retenedores, neoprenos (con n.º de
+usos) y la comprobación funcional de equipos (`SesionEnsayo.COMPROBACION`; si un
+equipo no pasa, no se abre la sesión), y cada probeta lleva la verificación del
+diámetro (calculada, ≤ 2 %), perpendicularidad y planitud (las marca el técnico),
+defectos a-e (`tipos_defecto` + texto de «Otros») y si se grabó video. Las reglas de cálculo están en
 `proyectos/calculos_compresion.py` (π = 3,1416 como la hoja del laboratorio) y
 su copia de vista previa en `static/js/compresion_calculos.js`: si cambia una,
 cambiar la otra.

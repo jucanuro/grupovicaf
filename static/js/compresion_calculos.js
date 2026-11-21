@@ -34,6 +34,14 @@
         return isFinite(n) ? n : null;
     }
 
+    /** |D1 − D2| / menor · 100 a 0,01; cumple si ≤ 2 %. null si faltan. */
+    function verificarDiametro(d1, d2) {
+        d1 = numero(d1); d2 = numero(d2);
+        if (d1 === null || d2 === null || Math.min(d1, d2) <= 0) return null;
+        var dif = q(Math.abs(d1 - d2) / Math.min(d1, d2) * 100, 2);
+        return { diferencia: dif, cumple: dif <= 2 };
+    }
+
     /** datos: {d1, d2, l1, l2, l3, carga_kn, masa_g?, fc?}. Devuelve null si faltan datos. */
     function calcular(datos) {
         var d1 = numero(datos.d1), d2 = numero(datos.d2);
@@ -58,5 +66,5 @@
         return r;
     }
 
-    global.CompresionCalculos = { calcular: calcular, factorCorreccion: factorCorreccion, q: q };
+    global.CompresionCalculos = { calcular: calcular, verificarDiametro: verificarDiametro, factorCorreccion: factorCorreccion, q: q };
 })(window);

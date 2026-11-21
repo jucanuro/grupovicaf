@@ -174,11 +174,38 @@
                     </select>
                 </label>
             </div>
-            <label class="v-campo block">
-                <span class="v-etiqueta">Defectos del espécimen</span>
-                <input type="text" name="defectos" maxlength="255" value="{{ ensayo.defectos|default:'' }}" placeholder="Ninguno"
+            <fieldset class="v-campo block" data-verificaciones>
+                <legend class="v-etiqueta">Verificaciones</legend>
+                {% with vd=ensayo.verificacion_diametro %}
+                <p class="text-sm flex items-center justify-between gap-2 py-1.5">
+                    <span>Diámetro (≤ 2 %) <span class="block text-xs text-slate-500">Lo calcula el sistema con D1 y D2</span></span>
+                    <span class="font-semibold whitespace-nowrap" data-verif-diametro>{% if vd %}{% if vd.1 %}Cumple{% else %}No cumple{% endif %} ({{ vd.0 }} %){% else %}—{% endif %}</span>
+                </p>
+                {% endwith %}
+                {% for v in verificaciones %}
+                <div class="flex items-center justify-between gap-2 py-1.5 border-t border-slate-100 text-sm">
+                    <span>{{ v.etiqueta }}</span>
+                    <span class="flex flex-col sm:flex-row gap-1.5 sm:gap-3">
+                        <label class="v-opcion"><input type="radio" name="{{ v.campo }}" value="1" data-verif {% if v.valor == True %}checked{% endif %} {% if solo_lectura %}disabled{% endif %}> Cumple</label>
+                        <label class="v-opcion"><input type="radio" name="{{ v.campo }}" value="0" data-verif {% if v.valor == False %}checked{% endif %} {% if solo_lectura %}disabled{% endif %}> No cumple</label>
+                    </span>
+                </div>
+                {% endfor %}
+            </fieldset>
+            <fieldset class="v-campo block" data-defectos>
+                <legend class="v-etiqueta">Defectos en el testigo</legend>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-1 text-sm">
+                    {% for codigo, etiqueta in tipos_defecto %}
+                    <label class="v-opcion py-1" style="white-space:normal"><input type="checkbox" name="tipos_defecto" value="{{ codigo }}" {% if codigo in defectos_marcados %}checked{% endif %} {% if solo_lectura %}disabled{% endif %}> ({{ codigo }}) {{ etiqueta }}</label>
+                    {% endfor %}
+                </div>
+                <input type="text" name="defectos" maxlength="255" value="{{ ensayo.defectos|default:'' }}" placeholder="Otros (indicar). Sin marcar = ninguno"
                        {% if solo_lectura %}disabled{% endif %}
-                       class="w-full">
+                       class="w-full mt-1">
+            </fieldset>
+            <label class="inline-flex items-center gap-2 text-sm">
+                <input type="checkbox" name="video_grabado" value="1" {% if ensayo.video_grabado %}checked{% endif %} {% if solo_lectura %}disabled{% endif %}>
+                Se grabó video del ensayo
             </label>
             <label class="v-campo block">
                 <span class="v-etiqueta">Observaciones</span>
@@ -329,6 +356,15 @@
             if (!i.value.trim()) faltan.push(i.closest('label').querySelector('span').textContent.trim());
         });
         if (fractura && !fractura.value) faltan.push('tipo de fractura');
+        ['verif_perpendicularidad', 'verif_planitud'].forEach(function (n) {
+            const radios = document.querySelectorAll('[name="' + n + '"]');
+            if (radios.length && !document.querySelector('[name="' + n + '"]:checked')) {
+                faltan.push(n === 'verif_planitud' ? 'verificación de planitud' : 'verificación de perpendicularidad');
+            }
+        });
+        const otros = document.querySelector('[name="tipos_defecto"][value="e"]');
+        const textoOtros = document.querySelector('[name="defectos"]');
+        if (otros && otros.checked && textoOtros && !textoOtros.value.trim()) faltan.push('detalle del defecto «Otros»');
         if (resumen && !resumen.value.trim()) faltan.push('resumen de resultados');
         if (hoja && !hoja.dataset.hayHoja && !(hoja.files && hoja.files.length)) faltan.push('hoja de cálculo');
         document.querySelectorAll('[data-slot]').forEach(function (s) {
@@ -483,11 +519,21 @@
         pon('kgcm2', r && !r.error ? fmt(r.kgcm2, 1) : '—');
         pon('porcentaje', r && !r.error && r.porcentaje !== null ? fmt(r.porcentaje, 0) : '—');
         pon('densidad', r && !r.error && r.densidad !== null ? fmt(r.densidad, 0) : '—');
+        const vd = window.CompresionCalculos.verificarDiametro(datos.d1, datos.d2);
+        const celdaVd = document.querySelector('[data-verif-diametro]');
+        if (celdaVd) {
+            celdaVd.textContent = vd ? (vd.cumple ? 'Cumple' : 'No cumple') + ' (' + fmt(vd.diferencia, 2) + ' %)' : '—';
+            celdaVd.classList.toggle('text-red-600', !!(vd && !vd.cumple));
+        }
     }
     document.querySelectorAll('[data-medida]').forEach(function (i) {
         i.addEventListener('input', function () { recalcular(); actualizarTerminar(); });
     });
     if (fractura) fractura.addEventListener('change', actualizarTerminar);
+    document.querySelectorAll('[data-verif], [name="tipos_defecto"], [name="defectos"]').forEach(function (i) {
+        i.addEventListener('change', actualizarTerminar);
+        i.addEventListener('input', actualizarTerminar);
+    });
     window.addEventListener('beforeunload', function (ev) {
         if (document.querySelector('[data-marco][data-estado="subiendo"]')) { ev.preventDefault(); ev.returnValue = ''; }
     });
