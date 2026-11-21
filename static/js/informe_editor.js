@@ -166,6 +166,55 @@
         ],
     });
 
+    // ---------- Pantalla completa (como Word) ----------
+    // El editor se abre a pantalla completa; «Salir» vuelve a la vista con el menú.
+    const btnPantalla = raiz.querySelector('[data-pantalla]');
+    const hoja = raiz.querySelector('[data-hoja]');
+    function pantallaCompleta(activar) {
+        raiz.classList.toggle('ed-completo', activar);
+        document.documentElement.style.overflow = activar ? 'hidden' : '';
+        if (!activar && document.fullscreenElement) document.exitFullscreen().catch(function () {});
+    }
+    if (btnPantalla) {
+        btnPantalla.addEventListener('click', function () {
+            const activar = !raiz.classList.contains('ed-completo');
+            pantallaCompleta(activar);
+            // Con el clic del usuario también se puede pedir la pantalla completa del navegador.
+            if (activar && raiz.requestFullscreen) raiz.requestFullscreen().catch(function () {});
+        });
+    }
+    pantallaCompleta(true);
+
+    const selZoom = raiz.querySelector('[data-zoom]');
+    function aplicarZoom(valor) {
+        hoja.style.zoom = valor === '1' ? '' : valor;
+        try { localStorage.setItem('informe-zoom', valor); } catch (e) { /* sin almacenamiento */ }
+    }
+    if (selZoom) {
+        try {
+            const guardado = localStorage.getItem('informe-zoom');
+            if (guardado && selZoom.querySelector('option[value="' + guardado + '"]')) selZoom.value = guardado;
+        } catch (e) { /* sin almacenamiento */ }
+        aplicarZoom(selZoom.value);
+        selZoom.addEventListener('change', function () { aplicarZoom(selZoom.value); });
+    }
+
+    const txtPalabras = raiz.querySelector('[data-palabras]');
+    const txtPaginas = raiz.querySelector('[data-paginas]');
+    const ALTO_A4 = 297 * 96 / 25.4;
+    function contar() {
+        const texto = editor.state.doc.textBetween(0, editor.state.doc.content.size, ' ', ' ');
+        const n = (texto.match(/\S+/g) || []).length;
+        if (txtPalabras) txtPalabras.textContent = n.toLocaleString('es-PE') + (n === 1 ? ' palabra' : ' palabras');
+        if (txtPaginas) {
+            const paginas = Math.max(1, Math.ceil(hoja.scrollHeight / ALTO_A4));
+            txtPaginas.textContent = '≈ ' + paginas + (paginas === 1 ? ' página' : ' páginas');
+        }
+    }
+    let temporizadorConteo = null;
+    editor.on('update', function () { clearTimeout(temporizadorConteo); temporizadorConteo = setTimeout(contar, 300); });
+    contar();
+
     if (soloLectura) return;
 
     // ---------- Barra de herramientas ----------
@@ -298,7 +347,12 @@
         temporizador = setTimeout(guardar, 1500);
     }
 
+    // Al cargar, el editor puede normalizar el documento (p. ej. tablas): eso
+    // no es un cambio de la persona y no debe guardarse ni crear versiones.
+    let listo = false;
+    setTimeout(function () { listo = true; }, 0);
     editor.on('update', function () {
+        if (!listo) return;
         pendiente = true;
         if (!conflicto) mostrar('Cambios sin guardar…');
         programar();

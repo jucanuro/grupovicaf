@@ -118,7 +118,9 @@ se puede seleccionar y copiar; con el permiso `informes.editar_datos` (no se da 
 ningún rol por defecto) un bloque de carátula, resultados, equipos o notas se
 puede «Convertir en texto editable» (nodo `bloqueEditado`): queda en el
 historial, ya no se actualiza solo y el servidor rechaza (403) que alguien sin
-el permiso lo cree o cambie su texto.
+el permiso lo cree o cambie su texto. El editor se abre a pantalla completa
+(como Word: barra arriba, hoja A4 con cortes de página aproximados, barra de
+estado con palabras, páginas y zoom); «Salir» vuelve a la vista con el menú.
 
 **Ensayo de compresión (HU-LIMS-14).** `proyectos/views_compresion.py`:
 el técnico registra en el celular cada probeta de ASTM C39 / EC001 asignada

@@ -43,6 +43,45 @@
     .bloque-dato img { max-width: 100%; }
     .ed-estado[data-tipo="error"] { color: #b91c1c; }
     .ed-estado[data-tipo="ok"] { color: #047857; }
+    /* ---------- Pantalla completa (como Word) ---------- */
+    .ed-solo-completo { display: none !important; }
+    .ed-completo .ed-solo-completo { display: flex !important; }
+    .ed-completo .ed-solo-normal { display: none !important; }
+    .ed-completo { position: fixed; inset: 0; z-index: 200; max-width: none !important; margin: 0 !important; padding: 0 !important;
+                   display: flex; flex-direction: column; background: #e8eaee; }
+    .ed-completo > * { margin-top: 0 !important; }
+    .ed-completo .v-volver { display: none; }
+    .ed-completo > header { background: #fff; padding: .45rem 1rem; border-bottom: 1px solid #dbe1ea; gap: .5rem; flex-shrink: 0; }
+    .ed-completo > header .v-cabecera__icono { width: 2.1rem; height: 2.1rem; border-radius: .6rem; }
+    .ed-completo > header h1 { font-size: 1rem; }
+    .ed-completo > header p { font-size: .75rem; }
+    .ed-completo > .v-aviso { margin: .5rem 1rem 0 !important; flex-shrink: 0; }
+    .ed-completo > [data-historial] { position: fixed; top: 3.6rem; right: 0; bottom: 2.6rem; width: min(24rem, 100vw); z-index: 210;
+                   overflow: auto; border-radius: 0; box-shadow: -12px 0 32px -16px rgba(15,23,42,.35); }
+    .ed-completo > .ed-cuerpo { flex: 1; min-height: 0; display: flex; flex-direction: column; border: 0; border-radius: 0;
+                   box-shadow: none; background: transparent; }
+    .ed-completo .ed-barra { position: static; background: #f8fafc; border-bottom: 1px solid #dbe1ea;
+                   box-shadow: 0 2px 6px -4px rgba(15,23,42,.25); }
+    .ed-completo .ed-herr { justify-content: center; }
+    .ed-completo .ed-mesa { flex: 1; overflow: auto; border-radius: 0; background: #e8eaee; padding: 1.5rem .75rem 3rem; }
+    .ed-completo .ed-pagina { box-shadow: 0 1px 3px rgba(15,23,42,.18), 0 10px 30px -12px rgba(15,23,42,.3);
+                   /* Corte aproximado de página A4, como guía al escribir. */
+                   background: repeating-linear-gradient(to bottom, #fff 0, #fff calc(297mm - 1px), #c7ced9 calc(297mm - 1px), #c7ced9 297mm); }
+    .ed-completo > .v-barra { position: static; margin: 0; border-radius: 0; border: 0; border-top: 1px solid #dbe1ea;
+                   padding: .35rem 1rem; box-shadow: none; background: #fff; display: flex; align-items: center; gap: .75rem; }
+    .ed-completo > .v-barra .v-barra__nota { display: none; }
+    .ed-completo > .v-barra .v-barra__fila { margin-left: auto; flex-wrap: nowrap; }
+    .ed-completo > .v-barra .v-btn { min-width: 0; min-height: 2.25rem; padding: .35rem .9rem; font-size: .85rem; }
+    .ed-estado-barra { align-items: center; gap: .9rem; font-size: .75rem; color: #475569; white-space: nowrap; }
+    .ed-estado-barra select { border: 1px solid #cbd5e1; border-radius: .4rem; padding: .1rem 1.4rem .1rem .4rem; font-size: .75rem; background-color: #fff; }
+    @media (max-width: 767px) {
+        .ed-completo > header .v-cabecera p, .ed-estado-barra [data-paginas] { display: none; }
+        .ed-completo .ed-mesa { padding: .5rem .25rem 2rem; }
+        .ed-completo .ed-pagina { background: #fff; }
+        .ed-completo .ed-texto-boton { display: none; }
+        .ed-completo > header > div:last-child { width: 100%; justify-content: flex-end; }
+        .ed-completo > .v-barra { flex-wrap: wrap; }
+    }
     {% include "proyectos/informe_hoja.css" %}
 </style>
 {% endblock %}
@@ -70,10 +109,14 @@
                 {% if solo_lectura %}Emitido · solo lectura{% else %}Guardado{% endif %}
             </span>
             <a href="{% url 'proyectos:vista_previa_informe' solicitud.pk %}" target="_blank" rel="noopener" class="v-btn v-btn--secundario v-btn--sm" data-vista-previa>
-                <i data-lucide="eye"></i> Vista previa
+                <i data-lucide="eye"></i> <span class="ed-texto-boton">Vista previa</span>
             </a>
             <button type="button" class="v-btn v-btn--secundario v-btn--sm" data-abrir-historial aria-expanded="false" aria-controls="historial">
-                <i data-lucide="history"></i> Historial
+                <i data-lucide="history"></i> <span class="ed-texto-boton">Historial</span>
+            </button>
+            <button type="button" class="v-btn v-btn--secundario v-btn--sm" data-pantalla title="Pantalla completa (F11 del editor)">
+                <span class="ed-solo-normal inline-flex items-center gap-1.5"><i data-lucide="maximize-2"></i> Pantalla completa</span>
+                <span class="ed-solo-completo items-center gap-1.5"><i data-lucide="minimize-2"></i> Salir</span>
             </button>
         </div>
     </header>
@@ -111,7 +154,7 @@
         </ul>
     </aside>
 
-    <div class="v-tarjeta overflow-hidden">
+    <div class="v-tarjeta overflow-hidden ed-cuerpo">
         {% if not solo_lectura %}
         <div class="ed-barra">
             <div class="ed-herr" role="toolbar" aria-label="Formato del texto">
@@ -159,6 +202,16 @@
     </div>
 
     <div class="v-barra">
+        <div class="ed-estado-barra ed-solo-completo" aria-live="polite">
+            <span data-palabras>0 palabras</span>
+            <span data-paginas>≈ 1 página</span>
+            <label class="inline-flex items-center gap-1.5">Zoom
+                <select data-zoom aria-label="Zoom de la hoja">
+                    <option value="0.75">75 %</option><option value="0.9">90 %</option><option value="1" selected>100 %</option>
+                    <option value="1.25">125 %</option><option value="1.5">150 %</option>
+                </select>
+            </label>
+        </div>
         <p class="v-barra__nota">
             {% if solo_lectura %}Informe emitido: ya no se puede editar.{% else %}Los recuadros azules son datos del sistema: se actualizan solos y puedes seleccionar y copiar su texto.{% if puede_editar_datos %} Si hace falta corregir uno, usa «Convertir en texto editable»: queda en el historial y ya no se actualiza solo.{% endif %} Se guarda solo mientras escribes.{% endif %}
         </p>

@@ -325,3 +325,21 @@ class BloqueEditadoTests(CompresionBase):
         r = self.guardar(sin_bloque, borrador.version)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json()['faltan'], [f'Resultados de {self.mia.muestra.codigo_laboratorio}'])
+
+
+@override_settings(MEDIA_ROOT=MEDIA_TMP)
+class PantallaCompletaTests(CompresionBase):
+
+    def test_editor_trae_pantalla_completa_zoom_y_contador(self):
+        rol = rol_con_permisos('Jefe de laboratorio', 'informes.aprobar', 'informes.ver')
+        user_jefe, jefe = crear_trabajador('jefe', rol, 'Carla Jefa')
+        ayer = date.today() - timedelta(days=1)
+        for d, t in ((self.mia, self.tecnico), (self.ajena, self.otro), (self.proctor, self.tecnico)):
+            ResultadoEnsayo.objects.create(
+                detalle=d, plantilla=ResultadoEnsayo.plantilla_para(d), fecha_ensayo=ayer, resumen='ok',
+                estado=ResultadoEnsayo.ESTADO_APROBADO, tecnico=t, terminado_en=timezone.now(),
+            )
+        self.client.force_login(user_jefe)
+        r = self.client.get(reverse('proyectos:editor_informe', args=[self.mia.solicitud.pk]))
+        for marca in ('data-pantalla', 'data-zoom', 'data-palabras', 'data-paginas', 'ed-cuerpo'):
+            self.assertContains(r, marca)
