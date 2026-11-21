@@ -47,7 +47,7 @@
     .ed-solo-completo { display: none !important; }
     .ed-completo .ed-solo-completo { display: flex !important; }
     .ed-completo .ed-solo-normal { display: none !important; }
-    .ed-completo { position: fixed; inset: 0; z-index: 200; max-width: none !important; margin: 0 !important; padding: 0 !important;
+    .ed-completo { position: fixed; inset: 0; z-index: 1000; max-width: none !important; margin: 0 !important; padding: 0 !important;
                    display: flex; flex-direction: column; background: #e8eaee; }
     .ed-completo > * { margin-top: 0 !important; }
     .ed-completo .v-volver { display: none; }
@@ -56,7 +56,7 @@
     .ed-completo > header h1 { font-size: 1rem; }
     .ed-completo > header p { font-size: .75rem; }
     .ed-completo > .v-aviso { margin: .5rem 1rem 0 !important; flex-shrink: 0; }
-    .ed-completo > [data-historial] { position: fixed; top: 3.6rem; right: 0; bottom: 2.6rem; width: min(24rem, 100vw); z-index: 210;
+    .ed-completo > [data-historial] { position: fixed; top: 3.6rem; right: 0; bottom: 2.6rem; width: min(24rem, 100vw); z-index: 1010;
                    overflow: auto; border-radius: 0; box-shadow: -12px 0 32px -16px rgba(15,23,42,.35); }
     .ed-completo > .ed-cuerpo { flex: 1; min-height: 0; display: flex; flex-direction: column; border: 0; border-radius: 0;
                    box-shadow: none; background: transparent; }
@@ -114,9 +114,9 @@
             <button type="button" class="v-btn v-btn--secundario v-btn--sm" data-abrir-historial aria-expanded="false" aria-controls="historial">
                 <i data-lucide="history"></i> <span class="ed-texto-boton">Historial</span>
             </button>
-            <button type="button" class="v-btn v-btn--secundario v-btn--sm" data-pantalla title="Pantalla completa (F11 del editor)">
+            <button type="button" class="v-btn v-btn--secundario v-btn--sm" data-pantalla title="Pantalla completa / cerrar (Esc)">
                 <span class="ed-solo-normal inline-flex items-center gap-1.5"><i data-lucide="maximize-2"></i> Pantalla completa</span>
-                <span class="ed-solo-completo items-center gap-1.5"><i data-lucide="minimize-2"></i> Salir</span>
+                <span class="ed-solo-completo items-center gap-1.5" aria-label="Cerrar pantalla completa"><i data-lucide="x"></i></span>
             </button>
         </div>
     </header>
