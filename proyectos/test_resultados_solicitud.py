@@ -243,3 +243,28 @@ class FlujoRealCompresionTests(CompresionBase):
         self.assertFalse(ResultadoEnsayo.objects.filter(detalle=self.mia).exists())
         # El técnico solo ve sus probetas.
         self.assertNotContains(r, f'data-fila-medidas="{self.ajena.pk}"')
+
+
+class PlazoEntregaTests(CompresionBase):
+    """Oferta FOR-001: probetas se entregan 24 h después del ensayo; sábado → lunes."""
+
+    def test_plazo_de_probetas(self):
+        from proyectos.plazos import estado_plazo, plazo_probeta
+        self.assertEqual(plazo_probeta(date(2026, 11, 19)), date(2026, 11, 20))  # jueves → viernes
+        self.assertEqual(plazo_probeta(date(2026, 11, 20)), date(2026, 11, 21))  # viernes → sábado
+        self.assertEqual(plazo_probeta(date(2026, 11, 21)), date(2026, 11, 23))  # sábado → lunes
+        self.assertIsNone(plazo_probeta(None))
+        self.assertEqual(estado_plazo(date(2026, 11, 20), hoy=date(2026, 11, 21)), 'vencido')
+        self.assertEqual(estado_plazo(date(2026, 11, 21), hoy=date(2026, 11, 21)), 'hoy')
+        self.assertIsNone(estado_plazo(date(2026, 11, 20), entregado=True, hoy=date(2026, 11, 21)))
+
+    def test_la_pantalla_muestra_el_plazo_y_los_datos_que_faltan(self):
+        SolicitudEnsayo.objects.filter(pk=self.mia.solicitud_id).update(estado='proceso')
+        ResultadoEnsayo.objects.create(detalle=self.mia, plantilla='compresion',
+                                       fecha_ensayo=date.today() - timedelta(days=3))
+        type(self.mia.muestra).objects.filter(pk=self.ajena.muestra_id).update(fc_diseno=None)
+        self.client.force_login(self.user_sup)
+        r = self.client.get(reverse('proyectos:resultados_solicitud', args=[self.mia.solicitud_id]))
+        self.assertContains(r, 'data-plazo="vencido"')
+        self.assertContains(r, 'data-faltan-datos-cliente')
+        self.assertContains(r, self.ajena.muestra.codigo_laboratorio)

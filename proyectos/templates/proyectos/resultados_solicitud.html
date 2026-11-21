@@ -35,6 +35,13 @@
             {% endfor %}
         {% endif %}
 
+        {% if faltan_datos_cliente and paso_actual <= 2 %}
+        <div class="v-aviso v-aviso--ambar" role="note" data-faltan-datos-cliente>
+            <i data-lucide="file-warning"></i>
+            <span>Faltan datos del cliente (orden FOR-004: f'c y fecha de moldeo) en {{ faltan_datos_cliente|join:", " }}. Sin ellos no se calcula la edad ni el % de f'c: pídelos al cliente o cópialos del formato al registrar.</span>
+        </div>
+        {% endif %}
+
         {% if paso_actual == 1 %}
         <section class="v-tarjeta p-4" data-paso-iniciar>
             <p class="font-bold text-slate-800">Primero inicia el ensayo</p>
@@ -64,6 +71,12 @@
                 {% elif emitido %}Informe {{ informe.codigo_informe }} emitido.
                 {% endif %}
             </p>
+            {% if estado_plazo %}
+            <p class="text-sm font-bold mt-2 {% if estado_plazo == 'vencido' %}text-red-700{% elif estado_plazo == 'hoy' %}text-amber-700{% else %}text-slate-700{% endif %}" data-plazo="{{ estado_plazo }}">
+                Entrega al cliente: {% if estado_plazo == 'hoy' %}hoy{% else %}hasta el {{ plazo|date:"l d/m/Y" }}{% endif %}{% if estado_plazo == 'vencido' %} (vencido){% endif %}
+                <span class="block text-xs font-normal text-slate-500">Probetas: 24 h después del ensayo; lo ensayado el sábado se entrega el lunes (oferta FOR-001).</span>
+            </p>
+            {% endif %}
             {% if paso_actual == 3 and puede_aprobar %}
             <a href="{% url 'proyectos:revision_compresion' solicitud.pk %}" class="v-btn v-btn--exito mt-3" data-ir-revision><i data-lucide="clipboard-check"></i> Revisar y aprobar resultados</a>
             {% elif paso_actual == 4 and puede_aprobar %}

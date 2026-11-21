@@ -114,6 +114,9 @@ display, 5 probeta rota (falla y 2 fotos); orden en `FotoEnsayo.ORDEN_TOMA`.
 masa, D y L de todas las probetas de corrido. Trazabilidad: toda corrección de
 un dato ya guardado (también datos del cliente y fotos reemplazadas) queda en
 `CambioResultado` (`proyectos/trazabilidad.py`) y se ve en la revisión.
+Plazo de entrega (oferta VCF-LAB-FOR-001, `proyectos/plazos.py`): probetas 24 h
+después del ensayo; sábado/domingo → lunes. Se ve en la pantalla de la
+solicitud y en la lista de revisión (vencido en rojo).
 
 **Informe tipo Word (fase 2).** Todo informe, también el de compresión, pasa por el
 editor: al aprobar los resultados se abre `/proyectos/resultados/informe/<id>/editor/`

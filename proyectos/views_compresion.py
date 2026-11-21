@@ -408,6 +408,13 @@ def resultados_solicitud(request, solicitud_id):
     if actual:
         actual['actual'] = True
 
+    from .plazos import estado_plazo, plazo_solicitud
+    plazo = plazo_solicitud(solicitud)
+    faltan_datos_cliente = [
+        d.muestra.codigo_laboratorio for d in propias
+        if d.plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION
+        and not (d.muestra.fc_diseno and d.muestra.fecha_fabricacion)
+    ]
     return render(request, 'proyectos/resultados_solicitud.html', {
         'solicitud': solicitud,
         'detalles': propias,
@@ -426,6 +433,9 @@ def resultados_solicitud(request, solicitud_id):
         'puede_iniciar': trabajador_tiene_permiso(request.user, 'ensayos.editar'),
         'sesiones': sesiones,
         'volver': volver,
+        'plazo': plazo,
+        'estado_plazo': estado_plazo(plazo, entregado=emitido),
+        'faltan_datos_cliente': faltan_datos_cliente,
         'hay_compresion_pendiente': any(
             d.plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION and not (d.ensayo and d.ensayo.terminado)
             for d in propias),
