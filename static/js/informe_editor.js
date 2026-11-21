@@ -170,7 +170,14 @@
     // El editor se abre a pantalla completa; «Salir» vuelve a la vista con el menú.
     const btnPantalla = raiz.querySelector('[data-pantalla]');
     const hoja = raiz.querySelector('[data-hoja]');
+    // Para tapar todo el sistema (menú, cabecera, botones flotantes) el editor
+    // se mueve al <body> mientras está a pantalla completa: así ningún
+    // contenedor del diseño limita el «position: fixed».
+    const marcador = document.createComment('editor-informe');
+    raiz.parentNode.insertBefore(marcador, raiz);
     function pantallaCompleta(activar) {
+        if (activar && raiz.parentNode !== document.body) document.body.appendChild(raiz);
+        if (!activar && marcador.parentNode) marcador.parentNode.insertBefore(raiz, marcador.nextSibling);
         raiz.classList.toggle('ed-completo', activar);
         document.documentElement.style.overflow = activar ? 'hidden' : '';
         if (!activar && document.fullscreenElement) document.exitFullscreen().catch(function () {});
@@ -184,6 +191,14 @@
         });
     }
     pantallaCompleta(true);
+    document.addEventListener('keydown', function (ev) {
+        // Esc cierra la pantalla completa (si no hay otra cosa abierta).
+        if (ev.key === 'Escape' && raiz.classList.contains('ed-completo') && !document.fullscreenElement) {
+            const historial = raiz.querySelector('[data-historial]');
+            if (historial && !historial.classList.contains('hidden')) { historial.classList.add('hidden'); return; }
+            pantallaCompleta(false);
+        }
+    });
 
     const selZoom = raiz.querySelector('[data-zoom]');
     function aplicarZoom(valor) {

@@ -127,7 +127,7 @@ def guardar_informe(request, solicitud_id):
     perfil = _perfil(request.user)
     with transaction.atomic():
         borrador = get_object_or_404(
-            BorradorInforme.objects.select_for_update().select_related('actualizado_por'),
+            BorradorInforme.objects.select_for_update(of=('self',)).select_related('actualizado_por'),
             solicitud_id=solicitud_id,
         )
         if borrador.emitido:
@@ -212,7 +212,7 @@ def emitir_informe(request, solicitud_id):
 
     with transaction.atomic():
         borrador = get_object_or_404(
-            BorradorInforme.objects.select_for_update().select_related('solicitud'), solicitud_id=solicitud_id,
+            BorradorInforme.objects.select_for_update(of=('self',)).select_related('solicitud'), solicitud_id=solicitud_id,
         )
         solicitud = borrador.solicitud
         if borrador.emitido:
