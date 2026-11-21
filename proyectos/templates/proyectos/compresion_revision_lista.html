@@ -1,0 +1,65 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+{% block title %}Revisión de resultados | VICAF LIMS{% endblock %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/ensayos.css' %}">{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-5 space-y-4">
+    <div class="flex items-center justify-between gap-3">
+        <div class="v-cabecera min-w-0">
+            <div class="v-cabecera__icono"><i data-lucide="clipboard-check"></i>
+            </div>
+            <div class="min-w-0">
+                <h1 class="text-lg font-bold text-slate-800 leading-tight">Revisión de resultados</h1>
+                <p class="text-xs text-slate-500">Revisa los ensayos terminados, devuélvelos o apruébalos para el informe.</p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl text-sm font-semibold" aria-label="Filtro">
+        <a href="?vista=por_revisar" class="text-center py-2 rounded-lg {% if vista == 'por_revisar' %}bg-white shadow text-slate-900{% else %}text-slate-500{% endif %}">Por revisar</a>
+        <a href="?vista=por_emitir" class="text-center py-2 rounded-lg {% if vista == 'por_emitir' %}bg-white shadow text-slate-900{% else %}text-slate-500{% endif %}">Por emitir</a>
+        <a href="?vista=todas" class="text-center py-2 rounded-lg {% if vista == 'todas' %}bg-white shadow text-slate-900{% else %}text-slate-500{% endif %}">Todas</a>
+    </nav>
+
+    {% if puede_exportar %}
+    <form method="get" action="{% url 'proyectos:excel_compresion' %}" class="v-tarjeta p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 items-end">
+        <label class="v-campo block"><span class="v-etiqueta">Ensayados desde</span>
+            <input type="date" name="desde" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"></label>
+        <label class="v-campo block"><span class="v-etiqueta">Hasta</span>
+            <input type="date" name="hasta" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"></label>
+        <button type="submit" class="col-span-2 v-btn v-btn--secundario">
+            <i data-lucide="sheet"></i> Exportar a Excel
+        </button>
+    </form>
+    {% endif %}
+
+    <ul class="space-y-3">
+        {% for s in solicitudes %}
+        <li>
+            <a href="{% if s.por_emitir %}{% url 'proyectos:editor_informe' s.pk %}{% else %}{% url 'proyectos:revision_compresion' s.pk %}{% endif %}" {% if s.por_emitir %}data-abrir-editor {% endif %}class="block v-tarjeta p-4 hover:border-blue-300 hover:shadow-md transition">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <p class="font-mono font-bold text-slate-900">{{ s.codigo_solicitud }}</p>
+                        <p class="text-xs text-slate-500">{{ s.terminadas }} de {{ s.total }} terminadas · {{ s.aprobadas }} aprobadas</p>
+                        {% if s.estado_plazo %}<p class="text-xs font-semibold {% if s.estado_plazo == 'vencido' %}text-red-700{% elif s.estado_plazo == 'hoy' %}text-amber-700{% else %}text-slate-600{% endif %}" data-plazo="{{ s.estado_plazo }}">Entregar al cliente {% if s.estado_plazo == 'hoy' %}hoy{% else %}hasta el {{ s.plazo|date:"D d/m" }}{% endif %}{% if s.estado_plazo == 'vencido' %} (vencido){% endif %}</p>{% endif %}
+                    </div>
+                    {% if s.emitido %}
+                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-green-100 text-green-700 flex-shrink-0">Emitido {{ s.informe.codigo_informe }}</span>
+                    {% elif s.por_emitir %}
+                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-blue-100 text-blue-700 flex-shrink-0">Informe por emitir</span>
+                    {% elif s.terminadas == s.total %}
+                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-violet-100 text-violet-700 flex-shrink-0">Lista para revisar</span>
+                    {% else %}
+                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-slate-100 text-slate-600 flex-shrink-0">En ensayo</span>
+                    {% endif %}
+                </div>
+            </a>
+        </li>
+        {% empty %}
+        <li class="text-center text-sm text-slate-500 bg-white border border-dashed border-slate-300 rounded-2xl p-8">{% if vista == 'por_emitir' %}No hay informes por emitir.{% else %}No hay solicitudes con resultados por revisar.{% endif %}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

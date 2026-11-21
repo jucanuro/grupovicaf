@@ -3,6 +3,7 @@ import uuid
 import qrcode
 from io import BytesIO
 from django.core.files import File
+from django.core.files.storage import FileSystemStorage
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils.timezone import now
@@ -157,7 +158,17 @@ class RecepcionMuestra(models.Model):
     fecha_ensayo_programado = models.DateField(null=True, blank=True)
     
     responsable_recepcion = models.ForeignKey(User, on_delete=models.PROTECT)
-    
+
+    # FOR-004 / informe: ubicación de la obra (PM-C03). Si está vacía, se usa
+    # la procedencia.
+    ubicacion_proyecto = models.CharField(
+        max_length=255, blank=True, default='', verbose_name="Ubicación del proyecto",
+    )
+
+    @property
+    def ubicacion_informe(self):
+        return self.ubicacion_proyecto or self.procedencia
+
 class MuestraDetalle(models.Model):
     recepcion = models.ForeignKey(RecepcionMuestra, related_name='muestras', on_delete=models.CASCADE)
     tipo_muestra = models.ForeignKey(TipoMuestra, on_delete=models.PROTECT)
@@ -168,6 +179,25 @@ class MuestraDetalle(models.Model):
     cantidad = models.IntegerField(default=1)
     unidad_medida = models.ForeignKey(UnidadMedida, on_delete=models.CASCADE, null=True, blank=True)
     observaciones = models.TextField(null=True, blank=True)
+
+    # Datos de la orden FOR-004 que da el cliente (HU-LIMS-11). Opcionales:
+    # las muestras de suelos no los usan.
+    codigo_cliente = models.CharField(max_length=100, blank=True, default='', verbose_name="ID del cliente")
+    elemento_estructural = models.CharField(max_length=150, blank=True, default='', verbose_name="Elemento estructural")
+    fc_diseno = models.DecimalField(
+        max_digits=7, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(0)], verbose_name="Resistencia de diseño f'c (kg/cm²)",
+    )
+    fecha_fabricacion = models.DateField(null=True, blank=True, verbose_name="Fecha de fabricación / extracción")
+    edad_ensayo_dias = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name="Edad de ensayo solicitada (días)")
+    material = models.CharField(max_length=60, blank=True, default='', verbose_name="Material")
+    tipo_probeta = models.CharField(max_length=60, blank=True, default='', verbose_name="Tipo de muestra (informe)")
+
+    @property
+    def fecha_ensayo_solicitada(self):
+        if self.fecha_fabricacion and self.edad_ensayo_dias is not None:
+            return self.fecha_fabricacion + datetime.timedelta(days=self.edad_ensayo_dias)
+        return None
 
     codigo_laboratorio = models.CharField(max_length=50, unique=True, blank=True)
 
@@ -257,6 +287,37 @@ class SolicitudEnsayo(models.Model):
 
     def __str__(self):
         return f"{self.codigo_solicitud} - {self.cotizacion.cliente.razon_social}"
+
+    def avance_resultados(self):
+        """(terminadas, total) de las líneas de la solicitud."""
+        estados = list(self.detalles.values_list('resultado__estado', flat=True))
+        terminadas = sum(1 for e in estados if e in ResultadoEnsayo.ESTADOS_CERRADOS)
+        return terminadas, len(estados)
+
+    def sincronizar_estado(self):
+        """El estado sale de los resultados: nadie finaliza sin todas las líneas terminadas.
+
+        - Todas terminadas → finalizado (con fecha real de entrega).
+        - Alguna con resultado (o una devuelta) → en proceso.
+        """
+        terminadas, total = self.avance_resultados()
+        if total and terminadas == total:
+            nuevo = 'finalizado'
+        elif self.detalles.filter(resultado__isnull=False).exists():
+            nuevo = 'proceso'
+        else:
+            return
+        cambios = {}
+        if self.estado != nuevo:
+            cambios['estado'] = nuevo
+        if nuevo == 'finalizado' and not self.fecha_entrega_real:
+            cambios['fecha_entrega_real'] = timezone.localdate()
+        if nuevo == 'proceso' and self.fecha_entrega_real:
+            cambios['fecha_entrega_real'] = None
+        if cambios:
+            SolicitudEnsayo.objects.filter(pk=self.pk).update(**cambios)
+            for campo, valor in cambios.items():
+                setattr(self, campo, valor)
 
 class DetalleSolicitudEnsayo(models.Model):
     """
@@ -399,6 +460,15 @@ class InformeFinal(models.Model):
     )
     descargas_count = models.PositiveIntegerField(default=0)
 
+    # Informe que arma el propio sistema (compresión, HU-LIMS-16). Vacío en
+    # los informes que se suben a mano como PDF.
+    PDF_GENERANDO = 'generando'
+    PDF_LISTO = 'listo'
+    PDF_ERROR = 'error'
+    ESTADOS_PDF = [(PDF_GENERANDO, 'Generando'), (PDF_LISTO, 'Listo'), (PDF_ERROR, 'Error al generar')]
+    pdf_estado = models.CharField(max_length=12, choices=ESTADOS_PDF, blank=True, default='')
+    pdf_error = models.CharField(max_length=255, blank=True, default='')
+
     class Meta:
         verbose_name = "Informe Final"
         verbose_name_plural = "Informes Finales"
@@ -456,3 +526,575 @@ class InformeFinal(models.Model):
         with open(self.archivo_pdf.path, "wb") as f:
             output.write(f)
         return True
+
+# ---------------------------------------------------------------------------
+# Ensayo de compresión de probetas (HU-LIMS-14): registro mínimo por probeta
+# y sus cinco fotos obligatorias. Las medidas y el informe llegan en otras HU.
+# ---------------------------------------------------------------------------
+
+def es_ensayo_compresion(norma, codigo_servicio=''):
+    """El ensayo es la compresión de probetas cilíndricas (ASTM C39 / EC001)."""
+    return 'C39' in (norma or '').upper() or (codigo_servicio or '').upper() == 'EC001'
+
+
+class AlmacenFotosEnsayo(FileSystemStorage):
+    """Carpeta privada de las fotos (fuera de MEDIA_ROOT: nginx no la sirve).
+
+    La ubicación se lee de ``settings.ENSAYOS_FOTOS_DIR`` en cada uso, no al
+    importar el modelo, para que ``override_settings`` funcione en los tests.
+    """
+
+    @property
+    def base_location(self):
+        return settings.ENSAYOS_FOTOS_DIR
+
+    @property
+    def location(self):
+        return os.path.abspath(self.base_location)
+
+
+def _almacen_fotos_ensayo():
+    return AlmacenFotosEnsayo()
+
+
+def ruta_foto_ensayo(instance, filename):
+    # Nombre aleatorio: ni el código de la muestra ni el del cliente en la ruta.
+    return f"compresion/{timezone.now():%Y/%m}/{uuid.uuid4().hex}.jpg"
+
+
+def ruta_hoja_ensayo(instance, filename):
+    extension = os.path.splitext(filename)[1].lower()[:6]
+    return f"hojas/{timezone.now():%Y/%m}/{uuid.uuid4().hex}{extension}"
+
+
+class Equipo(models.Model):
+    """Equipo del laboratorio que se declara en el informe (HU-LIMS-12)."""
+    TIPO_PRENSA = 'PRC'
+    TIPO_BALANZA = 'BAL'
+    TIPO_VERNIER = 'VER'
+    TIPO_TERMOHIGROMETRO = 'TMG'
+    TIPO_CUNA = 'CUÑ'
+    TIPO_ESCUADRA = 'ESC'
+    TIPO_ANILLOS = 'ARE'
+    TIPO_NEOPRENO = 'NEO'
+    TIPO_OTRO = 'OTR'
+    TIPOS = [
+        (TIPO_PRENSA, 'Prensa'),
+        (TIPO_BALANZA, 'Balanza'),
+        (TIPO_VERNIER, 'Vernier'),
+        (TIPO_TERMOHIGROMETRO, 'Termohigrómetro'),
+        (TIPO_CUNA, 'Cuña'),
+        (TIPO_ESCUADRA, 'Escuadra'),
+        (TIPO_ANILLOS, 'Anillos retenedores'),
+        (TIPO_NEOPRENO, 'Neoprenos'),
+        (TIPO_OTRO, 'Otro'),
+    ]
+
+    codigo = models.CharField(max_length=40, unique=True, verbose_name="Código interno")
+    nombre = models.CharField(max_length=120, verbose_name="Nombre")
+    tipo = models.CharField(max_length=3, choices=TIPOS, verbose_name="Tipo")
+    marca = models.CharField(max_length=80, blank=True, default='')
+    modelo = models.CharField(max_length=80, blank=True, default='')
+    serie = models.CharField(max_length=80, blank=True, default='', verbose_name="N.º de serie")
+    fecha_calibracion = models.DateField(null=True, blank=True, verbose_name="Fecha de calibración")
+    vence_calibracion = models.DateField(null=True, blank=True, verbose_name="Vencimiento de la calibración")
+    certificado = models.CharField(max_length=80, blank=True, default='', verbose_name="N.º de certificado")
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Equipo"
+        verbose_name_plural = "Equipos"
+        ordering = ['tipo', 'codigo']
+
+    def __str__(self):
+        return f"{self.codigo} · {self.nombre}"
+
+    def vencido(self, fecha=None):
+        """DP-LIMS-18 A: con la calibración vencida no se puede elegir."""
+        fecha = fecha or timezone.localdate()
+        return bool(self.vence_calibracion and self.vence_calibracion < fecha)
+
+    @classmethod
+    def disponibles(cls, tipo, fecha=None):
+        fecha = fecha or timezone.localdate()
+        return cls.objects.filter(tipo=tipo, activo=True).filter(
+            models.Q(vence_calibracion__isnull=True) | models.Q(vence_calibracion__gte=fecha)
+        )
+
+
+class SesionEnsayo(models.Model):
+    """Una tanda de ensayos del técnico: condiciones ambientales inicial y
+    final y los equipos usados, comunes a todas sus probetas (como en el
+    informe real, donde las 3 probetas comparten esos datos)."""
+    # Equipos del FOR-039, en el orden del informe.
+    EQUIPOS = [
+        ('prensa', Equipo.TIPO_PRENSA),
+        ('balanza', Equipo.TIPO_BALANZA),
+        ('vernier', Equipo.TIPO_VERNIER),
+        ('termohigrometro', Equipo.TIPO_TERMOHIGROMETRO),
+        ('cuna', Equipo.TIPO_CUNA),
+        ('escuadra', Equipo.TIPO_ESCUADRA),
+    ]
+    # Accesorios del formato de registro (anillos retenedores y neoprenos). Son
+    # opcionales en el modelo solo por las sesiones anteriores; el formulario
+    # los exige.
+    ACCESORIOS = [
+        ('anillos', Equipo.TIPO_ANILLOS),
+        ('neopreno', Equipo.TIPO_NEOPRENO),
+    ]
+    # Orden en que el formato de registro lista el equipamiento empleado.
+    ORDEN_EQUIPOS = ['prensa', 'vernier', 'balanza', 'termohigrometro', 'anillos', 'cuna', 'escuadra', 'neopreno']
+    # Comprobación funcional de equipos del formato de registro:
+    # (clave, equipo, pregunta, respuesta esperada).
+    COMPROBACION = [
+        ('prensa_fugas', 'Prensa', 'Se evidencia fugas de aceite en la máquina.', False),
+        ('prensa_papel', 'Prensa', 'El rollo de papel térmico tiene suficiente papel para impresión de carga máxima.', True),
+        ('prensa_tornillo', 'Prensa', 'El tornillo sin fin gira libremente.', True),
+        ('prensa_indicadores', 'Prensa', 'Los indicadores y botones de control son legibles y están en buen estado.', True),
+        ('vernier_tornillo', 'Vernier', 'El tornillo de fijación se encuentra adecuadamente ajustado.', True),
+        ('vernier_escalas', 'Vernier', 'Las escalas graduadas son legibles.', True),
+        ('anillos_superficie', 'Anillos retenedores', 'Se evidencia una superficie libre de defectos, grietas o irregularidades.', True),
+        ('neoprenos_superficie', 'Neoprenos', 'Se evidencia una superficie libre de defectos, grietas o irregularidades.', True),
+    ]
+
+    tecnico = models.ForeignKey(TrabajadorProfile, on_delete=models.PROTECT, related_name='sesiones_ensayo')
+    fecha = models.DateField(default=timezone.localdate)
+    temperatura_inicial = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Temperatura inicial (°C)")
+    humedad_inicial = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Humedad relativa inicial (%)")
+    temperatura_final = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Temperatura final (°C)")
+    humedad_final = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Humedad relativa final (%)")
+    prensa = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+')
+    balanza = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+')
+    vernier = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+')
+    termohigrometro = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+')
+    cuna = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+')
+    escuadra = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+')
+    anillos = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+', null=True, blank=True)
+    neopreno = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='+', null=True, blank=True)
+    neopreno_usos = models.CharField(max_length=20, blank=True, default='', verbose_name="N.º de usos de neoprenos")
+    comprobacion = models.JSONField(default=dict, blank=True, verbose_name="Comprobación funcional de equipos")
+    # Quien la abrió en el sistema cuando no es el técnico (pasa a limpio el formato en papel).
+    registrada_por = models.ForeignKey(
+        TrabajadorProfile, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name="Registrada por",
+    )
+    abierta_en = models.DateTimeField(auto_now_add=True)
+    cerrada_en = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Sesión de ensayo"
+        verbose_name_plural = "Sesiones de ensayo"
+        ordering = ['-abierta_en']
+
+    def __str__(self):
+        return f"Sesión {self.fecha:%d/%m/%Y} · {self.tecnico}"
+
+    @property
+    def abierta(self):
+        return self.cerrada_en is None
+
+    def equipos_usados(self):
+        """[(etiqueta, código)] en el orden del formato; omite lo que la sesión no tiene."""
+        etiquetas = dict(Equipo.TIPOS)
+        tipos = dict(self.EQUIPOS + self.ACCESORIOS)
+        filas = []
+        for campo in self.ORDEN_EQUIPOS:
+            equipo = getattr(self, campo)
+            if equipo is None:
+                continue
+            codigo = equipo.codigo
+            if campo == 'neopreno' and self.neopreno_usos:
+                codigo += f" (usos: {self.neopreno_usos})"
+            filas.append((etiquetas[tipos[campo]], codigo))
+        return filas
+
+    def comprobacion_items(self):
+        """Respuestas de la comprobación funcional; vacía en sesiones anteriores."""
+        if not self.comprobacion:
+            return []
+        filas = []
+        for clave, equipo, pregunta, esperado in self.COMPROBACION:
+            respuesta = self.comprobacion.get(clave)
+            filas.append({
+                'equipo': equipo, 'pregunta': pregunta, 'respuesta': respuesta,
+                'conforme': respuesta is not None and respuesta == esperado,
+            })
+        return filas
+
+    @classmethod
+    def abierta_de(cls, perfil):
+        if perfil is None:
+            return None
+        return cls.objects.filter(tecnico=perfil, cerrada_en__isnull=True).first()
+
+
+class ResultadoEnsayo(models.Model):
+    """Resultado de una línea de la solicitud (muestra × ensayo).
+
+    La plantilla dice qué se registra: «compresion» (ASTM C39, medidas,
+    cálculo y 5 fotos) o «general» (resumen, hoja de cálculo y 2 fotos) para
+    los ensayos que aún no tienen formato propio.
+    """
+    PLANTILLA_COMPRESION = 'compresion'
+    PLANTILLA_GENERAL = 'general'
+    PLANTILLAS = [
+        (PLANTILLA_COMPRESION, 'Compresión de probetas (ASTM C39)'),
+        (PLANTILLA_GENERAL, 'General'),
+    ]
+    ESTADO_BORRADOR = 'borrador'
+    ESTADO_TERMINADO = 'terminado'
+    ESTADO_APROBADO = 'aprobado'
+    ESTADOS = [
+        (ESTADO_BORRADOR, 'En registro'),
+        (ESTADO_TERMINADO, 'Terminado'),
+        (ESTADO_APROBADO, 'Aprobado'),
+    ]
+    # Terminado o aprobado: el técnico ya no puede modificarlo.
+    ESTADOS_CERRADOS = (ESTADO_TERMINADO, ESTADO_APROBADO)
+
+    detalle = models.OneToOneField(
+        DetalleSolicitudEnsayo,
+        on_delete=models.CASCADE,
+        related_name='resultado',
+        verbose_name="Ensayo de la solicitud",
+    )
+    plantilla = models.CharField(max_length=20, choices=PLANTILLAS, default=PLANTILLA_GENERAL)
+    estado = models.CharField(max_length=20, choices=ESTADOS, default=ESTADO_BORRADOR)
+    resumen = models.TextField(blank=True, default='', verbose_name="Resumen de resultados")
+    hoja_calculo = models.FileField(
+        storage=_almacen_fotos_ensayo, upload_to=ruta_hoja_ensayo, blank=True,
+        verbose_name="Hoja de cálculo",
+    )
+    fecha_ensayo = models.DateField(null=True, blank=True, verbose_name="Fecha de ensayo")
+    observaciones = models.TextField(blank=True, default='', verbose_name="Observaciones")
+    tecnico = models.ForeignKey(
+        TrabajadorProfile,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='resultados_ejecutados',
+        verbose_name="Ejecutado por",
+    )
+    # Quien lo pasó al sistema cuando no es el técnico que ejecutó (formato en papel).
+    registrado_por = models.ForeignKey(
+        TrabajadorProfile, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name="Registrado por",
+    )
+    sesion = models.ForeignKey(
+        SesionEnsayo, on_delete=models.PROTECT, null=True, blank=True,
+        related_name='ensayos', verbose_name="Sesión de ensayo",
+    )
+
+    # Datos medidos (HU-LIMS-13). mm, g y kN como en el FOR-039.
+    masa_g = models.DecimalField(max_digits=8, decimal_places=1, null=True, blank=True, verbose_name="Masa (g)")
+    d1 = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name="D1 (mm)")
+    d2 = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name="D2 (mm)")
+    l1 = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name="L1 (mm)")
+    l2 = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name="L2 (mm)")
+    l3 = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name="L3 (mm)")
+    carga_kn = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, verbose_name="Carga máxima (kN)")
+    tipo_fractura = models.PositiveSmallIntegerField(
+        null=True, blank=True, choices=[(n, f'Tipo {n}') for n in range(1, 7)], verbose_name="Tipo de fractura",
+    )
+    defectos = models.CharField(max_length=255, blank=True, default='', verbose_name="Defectos del espécimen")
+    # Formato de registro: tipos de defecto (a-e), verificaciones y evidencia.
+    tipos_defecto = models.CharField(max_length=20, blank=True, default='', verbose_name="Tipos de defecto")
+    verif_perpendicularidad = models.BooleanField(null=True, blank=True, verbose_name="Perpendicularidad (≤ 0,5°)")
+    verif_planitud = models.BooleanField(null=True, blank=True, verbose_name="Planitud (≤ 0,05 mm)")
+    video_grabado = models.BooleanField(default=False, verbose_name="Se grabó video del ensayo")
+
+    # Resultados calculados (proyectos.calculos_compresion), guardados al terminar.
+    edad_dias = models.PositiveSmallIntegerField(null=True, blank=True)
+    diametro_prom = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    longitud_prom = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    area = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    relacion_ld = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    factor = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True)
+    resistencia_mpa = models.DecimalField(max_digits=7, decimal_places=1, null=True, blank=True)
+    resistencia_kgcm2 = models.DecimalField(max_digits=8, decimal_places=1, null=True, blank=True)
+    porcentaje = models.PositiveIntegerField(null=True, blank=True)
+    densidad = models.PositiveIntegerField(null=True, blank=True)
+
+    terminado_en = models.DateTimeField(null=True, blank=True)
+
+    # Revisión del supervisor (HU-LIMS-15).
+    observacion_revision = models.TextField(blank=True, default='', verbose_name="Observación del revisor")
+    aprobado_por = models.ForeignKey(
+        TrabajadorProfile, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='resultados_aprobados',
+    )
+    aprobado_en = models.DateTimeField(null=True, blank=True)
+
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    CAMPOS_MEDIDOS = ['masa_g', 'd1', 'd2', 'l1', 'l2', 'l3', 'carga_kn']
+    DEFECTO_OTROS = 'e'
+    TIPOS_DEFECTO = [
+        ('a', 'Espécimen mal moldeado'),
+        ('b', 'Espécimen quiñado'),
+        ('c', 'Dimensiones atípicas'),
+        ('d', 'Caras irregulares'),
+        (DEFECTO_OTROS, 'Otros'),
+    ]
+
+    class Meta:
+        verbose_name = "Resultado de ensayo"
+        verbose_name_plural = "Resultados de ensayo"
+
+    def __str__(self):
+        return f"Resultado {self.detalle.muestra.codigo_laboratorio}"
+
+    @classmethod
+    def plantilla_para(cls, detalle):
+        servicio = getattr(detalle.servicio_cotizado, 'servicio', None)
+        codigo = getattr(servicio, 'codigo_facturacion', '') or ''
+        return cls.PLANTILLA_COMPRESION if es_ensayo_compresion(detalle.norma, codigo) else cls.PLANTILLA_GENERAL
+
+    @property
+    def es_compresion(self):
+        return self.plantilla == self.PLANTILLA_COMPRESION
+
+    @property
+    def tipos_foto(self):
+        return FotoEnsayo.tipos_de(self.plantilla)
+
+    @property
+    def terminado(self):
+        return self.estado in self.ESTADOS_CERRADOS
+
+    @property
+    def aprobado(self):
+        return self.estado == self.ESTADO_APROBADO
+
+    @property
+    def lista_defectos(self):
+        return [c for c in self.tipos_defecto.split(',') if c in dict(self.TIPOS_DEFECTO)]
+
+    @property
+    def defectos_texto(self):
+        """«Ninguno», los tipos marcados o, en registros anteriores, el texto libre."""
+        etiquetas = dict(self.TIPOS_DEFECTO)
+        partes = []
+        for c in self.lista_defectos:
+            if c == self.DEFECTO_OTROS:
+                partes.append(f"{etiquetas[c]}: {self.defectos}" if self.defectos else etiquetas[c])
+            else:
+                partes.append(f"({c}) {etiquetas[c]}")
+        if not partes and self.defectos:
+            partes.append(self.defectos)
+        return "; ".join(partes) or "Ninguno"
+
+    @property
+    def verificacion_diametro(self):
+        """(diferencia %, cumple) entre D1 y D2, o None si faltan."""
+        from .calculos_compresion import verificar_diametro
+        return verificar_diametro(self.d1, self.d2)
+
+    def calcular(self):
+        """Resultado de los cálculos con las medidas actuales (o DatosInsuficientes)."""
+        from .calculos_compresion import calcular
+        muestra = self.detalle.muestra
+        return calcular(
+            self.d1, self.d2, self.l1, self.l2, self.l3, self.carga_kn,
+            masa_g=self.masa_g, fc_kgcm2=muestra.fc_diseno,
+        )
+
+    def guardar_resultados(self):
+        r = self.calcular()
+        muestra = self.detalle.muestra
+        self.edad_dias = (
+            (self.fecha_ensayo - muestra.fecha_fabricacion).days
+            if self.fecha_ensayo and muestra.fecha_fabricacion else None
+        )
+        self.diametro_prom = r.diametro_prom
+        self.longitud_prom = r.longitud_prom
+        self.area = r.area
+        self.relacion_ld = r.relacion_ld
+        self.factor = r.factor
+        self.resistencia_mpa = r.resistencia_mpa
+        self.resistencia_kgcm2 = r.resistencia_kgcm2
+        self.porcentaje = int(r.porcentaje) if r.porcentaje is not None else None
+        self.densidad = int(r.densidad) if r.densidad is not None else None
+
+    def tipos_faltantes(self):
+        """Códigos de los tipos de foto que aún no se cargaron, en orden."""
+        cargados = set(self.fotos.values_list('tipo', flat=True))
+        return [codigo for codigo, _ in self.tipos_foto if codigo not in cargados]
+
+    def faltantes_para_terminar(self):
+        """Lista legible de lo que falta para poder terminar (vacía = listo)."""
+        faltan = []
+        etiquetas = dict(FotoEnsayo.TIPOS)
+        if not self.es_compresion:
+            if not self.fecha_ensayo:
+                faltan.append("la fecha de ensayo")
+            if not self.resumen.strip():
+                faltan.append("el resumen de resultados")
+            if not self.hoja_calculo:
+                faltan.append("la hoja de cálculo")
+            return faltan + [f"la foto «{etiquetas[t]}»" for t in self.tipos_faltantes()]
+        muestra = self.detalle.muestra
+        if not muestra.fecha_fabricacion or not muestra.fc_diseno:
+            faltan.append("la fecha de fabricación y el f'c de la probeta (datos FOR-004 de la recepción)")
+        if not self.fecha_ensayo:
+            faltan.append("la fecha de ensayo")
+        etiquetas_campos = {f.name: f.verbose_name for f in self._meta.fields}
+        for campo in self.CAMPOS_MEDIDOS:
+            if getattr(self, campo) in (None, ''):
+                faltan.append(str(etiquetas_campos[campo]))
+        if not self.tipo_fractura:
+            faltan.append("el tipo de fractura")
+        if self.verif_perpendicularidad is None:
+            faltan.append("la verificación de perpendicularidad")
+        if self.verif_planitud is None:
+            faltan.append("la verificación de planitud")
+        if self.DEFECTO_OTROS in self.lista_defectos and not self.defectos.strip():
+            faltan.append("el detalle del defecto «Otros»")
+        faltan += [f"la foto «{etiquetas[t]}»" for t in self.tipos_faltantes()]
+        return faltan
+
+
+class CambioResultado(models.Model):
+    """Trazabilidad: cada corrección de un dato ya guardado (valor anterior → nuevo).
+
+    Solo se anota cuando un dato que ya tenía valor cambia, para que el revisor
+    vea qué se digitó mal y qué quedó al final. El primer valor no es una
+    corrección: es el ``anterior`` del primer cambio o el valor actual.
+    """
+    resultado = models.ForeignKey(
+        'ResultadoEnsayo', on_delete=models.CASCADE, related_name='cambios',
+    )
+    campo = models.CharField(max_length=40)
+    etiqueta = models.CharField(max_length=80)
+    anterior = models.CharField(max_length=255, blank=True, default='')
+    nuevo = models.CharField(max_length=255, blank=True, default='')
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    registrado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Corrección de resultado"
+        verbose_name_plural = "Correcciones de resultados"
+        ordering = ['registrado_en', 'pk']
+
+    def __str__(self):
+        return f"{self.etiqueta}: {self.anterior} → {self.nuevo}"
+
+
+class FotoEnsayo(models.Model):
+    TIPO_CARGA = 'carga'
+    TIPO_ANTES = 'antes'
+    TIPO_ANTES_PIZARRA = 'antes_pizarra'
+    TIPO_DESPUES = 'despues'
+    TIPO_DESPUES_PIZARRA = 'despues_pizarra'
+    TIPOS = [
+        (TIPO_CARGA, 'Lectura de carga máxima'),
+        (TIPO_ANTES, 'Probeta antes del ensayo'),
+        (TIPO_ANTES_PIZARRA, 'Probeta antes del ensayo, con pizarra'),
+        (TIPO_DESPUES, 'Probeta fallada'),
+        (TIPO_DESPUES_PIZARRA, 'Probeta fallada, con pizarra'),
+        ('general_muestra', 'Muestra o montaje del ensayo'),
+        ('general_resultado', 'Resultado o lectura del equipo'),
+    ]
+    TIPOS_COMPRESION = [TIPO_CARGA, TIPO_ANTES, TIPO_ANTES_PIZARRA, TIPO_DESPUES, TIPO_DESPUES_PIZARRA]
+    # Orden en que se toman en el laboratorio: en la prensa antes de ensayar,
+    # el display con la carga de rotura y recién entonces la probeta rota.
+    ORDEN_TOMA = [TIPO_ANTES, TIPO_ANTES_PIZARRA, TIPO_CARGA, TIPO_DESPUES, TIPO_DESPUES_PIZARRA]
+    TIPOS_GENERAL = ['general_muestra', 'general_resultado']
+    # Proporción ancho:alto de cada recuadro, medida en el informe real
+    # VCF-INF-2026-4582 (FOR-039 v17): carga 111,5 x 43,3 pt; probeta 55,6 x 97,6 pt.
+    PROPORCIONES = {
+        TIPO_CARGA: (18, 7),
+        TIPO_ANTES: (4, 7),
+        TIPO_ANTES_PIZARRA: (4, 7),
+        TIPO_DESPUES: (4, 7),
+        TIPO_DESPUES_PIZARRA: (4, 7),
+        'general_muestra': (4, 3),
+        'general_resultado': (4, 3),
+    }
+    # Lado mayor de la foto guardada, en px.
+    LADO_MAXIMO = 1600
+
+    ensayo = models.ForeignKey(ResultadoEnsayo, on_delete=models.CASCADE, related_name='fotos')
+    tipo = models.CharField(max_length=20, choices=TIPOS)
+    imagen = models.ImageField(
+        storage=_almacen_fotos_ensayo,
+        upload_to=ruta_foto_ensayo,
+        width_field='ancho',
+        height_field='alto',
+    )
+    ancho = models.PositiveIntegerField(default=0)
+    alto = models.PositiveIntegerField(default=0)
+    subido_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    subido_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Foto de ensayo"
+        verbose_name_plural = "Fotos de ensayo"
+        constraints = [
+            models.UniqueConstraint(fields=['ensayo', 'tipo'], name='foto_ensayo_unica_por_tipo'),
+        ]
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} · {self.ensayo}"
+
+    @classmethod
+    def tipos_de(cls, plantilla):
+        """(código, etiqueta) de las fotos que pide la plantilla, en orden."""
+        codigos = cls.TIPOS_COMPRESION if plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION else cls.TIPOS_GENERAL
+        etiquetas = dict(cls.TIPOS)
+        return [(c, etiquetas[c]) for c in codigos]
+
+    @classmethod
+    def proporcion(cls, tipo):
+        ancho, alto = cls.PROPORCIONES[tipo]
+        return ancho / alto
+
+
+class BorradorInforme(models.Model):
+    """Informe de la solicitud que se redacta en el editor tipo Word (fase 2).
+
+    ``contenido`` es el documento del editor (JSON de TipTap/ProseMirror). Los
+    bloques de datos (carátula, resultados, fotos, equipos, firmas) solo guardan
+    su tipo y referencia: se dibujan siempre desde lo registrado, así el informe
+    no puede contradecir los resultados. Al emitir se congela ``html_emitido``.
+    """
+    ESTADO_BORRADOR = 'borrador'
+    ESTADO_EMITIDO = 'emitido'
+    ESTADOS = [(ESTADO_BORRADOR, 'Borrador'), (ESTADO_EMITIDO, 'Emitido')]
+
+    solicitud = models.OneToOneField(SolicitudEnsayo, on_delete=models.CASCADE, related_name='borrador_informe')
+    contenido = models.JSONField(default=dict)
+    version = models.PositiveIntegerField(default=1)
+    estado = models.CharField(max_length=12, choices=ESTADOS, default=ESTADO_BORRADOR)
+    html_emitido = models.TextField(blank=True, default='')
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+    actualizado_por = models.ForeignKey(
+        TrabajadorProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+    )
+
+    class Meta:
+        verbose_name = "Borrador de informe"
+        verbose_name_plural = "Borradores de informe"
+
+    def __str__(self):
+        return f"Informe de {self.solicitud.codigo_solicitud}"
+
+    @property
+    def emitido(self):
+        return self.estado == self.ESTADO_EMITIDO
+
+
+class VersionInforme(models.Model):
+    """Copia del borrador para el historial: quién cambió y cuándo."""
+    borrador = models.ForeignKey(BorradorInforme, on_delete=models.CASCADE, related_name='versiones')
+    numero = models.PositiveIntegerField()
+    contenido = models.JSONField()
+    autor = models.ForeignKey(TrabajadorProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    nota = models.CharField(max_length=120, blank=True, default='')
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Versión de informe"
+        verbose_name_plural = "Versiones de informe"
+        ordering = ['-numero']

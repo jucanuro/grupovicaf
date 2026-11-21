@@ -33,6 +33,7 @@ services:
       - static_volume:/app/staticfiles
       - media_volume:/app/mediafiles
       - correo_privado:/app/correo_privado
+      - ensayos_privado:/app/ensayos_privado
     ports:
       - "8000:8000"
     depends_on:
@@ -77,6 +78,7 @@ services:
     volumes:
       - media_volume:/app/mediafiles
       - correo_privado:/app/correo_privado
+      - ensayos_privado:/app/ensayos_privado
     depends_on:
       db:
         condition: service_healthy
@@ -110,3 +112,5 @@ volumes:
   media_volume:
   # .eml y adjuntos del correo hasta el Paso 3 (R2). Privado: nginx no lo sirve.
   correo_privado:
+  # Fotos de los ensayos (HU-LIMS-14). Privado: nginx no lo sirve.
+  ensayos_privado:

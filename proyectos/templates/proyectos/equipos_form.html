@@ -1,0 +1,35 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+{% block title %}{% if equipo %}{{ equipo.codigo }}{% else %}Nuevo equipo{% endif %} | VICAF LIMS{% endblock %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/ensayos.css' %}">{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-5 space-y-4">
+    <a href="{% url 'proyectos:lista_equipos' %}" class="v-volver">
+        <i data-lucide="arrow-left"></i> Equipos
+    </a>
+    <div class="v-cabecera"><div class="v-cabecera__icono"><i data-lucide="gauge"></i></div><div><h1>{% if equipo %}Editar {{ equipo.codigo }}{% else %}Nuevo equipo{% endif %}</h1><p>Código, calibración y certificado del equipo.</p></div></div>
+
+    <form method="post" class="v-tarjeta p-4 space-y-3">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {% for campo in form %}
+            {% if campo.name == 'activo' %}
+            <label class="flex items-center gap-2 sm:col-span-2 pt-1">
+                {{ campo }} <span class="text-sm font-semibold text-slate-700">Activo (se puede elegir en las sesiones)</span>
+            </label>
+            {% else %}
+            <label class="v-campo block">
+                <span class="v-etiqueta">{{ campo.label }}</span>
+                {{ campo }}
+                {% for e in campo.errors %}<span class="block text-xs text-red-600">{{ e }}</span>{% endfor %}
+            </label>
+            {% endif %}
+            {% endfor %}
+        </div>
+        <div class="flex justify-end pt-1"><button type="submit" class="v-btn v-btn--primario w-full sm:w-auto"><i data-lucide="save"></i> Guardar</button></div>
+    </form>
+</div>
+{% endblock %}

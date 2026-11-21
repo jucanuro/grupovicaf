@@ -1,0 +1,208 @@
+/* Estilo común de las pantallas de ensayos (registro, sesión, revisión, equipos).
+ * CSS propio, sin depender del JIT de Tailwind, para que botones y barras se
+ * vean igual en todas las pantallas y en el celular del técnico. */
+:root {
+    --v-azul: #2563eb;
+    --v-azul-osc: #1d4ed8;
+    --v-verde: #059669;
+    --v-verde-osc: #047857;
+    --v-ambar: #d97706;
+    --v-rojo: #dc2626;
+    --v-tinta: #0f172a;
+    --v-texto: #334155;
+    --v-suave: #64748b;
+    --v-borde: #e2e8f0;
+    --v-fondo-campo: #f8fafc;
+}
+
+/* ---------- Botones ---------- */
+.v-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    min-height: 2.875rem; padding: 0 1.25rem; border-radius: .875rem;
+    font-size: .9rem; font-weight: 700; letter-spacing: .005em; line-height: 1;
+    border: 1px solid transparent; cursor: pointer; white-space: nowrap;
+    transition: background-color .15s ease, box-shadow .15s ease, transform .08s ease, border-color .15s ease, color .15s ease;
+    -webkit-tap-highlight-color: transparent; text-decoration: none;
+}
+.v-btn svg { width: 1.1rem; height: 1.1rem; flex-shrink: 0; }
+.v-btn:active:not(:disabled) { transform: scale(.98); }
+.v-btn:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(37, 99, 235, .25); }
+.v-btn--sm { min-height: 2.25rem; padding: 0 .875rem; font-size: .8rem; border-radius: .7rem; }
+.v-btn--block { width: 100%; }
+
+.v-btn--primario {
+    color: #fff; background: linear-gradient(180deg, #3b82f6 0%, var(--v-azul) 55%, var(--v-azul-osc) 100%);
+    box-shadow: 0 1px 0 rgba(255,255,255,.25) inset, 0 8px 18px -8px rgba(37, 99, 235, .7);
+}
+.v-btn--primario:hover:not(:disabled) { background: linear-gradient(180deg, #4f8ff7 0%, #2f6df0 55%, var(--v-azul) 100%); }
+
+.v-btn--exito {
+    color: #fff; background: linear-gradient(180deg, #10b981 0%, var(--v-verde) 55%, var(--v-verde-osc) 100%);
+    box-shadow: 0 1px 0 rgba(255,255,255,.25) inset, 0 8px 18px -8px rgba(5, 150, 105, .7);
+}
+.v-btn--exito:hover:not(:disabled) { background: linear-gradient(180deg, #34d399 0%, #10b981 55%, var(--v-verde) 100%); }
+
+.v-btn--aviso { color: #fff; background: var(--v-ambar); box-shadow: 0 8px 18px -10px rgba(217, 119, 6, .8); }
+.v-btn--aviso:hover:not(:disabled) { background: #b45309; }
+.v-btn--peligro { color: #fff; background: var(--v-rojo); box-shadow: 0 8px 18px -10px rgba(220, 38, 38, .8); }
+.v-btn--peligro:hover:not(:disabled) { background: #b91c1c; }
+
+.v-btn--secundario { color: var(--v-texto); background: #fff; border-color: #cbd5e1; box-shadow: 0 1px 2px rgba(15, 23, 42, .05); }
+.v-btn--secundario:hover:not(:disabled) { background: #f8fafc; border-color: #94a3b8; color: var(--v-tinta); }
+
+.v-btn--oscuro { color: #fff; background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.18); }
+.v-btn--oscuro:hover:not(:disabled) { background: rgba(255,255,255,.2); }
+
+.v-btn:disabled, .v-btn[aria-disabled="true"] {
+    cursor: not-allowed; color: #94a3b8; background: #f1f5f9; border-color: var(--v-borde); box-shadow: none;
+}
+
+/* ---------- Barra de acciones ----------
+ * Pegada al pie del área de contenido (no de la ventana), así queda alineada
+ * con las tarjetas aunque el menú lateral esté abierto. */
+.v-barra {
+    /* El área que hace scroll (main) tiene padding inferior: el desfase
+     * negativo pega la barra al borde real (1rem en celular, 1.5rem en pc). */
+    position: sticky; bottom: -1rem; z-index: 30;
+    /* En el celular ocupa todo el ancho: compensa el padding del contenido y del main. */
+    margin: 1.25rem -2rem 0; padding: .75rem 2rem calc(.75rem + env(safe-area-inset-bottom));
+    background: rgba(255,255,255,.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid var(--v-borde);
+}
+.v-barra__fila { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.v-barra__fila > .v-btn, .v-barra__fila > form { flex: 1 1 0; }
+.v-barra__fila > form > .v-btn { width: 100%; }
+.v-barra__nota { font-size: .72rem; color: var(--v-suave); text-align: center; margin-bottom: .5rem; line-height: 1.35; }
+@media (min-width: 768px) {
+    .v-barra {
+        /* En pc es un "dock" pegado al borde inferior, del ancho de las tarjetas. */
+        bottom: -1.5rem; margin: 1.5rem 0 0; padding: .875rem .875rem .875rem 1.25rem;
+        border: 1px solid var(--v-borde); border-bottom: 0; border-radius: 1.125rem 1.125rem 0 0;
+        box-shadow: 0 -12px 32px -20px rgba(15, 23, 42, .35);
+        display: flex; align-items: center; gap: 1rem;
+    }
+    .v-barra__nota { flex: 1; text-align: left; margin: 0; font-size: .78rem; }
+    .v-barra__fila { margin-left: auto; flex-wrap: nowrap; }
+    .v-barra__fila > .v-btn, .v-barra__fila > form { flex: 0 0 auto; }
+    .v-barra__fila .v-btn { min-width: 9.5rem; }
+}
+
+/* ---------- Encabezado y tarjetas ---------- */
+.v-volver { display: inline-flex; align-items: center; gap: .35rem; font-size: .85rem; font-weight: 600; color: var(--v-suave); }
+.v-volver:hover { color: var(--v-tinta); }
+.v-volver svg { width: 1rem; height: 1rem; }
+
+.v-cabecera { display: flex; align-items: center; gap: .875rem; }
+.v-cabecera__icono {
+    width: 2.75rem; height: 2.75rem; border-radius: .9rem; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; color: #fff;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8); box-shadow: 0 10px 20px -10px rgba(37, 99, 235, .8);
+}
+.v-cabecera__icono svg { width: 1.35rem; height: 1.35rem; }
+.v-cabecera h1 { font-size: 1.2rem; font-weight: 800; color: var(--v-tinta); line-height: 1.2; }
+.v-cabecera p { font-size: .8rem; color: var(--v-suave); margin-top: .15rem; }
+
+.v-tarjeta { background: #fff; border: 1px solid var(--v-borde); border-radius: 1.125rem; box-shadow: 0 1px 3px rgba(15, 23, 42, .04); }
+.v-tarjeta__cab { display: flex; align-items: center; gap: .75rem; padding: 1rem 1.125rem .25rem; }
+.v-tarjeta__cuerpo { padding: .75rem 1.125rem 1.125rem; }
+.v-paso {
+    width: 1.75rem; height: 1.75rem; border-radius: 999px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .8rem; font-weight: 800; color: var(--v-azul); background: #eff6ff; border: 1px solid #bfdbfe;
+}
+.v-tarjeta__cab h2 { font-size: .98rem; font-weight: 800; color: var(--v-tinta); line-height: 1.2; }
+.v-tarjeta__cab p { font-size: .75rem; color: var(--v-suave); margin-top: .1rem; }
+
+/* ---------- Campos ---------- */
+/* Casillas y opciones (verificaciones, defectos, comprobación de equipos). */
+.v-campo input[type=radio], .v-campo input[type=checkbox], .v-opcion input {
+    width: 1.15rem; height: 1.15rem; min-height: 0; padding: 0; border-radius: 0; flex-shrink: 0;
+    accent-color: #2563eb; margin: 0;
+}
+.v-opcion { display: inline-flex; align-items: center; gap: .4rem; white-space: nowrap; }
+.v-etiqueta { display: block; font-size: .8rem; font-weight: 700; color: var(--v-texto); margin-bottom: .35rem; }
+.v-campo input, .v-campo select, .v-campo textarea {
+    width: 100%; min-height: 2.875rem; border-radius: .8rem; border: 1px solid #d5dde8;
+    background: var(--v-fondo-campo); padding: .6rem .875rem; font-size: 1rem; color: var(--v-tinta);
+    transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease; margin-top: 0;
+}
+.v-campo input:focus, .v-campo select:focus, .v-campo textarea:focus {
+    outline: none; background: #fff; border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59, 130, 246, .15);
+}
+.v-campo { position: relative; }
+.v-campo[data-unidad] input { padding-right: 3rem; }
+.v-campo[data-unidad]::after {
+    content: attr(data-unidad); position: absolute; right: .875rem; top: 50%; transform: translateY(-50%);
+    font-size: .85rem; font-weight: 700; color: #94a3b8; pointer-events: none;
+}
+.v-campo input[type=number]::-webkit-outer-spin-button,
+.v-campo input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.v-campo input[type=number] { -moz-appearance: textfield; }
+.v-error { display: block; font-size: .75rem; font-weight: 600; color: var(--v-rojo); margin-top: .3rem; }
+
+.v-aviso { display: flex; gap: .625rem; align-items: flex-start; border-radius: .9rem; padding: .75rem .9rem; font-size: .85rem; line-height: 1.4; }
+.v-aviso svg { width: 1.1rem; height: 1.1rem; flex-shrink: 0; margin-top: .1rem; }
+.v-aviso--ambar { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+.v-aviso--ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.v-aviso--error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+/* En el celular la lista de lo que falta se corta a dos líneas. */
+@media (max-width: 767px) {
+    .v-barra__nota { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+}
+/* Icono de cabecera que solo se muestra desde tablet (deja ancho al código). */
+@media (max-width: 639px) { .v-solo-pc { display: none !important; } }
+/* La clase utilitaria `hidden` (Tailwind) debe seguir ocultando un botón o un aviso. */
+.v-btn.hidden, .v-barra .hidden, .v-aviso.hidden { display: none !important; }
+/* Botones de cámara/galería bajo cada foto: en celular, icono sobre el texto
+ * para que quepan dos por columna. */
+@media (max-width: 639px) {
+    .v-btn--foto { flex-direction: column; gap: .2rem; min-height: 3.1rem; padding: .35rem .25rem; font-size: .72rem; }
+}
+
+/* Pantallas completas de resultados por solicitud (resultados_solicitud, medidas_solicitud). */
+/* Pantalla completa por encima de todo el sistema (como el editor del informe). */
+.rs-completo { position: fixed; inset: 0; z-index: 1000; overflow-y: auto; background: #f1f5f9; }
+body.rs-abierto { overflow: hidden; }
+.rs-barra { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: .75rem;
+            padding: .7rem 1rem; background: #0f172a; color: #fff; }
+.rs-barra h1 { font-size: 15px; font-weight: 800; line-height: 1.2; }
+.rs-barra p { font-size: 11px; color: #cbd5e1; }
+.rs-cerrar { margin-left: auto; width: 2.25rem; height: 2.25rem; border-radius: .6rem; display: flex;
+             align-items: center; justify-content: center; color: #fff; background: rgba(255,255,255,.08); flex-shrink: 0; }
+.rs-cerrar:hover { background: rgba(255,255,255,.18); }
+.rs-cuerpo { max-width: 60rem; margin: 0 auto; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }
+
+.rs-pasos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; }
+.rs-paso { background: #fff; border: 1px solid #e2e8f0; border-radius: .9rem; padding: .7rem .75rem; position: relative; }
+.rs-paso__n { width: 1.6rem; height: 1.6rem; border-radius: 999px; display: flex; align-items: center; justify-content: center;
+              font-size: 12px; font-weight: 800; background: #e2e8f0; color: #475569; }
+.rs-paso__t { font-size: 12.5px; font-weight: 800; color: #0f172a; margin-top: .4rem; line-height: 1.2; }
+.rs-paso__d { font-size: 11px; color: #64748b; margin-top: .1rem; }
+.rs-paso[data-hecho] .rs-paso__n { background: #16a34a; color: #fff; }
+.rs-paso[data-actual] { border-color: #2563eb; box-shadow: 0 0 0 3px #dbeafe; }
+.rs-paso[data-actual] .rs-paso__n { background: #2563eb; color: #fff; }
+
+.rs-avance { height: .5rem; border-radius: 999px; background: #e2e8f0; overflow: hidden; }
+.rs-avance > span { display: block; height: 100%; background: #16a34a; border-radius: 999px; }
+
+.rs-linea { display: flex; align-items: center; gap: .75rem; padding: .8rem 1rem; border-top: 1px solid #f1f5f9; }
+.rs-linea:first-child { border-top: 0; }
+.rs-linea__info { min-width: 0; flex: 1; }
+.rs-codigo { font-family: ui-monospace, monospace; font-weight: 800; color: #0f172a; font-size: 14px; word-break: break-all; }
+.rs-sub { font-size: 12px; color: #64748b; }
+.rs-chip { font-size: 11px; font-weight: 800; padding: .2rem .55rem; border-radius: 999px; white-space: nowrap; }
+.rs-chip--gris { background: #f1f5f9; color: #475569; }
+.rs-chip--ambar { background: #fef3c7; color: #92400e; }
+.rs-chip--verde { background: #dcfce7; color: #166534; }
+.rs-chip--azul { background: #dbeafe; color: #1e40af; }
+.rs-chip--rojo { background: #fee2e2; color: #991b1b; }
+.rs-acciones { display: flex; align-items: center; gap: .5rem; flex-shrink: 0; }
+.rs-sesion { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; padding: .8rem 1rem;
+             border-top: 1px solid #f1f5f9; }
+.rs-sesion:first-of-type { border-top: 0; }
+@media (max-width: 640px) {
+    .rs-pasos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .rs-linea { flex-wrap: wrap; }
+    .rs-acciones { width: 100%; justify-content: space-between; }
+}

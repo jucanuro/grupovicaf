@@ -36,6 +36,14 @@
                 <span class="command-header__trigger-label">Panel</span>
             </button>
 
+            {% if puede_registrar_ensayos %}
+            <a href="{% url 'proyectos:mis_ensayos_compresion' %}"
+            class="command-header__action">
+                <i data-lucide="camera" class="w-3.5 h-3.5"></i>
+                Mis resultados
+            </a>
+            {% endif %}
+
             <a href="{% url 'proyectos:crear_solicitud' %}"
             class="command-header__action">
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
@@ -180,12 +188,13 @@
                                         </button>
                                     </form>
                                 {% elif s.estado == 'proceso' %}
-                                    <form action="{% url 'proyectos:cambiar_estado' s.pk 'finalizado' %}" method="POST" class="inline">
-                                        {% csrf_token %}
-                                        <button type="submit" onclick="return confirm('¿Confirmar entrega real del reporte hoy?')" class="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Finalizar Solicitud">
-                                            <i data-lucide="check-circle" class="w-4 h-4"></i>
-                                        </button>
-                                    </form>
+                                    <a href="{% url 'proyectos:resultados_solicitud' s.pk %}" class="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Registrar resultados" aria-label="Registrar resultados" data-registrar-resultados>
+                                        <i data-lucide="clipboard-pen" class="w-4 h-4"></i>
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'proyectos:resultados_solicitud' s.pk %}" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all" title="Ver resultados, revisión e informe" aria-label="Ver resultados, revisión e informe" data-ver-resultados>
+                                        <i data-lucide="list-checks" class="w-4 h-4"></i>
+                                    </a>
                                 {% endif %}
 
                                 <div class="w-px h-4 bg-slate-200 mx-1"></div>
@@ -289,12 +298,13 @@
                                 </button>
                             </form>
                         {% elif s.estado == 'proceso' %}
-                            <form action="{% url 'proyectos:cambiar_estado' s.pk 'finalizado' %}" method="POST" class="inline">
-                                {% csrf_token %}
-                                <button type="submit" onclick="return confirm('¿Confirmar entrega real del reporte hoy?')" class="w-9 h-9 rounded-lg border border-emerald-100 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all flex items-center justify-center" title="Finalizar Solicitud">
-                                    <i data-lucide="check-circle" class="w-4 h-4"></i>
-                                </button>
-                            </form>
+                            <a href="{% url 'proyectos:resultados_solicitud' s.pk %}" class="w-9 h-9 rounded-lg border border-emerald-100 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all flex items-center justify-center" title="Registrar resultados" aria-label="Registrar resultados">
+                                <i data-lucide="clipboard-pen" class="w-4 h-4"></i>
+                            </a>
+                        {% else %}
+                            <a href="{% url 'proyectos:resultados_solicitud' s.pk %}" class="w-9 h-9 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-all flex items-center justify-center" title="Ver resultados, revisión e informe" aria-label="Ver resultados, revisión e informe">
+                                <i data-lucide="list-checks" class="w-4 h-4"></i>
+                            </a>
                         {% endif %}
 
                         {% if s.estado != 'finalizado' %}

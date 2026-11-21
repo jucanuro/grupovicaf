@@ -15,6 +15,7 @@ from django.db.models import Q, Exists, OuterRef
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, Http404, FileResponse
 from django.template.loader import render_to_string, get_template
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.contrib import messages
@@ -967,6 +968,19 @@ def cambiar_estado_solicitud(request, pk, nuevo_estado):
         messages.error(request, "Estado no válido.")
         return redirect('proyectos:lista_solicitudes')
 
+    pantalla_resultados = reverse('proyectos:resultados_solicitud', args=[solicitud.pk])
+    if nuevo_estado == 'finalizado':
+        # Secuencia obligatoria: sin todos los resultados terminados no se finaliza.
+        # Se lleva a la pantalla de resultados para registrar lo que falta.
+        terminadas, total = solicitud.avance_resultados()
+        if not total or terminadas < total:
+            messages.error(
+                request,
+                f"Para finalizar {solicitud.codigo_solicitud} faltan resultados: hay {terminadas} de {total} "
+                "terminados. Regístralos aquí.",
+            )
+            return redirect(pantalla_resultados)
+
     solicitud.estado = nuevo_estado
 
     if nuevo_estado == 'finalizado':
@@ -976,11 +990,14 @@ def cambiar_estado_solicitud(request, pk, nuevo_estado):
     solicitud.save()
 
     if nuevo_estado == 'finalizado':
-        messages.success(request, f"La solicitud {solicitud.codigo_solicitud} fue finalizada. Ahora registra el informe final.")
-        return redirect('proyectos:gestionar_informe', solicitud_id=solicitud.pk)
+        # Siguiente paso: revisión de resultados y editor del informe.
+        messages.success(request, f"La solicitud {solicitud.codigo_solicitud} fue finalizada y pasa a revisión.")
+        return redirect(pantalla_resultados)
 
     messages.success(request, f"La solicitud {solicitud.codigo_solicitud} cambió a estado {nuevo_estado.upper()}.")
 
+    if request.POST.get('volver') == pantalla_resultados:
+        return redirect(pantalla_resultados)
     return redirect('proyectos:lista_solicitudes')
 
 
