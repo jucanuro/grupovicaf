@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from django.db import connection
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
@@ -94,6 +94,7 @@ class AvanceMixin:
         return {e['clave']: e['cantidad'] for e in avance['etapas']}
 
 
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab')
 class CalculoAvanceTests(AvanceMixin, TestCase):
 
     def test_cuenta_cada_muestra_en_su_etapa(self):
@@ -169,6 +170,7 @@ class CalculoAvanceTests(AvanceMixin, TestCase):
         self.assertEqual(len(pocos), len(muchos))
 
 
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab')
 class AccionUrgenteTests(AvanceMixin, TestCase):
     """REQ-LIMS-47 a 49 (RN-11)."""
 
@@ -206,6 +208,7 @@ class AccionUrgenteTests(AvanceMixin, TestCase):
         self.assertEqual((accion['tipo'], accion['texto']), ('registrar', 'Registrar muestras'))
 
 
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab')
 class PantallasFiltradasTests(AvanceMixin, TestCase):
     """REQ-LIMS-46: las pantallas destino respetan ?proyecto=<id>."""
 
