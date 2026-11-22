@@ -11,6 +11,15 @@ module.exports = {
         tecnicoAjeno: 'e2e.tecnico.b',
         analista: 'e2e.analista',
         recepcion: 'e2e.recepcion',
+        jefe: 'e2e.jefe',
+    },
+
+    // Panel de proyectos con avance por muestra (HU-LIMS-19).
+    PROYECTO_AVANCE: {
+        codigo: 'P-E2E-AVANCE',
+        nombre: 'Proyecto E2E Avance por muestra',
+        etapas: { por_ingresar: 5, recibida: 2, en_ensayo: 1, informe: 0 },
+        solicitud: 'SOL-E2E-AV01',
     },
 
     CLIENTE: { ruc: '20999999991', razonSocial: 'Constructora E2E SAC' },
