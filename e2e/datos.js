@@ -12,6 +12,7 @@ module.exports = {
         analista: 'e2e.analista',
         recepcion: 'e2e.recepcion',
         jefe: 'e2e.jefe',
+        comercial: 'e2e.comercial',
     },
 
     // Panel de proyectos con avance por muestra (HU-LIMS-19).

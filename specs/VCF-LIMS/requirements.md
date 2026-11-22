@@ -126,6 +126,26 @@ más urgente, para no perder ninguna muestra en el flujo*.
 | REQ-LIMS-51 | HU-LIMS-19 | SI el usuario no tiene el permiso de la pantalla de una etapa o de la acción, ENTONCES EL SISTEMA DEBE mostrarla sin enlace. | sí (unitaria + E2E) | [Propuesto] |
 | REQ-LIMS-52 | HU-LIMS-19 | EL SISTEMA DEBE calcular el avance de una página del panel con un número fijo de consultas. | sí (unitaria) | [Propuesto] |
 
+## 2d. Formulario de cotización: pasos en pills y detalle en modal (v4)
+
+Origen: pedido del Gerente del 2026-11-22 en el hilo «Rediseñar formulario de
+cotización con modal», aprobado sobre el mockup («del resto de los tabs dale el
+mismo diseño»). Pantallas: `/servicios/cotizaciones/crear/` y
+`/servicios/cotizaciones/editar/<id>/`. HU-LIMS-20: *como comercial quiero
+llenar el detalle de la cotización en una ventana amplia, para elegir servicios
+con comodidad*. Solo cambia la presentación: agregar, editar, ordenar y quitar
+ítems, el total y las validaciones al guardar siguen igual.
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-53 | HU-LIMS-20 | EL SISTEMA DEBE mostrar los 4 pasos (Cliente, Servicios, Condiciones, Contenido) como pills redondeadas con su número; el paso activo con fondo en degradado azul → índigo y texto blanco, los demás en gris claro. | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-54 | HU-LIMS-20 | MIENTRAS el detalle no tenga ítems, EL SISTEMA DEBE mostrar en el paso Servicios un estado vacío con un solo botón «Agregar detalle», sin el panel de selección ni la tabla. | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-55 | HU-LIMS-20 | CUANDO el usuario pulse «Agregar detalle», EL SISTEMA DEBE abrir un modal amplio con categoría, sub-categoría, servicio, norma, método, cantidad y precio unitario. | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-56 | HU-LIMS-20 | CUANDO el usuario guarde un servicio en el modal, EL SISTEMA DEBE cerrarlo y mostrar la tabla del detalle con el ítem, un botón «Editar» por fila y «Agregar detalle» en la barra. | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-57 | HU-LIMS-20 | CUANDO el usuario pulse «Editar» en una fila, EL SISTEMA DEBE reabrir el mismo modal con los datos de esa fila y, al «Actualizar ítem», reemplazarla. | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-58 | HU-LIMS-20 | SI el usuario pulsa «Agregar» en el modal sin elegir un servicio (y sin haber agregado una cabecera en esa apertura), ENTONCES EL SISTEMA DEBE avisarlo dentro del modal sin cerrarlo. | sí (E2E) | [Propuesto] |
+| REQ-LIMS-59 | HU-LIMS-20 | DONDE la pantalla mida menos de 768 px, EL SISTEMA DEBE mostrar el modal a pantalla completa y sin desplazamiento horizontal. | sí (E2E) | [Propuesto] |
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -141,6 +161,7 @@ más urgente, para no perder ninguna muestra en el flujo*.
 | HU-LIMS-09 | Exportar | REQ-LIMS-37 |
 | HU-LIMS-10 | Seguridad y rendimiento | REQ-LIMS-38 a 40 |
 | HU-LIMS-19 | Panel de proyectos con avance por muestra | REQ-LIMS-44 a 52 |
+| HU-LIMS-20 | Formulario de cotización con detalle en modal | REQ-LIMS-53 a 59 |
 
 ## 4. Preguntas abiertas
 
@@ -156,3 +177,4 @@ más urgente, para no perder ninguna muestra en el flujo*.
 | v1 | 2026-11-03 | Claude (DLF) | Alcance del dashboard y estados de cotización: RN-01 a 08, REQ-LIMS-01 a 26 |
 | v2 | 2026-11-03 | Claude (DLF) | Análisis con tabla dinámica (PR 1): REQ-LIMS-27 a 40 |
 | v3 | 2026-11-22 | Claude (DLF) | Panel de proyectos con avance por muestra: RN-09 a 11, REQ-LIMS-44 a 52 |
+| v4 | 2026-11-22 | Claude (DLF) | Formulario de cotización: pills y detalle en modal, REQ-LIMS-53 a 59 |
