@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/cotizacion-config.css' %}">
+    <link rel="stylesheet" href="{% static 'css/cotizacion-config.css' %}?v=20261122b">
     <style>
         /* Pasos del asistente en forma de "pills" (mismo estilo en los 4 pasos). */
         .cot-tabs{
@@ -590,7 +590,7 @@
                     </div>
                     <div class="flex items-center gap-3">
                         <span class="text-[9px] font-bold text-slate-400 uppercase">Se requiere al menos 1 ítem con precio mayor a S/ 0.00</span>
-                        <button type="button" id="btn-agregar-detalle-barra" data-abrir-detalle
+                        <button type="button" id="btn-agregar-detalle-barra" data-abrir-detalle onclick="abrirDetalle()"
                                 class="hidden bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black py-2.5 px-5 rounded-full text-[11px] uppercase tracking-widest shadow-md transition-all items-center gap-2 whitespace-nowrap">
                             <i data-lucide="plus" class="w-4 h-4"></i>
                             Agregar detalle
@@ -604,7 +604,7 @@
                     </div>
                     <p class="text-sm font-extrabold text-slate-700">Aún no hay ensayos en el detalle</p>
                     <p class="text-xs text-slate-500 font-medium mt-1 mb-6 max-w-sm">Agrega las categorías, sub-categorías y servicios que irán en la oferta.</p>
-                    <button type="button" id="btn-agregar-detalle" data-abrir-detalle
+                    <button type="button" id="btn-agregar-detalle" data-abrir-detalle onclick="abrirDetalle()"
                             class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black py-4 px-10 rounded-full text-xs uppercase tracking-widest shadow-lg shadow-indigo-200 transition-all flex items-center gap-3">
                         <i data-lucide="plus" class="w-5 h-5"></i>
                         Agregar detalle
@@ -1076,6 +1076,22 @@
         });
     }
 
+    // «Agregar detalle»: lo abre cotizacion-config.js. Si el navegador guardó una
+    // versión anterior de ese archivo (sin el modal), avisar en vez de no hacer nada.
+    function abrirDetalle() {
+        if (typeof window.abrirDetalleNuevo === 'function') {
+            window.abrirDetalleNuevo();
+            return;
+        }
+        var banner = document.getElementById('cotizacion-error-banner');
+        var texto = document.getElementById('cotizacion-error-text');
+        if (texto) texto.textContent = 'No se pudo abrir el detalle: el navegador tiene una versión anterior de la página. Recárgala con Ctrl + F5.';
+        if (banner) {
+            banner.classList.remove('hidden');
+            banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
     // form_validador.js frena el envío si un campo es inválido; si ese campo está
     // en otra pestaña, cambiar a ella para que el foco caiga sobre algo visible.
     document.getElementById('cotizacion-form').addEventListener('validador:rechazado', function (e) {
@@ -1088,5 +1104,5 @@
 
 <script src="{% static 'js/cotizacion-partial.js' %}"></script>
 <script src="{% static 'js/acordeon_cotizacion.js' %}"></script>
-<script src="{% static 'js/cotizacion-config.js' %}"></script>
+<script src="{% static 'js/cotizacion-config.js' %}?v=20261122b"></script>
 {% endblock %}
