@@ -440,12 +440,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const _servicioElegido = () => Boolean(document.getElementById('reg_servicio')?.value);
     const MSG_SIN_SERVICIO = 'Selecciona un servicio (ensayo) para agregarlo al detalle.';
 
-    document.querySelectorAll('[data-abrir-detalle]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (EDIT_INDEX !== null) window.resetEditor();
-            window.openDetalleModal();
-        });
-    });
+    // «Agregar detalle» (estado vacío y barra): abre el modal en modo agregar.
+    window.abrirDetalleNuevo = () => {
+        if (EDIT_INDEX !== null) window.resetEditor();
+        window.openDetalleModal();
+    };
     modalDetalle?.querySelectorAll('[data-cerrar-detalle]').forEach(el => {
         el.addEventListener('click', () => window.closeDetalleModal());
     });
