@@ -9,4 +9,5 @@ urlpatterns = [
     path('cuenta/clave/', login_required(views.CambiarClaveView.as_view()), name='cambiar_clave'),
     path('dashboard/', views.dashboard_view, name='dashboard'),
     path('administracion/', views.dashboard_view_analitycs, name='administracion'),
+    path('notificaciones/', views.notificaciones_json, name='notificaciones'),
 ]

@@ -3,7 +3,9 @@
 Idempotente: se puede correr las veces que haga falta sobre la misma base y
 deja siempre el mismo estado. Todo lo que crea lleva el marcador E2E:
 
-    Usuarios          e2e.coordinador (con correo.ver y correo.administrar), e2e.tecnico.a, e2e.tecnico.b
+    Usuarios          e2e.coordinador (con correo.ver y correo.administrar), e2e.tecnico.a, e2e.tecnico.b,
+                      e2e.recepcion (muestras, calendario, cotizaciones y proyectos: campana,
+                      menú lateral, «Nueva recepción» y guardar actividades)
     Roles             'E2E Coordinador', 'E2E Técnico'
     Cliente           RUC 20999999991 · 'Constructora E2E SAC'
     Cotización        COT-E2E-0001
@@ -64,6 +66,10 @@ PERMISOS_COORDINADOR = (
 PERMISOS_ANALISTA = ('reportes.ver', 'clientes.ver')
 FECHA_ANALISIS = date(2001, 2, 10)
 PERMISOS_TECNICO = ('ensayos.ver', 'calendario.ver')
+PERMISOS_RECEPCION = (
+    'muestras.ver', 'muestras.crear', 'calendario.ver', 'calendario.crear', 'calendario.editar',
+    'cotizaciones.ver', 'proyectos.ver',
+)
 
 
 class Command(BaseCommand):
@@ -121,6 +127,7 @@ class Command(BaseCommand):
         tecnico_a = self._trabajador('e2e.tecnico.a', rol_tecnico, 'Técnico E2E A', password)
         self._trabajador('e2e.tecnico.b', rol_tecnico, 'Técnico E2E B', password)
         self._trabajador('e2e.analista', self._rol('E2E Analista', PERMISOS_ANALISTA), 'Analista E2E', password)
+        self._trabajador('e2e.recepcion', self._rol('E2E Recepción', PERMISOS_RECEPCION), 'Recepción E2E', password)
         return coordinador, tecnico_a
 
     def _catalogo_web(self):

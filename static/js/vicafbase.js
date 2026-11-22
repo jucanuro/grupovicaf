@@ -301,7 +301,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 toggle.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('toggle clickeado');
 
                     if (header.classList.contains('is-open')) {
                         closePanel();

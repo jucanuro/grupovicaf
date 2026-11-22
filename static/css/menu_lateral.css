@@ -1,0 +1,96 @@
+/* Menú lateral del LIMS (templates/menu_lateral.html, static/js/menu_lateral.js).
+   CSS propio y no clases de Tailwind: el estado plegado cambia por atributo y
+   no depende del JIT del CDN. */
+.menu-lateral { display: none; }
+
+@media (min-width: 1024px) {
+    .menu-lateral {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        width: 16rem;
+        height: 100dvh;
+        background: #fff;
+        border-right: 1px solid #e2e8f0;
+        transition: width .2s ease;
+        position: relative;
+        z-index: 45;
+    }
+}
+
+.menu-lateral__cabecera {
+    display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+    height: 4.5rem; padding: 0 .9rem 0 1.1rem; border-bottom: 1px solid #f1f5f9; flex-shrink: 0;
+}
+.menu-lateral__marca { display: flex; align-items: center; gap: .6rem; min-width: 0; }
+.menu-lateral__logo { width: 77px; height: 32px; object-fit: contain; flex-shrink: 0; }
+.menu-lateral__nombre { font-size: 15px; font-weight: 700; color: #0f172a; white-space: nowrap; }
+.menu-lateral__plegar {
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    width: 2.1rem; height: 2.1rem; border-radius: .7rem; color: #64748b; border: 1px solid #e2e8f0; background: #fff;
+}
+.menu-lateral__plegar:hover { background: #f8fafc; color: #0f172a; }
+.menu-lateral__plegar:focus-visible, .menu-lateral__item:focus-visible, .menu-lateral__titulo:focus-visible,
+.menu-lateral__accion:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+
+.menu-lateral__buscar {
+    display: flex; align-items: center; gap: .5rem; margin: .85rem .9rem .25rem; padding: 0 .75rem;
+    height: 2.4rem; border-radius: .8rem; background: #f1f5f9; border: 1px solid transparent;
+}
+.menu-lateral__buscar:focus-within { background: #fff; border-color: #93c5fd; }
+.menu-lateral__buscar input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; font-size: 13px; color: #334155; }
+
+.menu-lateral__nav { flex: 1; min-height: 0; overflow-y: auto; padding: .5rem .6rem 1rem; scrollbar-width: thin; }
+.menu-lateral__grupo + .menu-lateral__grupo { margin-top: .35rem; padding-top: .35rem; border-top: 1px solid #f1f5f9; }
+.menu-lateral__titulo {
+    display: flex; align-items: center; gap: .4rem; width: 100%; padding: .45rem .5rem; border-radius: .6rem;
+    font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #94a3b8; text-align: left;
+}
+.menu-lateral__titulo:hover { color: #475569; background: #f8fafc; }
+.menu-lateral__chevron { width: .85rem; height: .85rem; transition: transform .15s ease; flex-shrink: 0; }
+.menu-lateral__grupo[data-cerrado="1"] .menu-lateral__chevron { transform: rotate(-90deg); }
+.menu-lateral__grupo[data-cerrado="1"] .menu-lateral__items { display: none; }
+
+.menu-lateral__item {
+    display: flex; align-items: center; gap: .75rem; height: 2.5rem; padding: 0 .75rem; margin-top: 2px;
+    border-radius: .75rem; font-size: 14px; font-weight: 500; color: #334155; white-space: nowrap;
+}
+.menu-lateral__item:hover { background: #f1f5f9; color: #0f172a; }
+.menu-lateral__item[aria-current="page"] { background: #eff6ff; color: #1d4ed8; font-weight: 700; }
+.menu-lateral__icono { width: 1.1rem; height: 1.1rem; flex-shrink: 0; }
+.menu-lateral__item[hidden] { display: none; }
+.menu-lateral__vacio { padding: .75rem; font-size: 12px; color: #94a3b8; }
+
+.menu-lateral__pie {
+    flex-shrink: 0; border-top: 1px solid #f1f5f9; background: #f8fafc; padding: .75rem .9rem;
+    display: flex; flex-direction: column; gap: .6rem;
+}
+.menu-lateral__usuario { display: flex; align-items: center; gap: .6rem; min-width: 0; }
+.menu-lateral__avatar {
+    width: 2.2rem; height: 2.2rem; border-radius: 9999px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #e2e8f0, #cbd5e1); color: #334155; font-weight: 700; font-size: 13px;
+}
+.menu-lateral__acciones { display: flex; gap: .35rem; }
+.menu-lateral__accion {
+    display: inline-flex; align-items: center; justify-content: center; width: 2.1rem; height: 2.1rem;
+    border-radius: .7rem; color: #64748b;
+}
+.menu-lateral__accion:hover { background: #e2e8f0; color: #0f172a; }
+.menu-lateral__accion--salir { color: #f43f5e; }
+.menu-lateral__accion--salir:hover { background: #ffe4e6; color: #e11d48; }
+
+/* Plegado: solo iconos (el nombre sale en el title al pasar el mouse). */
+@media (min-width: 1024px) {
+    .menu-lateral[data-plegado="1"] { width: 4.75rem; }
+    .menu-lateral[data-plegado="1"] .menu-lateral__texto,
+    .menu-lateral[data-plegado="1"] .menu-lateral__logo,
+    .menu-lateral[data-plegado="1"] .menu-lateral__chevron { display: none; }
+    .menu-lateral[data-plegado="1"] .menu-lateral__cabecera { justify-content: center; padding: 0; }
+    .menu-lateral[data-plegado="1"] .menu-lateral__marca { display: none; }
+    .menu-lateral[data-plegado="1"] .menu-lateral__titulo { justify-content: center; padding: .2rem 0; pointer-events: none; }
+    .menu-lateral[data-plegado="1"] .menu-lateral__titulo::before { content: ''; display: block; width: 1.25rem; height: 1px; background: #e2e8f0; }
+    .menu-lateral[data-plegado="1"] .menu-lateral__grupo[data-cerrado="1"] .menu-lateral__items { display: block; }
+    .menu-lateral[data-plegado="1"] .menu-lateral__item { justify-content: center; padding: 0; }
+    .menu-lateral[data-plegado="1"] .menu-lateral__usuario { justify-content: center; }
+    .menu-lateral[data-plegado="1"] .menu-lateral__acciones { flex-direction: column; align-items: center; }
+}

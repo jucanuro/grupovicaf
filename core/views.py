@@ -3,11 +3,13 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.views import LoginView, PasswordChangeView
 from django.core.exceptions import ValidationError
+from django.http import JsonResponse
 from django.urls import reverse_lazy
 from django.shortcuts import render
 from django.utils import timezone
 
 from .dashboard import construir_dashboard, resolver_periodo
+from .notificaciones import avisos_de
 
 
 class CoreLoginView(LoginView):
@@ -69,3 +71,10 @@ class CambiarClaveView(PasswordChangeView):
         contexto['obligatorio'] = TrabajadorProfile.objects.filter(
             user=self.request.user, debe_cambiar_clave=True).exists()
         return contexto
+
+
+@login_required
+def notificaciones_json(request):
+    """Avisos de la campana de la cabecera (ver core/notificaciones.py)."""
+    avisos = avisos_de(request.user)
+    return JsonResponse({'total': sum(a['cantidad'] for a in avisos), 'avisos': avisos})

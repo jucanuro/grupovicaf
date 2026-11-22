@@ -1,0 +1,131 @@
+{% load static %}
+{% comment %}
+Menú lateral del LIMS en escritorio (≥1024 px), como el panel izquierdo del
+correo. Reemplaza la burbuja de la esquina. Se pliega a una columna de iconos
+con el botón «Plegar menú» y cada grupo se abre/cierra con su título; las dos
+cosas se recuerdan en el navegador (static/js/menu_lateral.js). En el celular
+sigue el menú de pantalla completa (#mobile-menu en header.html).
+{% endcomment %}
+<aside id="menu-lateral" class="menu-lateral" aria-label="Menú del sistema" data-plegado="0">
+    <div class="menu-lateral__cabecera">
+        <a href="{% if puede_ver_dashboard %}{% url 'dashboard' %}{% else %}{% url 'inicio' %}{% endif %}" class="menu-lateral__marca" title="Grupo VICAF · Laboratorio">
+            <img src="{% static 'img/LogoF.png' %}" alt="Grupo VICAF" width="77" height="32" class="menu-lateral__logo">
+            <span class="menu-lateral__texto menu-lateral__nombre">Laboratorio</span>
+        </a>
+        <button type="button" id="menu-lateral-plegar" class="menu-lateral__plegar"
+                aria-controls="menu-lateral" aria-expanded="true" title="Plegar menú">
+            <i data-lucide="panel-left-close" class="w-4 h-4" data-icono-abierto></i>
+            <i data-lucide="panel-left-open" class="w-4 h-4 hidden" data-icono-plegado></i>
+            <span class="sr-only">Plegar o desplegar el menú</span>
+        </button>
+    </div>
+
+    <div class="menu-lateral__buscar menu-lateral__texto">
+        <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+        <input id="menu-lateral-buscar" type="search" placeholder="Buscar módulo…" autocomplete="off" aria-label="Buscar módulo">
+    </div>
+
+    <nav class="menu-lateral__nav">
+        {% if puede_ver_dashboard or puede_ver_administracion or puede_ver_reportes %}
+        <section class="menu-lateral__grupo" data-menu-grupo="general">
+            <button type="button" class="menu-lateral__titulo" aria-expanded="true">
+                <i data-lucide="chevron-down" class="menu-lateral__chevron"></i>
+                <span class="menu-lateral__texto">General</span>
+            </button>
+            <div class="menu-lateral__items">
+                {% if puede_ver_dashboard %}{% url 'dashboard' as u %}{% include 'menu_lateral_item.html' with url=u icono='bar-chart-3' label='Dashboard' buscar='panel indicadores inicio' %}{% endif %}
+                {% if puede_ver_administracion %}{% url 'administracion' as u %}{% include 'menu_lateral_item.html' with url=u icono='building-2' label='Administración' buscar='empresa gestion configuracion' %}{% endif %}
+                {% if puede_ver_reportes %}{% url 'analisis:analisis' as u %}{% include 'menu_lateral_item.html' with url=u icono='table-2' label='Análisis' buscar='reportes tabla dinamica excel graficos' %}{% endif %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if puede_ver_clientes or puede_ver_servicios or puede_ver_cotizaciones %}
+        <section class="menu-lateral__grupo" data-menu-grupo="comercial">
+            <button type="button" class="menu-lateral__titulo" aria-expanded="true">
+                <i data-lucide="chevron-down" class="menu-lateral__chevron"></i>
+                <span class="menu-lateral__texto">Comercial</span>
+            </button>
+            <div class="menu-lateral__items">
+                {% if puede_ver_clientes %}{% url 'clientes:lista_clientes' as u %}{% include 'menu_lateral_item.html' with url=u icono='users' label='Clientes' buscar='crm contactos' %}{% endif %}
+                {% if puede_ver_cotizaciones %}{% url 'servicios:lista_cotizaciones' as u %}{% include 'menu_lateral_item.html' with url=u icono='file-signature' label='Cotizaciones' buscar='ofertas presupuestos ventas' %}{% endif %}
+                {% if puede_ver_servicios %}{% url 'servicios:lista_servicios' as u %}{% include 'menu_lateral_item.html' with url=u icono='package-search' label='Servicios' buscar='catalogo ensayos normas metodos' %}{% endif %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if puede_ver_proyectos or puede_ver_muestras or puede_ver_ensayos or puede_registrar_ensayos or puede_aprobar_informes or puede_ver_equipos or puede_ver_informes %}
+        <section class="menu-lateral__grupo" data-menu-grupo="laboratorio">
+            <button type="button" class="menu-lateral__titulo" aria-expanded="true">
+                <i data-lucide="chevron-down" class="menu-lateral__chevron"></i>
+                <span class="menu-lateral__texto">Laboratorio</span>
+            </button>
+            <div class="menu-lateral__items">
+                {% if puede_ver_proyectos %}{% url 'proyectos:lista_proyectos_pendientes' as u %}{% include 'menu_lateral_item.html' with url=u icono='folders' label='Proyectos' buscar='expedientes' %}{% endif %}
+                {% if puede_ver_muestras %}{% url 'proyectos:lista_recepciones' as u %}{% include 'menu_lateral_item.html' with url=u icono='flask-conical' label='Muestras' buscar='recepciones ingreso' %}{% endif %}
+                {% if puede_ver_ensayos %}{% url 'proyectos:lista_solicitudes' as u %}{% include 'menu_lateral_item.html' with url=u icono='clipboard-list' label='Ensayos' buscar='solicitudes pruebas' %}{% endif %}
+                {% if puede_registrar_ensayos %}{% url 'proyectos:mis_ensayos_compresion' as u %}{% include 'menu_lateral_item.html' with url=u icono='camera' label='Resultados' buscar='registrar compresion probetas fotos tecnico' %}{% endif %}
+                {% if puede_aprobar_informes %}{% url 'proyectos:revision_compresion_lista' as u %}{% include 'menu_lateral_item.html' with url=u icono='clipboard-check' label='Revisión resultados' buscar='aprobar emitir informe editor firmar' %}{% endif %}
+                {% if puede_ver_informes %}{% url 'proyectos:lista_informes' as u %}{% include 'menu_lateral_item.html' with url=u icono='file-check-2' label='Informes' buscar='certificados documentos finales' %}{% endif %}
+                {% if puede_ver_equipos %}{% url 'proyectos:lista_equipos' as u %}{% include 'menu_lateral_item.html' with url=u icono='gauge' label='Equipos' buscar='calibracion prensa balanza vernier' %}{% endif %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if puede_ver_calendario or puede_ver_gantt %}
+        <section class="menu-lateral__grupo" data-menu-grupo="planificacion">
+            <button type="button" class="menu-lateral__titulo" aria-expanded="true">
+                <i data-lucide="chevron-down" class="menu-lateral__chevron"></i>
+                <span class="menu-lateral__texto">Planificación</span>
+            </button>
+            <div class="menu-lateral__items">
+                {% if puede_ver_calendario %}{% url 'actividades:calendario_dashboard' as u %}{% include 'menu_lateral_item.html' with url=u icono='calendar-days' label='Calendario' buscar='actividades agenda eventos' %}{% endif %}
+                {% if puede_ver_gantt %}{% url 'actividades:gantt_dashboard' as u %}{% include 'menu_lateral_item.html' with url=u icono='chart-no-axes-gantt' label='Gantt' buscar='cronograma tiempos seguimiento' %}{% endif %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if puede_ver_trabajadores or puede_ver_roles or puede_ver_permisos %}
+        <section class="menu-lateral__grupo" data-menu-grupo="personal">
+            <button type="button" class="menu-lateral__titulo" aria-expanded="true">
+                <i data-lucide="chevron-down" class="menu-lateral__chevron"></i>
+                <span class="menu-lateral__texto">Personal y accesos</span>
+            </button>
+            <div class="menu-lateral__items">
+                {% if puede_ver_trabajadores %}{% url 'trabajadores:lista_trabajadores' as u %}{% include 'menu_lateral_item.html' with url=u icono='briefcase-business' label='Trabajadores' buscar='personal equipo colaboradores' %}{% endif %}
+                {% if puede_ver_roles %}{% url 'trabajadores:lista_roles' as u %}{% include 'menu_lateral_item.html' with url=u icono='shield-user' label='Roles' buscar='perfiles grupos seguridad' %}{% endif %}
+                {% if puede_ver_permisos %}{% url 'trabajadores:lista_permisos' as u %}{% include 'menu_lateral_item.html' with url=u icono='key-round' label='Permisos' buscar='accesos modulos acciones' %}{% endif %}
+            </div>
+        </section>
+        {% endif %}
+
+        <p id="menu-lateral-vacio" class="menu-lateral__vacio hidden">Ningún módulo coincide.</p>
+
+        {% if total_modulos_visibles == 0 %}
+        <p class="menu-lateral__vacio menu-lateral__texto">Sin módulos asignados. Solicita permisos al administrador.</p>
+        {% endif %}
+    </nav>
+
+    <div class="menu-lateral__pie">
+        <div class="menu-lateral__usuario" title="{{ request.user.get_full_name|default:request.user.username }}">
+            <span class="menu-lateral__avatar">{{ request.user.first_name|default:request.user.username|slice:":1"|upper }}</span>
+            <span class="menu-lateral__texto min-w-0">
+                <span class="block text-[13px] font-semibold text-slate-800 truncate">{{ request.user.get_full_name|default:request.user.username }}</span>
+                <span class="block text-[11px] text-slate-500 truncate">
+                    {% if request.user.is_superuser %}Superusuario{% elif request.user.is_staff %}Administrador{% else %}Usuario del sistema{% endif %}
+                </span>
+            </span>
+        </div>
+        <div class="menu-lateral__acciones">
+            <a href="{% url 'inicio' %}" class="menu-lateral__accion" title="Pantalla de inicio (Correos / Sistema)" aria-label="Pantalla de inicio">
+                <i data-lucide="layout-grid" class="w-4 h-4"></i>
+            </a>
+            <a href="{% url 'cambiar_clave' %}" class="menu-lateral__accion" title="Cambiar mi contraseña" aria-label="Cambiar mi contraseña">
+                <i data-lucide="key-round" class="w-4 h-4"></i>
+            </a>
+            <a href="{% url 'logout' %}" class="menu-lateral__accion menu-lateral__accion--salir" title="Cerrar sesión" aria-label="Cerrar sesión">
+                <i data-lucide="power" class="w-4 h-4"></i>
+            </a>
+        </div>
+    </div>
+</aside>

@@ -113,9 +113,17 @@
         </div>
 
         <div class="flex items-center gap-4">
-            <button class="relative p-2.5 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-blue-600 transition-all group">
+            <button id="notif-trigger"
+                    type="button"
+                    aria-haspopup="true"
+                    aria-expanded="false"
+                    aria-controls="notif-panel"
+                    aria-label="Notificaciones"
+                    data-url="{% url 'notificaciones' %}"
+                    class="relative p-2.5 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-blue-600 transition-all group">
                 <i data-lucide="bell" class="w-5 h-5 group-hover:rotate-12 transition-transform"></i>
-                <span class="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
+                <span id="notif-badge"
+                      class="hidden absolute -top-0.5 -right-0.5 min-w-[1.15rem] h-[1.15rem] px-1 rounded-full bg-rose-500 text-white text-[9px] font-black leading-[1.15rem] text-center border-2 border-white"></span>
             </button>
 
             <div class="flex items-center gap-3 pl-4 border-l border-slate-100 cursor-pointer group">
@@ -144,6 +152,28 @@
             </div>
         </div>
     </header>
+
+    {% comment %}
+    Fuera del <header>: su clip-path recortaría el panel. Lo maneja
+    static/js/notificaciones.js con los avisos de /notificaciones/.
+    {% endcomment %}
+    <div id="notif-panel"
+         role="dialog"
+         aria-label="Notificaciones"
+         class="hidden fixed right-4 top-20 z-[150] w-[min(24rem,calc(100vw-2rem))] rounded-2xl border border-slate-200 bg-white shadow-[0_20px_45px_rgba(15,23,42,0.18)] overflow-hidden">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+            <div>
+                <p class="text-sm font-black text-slate-800">Notificaciones</p>
+                <p class="text-[11px] font-semibold text-slate-400">Lo que tienes pendiente ahora</p>
+            </div>
+            <button type="button" id="notif-cerrar" class="w-8 h-8 rounded-xl hover:bg-slate-100 text-slate-500 flex items-center justify-center" aria-label="Cerrar notificaciones">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <div id="notif-lista" class="max-h-[60vh] overflow-y-auto divide-y divide-slate-100">
+            <p class="px-5 py-6 text-center text-xs font-semibold text-slate-400">Cargando…</p>
+        </div>
+    </div>
 
     <div class="absolute inset-0 bg-slate-200/30 -z-10 translate-y-1"
          style="clip-path: polygon(0 0, 100% 0, 100% 76%, 50% 101%, 0 76%);">

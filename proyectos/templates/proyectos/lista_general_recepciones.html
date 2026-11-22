@@ -45,11 +45,16 @@
                 <span class="command-header__trigger-label">Panel</span>
             </button>
 
-            <a href="#"
-            class="command-header__action">
+            {% if puede_crear_recepcion %}
+            <a href="{% url 'proyectos:crear_recepcion' %}"
+               class="command-header__action"
+               data-testid="nueva-recepcion">
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
                 Nueva Recepción
             </a>
+            {% else %}
+            <span></span>
+            {% endif %}
         </div>
 
         <div class="command-header__panel" data-command-panel>
