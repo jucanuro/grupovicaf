@@ -150,8 +150,9 @@
         </div>
     </div>
 
+    {% url 'proyectos:lista_informes' as url_sin_filtro %}{% include 'proyectos/includes/filtro_proyecto.html' %}
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden"
-         data-lista-contenedor data-lista-url="{% url 'proyectos:lista_informes' %}">
+         data-lista-contenedor data-lista-url="{% url 'proyectos:lista_informes' %}{% if filtro_proyecto %}?proyecto={{ filtro_proyecto.pk }}{% endif %}">
         <div class="overflow-x-auto">
             <table class="w-full border-collapse">
                 <thead class="bg-slate-50 border-b border-slate-200">

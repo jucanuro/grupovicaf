@@ -22,6 +22,8 @@
 | T10 | `sembrar_e2e` (febrero 2001, usuario `e2e.analista`) + `e2e/analisis.spec.js` | 27-30, 32-38 | `npm run test:e2e` | [x] |
 | T11 | PR 2: conjuntos Muestras, Solicitudes, Ensayos asignados, Incidencias, Informes, Proyectos, Actividades y Bandeja web (cliente en Ensayos solo con `ensayos.ver_todos`) | 27, 29, 38, 39 | `python manage.py test analisis` + `e2e/analisis.spec.js` | [x] |
 | T12 | Nueva presentación de Análisis: menú de conjuntos, zonas para arrastrar o tocar, números por tipo, frase y totales, preguntas frecuentes; sin jQuery ni PivotTable.js | 41, 42, 43 | `python manage.py test analisis` + `node --test tests/js/analisis-motor.test.js` + `e2e/analisis.spec.js` | [x] |
+| T64 | `proyectos/avance.py` (RN-09 a 11), panel en tarjetas y filtro `?proyecto=` en recepciones, solicitudes e informes + pruebas | 44-52 | `python manage.py test proyectos.test_avance` | [x] |
+| T65 | `sembrar_e2e` (P-E2E-AVANCE, usuario `e2e.jefe`) + `e2e/panel-proyectos.spec.js` | 44-47, 51 | `npm run test:e2e` | [x] |
 
 ## Historial
 
@@ -31,3 +33,4 @@
 | v1 | 2026-11-03 | Claude (DLF) | Tareas del dashboard |
 | v2 | 2026-11-03 | Claude (DLF) | Tareas T7-T11 de Análisis |
 | v3 | 2026-11-04 | Claude (DLF) | T12: nueva presentación de Análisis |
+| v4 | 2026-11-22 | Claude (DLF) | T64-T65: panel de proyectos con avance por muestra |

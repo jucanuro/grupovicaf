@@ -116,8 +116,9 @@
             </div>
         </div>
     </div>
+    {% url 'proyectos:lista_solicitudes' as url_sin_filtro %}{% include 'proyectos/includes/filtro_proyecto.html' %}
     <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden"
-         data-lista-contenedor data-lista-url="{% url 'proyectos:lista_solicitudes' %}">
+         data-lista-contenedor data-lista-url="{% url 'proyectos:lista_solicitudes' %}{% if filtro_proyecto %}?proyecto={{ filtro_proyecto.pk }}{% endif %}">
         
         <!-- DESKTOP -->
         <div class="hidden md:block overflow-x-auto">
