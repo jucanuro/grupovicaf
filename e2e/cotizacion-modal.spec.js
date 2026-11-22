@@ -100,7 +100,10 @@ test('Servicios vacío muestra solo «Agregar detalle» y el modal agrega el ít
     const form = await modal.locator('.detalle-modal__form').boundingBox();
     const zonaTabla = await modal.locator('.detalle-modal__tabla').boundingBox();
     expect(form.x).toBeLessThan(zonaTabla.x);
-    expect(zonaTabla.width).toBeGreaterThan(form.width * 3);
+    // Formulario en un tercio de la pantalla (380-640 px); la tabla en el resto.
+    expect(form.width).toBeGreaterThanOrEqual(380);
+    expect(form.width).toBeLessThanOrEqual(641);
+    expect(zonaTabla.width).toBeGreaterThan(form.width * 1.5);
     await expect(modal.locator('#detalle-modal-vacio')).toBeVisible();
 
     // Agregar sin servicio avisa dentro del modal y no lo cierra.
