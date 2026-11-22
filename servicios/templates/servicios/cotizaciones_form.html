@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/cotizacion-config.css' %}?v=20261122b">
+    <link rel="stylesheet" href="{% static 'css/cotizacion-config.css' %}?v=20261122c">
     <style>
         /* Pasos del asistente en forma de "pills" (mismo estilo en los 4 pasos). */
         .cot-tabs{
@@ -88,27 +88,26 @@
             to{opacity:1; transform:translateY(0);}
         }
 
-        /* Modal del detalle (agregar / editar ítem). */
-        .detalle-modal{ position:fixed; inset:0; z-index:1000; display:none; }
-        .detalle-modal.abierto{ display:block; }
-        .detalle-modal__fondo{ position:absolute; inset:0; background:rgba(15,23,42,.55); backdrop-filter:blur(3px); }
-        .detalle-modal__caja{
-            position:absolute;
-            inset:2.5rem 1.5rem auto;
-            margin:0 auto;
-            max-width:72rem;
-            max-height:calc(100vh - 5rem);
-            display:flex;
-            flex-direction:column;
-            background:#fff;
-            border-radius:1.5rem;
-            box-shadow:0 30px 90px rgba(15,23,42,.35);
-            animation:cotTabFade .2s ease;
-        }
-        .detalle-modal__cuerpo{ flex:1; overflow-y:auto; padding:1.5rem; min-height:22rem; }
+        /* Modal del detalle a pantalla completa: formulario a la izquierda, tabla a la derecha. */
+        .detalle-modal{ position:fixed; inset:0; z-index:1000; display:none; background:#f8fafc; }
+        .detalle-modal.abierto{ display:flex; flex-direction:column; animation:cotTabFade .18s ease; }
+        .detalle-modal__cuerpo{ flex:1; min-height:0; display:grid; grid-template-columns:minmax(280px,15%) 1fr; }
+        @media (max-width:1280px){ .detalle-modal__cuerpo{ grid-template-columns:300px 1fr; } }
+        .detalle-modal__form{ overflow-y:auto; background:#fff; border-right:1px solid #e2e8f0; padding:1rem; }
+        .detalle-modal__tabla{ min-width:0; overflow:hidden; display:flex; flex-direction:column; padding:1rem 1.25rem; }
+        .detalle-modal__tabla #detalle-tabla{ display:block; flex:1; max-height:none; background:#fff;
+            border:1px solid #e2e8f0; border-radius:1rem; }
+        .detalle-modal__tabla #detalle-tabla thead th{ padding-top:.75rem; }
+        .detalle-modal #content-registro label{ margin-bottom:.2rem; }
+        .detalle-modal #cotizacion-detalles tr.editando td{ background:#fff7ed !important; }
+        /* El formulario es angosto: el servicio elegido va en una sola línea, con «…». */
+        .detalle-modal .ts-wrapper.single .ts-control{ flex-wrap:nowrap; overflow:hidden; }
+        .detalle-modal .ts-wrapper.single .ts-control .item{ display:block; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         @media (max-width: 767px){
-            .detalle-modal__caja{ inset:0; max-height:none; border-radius:0; }
-            .detalle-modal__cuerpo{ padding:1rem; }
+            .detalle-modal__cuerpo{ display:block; overflow-y:auto; }
+            .detalle-modal__form{ border-right:0; border-bottom:1px solid #e2e8f0; overflow:visible; }
+            .detalle-modal__tabla{ overflow:visible; padding:1rem; }
+            .detalle-modal__tabla #detalle-tabla{ max-height:none; }
         }
     </style>
     <style>
@@ -611,6 +610,7 @@
                     </button>
                 </div>
 
+                <div id="detalle-tabla-ancla" hidden></div>
                 <div id="detalle-tabla" class="hidden overflow-x-auto overflow-y-auto max-h-[480px] scrollbar-thin scrollbar-thumb-slate-200">
                     <table class="w-full border-collapse">
                         <thead class="sticky top-0 z-10 bg-white">
@@ -885,38 +885,49 @@
         <input type="hidden" name="condiciones_json" id="condiciones_json">
     </form>
 
-    <!-- Modal del detalle: el mismo formulario de selección de servicios, con más espacio. -->
+    <!-- Modal del detalle a pantalla completa: a la izquierda el formulario de
+         selección (el mismo de siempre) y a la derecha la tabla del detalle, que
+         se mueve aquí mientras el modal está abierto. -->
     <div id="modalDetalle" class="detalle-modal" role="dialog" aria-modal="true" aria-labelledby="detalle-modal-titulo" aria-hidden="true">
-        <div class="detalle-modal__fondo" data-cerrar-detalle></div>
-        <div class="detalle-modal__caja">
-            <div class="flex items-start justify-between gap-4 px-5 sm:px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 via-white to-indigo-50 rounded-t-[1.5rem]">
-                <div class="flex items-center gap-3 min-w-0">
-                    <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md flex-shrink-0">
-                        <i data-lucide="list-plus" class="w-5 h-5"></i>
-                    </div>
-                    <div class="min-w-0">
-                        <h3 id="detalle-modal-titulo" class="text-base font-extrabold text-slate-900 uppercase tracking-wide">Agregar detalle</h3>
-                        <p id="detalle-modal-subtitulo" class="text-xs text-slate-500 font-medium mt-0.5">Elegir una categoría o sub-categoría la agrega como cabecera; el servicio se agrega con «Agregar».</p>
-                    </div>
+        <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 bg-white border-b border-slate-200">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="list-plus" class="w-4 h-4"></i>
                 </div>
+                <h3 id="detalle-modal-titulo" class="text-sm font-extrabold text-slate-900 uppercase tracking-wide truncate">Detalle de la cotización</h3>
+                <span id="detalle-modal-contador" class="hidden sm:inline-flex px-2.5 py-1 rounded-full bg-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-wider"></span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" id="btn-detalle-guardar"
+                        class="whitespace-nowrap px-4 sm:px-5 py-2 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-[11px] font-black uppercase shadow-md transition-all flex items-center gap-2">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    Guardar<span class="hidden sm:inline">&nbsp;detalle</span>
+                </button>
                 <button type="button" data-cerrar-detalle aria-label="Cerrar ventana"
-                        class="w-10 h-10 flex-shrink-0 rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all flex items-center justify-center">
+                        class="w-9 h-9 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all flex items-center justify-center">
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
+        </div>
 
-            <div class="detalle-modal__cuerpo">
-                <div id="detalle-modal-error" class="hidden mb-4 p-3 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-2 text-rose-700 text-xs font-bold" role="alert">
+        <div class="detalle-modal__cuerpo">
+            <aside class="detalle-modal__form">
+                <div class="flex items-center justify-between mb-3">
+                    <p id="detalle-modal-modo" class="text-[11px] font-black text-indigo-600 uppercase tracking-widest">Agregar ítem</p>
+                    <button type="button" id="btn-detalle-cancelar-edicion"
+                            class="hidden text-[10px] font-black text-slate-500 uppercase hover:text-rose-600">Cancelar edición</button>
+                </div>
+                <div id="detalle-modal-error" class="hidden mb-3 p-2.5 bg-rose-50 border border-rose-100 rounded-lg flex items-center gap-2 text-rose-700 text-[11px] font-bold" role="alert">
                     <i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0"></i>
                     <span data-texto></span>
                 </div>
-                <div id="detalle-modal-aviso" class="hidden mb-4 p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-2 text-emerald-700 text-xs font-bold" role="status">
+                <div id="detalle-modal-aviso" class="hidden mb-3 p-2.5 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-2 text-emerald-700 text-[11px] font-bold" role="status">
                     <i data-lucide="check-circle-2" class="w-4 h-4 flex-shrink-0"></i>
                     <span data-texto></span>
                 </div>
-                        <div id="content-registro" class="grid grid-cols-1 md:grid-cols-12 gap-4 bg-slate-50/50 p-5 rounded-2xl border border-dashed border-slate-200">
+                        <div id="content-registro" class="grid grid-cols-2 gap-x-3 gap-y-3">
                             
-                            <div class="md:col-span-6">
+                            <div class="col-span-2 relative">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cabecera de Grupo (Categoría)</label>
                                 <div class="grid grid-cols-12 gap-2">
                                     <div class="col-span-10"> 
@@ -935,7 +946,7 @@
                                 </div>
                             </div>
 
-                            <div class="md:col-span-6">
+                            <div class="col-span-2 relative">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sub-Categoría</label>
                                 <div class="grid grid-cols-12 gap-2">
                                     <div class="col-span-10"> 
@@ -955,7 +966,7 @@
                                 </div>
                             </div>
 
-                            <div class="md:col-span-8 relative">
+                            <div class="col-span-2 relative">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Buscar Servicio (Ensayo)</label>
                                 <div class="grid grid-cols-12 gap-2">
                                     <div class="col-span-10">
@@ -971,51 +982,46 @@
                                 </div>
                             </div>
 
-                            <div class="md:col-span-4 relative">
+                            <div class="col-span-2 relative">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Norma de Ensayo</label>
                                 <select id="reg_norma" class="vicaf-search-select"></select>
                             </div>
 
-                            <div class="md:col-span-4">
+                            <div class="col-span-2">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Método</label>
-                                <div id="reg_metodo_txt" class="text-xs font-mono-tech p-2.5 bg-white border border-slate-200 rounded-lg text-slate-400 italic">Auto...</div>
+                                <div id="reg_metodo_txt" class="text-xs font-mono-tech px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-400 italic">Auto...</div>
                             </div>
 
-                            <div class="md:col-span-4">
+                            <div class="col-span-1">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cantidad</label>
-                                <input type="number" id="reg_cantidad" value="1" min="1" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
+                                <input type="number" id="reg_cantidad" value="1" min="1" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
                             </div>
 
-                            <div class="md:col-span-4">
+                            <div class="col-span-1">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Precio Unit. (S/)</label>
-                                <input type="number" step="0.01" id="reg_precio" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-blue-600">
+                                <input type="number" step="0.01" id="reg_precio" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-blue-600">
                             </div>
                         </div>
-                <div class="h-40 md:h-24" aria-hidden="true"></div>
-            </div>
 
-            <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 px-5 sm:px-6 py-4 border-t border-slate-100 bg-slate-50/70 rounded-b-[1.5rem]">
-                <span id="detalle-modal-contador" class="text-[10px] font-black text-slate-400 uppercase tracking-widest"></span>
-                <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                    <button type="button" data-cerrar-detalle
-                            class="px-5 py-3 rounded-xl border border-slate-200 bg-white text-slate-600 text-[11px] font-black uppercase hover:bg-slate-50 transition-all">
-                        Cerrar
-                    </button>
-                    <button type="button" id="btn-detalle-otro"
-                            class="px-5 py-3 rounded-xl border border-indigo-200 bg-white text-indigo-700 text-[11px] font-black uppercase hover:bg-indigo-50 transition-all flex items-center justify-center gap-2">
-                        <i data-lucide="plus" class="w-4 h-4"></i>
-                        Agregar y seguir
-                    </button>
-                    <button type="button" id="btn-detalle-guardar"
-                            class="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-[11px] font-black uppercase shadow-md transition-all flex items-center justify-center gap-2">
-                        <i data-lucide="check" class="w-4 h-4"></i>
-                        <span data-texto>Agregar y cerrar</span>
-                    </button>
+                <button type="button" id="btn-detalle-agregar"
+                        class="mt-4 w-full py-2.5 rounded-xl bg-slate-900 hover:bg-blue-600 text-white text-[11px] font-black uppercase tracking-widest shadow transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span data-texto>Agregar a la tabla</span>
+                </button>
+                <p class="mt-3 text-[10px] leading-snug text-slate-400 font-semibold">Elegir una categoría o sub-categoría la agrega al instante como cabecera.</p>
+                <div class="h-6 md:h-56" aria-hidden="true"></div>
+            </aside>
+
+            <section class="detalle-modal__tabla" id="detalle-modal-tabla">
+                <div id="detalle-modal-vacio" class="hidden flex-1 flex flex-col items-center justify-center text-center rounded-2xl border-2 border-dashed border-slate-200 bg-white p-8">
+                    <i data-lucide="clipboard-list" class="w-8 h-8 text-slate-300 mb-2"></i>
+                    <p class="text-sm font-extrabold text-slate-600">La tabla está vacía</p>
+                    <p class="text-xs text-slate-400 font-medium mt-1">Elige una categoría o un servicio en el formulario.</p>
                 </div>
-            </div>
+            </section>
         </div>
     </div>
-</div>
+
 {% block modals %}
     {% include 'servicios/modals/all_modals.html' %}
 {% endblock %}
@@ -1104,5 +1110,5 @@
 
 <script src="{% static 'js/cotizacion-partial.js' %}"></script>
 <script src="{% static 'js/acordeon_cotizacion.js' %}"></script>
-<script src="{% static 'js/cotizacion-config.js' %}?v=20261122b"></script>
+<script src="{% static 'js/cotizacion-config.js' %}?v=20261122c"></script>
 {% endblock %}

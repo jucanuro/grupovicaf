@@ -29,12 +29,12 @@ async function abrirFormulario(page) {
     await expect(page.locator('.cot-tabs')).toBeVisible();
 }
 
-/** Desde el paso Servicios vacío: agrega categoría + servicio con el modal. */
+/** Desde el paso Servicios vacío: agrega categoría + servicio con el modal y lo guarda. */
 async function agregarServicioDesdeModal(page, { cantidad, precio }) {
     await page.locator('#btn-agregar-detalle').click();
     const modal = page.locator('#modalDetalle');
     await expect(modal).toBeVisible();
-    await expect(modal.locator('#detalle-modal-titulo')).toHaveText('Agregar detalle');
+    await expect(modal.locator('#detalle-modal-modo')).toHaveText('Agregar ítem');
 
     await elegirEnBuscador(page, 'reg_categoria', CATEGORIA);
     await expect(modal.locator('#detalle-modal-aviso')).toContainText(CATEGORIA.toUpperCase());
@@ -42,6 +42,9 @@ async function agregarServicioDesdeModal(page, { cantidad, precio }) {
     await elegirEnBuscador(page, 'reg_servicio', SERVICIO);
     await modal.locator('#reg_cantidad').fill(String(cantidad));
     await modal.locator('#reg_precio').fill(String(precio));
+    await modal.locator('#btn-detalle-agregar').click();
+    // La tabla se ve dentro del modal, que sigue abierto.
+    await expect(modal.locator('#cotizacion-detalles tr', { hasText: SERVICIO })).toBeVisible();
     await modal.locator('#btn-detalle-guardar').click();
     await expect(modal).toBeHidden();
 }
@@ -76,7 +79,7 @@ test('los 4 pasos se ven como pills y el activo lleva el degradado (REQ-LIMS-53)
     }
 });
 
-test('Servicios vacío muestra solo «Agregar detalle» y el modal agrega el ítem (REQ-LIMS-54 a 56, 58)', async ({ page }) => {
+test('Servicios vacío muestra solo «Agregar detalle» y el modal agrega el ítem (REQ-LIMS-54 a 56, 58, 60)', async ({ page }) => {
     await abrirFormulario(page);
     await page.locator('.cot-tab-btn[data-tab="servicios"]').click();
 
@@ -86,13 +89,25 @@ test('Servicios vacío muestra solo «Agregar detalle» y el modal agrega el ít
     await expect(page.locator('#content-registro')).toBeHidden();
     await expect(page.locator('#detalle-tabla')).toBeHidden();
 
-    // Guardar sin servicio avisa dentro del modal y no lo cierra.
+    // El modal ocupa toda la pantalla: formulario a la izquierda, tabla (vacía) a la derecha.
     await page.locator('#btn-agregar-detalle').click();
     const modal = page.locator('#modalDetalle');
-    await modal.locator('#btn-detalle-guardar').click();
+    await expect(modal).toBeVisible();
+    const vista = page.viewportSize();
+    const caja = await modal.boundingBox();
+    expect(caja.width).toBeGreaterThanOrEqual(vista.width - 1);
+    expect(caja.height).toBeGreaterThanOrEqual(vista.height - 1);
+    const form = await modal.locator('.detalle-modal__form').boundingBox();
+    const zonaTabla = await modal.locator('.detalle-modal__tabla').boundingBox();
+    expect(form.x).toBeLessThan(zonaTabla.x);
+    expect(zonaTabla.width).toBeGreaterThan(form.width * 3);
+    await expect(modal.locator('#detalle-modal-vacio')).toBeVisible();
+
+    // Agregar sin servicio avisa dentro del modal y no lo cierra.
+    await modal.locator('#btn-detalle-agregar').click();
     await expect(modal.locator('#detalle-modal-error')).toContainText('Selecciona un servicio');
     await expect(modal).toBeVisible();
-    await modal.getByRole('button', { name: 'Cerrar', exact: true }).click();
+    await modal.getByRole('button', { name: 'Cerrar ventana' }).click();
     await expect(modal).toBeHidden();
 
     await agregarServicioDesdeModal(page, { cantidad: 2, precio: 150 });
@@ -108,7 +123,7 @@ test('Servicios vacío muestra solo «Agregar detalle» y el modal agrega el ít
     await expect(page.locator('#total_final_cotizacion')).toHaveText('354.00');
 });
 
-test('«Editar» reabre el modal con los datos y actualiza el ítem (REQ-LIMS-57)', async ({ page }) => {
+test('«Editar» reabre el modal con los datos y actualiza el ítem (REQ-LIMS-57, 61)', async ({ page }) => {
     await abrirFormulario(page);
     await page.locator('.cot-tab-btn[data-tab="servicios"]').click();
     await agregarServicioDesdeModal(page, { cantidad: 2, precio: 150 });
@@ -118,24 +133,37 @@ test('«Editar» reabre el modal con los datos y actualiza el ítem (REQ-LIMS-57
 
     const modal = page.locator('#modalDetalle');
     await expect(modal).toBeVisible();
-    await expect(modal.locator('#detalle-modal-titulo')).toHaveText('Editar ítem');
+    await expect(modal.locator('#detalle-modal-modo')).toHaveText('Editar ítem');
     await expect(modal.locator('#reg_cantidad')).toHaveValue('2');
     await expect(modal.locator('#reg_precio')).toHaveValue('150');
     await expect(modal.locator('#reg_servicio-ts-control').locator('..')).toContainText(SERVICIO);
-    await expect(modal.locator('#btn-detalle-otro')).toBeHidden();
+    await expect(modal.locator('#cotizacion-detalles tr.editando')).toContainText(SERVICIO);
 
     await modal.locator('#reg_cantidad').fill('3');
-    await expect(modal.locator('#btn-detalle-guardar')).toHaveText(/Actualizar ítem/);
+    await expect(modal.locator('#btn-detalle-agregar')).toHaveText(/Actualizar ítem/);
+    await modal.locator('#btn-detalle-agregar').click();
+    // Se actualiza en la tabla del modal, sin cerrarlo.
+    await expect(modal.locator('#cotizacion-detalles tr', { hasText: SERVICIO })).toContainText('S/ 450.00');
+    await expect(modal.locator('#detalle-modal-modo')).toHaveText('Agregar ítem');
+
+    // También se edita desde la tabla del propio modal.
+    await modal.locator('#cotizacion-detalles tr', { hasText: SERVICIO }).getByRole('button', { name: 'Editar' }).click();
+    await expect(modal.locator('#reg_cantidad')).toHaveValue('3');
+    await modal.locator('#reg_precio').fill('100');
+    await modal.locator('#btn-detalle-agregar').click();
+    await expect(modal.locator('#cotizacion-detalles tr', { hasText: SERVICIO })).toContainText('S/ 300.00');
+
     await modal.locator('#btn-detalle-guardar').click();
     await expect(modal).toBeHidden();
-
-    await expect(page.locator('#cotizacion-detalles tr')).toHaveCount(2);
-    await expect(filaServicio).toContainText('S/ 450.00');
+    await expect(page.locator('#tab-panel-servicios #cotizacion-detalles tr')).toHaveCount(2);
+    await expect(filaServicio).toContainText('S/ 300.00');
 
     // Al volver a «Agregar detalle» el modal ya no está en modo edición.
     await page.locator('#btn-agregar-detalle-barra').click();
-    await expect(modal.locator('#detalle-modal-titulo')).toHaveText('Agregar detalle');
+    await expect(modal.locator('#detalle-modal-modo')).toHaveText('Agregar ítem');
     await expect(modal.locator('#reg_cantidad')).toHaveValue('1');
+    // Esc cierra primero la lista del buscador enfocado y luego el modal.
+    await page.keyboard.press('Escape');
     await page.keyboard.press('Escape');
     await expect(modal).toBeHidden();
 });
@@ -151,7 +179,12 @@ test('el asistente completo guarda la cotización y al editarla carga el detalle
 
     // Paso 2: Servicios
     await expect(page.locator('#tab-panel-servicios')).toBeVisible();
-    await agregarServicioDesdeModal(page, { cantidad: 1, precio: 200 });
+    // «Guardar detalle» con un servicio elegido y sin agregar: se agrega solo.
+    await page.locator('#btn-agregar-detalle').click();
+    await elegirEnBuscador(page, 'reg_servicio', SERVICIO);
+    await page.locator('#reg_precio').fill('200');
+    await page.locator('#btn-detalle-guardar').click();
+    await expect(page.locator('#modalDetalle')).toBeHidden();
     await page.getByRole('button', { name: /Continuar a condiciones/ }).click();
 
     // Paso 3: Condiciones
@@ -180,7 +213,7 @@ test('en el celular el modal ocupa toda la pantalla (REQ-LIMS-59)', async ({ pag
     await page.locator('.cot-tab-btn[data-tab="servicios"]').click();
     await page.locator('#btn-agregar-detalle').click();
 
-    const caja = page.locator('#modalDetalle .detalle-modal__caja');
+    const caja = page.locator('#modalDetalle');
     await expect(caja).toBeVisible();
     const box = await caja.boundingBox();
     expect(box.width).toBeGreaterThanOrEqual(389);

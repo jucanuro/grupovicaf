@@ -117,7 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     DATA_ARRAY[EDIT_INDEX].descripcion_especifica = val.toUpperCase();
                     window.resetEditor();
                     window.renderTable();
-                    window.closeDetalleModal();
                 } else if (EDIT_INDEX === null) {
                     window.addHeader('categoria', val);
                     this.clear(true);
@@ -140,7 +139,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     DATA_ARRAY[EDIT_INDEX].descripcion_especifica = val.toUpperCase();
                     window.resetEditor();
                     window.renderTable();
-                    window.closeDetalleModal();
                 } else if (EDIT_INDEX === null) {
                     window.addHeader('subcategoria', val);
                     this.clear(true);
@@ -396,49 +394,80 @@ document.addEventListener('DOMContentLoaded', () => {
         _mensajeModal('detalle-modal-aviso', texto);
     }
 
+    // La tabla del detalle es una sola: mientras el modal está abierto se mueve a
+    // su lado derecho y al cerrarlo vuelve al paso Servicios (renderTable no cambia).
+    const tablaDetalle = document.getElementById('detalle-tabla');
+    const anclaTabla = document.getElementById('detalle-tabla-ancla');
+    const zonaTablaModal = document.getElementById('detalle-modal-tabla');
+    const modalAbierto = () => Boolean(modalDetalle?.classList.contains('abierto'));
+
     let MODO_MODAL = 'agregar';
-    let CABECERAS_EN_SESION = 0;
     function modoModalDetalle(modo) {
         MODO_MODAL = modo;
-        const titulo = document.getElementById('detalle-modal-titulo');
-        const subtitulo = document.getElementById('detalle-modal-subtitulo');
-        const btnGuardar = document.getElementById('btn-detalle-guardar');
-        const btnOtro = document.getElementById('btn-detalle-otro');
+        const etiqueta = document.getElementById('detalle-modal-modo');
+        const btnAgregar = document.getElementById('btn-detalle-agregar');
+        const btnCancelar = document.getElementById('btn-detalle-cancelar-edicion');
         const textos = {
-            'agregar': ['Agregar detalle', 'Elegir una categoría o sub-categoría la agrega como cabecera; el servicio se agrega con «Agregar».', 'Agregar y cerrar'],
-            'editar': ['Editar ítem', 'Corrige el servicio, la cantidad o el precio y pulsa «Actualizar ítem».', 'Actualizar ítem'],
-            'editar-cabecera': ['Editar cabecera', 'Elige la nueva categoría o sub-categoría: se reemplaza al seleccionarla.', 'Listo'],
+            'agregar': ['Agregar ítem', 'Agregar a la tabla'],
+            'editar': ['Editar ítem', 'Actualizar ítem'],
+            'editar-cabecera': ['Editar cabecera: elige la nueva categoría o sub-categoría', ''],
         }[modo];
-        if (titulo) titulo.textContent = textos[0];
-        if (subtitulo) subtitulo.textContent = textos[1];
-        if (btnGuardar) btnGuardar.querySelector('[data-texto]').textContent = textos[2];
-        btnOtro?.classList.toggle('hidden', modo !== 'agregar');
+        if (etiqueta) etiqueta.textContent = textos[0];
+        if (btnAgregar) {
+            btnAgregar.querySelector('[data-texto]').textContent = textos[1];
+            btnAgregar.classList.toggle('hidden', modo === 'editar-cabecera');
+            btnAgregar.classList.toggle('bg-orange-600', modo === 'editar');
+            btnAgregar.classList.toggle('bg-slate-900', modo !== 'editar');
+        }
+        btnCancelar?.classList.toggle('hidden', modo === 'agregar');
+        marcarFilaEditando();
+    }
+
+    function marcarFilaEditando() {
+        document.querySelectorAll('#cotizacion-detalles tr').forEach((tr, i) => {
+            tr.classList.toggle('editando', EDIT_INDEX !== null && i === EDIT_INDEX);
+        });
+    }
+
+    function actualizarVacioModal() {
+        const vacio = document.getElementById('detalle-modal-vacio');
+        if (!vacio) return;
+        const sinItems = DATA_ARRAY.length === 0;
+        vacio.classList.toggle('hidden', !sinItems);
+        vacio.classList.toggle('flex', sinItems);
+        if (tablaDetalle) tablaDetalle.style.display = (sinItems && modalAbierto()) ? 'none' : '';
     }
 
     window.openDetalleModal = () => {
         if (!modalDetalle) return;
-        CABECERAS_EN_SESION = DATA_ARRAY.length;
         errorModalDetalle('');
+        if (!modalAbierto()) {
+            if (tablaDetalle && zonaTablaModal) zonaTablaModal.appendChild(tablaDetalle);
+            modalDetalle.classList.add('abierto');
+            modalDetalle.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
         modoModalDetalle(EDIT_INDEX === null ? 'agregar' : MODO_MODAL);
-        modalDetalle.classList.add('abierto');
-        modalDetalle.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
-        if (typeof lucide !== 'undefined') lucide.createIcons();
+        actualizarVacioModal();
         // En el celular no se enfoca: abriría el teclado y la lista encima del formulario.
-        if (EDIT_INDEX === null && window.innerWidth >= 768) setTimeout(() => tsServicio?.focus(), 50);
+        if (EDIT_INDEX === null && window.innerWidth >= 768) tsServicio?.focus();
     };
 
     window.closeDetalleModal = () => {
-        if (!modalDetalle || !modalDetalle.classList.contains('abierto')) return;
+        if (!modalAbierto()) return;
         if (EDIT_INDEX !== null) window.resetEditor();
+        if (tablaDetalle) tablaDetalle.style.display = '';
+        if (tablaDetalle && anclaTabla) anclaTabla.after(tablaDetalle);
         modalDetalle.classList.remove('abierto');
         modalDetalle.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = 'auto';
         errorModalDetalle('');
+        window.renderTable();   // estado vacío / tabla del paso Servicios
     };
 
     const _servicioElegido = () => Boolean(document.getElementById('reg_servicio')?.value);
-    const MSG_SIN_SERVICIO = 'Selecciona un servicio (ensayo) para agregarlo al detalle.';
+    const MSG_SIN_SERVICIO = 'Selecciona un servicio (ensayo) para agregarlo a la tabla.';
 
     // «Agregar detalle» (estado vacío y barra): abre el modal en modo agregar.
     window.abrirDetalleNuevo = () => {
@@ -449,34 +478,29 @@ document.addEventListener('DOMContentLoaded', () => {
         el.addEventListener('click', () => window.closeDetalleModal());
     });
 
-    document.getElementById('btn-detalle-guardar')?.addEventListener('click', () => {
-        if (MODO_MODAL === 'editar-cabecera') {
-            window.closeDetalleModal();
-            return;
-        }
-        if (_servicioElegido()) {
-            window.addItem();
-            window.closeDetalleModal();
-            return;
-        }
-        // Sin servicio: si en esta apertura ya se agregaron cabeceras, solo cerrar.
-        if (MODO_MODAL === 'agregar' && DATA_ARRAY.length > CABECERAS_EN_SESION) {
-            window.closeDetalleModal();
-            return;
-        }
-        errorModalDetalle(MSG_SIN_SERVICIO);
-    });
-
-    document.getElementById('btn-detalle-otro')?.addEventListener('click', () => {
+    // «Agregar a la tabla» / «Actualizar ítem»: el modal sigue abierto.
+    document.getElementById('btn-detalle-agregar')?.addEventListener('click', () => {
         if (!_servicioElegido()) {
             errorModalDetalle(MSG_SIN_SERVICIO);
             return;
         }
-        const nombre = tsServicio?.getItem(tsServicio.getValue())?.textContent || 'Servicio';
+        const editando = EDIT_INDEX !== null;
+        const nombre = (tsServicio?.getItem(tsServicio.getValue())?.textContent || 'Servicio').trim();
         window.addItem();
+        if (!editando) window.resetEditor();
+        avisoModalDetalle(editando ? `«${nombre}» actualizado.` : `«${nombre}» agregado a la tabla.`);
+        if (window.innerWidth >= 768) tsServicio?.focus();
+    });
+
+    document.getElementById('btn-detalle-cancelar-edicion')?.addEventListener('click', () => {
         window.resetEditor();
-        avisoModalDetalle(`«${nombre.trim()}» agregado. Puedes elegir el siguiente.`);
-        if (window.innerWidth >= 768) setTimeout(() => tsServicio?.focus(), 50);
+        errorModalDetalle('');
+    });
+
+    // «Guardar detalle»: si quedó un servicio elegido sin agregar, se agrega; luego cierra.
+    document.getElementById('btn-detalle-guardar')?.addEventListener('click', () => {
+        if (MODO_MODAL !== 'editar-cabecera' && _servicioElegido()) window.addItem();
+        window.closeDetalleModal();
     });
 
     document.addEventListener('keydown', (ev) => {
@@ -669,6 +693,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const n = DATA_ARRAY.filter(x => x.tipo_fila === 'servicio').length;
             contador.textContent = `${n} ${n === 1 ? 'servicio' : 'servicios'} en el detalle`;
         }
+        if (modalAbierto()) actualizarVacioModal();
+        marcarFilaEditando();
         if (typeof lucide !== 'undefined') lucide.createIcons();
 
         const igv = subtotal * 0.18;
