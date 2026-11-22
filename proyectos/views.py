@@ -164,6 +164,32 @@ def crear_tipo_muestra_ajax(request):
         return JsonResponse({'status': 'error', 'message': 'Error interno del servidor.'}, status=500)
 
 
+def _seleccionar_proyecto_recepcion(request):
+    """Lista de proyectos abiertos con cotización para iniciar una recepción."""
+    proyectos = (
+        Proyecto.objects.filter(cotizacion__isnull=False)
+        .exclude(estado__in=['FINALIZADO', 'CANCELADO'])
+        .select_related('cliente', 'cotizacion')
+        .only(
+            'id', 'codigo_proyecto', 'nombre_proyecto', 'estado', 'creado_en',
+            'cliente__razon_social', 'cotizacion__numero_oferta',
+        )
+        .order_by('-creado_en')
+    )
+    query = (request.GET.get('q') or '').strip()
+    if query:
+        proyectos = proyectos.filter(
+            Q(nombre_proyecto__icontains=query)
+            | Q(codigo_proyecto__icontains=query)
+            | Q(cliente__razon_social__icontains=query)
+            | Q(cotizacion__numero_oferta__icontains=query)
+        )
+    return render(request, 'proyectos/recepcion_elegir_proyecto.html', {
+        'proyectos': proyectos[:100],
+        'query': query,
+    })
+
+
 @login_required
 def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
     if pk:
@@ -184,8 +210,9 @@ def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
         proyecto_id = proyecto_obj.id
 
     if not proyecto_id:
-        messages.error(request, 'Debe seleccionar un proyecto para crear una recepción.')
-        return redirect('proyectos:lista_proyectos_pendientes')
+        # «Nueva recepción» desde la lista: primero se elige el proyecto
+        # (la recepción cuelga de su cotización).
+        return _seleccionar_proyecto_recepcion(request)
 
     proyecto = get_object_or_404(
         Proyecto.objects.select_related('cotizacion__cliente'),
@@ -380,6 +407,11 @@ class RecepcionMuestraListView(HeaderSearchMixin, LoginRequiredMixin, ListView):
             )
 
         return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['puede_crear_recepcion'] = trabajador_tiene_permiso(self.request.user, 'muestras.crear')
+        return context
 
 
 @login_required
