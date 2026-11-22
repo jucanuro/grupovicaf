@@ -1,0 +1,18 @@
+{% comment %}
+Aviso de lista acotada a un proyecto (?proyecto=<id>), con enlace para quitar
+el filtro. Lo usan las pantallas a las que llevan los botones del panel de
+proyectos (HU-LIMS-19). Recibe `filtro_proyecto` y `url_sin_filtro`.
+{% endcomment %}
+{% if filtro_proyecto %}
+<div class="flex flex-wrap items-center gap-2 rounded-2xl bg-blue-50 ring-1 ring-blue-100 px-4 py-2.5 text-xs text-blue-900" data-filtro-proyecto="{{ filtro_proyecto.pk }}">
+    <i data-lucide="filter" class="w-3.5 h-3.5 text-blue-500"></i>
+    <span>Mostrando solo el proyecto <strong class="font-semibold">{{ filtro_proyecto.nombre_proyecto }}</strong>
+        <span class="font-mono text-[11px] text-blue-600">({{ filtro_proyecto.codigo_proyecto }})</span></span>
+    <a href="{{ url_sin_filtro }}" class="ml-auto inline-flex items-center gap-1 font-semibold text-blue-700 hover:text-blue-900" data-quitar-filtro>
+        <i data-lucide="x" class="w-3.5 h-3.5"></i> Ver todos
+    </a>
+    <a href="{% url 'proyectos:lista_proyectos_pendientes' %}" class="inline-flex items-center gap-1 font-semibold text-blue-700 hover:text-blue-900">
+        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Volver a proyectos
+    </a>
+</div>
+{% endif %}
