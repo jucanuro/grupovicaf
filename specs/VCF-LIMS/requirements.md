@@ -140,11 +140,13 @@ con comodidad*. Solo cambia la presentación: agregar, editar, ordenar y quitar
 |---|---|---|---|---|
 | REQ-LIMS-53 | HU-LIMS-20 | EL SISTEMA DEBE mostrar los 4 pasos (Cliente, Servicios, Condiciones, Contenido) como pills redondeadas con su número; el paso activo con fondo en degradado azul → índigo y texto blanco, los demás en gris claro. | sí (E2E) | [Decisión Gerente] |
 | REQ-LIMS-54 | HU-LIMS-20 | MIENTRAS el detalle no tenga ítems, EL SISTEMA DEBE mostrar en el paso Servicios un estado vacío con un solo botón «Agregar detalle», sin el panel de selección ni la tabla. | sí (E2E) | [Decisión Gerente] |
-| REQ-LIMS-55 | HU-LIMS-20 | CUANDO el usuario pulse «Agregar detalle», EL SISTEMA DEBE abrir un modal amplio con categoría, sub-categoría, servicio, norma, método, cantidad y precio unitario. | sí (E2E) | [Decisión Gerente] |
-| REQ-LIMS-56 | HU-LIMS-20 | CUANDO el usuario guarde un servicio en el modal, EL SISTEMA DEBE cerrarlo y mostrar la tabla del detalle con el ítem, un botón «Editar» por fila y «Agregar detalle» en la barra. | sí (E2E) | [Decisión Gerente] |
-| REQ-LIMS-57 | HU-LIMS-20 | CUANDO el usuario pulse «Editar» en una fila, EL SISTEMA DEBE reabrir el mismo modal con los datos de esa fila y, al «Actualizar ítem», reemplazarla. | sí (E2E) | [Decisión Gerente] |
-| REQ-LIMS-58 | HU-LIMS-20 | SI el usuario pulsa «Agregar» en el modal sin elegir un servicio (y sin haber agregado una cabecera en esa apertura), ENTONCES EL SISTEMA DEBE avisarlo dentro del modal sin cerrarlo. | sí (E2E) | [Propuesto] |
+| REQ-LIMS-55 | HU-LIMS-20 | CUANDO el usuario pulse «Agregar detalle», EL SISTEMA DEBE abrir un modal a pantalla completa con el formulario (categoría, sub-categoría, servicio, norma, método, cantidad y precio) apilado a la izquierda y la tabla del detalle a la derecha, ocupando la mayor parte del ancho. | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-56 | HU-LIMS-20 | CUANDO el usuario pulse «Agregar a la tabla», EL SISTEMA DEBE añadir el ítem a la tabla del modal sin cerrarlo; CUANDO pulse «Guardar detalle», EL SISTEMA DEBE cerrar el modal y mostrar en el paso Servicios solo la tabla con un botón «Editar» por fila. | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-57 | HU-LIMS-20 | CUANDO el usuario pulse «Editar» en una fila (del paso Servicios o de la tabla del modal), EL SISTEMA DEBE abrir el modal, cargar la fila en el formulario, resaltarla y, al «Actualizar ítem», reemplazarla sin cerrar el modal. | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-58 | HU-LIMS-20 | SI el usuario pulsa «Agregar a la tabla» sin elegir un servicio, ENTONCES EL SISTEMA DEBE avisarlo dentro del modal sin cerrarlo. | sí (E2E) | [Propuesto] |
 | REQ-LIMS-59 | HU-LIMS-20 | DONDE la pantalla mida menos de 768 px, EL SISTEMA DEBE mostrar el modal a pantalla completa y sin desplazamiento horizontal. | sí (E2E) | [Propuesto] |
+| REQ-LIMS-60 | HU-LIMS-20 | SI al pulsar «Guardar detalle» hay un servicio elegido sin agregar, ENTONCES EL SISTEMA DEBE agregarlo (o actualizar la fila en edición) antes de cerrar. | sí (E2E) | [Propuesto] |
+| REQ-LIMS-61 | HU-LIMS-20 | MIENTRAS se edita una fila, EL SISTEMA DEBE ofrecer «Cancelar edición», que vuelve el formulario a «Agregar ítem» sin cambiar la fila. | sí (E2E) | [Propuesto] |
 
 ## 3. Trazabilidad HU → REQ
 
@@ -161,7 +163,7 @@ con comodidad*. Solo cambia la presentación: agregar, editar, ordenar y quitar
 | HU-LIMS-09 | Exportar | REQ-LIMS-37 |
 | HU-LIMS-10 | Seguridad y rendimiento | REQ-LIMS-38 a 40 |
 | HU-LIMS-19 | Panel de proyectos con avance por muestra | REQ-LIMS-44 a 52 |
-| HU-LIMS-20 | Formulario de cotización con detalle en modal | REQ-LIMS-53 a 59 |
+| HU-LIMS-20 | Formulario de cotización con detalle en modal | REQ-LIMS-53 a 61 |
 
 ## 4. Preguntas abiertas
 
@@ -178,3 +180,4 @@ con comodidad*. Solo cambia la presentación: agregar, editar, ordenar y quitar
 | v2 | 2026-11-03 | Claude (DLF) | Análisis con tabla dinámica (PR 1): REQ-LIMS-27 a 40 |
 | v3 | 2026-11-22 | Claude (DLF) | Panel de proyectos con avance por muestra: RN-09 a 11, REQ-LIMS-44 a 52 |
 | v4 | 2026-11-22 | Claude (DLF) | Formulario de cotización: pills y detalle en modal, REQ-LIMS-53 a 59 |
+| v5 | 2026-11-22 | Claude (DLF) | Modal del detalle a pantalla completa (formulario a la izquierda, tabla a la derecha): REQ-LIMS-55 a 57 ajustados, 60 y 61 nuevos |
