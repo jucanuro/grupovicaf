@@ -2,13 +2,56 @@
 {% load static %}
 {% block title %}{% if firma %}Editar firma{% else %}Nueva firma{% endif %} · Correo VICAF{% endblock %}
 {% block head_extra %}
-<link rel="stylesheet" href="{% static 'vendor/quill-2.0.3/quill.snow.css' %}">
+{% if modo != 'plantilla' %}<link rel="stylesheet" href="{% static 'vendor/quill-2.0.3/quill.snow.css' %}">
 <script src="{% static 'vendor/quill-2.0.3/quill.js' %}" defer></script>
-<script src="{% static 'correo/js/redactar.js' %}" defer></script>
+<script src="{% static 'correo/js/redactar.js' %}" defer></script>{% endif %}
 {% endblock %}
 {% block contenido %}
 <div class="pagina">
     <h1 class="pagina__titulo">{% if firma %}Editar firma{% else %}Nueva firma{% endif %}</h1>
+    {% if modo == 'plantilla' %}
+    <form class="tarjeta formulario" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="modo" value="plantilla">
+        <p class="ayuda">Llena los datos y la firma se arma sola con el diseño de VICAF (logo, nombre, cargo, contacto y redes). Deja vacío lo que no quieras mostrar.</p>
+        <div class="campo">
+            <label for="f-nombre-firma">Nombre de la firma (solo para ti)</label>
+            <input id="f-nombre-firma" name="nombre_firma" value="{{ firma.nombre|default:'' }}" maxlength="80" required placeholder="Ej.: Completa, Breve">
+        </div>
+        <div class="campo">
+            <label for="f-ambito">Tipo</label>
+            <select id="f-ambito" name="ambito">
+                <option value="personal">Personal (solo yo)</option>
+                {% for c in administradas %}<option value="{{ c.pk }}"{% if firma.cuenta_id == c.pk %} selected{% endif %}>Compartida de {{ c.nombre }}</option>{% endfor %}
+            </select>
+        </div>
+        {% for clave, etiqueta, largo, valor in campos_texto %}
+        <div class="campo">
+            <label for="d-{{ clave }}">{{ etiqueta }}</label>
+            <input id="d-{{ clave }}" name="{{ clave }}" maxlength="{{ largo }}" value="{{ valor }}">
+        </div>
+        {% endfor %}
+        {% for clave, etiqueta, valor in campos_redes %}
+        <div class="campo">
+            <label for="d-{{ clave }}">{{ etiqueta }} (enlace https://)</label>
+            <input id="d-{{ clave }}" name="{{ clave }}" maxlength="200" inputmode="url" placeholder="https://" value="{{ valor }}">
+        </div>
+        {% endfor %}
+        <fieldset class="opciones">
+            <legend>Usar por defecto</legend>
+            <label class="casilla-texto"><input type="checkbox" name="para_nuevos" value="1"{% if firma.para_nuevos %} checked{% endif %}> En correos nuevos (solo personales)</label>
+            <label class="casilla-texto"><input type="checkbox" name="para_respuestas" value="1"{% if firma.para_respuestas %} checked{% endif %}> En respuestas y reenvíos (solo personales)</label>
+            {% if administradas %}
+            <label class="casilla-texto"><input type="checkbox" name="predeterminada_cuenta" value="1"{% if firma and firma.cuenta.firma_predeterminada_id == firma.pk %} checked{% endif %}> Predeterminada de la cuenta (compartidas)</label>
+            {% endif %}
+        </fieldset>
+        <div class="redactar__pie">
+            <a class="boton boton--suave" href="{% url 'firmas' %}">Cancelar</a>
+            {% if not firma %}<a class="boton boton--suave" href="{% url 'firma_nueva' %}?modo=libre">Usar el editor libre</a>{% endif %}
+            <button class="boton boton--primario" type="submit">Guardar firma</button>
+        </div>
+    </form>
+    {% else %}
     <form class="tarjeta formulario" method="post" data-form-firma>
         {% csrf_token %}
         <div class="campo">
@@ -38,8 +81,10 @@
         </fieldset>
         <div class="redactar__pie">
             <a class="boton boton--suave" href="{% url 'firmas' %}">Cancelar</a>
+            {% if not firma %}<a class="boton boton--suave" href="{% url 'firma_nueva' %}">Usar la plantilla</a>{% endif %}
             <button class="boton boton--primario" type="submit">Guardar firma</button>
         </div>
     </form>
+    {% endif %}
 </div>
 {% endblock %}

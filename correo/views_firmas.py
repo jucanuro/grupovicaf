@@ -11,6 +11,7 @@ from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_POST
 
 from .cuentas import ADMINISTRA, cuentas_de, permite, roles_de
+from . import firma_plantilla as plantilla_firma
 from .enlaces import url_lab
 from .models import CuentaCorreo, Firma
 from .presentacion import panel_cuentas
@@ -56,10 +57,16 @@ def firma_editar(request, pk=None):
     administradas = _cuentas_administradas(request.user)
     if request.method == 'POST':
         p = request.POST
-        nombre = (p.get('nombre') or '').strip()[:80]
-        html = sanitizar_html(p.get('html', ''))
+        nombre = (p.get('nombre_firma') or p.get('nombre') or '').strip()[:80]
         ambito = p.get('ambito', 'personal')
         errores = []
+        datos_plantilla = None
+        if p.get('modo') == 'plantilla':
+            datos_plantilla = plantilla_firma.limpiar_datos(p)
+            errores += plantilla_firma.errores_de(datos_plantilla, p)
+            html = sanitizar_html(plantilla_firma.generar_html(datos_plantilla))
+        else:
+            html = sanitizar_html(p.get('html', ''))
         if not nombre:
             errores.append('Ponle un nombre a la firma.')
         if len(html) > MAX_FIRMA:
@@ -72,7 +79,7 @@ def firma_editar(request, pk=None):
         if not errores:
             with transaction.atomic():
                 firma = firma or Firma()
-                firma.nombre, firma.html = nombre, html
+                firma.nombre, firma.html, firma.plantilla = nombre, html, datos_plantilla
                 firma.usuario, firma.cuenta = (None, cuenta) if cuenta else (request.user, None)
                 firma.para_nuevos = bool(p.get('para_nuevos')) and cuenta is None
                 firma.para_respuestas = bool(p.get('para_respuestas')) and cuenta is None
@@ -89,9 +96,22 @@ def firma_editar(request, pk=None):
             return redirect('firmas')
         for e in errores:
             messages.error(request, e)
+    if request.method == 'POST' and request.POST.get('modo') == 'plantilla':
+        datos = plantilla_firma.limpiar_datos(request.POST)
+        modo = 'plantilla'
+    elif firma is not None and firma.plantilla:
+        datos, modo = {**plantilla_firma.datos_iniciales(request.user), **firma.plantilla}, 'plantilla'
+    elif firma is None and request.GET.get('modo') != 'libre' and request.method != 'POST':
+        datos, modo = plantilla_firma.datos_iniciales(request.user), 'plantilla'
+    else:
+        datos, modo = {}, 'libre'
     return render(request, 'correo/firma_form.html', {
         'cuentas': panel_cuentas(request.user),
         'firma': firma,
+        'modo': modo,
+        'datos': datos,
+        'campos_texto': [(c, e, n, datos.get(c, '')) for c, e, n in plantilla_firma.CAMPOS_TEXTO],
+        'campos_redes': [(c, e, datos.get(c, '')) for c, e, _m in plantilla_firma.CAMPOS_REDES],
         'administradas': administradas,
         'url_inicio_lab': url_lab(request, reverse('inicio', urlconf=URLCONF_LAB)),
     })
