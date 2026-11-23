@@ -238,6 +238,10 @@ class Firma(models.Model):
     )
     para_nuevos = models.BooleanField('predeterminada para correos nuevos', default=False)
     para_respuestas = models.BooleanField('predeterminada para respuestas', default=False)
+    plantilla = models.JSONField(
+        null=True, blank=True,
+        help_text='Datos de la firma con plantilla (nombre, cargo, teléfono…); vacío = firma libre.',
+    )
     actualizada_en = models.DateTimeField(auto_now=True)
 
     class Meta:
