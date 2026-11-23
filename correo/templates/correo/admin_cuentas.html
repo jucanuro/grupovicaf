@@ -24,6 +24,13 @@
                 <input id="n-nombre" name="nombre" maxlength="120" placeholder="Ventas">
                 <small class="nota-campo">Es el nombre que verán los clientes en «De».</small>
             </div>
+            <div class="campo">
+                <label for="n-tipo">Tipo</label>
+                <select id="n-tipo" name="tipo">
+                    <option value="compartida">Compartida (informes@, quejas@…)</option>
+                    <option value="personal">Personal (juan@…)</option>
+                </select>
+            </div>
             <label class="casilla-texto"><input type="checkbox" name="darme_acceso" value="1" checked> Darme acceso como administrador</label>
             <button class="boton boton--primario" type="submit">Crear cuenta</button>
         </form>

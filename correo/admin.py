@@ -16,8 +16,8 @@ class AccesoInline(admin.TabularInline):
 
 @admin.register(CuentaCorreo)
 class CuentaCorreoAdmin(admin.ModelAdmin):
-    list_display = ['direccion', 'nombre', 'activa', 'creada_en']
-    list_filter = ['activa']
+    list_display = ['direccion', 'nombre', 'personal', 'activa', 'creada_en']
+    list_filter = ['personal', 'activa']
     search_fields = ['direccion', 'nombre']
     prepopulated_fields = {'slug': ['nombre']}
     readonly_fields = ['creada_en']

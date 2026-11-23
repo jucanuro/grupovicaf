@@ -26,7 +26,7 @@ def nombre_usuario(user):
 
 def panel_cuentas(user):
     """Cuentas del usuario con sus carpetas y contadores (panel izquierdo)."""
-    cuentas = list(cuentas_de(user))
+    cuentas = sorted(cuentas_de(user), key=lambda c: (not c.personal, c.nombre.lower()))  # personales primero
     carpetas = (
         Carpeta.objects.filter(cuenta__in=cuentas)
         .annotate(

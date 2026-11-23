@@ -19,6 +19,13 @@
                     <label for="c-nombre">Nombre visible</label>
                     <input id="c-nombre" name="nombre" value="{{ cuenta.nombre }}" maxlength="120" required>
                 </div>
+                <div class="campo">
+                    <label for="c-tipo">Tipo</label>
+                    <select id="c-tipo" name="tipo">
+                        <option value="compartida"{% if not cuenta.personal %} selected{% endif %}>Compartida (informes@, quejas@…)</option>
+                        <option value="personal"{% if cuenta.personal %} selected{% endif %}>Personal (juan@…)</option>
+                    </select>
+                </div>
                 {% if es_admin_correo %}
                 <fieldset class="opciones">
                     <legend>Estado</legend>
