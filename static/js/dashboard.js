@@ -8,7 +8,7 @@
 (function () {
     'use strict';
 
-    var COLORES = {
+    var CLARO = {
         aceptadas: '#2a78d6',
         enGestion: '#1baf7a',
         perdidas: '#eb6834',
@@ -18,6 +18,22 @@
         textoEje: '#6b6a65',
         superficie: '#ffffff'
     };
+    // Modo oscuro (static/js/tema.js): mismas series, rejilla y textos sobre la superficie #111a2b.
+    var OSCURO = {
+        aceptadas: '#3b8ae6',
+        enGestion: '#1fbf86',
+        perdidas: '#f07a4a',
+        linea: '#5b9be6',
+        rejilla: '#243146',
+        eje: '#334359',
+        textoEje: '#94a3b8',
+        superficie: '#111a2b'
+    };
+    var COLORES = CLARO;
+
+    function paleta() {
+        return document.documentElement.classList.contains('dark') ? OSCURO : CLARO;
+    }
 
     function leerDatos() {
         var nodo = document.getElementById('dashboard-datos');
@@ -113,7 +129,7 @@
                     label: 'Ensayos finalizados',
                     data: datos.valores,
                     borderColor: COLORES.linea,
-                    backgroundColor: 'rgba(42, 120, 214, 0.10)',
+                    backgroundColor: COLORES === OSCURO ? 'rgba(91, 155, 230, 0.16)' : 'rgba(42, 120, 214, 0.10)',
                     borderWidth: 2,
                     fill: true,
                     tension: 0,
@@ -169,6 +185,18 @@
         if (!Chart || !datos) return;
         Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
         Chart.defaults.font.size = 11;
+        dibujar(Chart, datos);
+        // Al cambiar de modo claro/oscuro se vuelven a dibujar con la otra paleta.
+        document.addEventListener('vicaf:tema', function () { dibujar(Chart, datos); });
+    }
+
+    function dibujar(Chart, datos) {
+        COLORES = paleta();
+        ['grafico-cotizaciones-mes', 'grafico-ensayos-semana'].forEach(function (id) {
+            var lienzo = document.getElementById(id);
+            var previo = lienzo && Chart.getChart ? Chart.getChart(lienzo) : null;
+            if (previo) previo.destroy();
+        });
         barrasCotizaciones(Chart, datos.cotizaciones_mes);
         lineaEnsayos(Chart, datos.ensayos_semana);
     }

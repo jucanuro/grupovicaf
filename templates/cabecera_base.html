@@ -113,6 +113,18 @@
         </div>
 
         <div class="flex items-center gap-4">
+            {# Modo claro/oscuro (static/js/tema.js). El icono muestra el modo al que se cambia. #}
+            <button type="button"
+                    id="tema-alternar"
+                    data-tema-alternar
+                    aria-pressed="false"
+                    aria-label="Cambiar a modo oscuro"
+                    title="Cambiar a modo oscuro"
+                    class="p-2.5 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-blue-600 transition-all">
+                <i data-lucide="moon" class="w-5 h-5 tema-solo-claro"></i>
+                <i data-lucide="sun" class="w-5 h-5 tema-solo-oscuro"></i>
+            </button>
+
             <button id="notif-trigger"
                     type="button"
                     aria-haspopup="true"

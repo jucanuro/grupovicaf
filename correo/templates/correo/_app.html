@@ -18,6 +18,10 @@
     </form>
     <div class="barra__acciones" data-avisos="{% url 'api_avisos' %}">
         <a class="boton-icono campana" href="{% url 'bandeja' %}" aria-label="Correos sin leer" title="Correos sin leer">{% include 'correo/_iconos.html' with nombre='correo' %}<span class="campana__n" data-avisos-n hidden>0</span></a>
+        <button type="button" class="boton-icono" data-tema-alternar aria-pressed="false" aria-label="Cambiar a modo oscuro" title="Cambiar a modo oscuro">
+            <span class="tema-solo-claro">{% include 'correo/_iconos.html' with nombre='luna' %}</span>
+            <span class="tema-solo-oscuro">{% include 'correo/_iconos.html' with nombre='sol' %}</span>
+        </button>
         <button type="button" class="boton-icono" data-avisos-sonido aria-pressed="true" aria-label="Avisos con sonido" title="Avisos con sonido">
             <span data-avisos-on>{% include 'correo/_iconos.html' with nombre='campana' %}</span>
             <span data-avisos-off hidden>{% include 'correo/_iconos.html' with nombre='campana_off' %}</span>
