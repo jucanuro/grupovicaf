@@ -235,6 +235,20 @@ class BloqueEnElBorradorTests(BasePlataforma):
         self.assertContains(r, f'data-firma-html="{self.libre.pk}"')
         self.assertNotContains(r, f'data-firma-html="{self.rica.pk}"')
 
+    def test_un_borrador_viejo_con_la_firma_como_tabla_se_repara(self):
+        from .firma_bloque import separar
+        b = self._borrador()
+        vieja = ('<p>Hola</p><table><tr><td><img src="http://127.0.0.1:8000/static/img/firma/telefono.png"></td>'
+                 '<td>Gina</td></tr></table><p><br></p>')
+        b.cuerpo_html = vieja
+        b.save(update_fields=['cuerpo_html'])
+        r = self.get('borrador', b.pk)
+        self.assertEqual(r.context['tiene_firma_bloque'], True)
+        self.assertNotIn('<table', r.context['cuerpo_editor'])
+        self.assertIn('Hola', r.context['cuerpo_editor'])
+        b.refresh_from_db()
+        self.assertIn('Gina Gestora', separar(b.cuerpo_html)[1])
+
     def test_guardar_el_texto_conserva_la_firma(self):
         from .firma_bloque import separar
         b = self._borrador()

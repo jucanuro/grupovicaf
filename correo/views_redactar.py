@@ -27,7 +27,7 @@ from trabajadores.permissions import trabajador_tiene_permiso
 
 from .cuentas import ADMINISTRA, GESTIONA, cuentas_de, exigir_cuenta, exigir_mensaje, permite, roles_de
 from .enlaces import adjunto_de_token, url_adjunto
-from .firma_bloque import envolver, para_vista, separar
+from .firma_bloque import envolver, para_vista, quitar_firma_vieja, separar
 from .mensajeria import (
     agregar_adjunto, actualizar_tiene_adjuntos, carpeta, crear_mensaje, direcciones, normalizar_asunto,
     nuevo_message_id, preparar_cuerpo, registrar_evento,
@@ -202,10 +202,23 @@ def _html_desde_editor(borrador, html):
     return _URL_ADJ.sub(cambiar, sanitizar_html(html))
 
 
+def _actualizar_firma_vieja(user, b):
+    """Borrador con la firma como tabla dentro del texto: la quita y pone la firma por defecto como bloque."""
+    if separar(b.cuerpo_html)[1]:
+        return
+    limpio, hubo = quitar_firma_vieja(b.cuerpo_html)
+    if hubo:
+        nueva = firma_por_defecto(user, b.cuenta, respuesta=bool(b.in_reply_to))
+        b.cuerpo_html, b.cuerpo_texto, b.vista_previa = preparar_cuerpo(html=limpio + nueva)
+        b.cuerpo_html = limpio + nueva
+        b.save(update_fields=['cuerpo_html', 'cuerpo_texto', 'vista_previa'])
+
+
 @correo_requerido
 def borrador(request, pk):
     b = _exigir_borrador(request.user, pk)
     disponibles = cuentas_para_enviar(request.user)
+    _actualizar_firma_vieja(request.user, b)
     original = _original(b)
     puede_cotizar = trabajador_tiene_permiso(request.user, 'cotizaciones.ver')
     # Como en Outlook: la lista de la cuenta a la izquierda y el correo nuevo en el

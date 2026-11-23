@@ -30,6 +30,25 @@ def separar(html):
     return html[:i], resto[len(APERTURA):-len(_CIERRE)]
 
 
+_TABLA = re.compile(r'<table\b.*?</table>', re.IGNORECASE | re.DOTALL)
+
+
+def quitar_firma_vieja(html):
+    """(html sin la tabla de firma, hubo). Los borradores hechos antes del bloque
+    fijo guardaron la firma como tabla dentro del texto (ya desarmada por el
+    editor); se reconoce por los íconos de la firma (static/img/firma/)."""
+    hubo = False
+
+    def _quitar(m):
+        nonlocal hubo
+        if '/img/firma/' in m.group(0):
+            hubo = True
+            return ''
+        return m.group(0)
+
+    return _TABLA.sub(_quitar, html or ''), hubo
+
+
 def para_vista(html, origen):
     """Firma guardada -> HTML que se ve igual en local y en producción.
 
