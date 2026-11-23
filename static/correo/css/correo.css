@@ -1045,3 +1045,9 @@ html.dark .tipo--correo { --t-fondo: rgba(99, 102, 241, .2); --t-tinta: #C7D2FE;
     .fe__vista--ampliada { position: fixed; overflow: auto; }
     .fe__vista--ampliada .fe__cuerpo { grid-template-columns: 1fr; }
 }
+
+/* ---- Firma con plantilla dentro del borrador (bloque aparte del editor) ---- */
+.firma-bloque { margin: 8px 0 12px; border-top: 1px dashed var(--borde); padding-top: 8px; }
+.firma-bloque[hidden] { display: none; }
+.firma-bloque__barra { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.firma-bloque__marco { display: block; width: 100%; height: 220px; border: 0; background: #fff; border-radius: 8px; }

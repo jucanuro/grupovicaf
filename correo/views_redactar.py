@@ -14,10 +14,12 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q, Sum
-from django.http import Http404, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone, formats
+from django.template.loader import render_to_string
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_POST
 
 from servicios.models import Cotizacion
@@ -25,6 +27,7 @@ from trabajadores.permissions import trabajador_tiene_permiso
 
 from .cuentas import ADMINISTRA, GESTIONA, cuentas_de, exigir_cuenta, exigir_mensaje, permite, roles_de
 from .enlaces import adjunto_de_token, url_adjunto
+from .firma_bloque import envolver, para_vista, separar
 from .mensajeria import (
     agregar_adjunto, actualizar_tiene_adjuntos, carpeta, crear_mensaje, direcciones, normalizar_asunto,
     nuevo_message_id, preparar_cuerpo, registrar_evento,
@@ -34,7 +37,7 @@ from .directorio import sugerir
 from .models import Adjunto, AccesoCuenta, CuentaCorreo, EventoMensaje, Firma, Mensaje
 from .sanitizar import reemplazar_cid, sanitizar_html
 from .tasks import adjuntar_cotizacion, enviar_mensaje
-from .views_correo import contexto_bandeja_cuenta, correo_requerido
+from .views_correo import _csp_cuerpo, contexto_bandeja_cuenta, correo_requerido
 
 MAX_BYTES = settings.CORREO_MAX_ADJUNTOS_BYTES
 
@@ -49,12 +52,15 @@ def firmas_de(user, cuentas):
 
 
 def firma_por_defecto(user, cuenta, respuesta):
-    """Firma de la cuenta (compartida) si tiene; si no, la personal predeterminada."""
-    if cuenta.firma_predeterminada_id:
-        return cuenta.firma_predeterminada.html
-    campo = 'para_respuestas' if respuesta else 'para_nuevos'
-    firma = Firma.objects.filter(usuario=user, **{campo: True}).first()
-    return firma.html if firma else ''
+    """Firma de la cuenta (compartida) si tiene; si no, la personal predeterminada.
+    La firma con plantilla va como bloque aparte (ver firma_bloque.py)."""
+    firma = cuenta.firma_predeterminada
+    if not cuenta.firma_predeterminada_id:
+        campo = 'para_respuestas' if respuesta else 'para_nuevos'
+        firma = Firma.objects.filter(usuario=user, **{campo: True}).first()
+    if not firma:
+        return ''
+    return envolver(firma.html) if firma.plantilla else firma.html
 
 
 PARTE = re.compile(r'(?:"[^"]*"|<[^>]*>|[^,;"<])+')
@@ -210,7 +216,8 @@ def borrador(request, pk):
         'cuentas_envio': disponibles,
         'cuenta_actual': b.cuenta,
         'para': _fmt(b.para), 'cc': _fmt(b.cc), 'cco': _fmt(b.cco),
-        'cuerpo_editor': _html_para_editor(b),
+        'cuerpo_editor': separar(_html_para_editor(b))[0],
+        'tiene_firma_bloque': bool(separar(b.cuerpo_html)[1]),
         'original': original,
         'modo': 'responder' if b.in_reply_to else ('reenviar' if b.references else 'nuevo'),
         'firmas': firmas_de(request.user, disponibles),
@@ -220,6 +227,38 @@ def borrador(request, pk):
         'redactando': True,
     })
     return render(request, 'correo/redactar.html', contexto)
+
+
+@require_POST
+@correo_requerido
+def firma_bloque_cambiar(request, pk):
+    """Pone (firma_id) o quita (quitar=1) la firma con plantilla del borrador."""
+    b = _exigir_borrador(request.user, pk)
+    editable, _ = separar(b.cuerpo_html)
+    nueva = ''
+    if not request.POST.get('quitar'):
+        firma_id = request.POST.get('firma_id', '')
+        firma = firmas_de(request.user, cuentas_para_enviar(request.user)).filter(
+            pk=int(firma_id) if firma_id.isdigit() else 0, plantilla__isnull=False).first()
+        if firma is None:
+            raise Http404('Firma no disponible.')
+        nueva = envolver(firma.html)
+    b.cuerpo_html, b.cuerpo_texto, b.vista_previa = preparar_cuerpo(html=editable + nueva)
+    b.fecha = timezone.now()
+    b.save()
+    indexar(b)
+    return JsonResponse({'ok': True, 'hay': bool(nueva)})
+
+
+@xframe_options_sameorigin
+@correo_requerido
+def firma_bloque_vista(request, pk):
+    """La firma del borrador en un marco aparte (con su CSP; sin pasar por el editor)."""
+    b = _exigir_borrador(request.user, pk)
+    html = para_vista(separar(b.cuerpo_html)[1], f'{request.scheme}://{request.get_host()}')
+    respuesta = HttpResponse(render_to_string('correo/cuerpo.html', {'html': html}))
+    respuesta['Content-Security-Policy'] = _csp_cuerpo(request, imagenes=True)
+    return respuesta
 
 
 def _guardar_campos(request, b):
@@ -250,7 +289,8 @@ def _guardar_campos(request, b):
     if 'asunto' in p:
         b.asunto = p.get('asunto', '')[:500]
     if 'cuerpo_html' in p:
-        limpio = _html_desde_editor(b, p.get('cuerpo_html', ''))
+        limpio, _ = separar(_html_desde_editor(b, p.get('cuerpo_html', '')))  # el editor nunca manda la firma
+        limpio += envolver(separar(b.cuerpo_html)[1])  # la firma del borrador se conserva
         b.cuerpo_html, b.cuerpo_texto, b.vista_previa = preparar_cuerpo(html=limpio)
         b.cuerpo_html = limpio
     b.fecha = timezone.now()
