@@ -29,7 +29,7 @@
             <label class="solo-lector" for="r-firma">Insertar firma</label>
             <select id="r-firma" class="redactor__firma" data-insertar-firma>
                 <option value="">Firma…</option>
-                {% for f in firmas %}<option value="{{ f.pk }}">{{ f.nombre }}{% if f.cuenta %} ({{ f.cuenta.nombre }}){% endif %}</option>{% endfor %}
+                {% for f in firmas %}<option value="{{ f.pk }}"{% if f.plantilla %} data-rica="1"{% endif %}>{{ f.nombre }}{% if f.cuenta %} ({{ f.cuenta.nombre }}){% endif %}</option>{% endfor %}
             </select>
             {% endif %}
             <span class="comandos__fin">
@@ -102,6 +102,14 @@
             <label class="solo-lector" for="cuerpo-html">Cuerpo del mensaje (HTML)</label>
             <textarea id="cuerpo-html" name="cuerpo_html" class="editor__respaldo" rows="14">{{ cuerpo_editor }}</textarea>
         </div>
+
+        <section class="firma-bloque" data-firma-bloque data-url-firma="{% url 'borrador_firma' b.pk %}"{% if not tiene_firma_bloque %} hidden{% endif %} aria-label="Firma del mensaje">
+            <div class="firma-bloque__barra">
+                <span class="etiqueta">Firma</span>
+                <button class="comando comando--chico" type="button" data-quitar-firma-bloque>Quitar firma</button>
+            </div>
+            <iframe class="firma-bloque__marco" title="Firma del mensaje" src="{% url 'borrador_firma_vista' b.pk %}" data-firma-marco></iframe>
+        </section>
 
         {% if original %}
         <details class="cita">

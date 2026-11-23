@@ -15,7 +15,7 @@ import nh3
 ETIQUETAS = set(nh3.ALLOWED_TAGS) | {'font', 'u', 's', 'center'}
 ATRIBUTOS = {
     '*': {'style', 'align', 'valign', 'width', 'height', 'bgcolor', 'dir', 'title',
-          'colspan', 'rowspan', 'border', 'cellpadding', 'cellspacing', 'lang'},
+          'colspan', 'rowspan', 'border', 'cellpadding', 'cellspacing', 'lang', 'data-vicaf-firma'},
     'a': {'href', 'title', 'name'},
     'img': {'src', 'alt', 'width', 'height', 'title'},
     'font': {'color', 'face', 'size'},

@@ -188,3 +188,77 @@ class LogoYVistaPreviaTests(BasePlataforma):
         self.entrar(self.sin_modulo)
         sin_permiso = self.post('firma_previa', **DATOS)
         self.assertNotEqual(sin_permiso.status_code, 200)
+
+
+class BloqueDeFirmaTests(SimpleTestCase):
+    def test_envolver_y_separar_son_inversas(self):
+        from .firma_bloque import envolver, separar
+        firma = '<table><tr><td><div>x</div></td></tr></table>'
+        self.assertEqual(separar('<p>Hola</p>' + envolver(firma)), ('<p>Hola</p>', firma))
+        self.assertEqual(separar('<p>Sin firma</p>'), ('<p>Sin firma</p>', ''))
+        self.assertEqual(envolver(''), '')
+
+    def test_el_sanitizador_conserva_la_marca_del_bloque(self):
+        from .firma_bloque import envolver, separar
+        from .sanitizar import sanitizar_html
+        limpio = sanitizar_html('<p>Hola</p>' + envolver('<table><tr><td>Gina</td></tr></table>'))
+        self.assertEqual(separar(limpio)[1], '<table><tbody><tr><td>Gina</td></tr></tbody></table>')
+
+
+class BloqueEnElBorradorTests(BasePlataforma):
+    def setUp(self):
+        super().setUp()
+        self.rica = Firma.objects.create(
+            usuario=self.gestor, nombre='Plantilla', plantilla=fp.limpiar_datos(DATOS), para_nuevos=True,
+            html=fp.generar_html(fp.limpiar_datos(DATOS)))
+        self.libre = Firma.objects.create(usuario=self.gestor, nombre='Libre', html='<p>Saludos, Gina</p>')
+
+    def _borrador(self):
+        from .models import Mensaje
+        self.entrar(self.gestor)
+        self.get('redactar', cuenta='informes')
+        return Mensaje.objects.get(estado_envio=Mensaje.BORRADOR)
+
+    def test_el_borrador_nuevo_lleva_la_firma_como_bloque_y_no_en_el_editor(self):
+        from .firma_bloque import separar
+        b = self._borrador()
+        editable, firma = separar(b.cuerpo_html)
+        self.assertIn('Gina Gestora', firma)
+        self.assertNotIn('<table', editable)
+        r = self.get('borrador', b.pk)
+        self.assertEqual(r.context['tiene_firma_bloque'], True)
+        self.assertNotIn('Gina Gestora', r.context['cuerpo_editor'])
+
+    def test_guardar_el_texto_conserva_la_firma(self):
+        from .firma_bloque import separar
+        b = self._borrador()
+        self.post('borrador_guardar', b.pk, cuerpo_html='<p>Hola, adjunto la cotización.</p>')
+        b.refresh_from_db()
+        editable, firma = separar(b.cuerpo_html)
+        self.assertIn('Hola, adjunto la cotización.', editable)
+        self.assertIn('Gina Gestora', firma)
+
+    def test_quitar_y_poner_la_firma(self):
+        from .firma_bloque import separar
+        b = self._borrador()
+        self.assertEqual(self.post('borrador_firma', b.pk, quitar='1').json(), {'ok': True, 'hay': False})
+        b.refresh_from_db()
+        self.assertEqual(separar(b.cuerpo_html)[1], '')
+        self.assertEqual(self.post('borrador_firma', b.pk, firma_id=self.rica.pk).json(), {'ok': True, 'hay': True})
+        b.refresh_from_db()
+        self.assertIn('Gina Gestora', separar(b.cuerpo_html)[1])
+
+    def test_una_firma_libre_o_ajena_no_se_puede_poner_como_bloque(self):
+        b = self._borrador()
+        self.assertEqual(self.post('borrador_firma', b.pk, firma_id=self.libre.pk).status_code, 404)
+        ajena = Firma.objects.create(usuario=self.ajeno, nombre='Ajena', html='<p>x</p>', plantilla={'nombre': 'x'})
+        self.assertEqual(self.post('borrador_firma', b.pk, firma_id=ajena.pk).status_code, 404)
+
+    def test_el_marco_de_la_firma_se_ve_con_imagenes_y_solo_para_quien_redacta(self):
+        b = self._borrador()
+        r = self.get('borrador_firma_vista', b.pk)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Gina Gestora')
+        self.assertIn('img-src', r['Content-Security-Policy'])
+        self.entrar(self.ajeno)
+        self.assertEqual(self.get('borrador_firma_vista', b.pk).status_code, 404)

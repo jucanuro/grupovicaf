@@ -18,6 +18,7 @@ from django.views.decorators.http import require_POST
 from .cuentas import ADMINISTRA, cuentas_de, permite, roles_de
 from . import firma_plantilla as plantilla_firma
 from .enlaces import url_lab
+from .firma_bloque import para_vista
 from .models import CuentaCorreo, Firma
 from .presentacion import panel_cuentas
 from .sanitizar import sanitizar_html
@@ -172,12 +173,7 @@ def firma_vista(request, pk):
     firma = _exigir_firma(request.user, pk)
     html = firma.html
     if firma.plantilla:
-        # Los íconos y el logo están guardados con la URL pública; aquí se
-        # sirven desde este mismo host para que se vean también en local.
-        origen = f'{request.scheme}://{request.get_host()}'
-        html = html.replace(settings.SITE_URL.rstrip('/') + '/static/', origen + '/static/')
-        if firma.logo:
-            html = html.replace(plantilla_firma.url_publica(firma.logo.url), _data_uri(firma.logo) or '')
+        html = para_vista(html, f'{request.scheme}://{request.get_host()}')
     respuesta = HttpResponse(render_to_string('correo/cuerpo.html', {'html': html}))
     respuesta['Content-Security-Policy'] = _csp_cuerpo(request, imagenes=bool(firma.plantilla))
     return respuesta
