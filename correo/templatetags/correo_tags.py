@@ -83,3 +83,22 @@ def puede_administrar_correo(user):
     """Muestra el acceso a «Administrar cuentas» en la barra superior."""
     from correo.administracion import puede_administrar_algo
     return puede_administrar_algo(user)
+
+
+@register.simple_tag
+def tipo_archivo(nombre, mime=''):
+    """Etiqueta de color con el tipo del archivo: PDF, XLS, DOC…"""
+    from django.utils.html import format_html
+
+    from correo.tipos_archivo import tipo_de
+    clave, etiqueta = tipo_de(nombre, mime)
+    return format_html('<span class="tipo tipo--{}" aria-hidden="true">{}</span>', clave, etiqueta)
+
+
+@register.simple_tag(takes_context=True)
+def url_calendario_lab(context):
+    """Enlace al calendario de actividades del LIMS (otro host: laboratorio.)."""
+    from django.urls import reverse
+
+    from correo.enlaces import url_lab
+    return url_lab(context['request'], reverse('actividades:calendario_dashboard', urlconf='grupovicaf.urls_lab'))

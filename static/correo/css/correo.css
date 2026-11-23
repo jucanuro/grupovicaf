@@ -924,3 +924,33 @@ html.dark .ql-snow .ql-tooltip { background: #111A2B; border-color: var(--borde)
 html.dark .barra--app .barra__marca img { background: #F8FAFC; border-radius: 6px; padding: 2px 5px; box-sizing: content-box; }
 /* En el celular el botón de la portada queda solo con el icono (aria-label lo nombra). */
 @media (max-width: 760px) { .barra [data-tema-texto] { display: none; } }
+
+/* Etiqueta de tipo de archivo (PDF, XLS, DOC…) en adjuntos y en la lista. */
+.tipo {
+    display: inline-grid; place-items: center; flex: none; min-width: 30px; height: 20px; padding: 0 5px;
+    border-radius: 4px; background: var(--t-fondo, #E2E8F0); color: var(--t-tinta, #334155);
+    font: 700 10px/1 var(--fuente-mono, ui-monospace, monospace); letter-spacing: .02em;
+}
+.tipo--pdf { --t-fondo: #FEE2E2; --t-tinta: #B91C1C; }
+.tipo--excel { --t-fondo: #DCFCE7; --t-tinta: #15803D; }
+.tipo--word { --t-fondo: #DBEAFE; --t-tinta: #1D4ED8; }
+.tipo--ppt { --t-fondo: #FFEDD5; --t-tinta: #C2410C; }
+.tipo--imagen { --t-fondo: #F3E8FF; --t-tinta: #7E22CE; }
+.tipo--zip { --t-fondo: #FEF9C3; --t-tinta: #A16207; }
+.tipo--xml { --t-fondo: #CFFAFE; --t-tinta: #0E7490; }
+.tipo--cad { --t-fondo: #FCE7F3; --t-tinta: #BE185D; }
+.tipo--correo { --t-fondo: #E0E7FF; --t-tinta: #4338CA; }
+.fila__tipos { display: inline-flex; align-self: center; gap: 3px; flex: none; }
+.fila__tipos .tipo { min-width: 26px; height: 16px; padding: 0 4px; font-size: 9px; }
+
+/* Etiquetas de tipo de archivo: tonos suaves sobre fondo oscuro. */
+html.dark .tipo { --t-fondo: #1B273B; --t-tinta: #CBD5E1; }
+html.dark .tipo--pdf { --t-fondo: rgba(239, 68, 68, .18); --t-tinta: #FCA5A5; }
+html.dark .tipo--excel { --t-fondo: rgba(34, 197, 94, .16); --t-tinta: #86EFAC; }
+html.dark .tipo--word { --t-fondo: rgba(59, 130, 246, .2); --t-tinta: #93C5FD; }
+html.dark .tipo--ppt { --t-fondo: rgba(249, 115, 22, .18); --t-tinta: #FDBA74; }
+html.dark .tipo--imagen { --t-fondo: rgba(168, 85, 247, .2); --t-tinta: #D8B4FE; }
+html.dark .tipo--zip { --t-fondo: rgba(234, 179, 8, .18); --t-tinta: #FDE047; }
+html.dark .tipo--xml { --t-fondo: rgba(6, 182, 212, .18); --t-tinta: #67E8F9; }
+html.dark .tipo--cad { --t-fondo: rgba(236, 72, 153, .18); --t-tinta: #F9A8D4; }
+html.dark .tipo--correo { --t-fondo: rgba(99, 102, 241, .2); --t-tinta: #C7D2FE; }
