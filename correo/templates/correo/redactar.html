@@ -4,7 +4,7 @@
 {% block head_extra %}
 <link rel="stylesheet" href="{% static 'vendor/quill-2.0.3/quill.snow.css' %}">
 <script src="{% static 'vendor/quill-2.0.3/quill.js' %}" defer></script>
-<script src="{% static 'correo/js/redactar.js' %}" defer></script>
+<script src="{% static 'correo/js/redactar.js' %}?v=firma2" defer></script>
 {% endblock %}
 {% block clase_app %}app--leyendo app--redactando{% if completo %} app--completo{% endif %}{% endblock %}
 {% block contenido %}
@@ -123,7 +123,7 @@
     </section>
 </div>
 
-    {% for f in firmas %}<textarea hidden data-firma-html="{{ f.pk }}">{{ f.html }}</textarea>{% endfor %}
+    {% for f in firmas %}{% if not f.plantilla %}<textarea hidden data-firma-html="{{ f.pk }}">{{ f.html }}</textarea>{% endif %}{% endfor %}
 
     {% if puede_cotizar %}
     <dialog class="dialogo" data-dialogo-cotizaciones aria-labelledby="t-cot">
