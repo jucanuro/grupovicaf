@@ -229,11 +229,27 @@ test.describe('plataforma de correo', () => {
     test('firmas: crear una personal con el editor', async ({ page }) => {
         const violaciones = vigilarCsp(page);
         const origen = await abrirCorreo(page);
-        await page.goto(`${origen}/firmas/nueva/`);
+        await page.goto(`${origen}/firmas/nueva/?modo=libre`);
         const nombre = `Firma E2E ${Date.now()}`;  // la base de e2e no se vacía entre corridas
         await page.locator('#f-nombre').fill(nombre);
         await page.locator('.ql-editor').click();
         await page.keyboard.type('Coordinación · GRUPO VICAF');
+        await page.getByRole('button', { name: 'Guardar firma' }).click();
+        await expect(page).toHaveURL(/\/firmas\/$/);
+        await expect(page.getByRole('heading', { name: nombre })).toBeVisible();
+        expect(violaciones).toEqual([]);
+    });
+
+    test('firmas: crear una con la plantilla (iconos de redes y contacto)', async ({ page }) => {
+        const violaciones = vigilarCsp(page);
+        const origen = await abrirCorreo(page);
+        await page.goto(`${origen}/firmas/nueva/`);
+        const nombre = `Plantilla E2E ${Date.now()}`;
+        await page.locator('#f-nombre-firma').fill(nombre);
+        await page.locator('#d-nombre').fill('Ana Prueba');
+        await page.locator('#d-cargo').fill('Jefa de Calidad');
+        await page.locator('#d-facebook').fill('https://facebook.com/vicaf');
+        await page.locator('#d-tiktok').fill('https://tiktok.com/@vicaf');
         await page.getByRole('button', { name: 'Guardar firma' }).click();
         await expect(page).toHaveURL(/\/firmas\/$/);
         await expect(page.getByRole('heading', { name: nombre })).toBeVisible();
