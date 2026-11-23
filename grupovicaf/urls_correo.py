@@ -60,6 +60,7 @@ urlpatterns = [
     # Firmas
     path('firmas/', f.firmas, name='firmas'),
     path('firmas/nueva/', f.firma_editar, name='firma_nueva'),
+    path('firmas/previa/', f.firma_previa, name='firma_previa'),
     path('firmas/<int:pk>/', f.firma_editar, name='firma_editar'),
     path('firmas/<int:pk>/eliminar/', f.firma_eliminar, name='firma_eliminar'),
     path('firmas/<int:pk>/vista/', f.firma_vista, name='firma_vista'),

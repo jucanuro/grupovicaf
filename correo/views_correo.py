@@ -36,7 +36,7 @@ from .avisos import resumen_avisos
 from .models import Adjunto, Asignacion, Carpeta, Contacto, EventoMensaje, Hilo, Mensaje
 from .permisos import motivo_sin_correo, puede_entrar_correo
 from .presentacion import abrir_hilo, filas_de_hilos, panel_cuentas
-from .sanitizar import bloquear_imagenes_remotas, reemplazar_cid, tiene_imagenes_remotas
+from .sanitizar import bloquear_imagenes_remotas, origenes_propios, reemplazar_cid, tiene_imagenes_remotas
 
 BACKEND = 'core.backends.UsuarioOCorreoBackend'  # el de AUTHENTICATION_BACKENDS: si no, la sesión no es válida
 URLCONF_LAB = 'grupovicaf.urls_lab'
@@ -176,6 +176,7 @@ def mensaje_completo(request, pk):
 def _csp_cuerpo(request, imagenes):
     origen = f'{request.scheme}://{request.get_host()}'
     img = f"{origen} data:" + (' https:' if imagenes else '')
+    img += ''.join(f' {o}' for o in origenes_propios())
     return '; '.join((
         "default-src 'none'",
         "style-src 'unsafe-inline' https://fonts.googleapis.com",

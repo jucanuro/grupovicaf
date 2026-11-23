@@ -1009,3 +1009,39 @@ html.dark .tipo--zip { --t-fondo: rgba(234, 179, 8, .18); --t-tinta: #FDE047; }
 html.dark .tipo--xml { --t-fondo: rgba(6, 182, 212, .18); --t-tinta: #67E8F9; }
 html.dark .tipo--cad { --t-fondo: rgba(236, 72, 153, .18); --t-tinta: #F9A8D4; }
 html.dark .tipo--correo { --t-fondo: rgba(99, 102, 241, .2); --t-tinta: #C7D2FE; }
+
+
+/* ---- Firma con plantilla: formulario + vista previa en vivo ---- */
+.formulario--ancho { max-width: none; }
+.fe { display: grid; grid-template-columns: minmax(300px, 420px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.fe__datos { display: grid; gap: 12px; }
+.fe__vista { position: sticky; top: 12px; display: grid; gap: 12px; }
+.fe__barra { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.fe__botones { display: inline-flex; gap: 6px; }
+.fe__botones [aria-pressed="true"] { background: var(--acento-suave); color: var(--acento); }
+.fe__cuerpo { display: grid; gap: 14px; }
+.fe__titulo { margin: 0; font-size: 14px; }
+.fe__diseno { display: grid; gap: 10px; min-width: 0; padding: 12px; border: 1px solid var(--borde); border-radius: 12px; }
+.fe__diseno .campo, .fe__colores .campo { min-width: 0; }
+.fe__diseno input, .fe__diseno select { max-width: 100%; }
+.fe__diseno input[type="range"] { width: 100%; }
+.fe__colores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.fe__colores input[type="color"] { width: 100%; height: 34px; padding: 2px; border: 1px solid var(--borde); border-radius: 8px; background: #fff; }
+.fe__lienzo { order: -1; width: 100%; margin: 0 auto; border: 1px solid var(--borde); border-radius: 12px; background: #fff; overflow: hidden; }
+.fe__marco { display: block; width: 100%; height: 380px; border: 0; background: #fff; }
+.fe-sin-scroll { overflow: hidden; }
+.fe__vista--ampliada {
+    position: fixed; inset: 0; z-index: 60; margin: 0; border-radius: 0; padding: 16px;
+    grid-template-rows: auto minmax(0, 1fr); background: var(--lienzo);
+}
+.fe__vista--ampliada .fe__lienzo { order: 0; }
+.fe__vista--ampliada .fe__cuerpo { grid-template-columns: 340px minmax(0, 1fr); min-height: 0; align-items: start; }
+.fe__vista--ampliada .fe__diseno { max-height: 100%; overflow: auto; }
+.fe__vista--ampliada .fe__lienzo { height: 100%; }
+.fe__vista--ampliada .fe__marco { height: 100%; min-height: 70vh; }
+@media (max-width: 900px) {
+    .fe { grid-template-columns: 1fr; }
+    .fe__vista { position: static; }
+    .fe__vista--ampliada { position: fixed; overflow: auto; }
+    .fe__vista--ampliada .fe__cuerpo { grid-template-columns: 1fr; }
+}
