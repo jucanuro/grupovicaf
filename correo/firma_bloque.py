@@ -41,7 +41,7 @@ def quitar_firma_vieja(html):
 
     def _quitar(m):
         nonlocal hubo
-        if '/img/firma/' in m.group(0):
+        if '/img/firma/' in m.group(0) or 'SÍGUENOS' in m.group(0):
             hubo = True
             return ''
         return m.group(0)
