@@ -250,6 +250,18 @@ test.describe('plataforma de correo', () => {
         await page.locator('#d-cargo').fill('Jefa de Calidad');
         await page.locator('#d-facebook').fill('https://facebook.com/vicaf');
         await page.locator('#d-tiktok').fill('https://tiktok.com/@vicaf');
+        // La vista previa se arma sola con lo escrito, también con el logo recién elegido.
+        await page.locator('#d-logo').setInputFiles({
+            name: 'logo.png', mimeType: 'image/png',
+            buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64'),
+        });
+        const previa = page.frameLocator('#fe-marco');
+        await expect(previa.getByText('Ana Prueba')).toBeVisible();
+        await expect(previa.getByText('JEFA DE CALIDAD')).toBeVisible();
+        await expect(previa.locator('img[src^="data:image/"]').first()).toBeAttached();
+        await page.locator('#fe-ampliar').click();
+        await expect(page.locator('#fe-vista')).toHaveClass(/fe__vista--ampliada/);
+        await page.locator('#fe-ampliar').click();
         await page.getByRole('button', { name: 'Guardar firma' }).click();
         await expect(page).toHaveURL(/\/firmas\/$/);
         await expect(page.getByRole('heading', { name: nombre })).toBeVisible();

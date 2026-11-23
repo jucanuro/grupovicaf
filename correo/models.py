@@ -242,6 +242,11 @@ class Firma(models.Model):
         null=True, blank=True,
         help_text='Datos de la firma con plantilla (nombre, cargo, teléfono…); vacío = firma libre.',
     )
+    logo = models.ImageField(
+        upload_to='correo/firmas/', blank=True,
+        help_text='Logo subido para la firma con plantilla (vacío = logo de Grupo VICAF). Es público: '
+                  'lo cargan los clientes de correo de quien recibe el mensaje.',
+    )
     actualizada_en = models.DateTimeField(auto_now=True)
 
     class Meta:
