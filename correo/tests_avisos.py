@@ -1,6 +1,7 @@
 """Avisos de correo nuevo: contador y mensajes llegados desde la última consulta."""
 from .mensajeria import crear_mensaje
-from .tests_plataforma import BasePlataforma
+from .models import Asignacion, Mensaje
+from .tests_plataforma import HOST, BasePlataforma
 
 
 class AvisosTests(BasePlataforma):
@@ -47,3 +48,39 @@ class AvisosTests(BasePlataforma):
         html = self.get('bandeja').content.decode()
         self.assertIn('data-avisos=', html)
         self.assertIn('correo/js/avisos.js', html)
+        self.assertIn('data-avisos-abrir', html)  # la campana abre el panel
+        self.assertIn('data-avisos-panel', html)
+        self.assertIn('data-avisos-sonido', html)  # el sonido se apaga desde el panel
+
+    def test_panel_trae_sin_leer_por_cuenta_con_enlace(self):
+        self.entrar(self.gestor)
+        datos = self.avisos().json()
+        self.assertEqual([c['slug'] for c in datos['por_cuenta']], ['informes'])
+        self.assertEqual(datos['por_cuenta'][0]['no_leidos'], 1)
+        self.assertEqual(len(datos['sin_leer']), 1)
+        fila = datos['sin_leer'][0]
+        self.assertEqual(fila['de'], 'Ana Cliente')
+        self.assertIn(f'?h={self.m.hilo_id}', fila['url'])
+        self.assertEqual(self.client.get(fila['url'], HTTP_HOST=HOST).status_code, 200)
+
+    def test_pendientes_asignados_fallidos_y_borradores(self):
+        Asignacion.objects.create(hilo=self.m.hilo, asignado_a=self.gestor, asignado_por=self.jefe)
+        Asignacion.objects.create(hilo=self.m_lab.hilo, asignado_a=self.gestor)  # cuenta ajena: no cuenta
+        crear_mensaje(self.informes, 'salida', de='informes@grupovicaf.com', asunto='Rebotó',
+                      estado=Mensaje.FALLIDO, creado_por=self.gestor, leido=True)
+        crear_mensaje(self.informes, 'borradores', de='informes@grupovicaf.com', asunto='Mío',
+                      estado=Mensaje.BORRADOR, creado_por=self.gestor, leido=True)
+        crear_mensaje(self.informes, 'borradores', de='informes@grupovicaf.com', asunto='De Jorge',
+                      estado=Mensaje.BORRADOR, creado_por=self.jefe, leido=True)
+        self.entrar(self.gestor)
+        p = self.avisos().json()['pendientes']
+        self.assertEqual(p['asignados']['n'], 1)
+        self.assertEqual(p['asignados']['lista'][0]['id'], self.m.pk)
+        self.assertEqual(p['fallidos']['n'], 1)
+        self.assertEqual(p['fallidos']['lista'][0]['asunto'], 'Rebotó')
+        self.assertEqual(p['borradores']['n'], 1)  # solo los suyos
+        self.assertIn('/redactar/', p['borradores']['lista'][0]['url'])
+        self.assertEqual(p['borradores']['lista'][0]['de'], 'Sin destinatario')
+        # Atendido deja de estar pendiente
+        Asignacion.objects.filter(asignado_a=self.gestor).update(estado=Asignacion.ATENDIDO)
+        self.assertEqual(self.avisos().json()['pendientes']['asignados']['n'], 0)
