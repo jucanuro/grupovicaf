@@ -35,9 +35,19 @@ CAMPOS_REDES = (
 _HTTPS = re.compile(r'^https://[^\s"<>]+$', re.IGNORECASE)
 
 
+def _url_estatica(ruta):
+    url = static(ruta)
+    return url if url.startswith('http') else settings.SITE_URL.rstrip('/') + url
+
+
 def url_logo():
-    ruta = static('img/LogoF.png')
-    return ruta if ruta.startswith('http') else settings.SITE_URL.rstrip('/') + ruta
+    return _url_estatica('img/LogoF.png')
+
+
+def url_icono(nombre):
+    """PNG (círculo naranja con el símbolo en azul) alojado en el sitio: Gmail y
+    Outlook no muestran SVG ni imágenes en base64."""
+    return _url_estatica(f'img/firma/{nombre}.png')
 
 
 def datos_iniciales(usuario=None):
@@ -85,7 +95,7 @@ def _e(texto):
     return html_lib.escape(texto, quote=True)
 
 
-def _fila(etiqueta, texto, enlace=None):
+def _fila(icono, texto, enlace=None):
     if not texto:
         return ''
     contenido = _e(texto)
@@ -93,20 +103,17 @@ def _fila(etiqueta, texto, enlace=None):
         contenido = f'<a href="{_e(enlace)}" style="color:{GRIS};text-decoration:none">{contenido}</a>'
     return (
         f'<tr>'
-        f'<td width="44" valign="top" style="width:44px;padding:3px 8px 3px 0;{FUENTE};font-size:10px;'
-        f'line-height:18px;font-weight:bold;letter-spacing:1px;color:{AZUL_CLARO}">{etiqueta}</td>'
-        f'<td valign="top" style="padding:3px 0;{FUENTE};font-size:13px;line-height:18px;color:{GRIS}">{contenido}</td>'
+        f'<td width="30" valign="middle" style="width:30px;padding:3px 10px 3px 0">'
+        f'<img src="{_e(url_icono(icono))}" alt="" width="20" height="20" style="width:20px;height:20px"></td>'
+        f'<td valign="middle" style="padding:3px 0;{FUENTE};font-size:13px;line-height:18px;color:{GRIS}">{contenido}</td>'
         f'</tr>')
 
 
-def _boton(enlace, texto):
-    """Botón redondeado: es una celda porque el tamaño y el fondo solo valen ahí
-    (el sanitizador no admite display ni degradados)."""
+def _boton(enlace, icono, etiqueta):
     return (
-        f'<td bgcolor="{NARANJA}" style="background-color:{NARANJA};border-radius:14px;padding:5px 14px">'
-        f'<a href="{_e(enlace)}" style="color:{AZUL};text-decoration:none;{FUENTE};font-size:12px;'
-        f'font-weight:bold">{_e(texto)}</a></td>'
-        f'<td width="8" style="width:8px"></td>')
+        f'<td valign="middle" style="padding:0 6px 0 0"><a href="{_e(enlace)}" title="{_e(etiqueta)}">'
+        f'<img src="{_e(url_icono(icono))}" alt="{_e(etiqueta)}" width="28" height="28" '
+        f'style="width:28px;height:28px;border-radius:14px"></a></td>')
 
 
 def generar_html(datos):
@@ -115,17 +122,19 @@ def generar_html(datos):
     ubicacion = ', '.join(p for p in (d['direccion'], d['ciudad']) if p)
     telefono_enlace = f"tel:{re.sub(r'[^0-9+]', '', d['telefono'])}" if re.search(r'\d', d['telefono']) else None
     filas = ''.join((
-        _fila('TEL', d['telefono'], telefono_enlace),
-        _fila('MAIL', d['correo'], f"mailto:{d['correo']}" if '@' in d['correo'] else None),
-        _fila('SEDE', ubicacion),
+        _fila('telefono', d['telefono'], telefono_enlace),
+        _fila('correo', d['correo'], f"mailto:{d['correo']}" if '@' in d['correo'] else None),
+        _fila('sede', ubicacion),
     ))
     cargo = (f'<div style="{FUENTE};font-size:11px;line-height:16px;font-weight:bold;letter-spacing:2px;'
              f'color:{NARANJA};padding:2px 0 10px 0">{_e(d["cargo"].upper())}</div>') if d['cargo'] else (
         '<div style="height:8px;line-height:8px">&nbsp;</div>')
-    botones = ''.join(_boton(d[c], etiqueta) for c, _e_, etiqueta in CAMPOS_REDES if d[c])
+    botones = ''.join(_boton(d[c], c, etiqueta) for c, etiqueta, _m in CAMPOS_REDES if d[c])
     barra_redes = (
         f'<tr><td colspan="2" bgcolor="{AZUL}" style="background-color:{AZUL};padding:10px 16px">'
-        f'<table cellpadding="0" cellspacing="0" border="0"><tr>{botones}</tr></table></td></tr>'
+        f'<table cellpadding="0" cellspacing="0" border="0"><tr>'
+        f'<td valign="middle" style="padding:0 14px 0 0;{FUENTE};font-size:11px;font-weight:bold;'
+        f'letter-spacing:2px;color:#ffffff">SÍGUENOS</td>{botones}</tr></table></td></tr>'
     ) if botones else ''
     return (
         f'<table cellpadding="0" cellspacing="0" border="0" width="520" '
