@@ -805,3 +805,122 @@ a.adjunto:hover { border-color: var(--acento); background: var(--acento-suave); 
     line-height: 18px; text-align: center; box-sizing: border-box;
 }
 .campana__n[hidden] { display: none; }
+
+/* =====================================================================
+   Modo oscuro (static/js/tema.js pone html.dark). Se cambian los tokens y
+   los pocos colores escritos a mano. El cuerpo de cada correo (iframe) se
+   sigue mostrando sobre blanco, como en Outlook: el HTML del remitente
+   supone fondo blanco.
+   ===================================================================== */
+html:not(.dark) .tema-solo-oscuro,
+html.dark .tema-solo-claro { display: none !important; }
+.boton-icono > .tema-solo-claro, .boton-icono > .tema-solo-oscuro,
+.boton > .tema-solo-claro, .boton > .tema-solo-oscuro { display: inline-flex; }
+
+html.dark {
+    color-scheme: dark;
+    --tinta: #E2E8F0;
+    --tinta-2: #AAB6C8;
+    --tinta-3: #8494AA;
+    --lienzo: #0B1220;
+    --blanco: #111A2B;
+    --borde: #27354B;
+    --acento: #60A5FA;
+    --acento-suave: rgba(59, 130, 246, .16);
+    --exito: #34D399;
+    --exito-suave: rgba(16, 185, 129, .14);
+    --aviso: #FBBF24;
+    --aviso-suave: rgba(245, 158, 11, .14);
+    --rojo: #F87171;
+    --rojo-suave: rgba(239, 68, 68, .14);
+    --sombra: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .35);
+    --linea: #223047;
+    --hover: #162133;
+    --activa: rgba(59, 130, 246, .18);
+}
+html.dark body {
+    background-image:
+        linear-gradient(rgba(148, 163, 184, .04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, .04) 1px, transparent 1px);
+}
+html.dark ::placeholder { color: #64748B; }
+
+/* Botones de color: fondo saturado con texto blanco (el token --acento es para texto). */
+html.dark .boton--primario { background: #2563EB; }
+html.dark .boton--primario:hover { background: #3B82F6; }
+html.dark .boton--verde { background: #15803D; }
+html.dark .boton--verde:hover { background: #16A34A; }
+html.dark .boton--suave:hover { border-color: #334359; background: #162133; }
+html.dark .boton--inactivo { background: #162133; }
+html.dark .cuenta__nuevos, html.dark .ficha:focus { background: #2563EB; color: #fff; }
+html.dark .saltar, html.dark .avisos__item { background: #1E293B; color: #F1F5F9; }
+html.dark .avisos__item--error { background: #7F1D1D; }
+html.dark .avisos__item--success { background: #14532D; }
+
+/* Portada de inicio (laboratorio./inicio/) */
+html.dark .entrada .tarjeta--brillo {
+    background:
+        linear-gradient(var(--blanco), var(--blanco)) padding-box,
+        linear-gradient(140deg, rgba(37, 99, 235, .55), rgba(39, 53, 75, .9) 40%, rgba(99, 102, 241, .35)) border-box;
+}
+html.dark .entrada .tarjeta--brillo + .tarjeta--brillo,
+html.dark .entrada .tarjeta--brillo[data-tarjeta="sistema"] {
+    background:
+        linear-gradient(var(--blanco), var(--blanco)) padding-box,
+        linear-gradient(140deg, rgba(16, 185, 129, .55), rgba(39, 53, 75, .9) 40%, rgba(37, 99, 235, .3)) border-box;
+}
+html.dark .entrada .tarjeta--bloqueada { background: #162133; border-color: #334359; }
+html.dark .entrada .tarjeta--bloqueada .tarjeta__icono--azul { background: #334155; }
+html.dark .cuenta { background: #162133; }
+html.dark .cuenta:hover { background: #1B273B; border-color: rgba(99, 102, 241, .45); box-shadow: none; }
+html.dark .cuenta__rol, html.dark .boton-icono, html.dark .chip, html.dark .boton-icono:disabled { background: #1B273B; }
+html.dark .pila__item { border-color: var(--blanco); }
+html.dark .modulos li { color: #6EE7B7; border-color: rgba(16, 185, 129, .4); }
+html.dark .aviso, html.dark .aviso--ambar { border-color: rgba(245, 158, 11, .35); }
+
+/* Plataforma (bandeja, lectura, redactar) */
+html.dark .busqueda-rapida { background: #162133; }
+html.dark .lateral, html.dark .lateral__nuevo { background: #0E1626; }
+html.dark .carpeta:hover { background: #162133; }
+html.dark .fila { border-bottom-color: var(--linea); }
+html.dark .fila:hover { background: #142036; }
+html.dark .lectura { background: #0E1626; }
+html.dark .lectura__vacia svg { color: #334359; }
+html.dark .mensaje { box-shadow: none; }
+html.dark .mensaje__cabeza:hover { background: #142036; }
+html.dark .mensaje__barra { border-bottom-color: var(--linea); }
+html.dark .mensaje__iframe { background: #fff; border-radius: 8px; }
+html.dark .aviso--rojo { border-color: rgba(239, 68, 68, .4); }
+html.dark .aviso--ambar { border-color: rgba(245, 158, 11, .35); }
+html.dark .aviso--suave { background: #162133; }
+html.dark .firma__vista { background: #fff; }
+html.dark .redactor__soltar { background: rgba(17, 26, 43, .92); }
+html.dark .avatar { background: rgba(99, 102, 241, .2); color: #C7D2FE; }
+html.dark .avatar--cliente { background: var(--exito-suave); color: var(--exito); }
+html.dark .avatar--vicaf, html.dark .avatar--equipo { background: rgba(59, 130, 246, .2); }
+html.dark .ficha { background: #1B273B; }
+html.dark .ficha:hover { background: #24324A; }
+html.dark .ficha--invalida { border-color: rgba(239, 68, 68, .5); }
+html.dark .ficha__quitar:hover { background: rgba(255, 255, 255, .12); }
+html.dark .cita { background: #162133; }
+html.dark .dialogo::backdrop { background: rgba(0, 0, 0, .55); }
+
+/* Editor Quill (tema snow) */
+html.dark .editor__barra.ql-toolbar.ql-snow { background: #162133; border-color: var(--borde); }
+html.dark .ql-snow .ql-stroke { stroke: #CBD5E1; }
+html.dark .ql-snow .ql-fill, html.dark .ql-snow .ql-stroke.ql-fill { fill: #CBD5E1; }
+html.dark .ql-snow .ql-picker { color: #CBD5E1; }
+html.dark .ql-snow .ql-picker-options { background: #111A2B; border-color: var(--borde); }
+html.dark .ql-snow button:hover .ql-stroke, html.dark .ql-snow .ql-active .ql-stroke { stroke: #60A5FA; }
+html.dark .ql-snow button:hover .ql-fill, html.dark .ql-snow .ql-active .ql-fill { fill: #60A5FA; }
+html.dark .ql-container.ql-snow { border-color: var(--borde); }
+html.dark .ql-editor.ql-blank::before { color: #64748B; }
+html.dark .ql-snow .ql-tooltip { background: #111A2B; border-color: var(--borde); color: var(--tinta); box-shadow: var(--sombra); }
+
+@media print {
+    html.dark { color-scheme: light; }
+}
+/* Logo (texto azul marino) sobre un fondo claro, como en la portada. */
+html.dark .barra--app .barra__marca img { background: #F8FAFC; border-radius: 6px; padding: 2px 5px; box-sizing: content-box; }
+/* En el celular el botón de la portada queda solo con el icono (aria-label lo nombra). */
+@media (max-width: 760px) { .barra [data-tema-texto] { display: none; } }

@@ -13,6 +13,11 @@
         </a>
         <form class="barra__acciones" method="post" action="{% url 'logout' %}">
             {% csrf_token %}
+            <button type="button" class="boton boton--cristal" data-tema-alternar aria-pressed="false" aria-label="Cambiar a modo oscuro" title="Cambiar a modo oscuro">
+                <span class="tema-solo-claro">{% include 'correo/_iconos.html' with nombre='luna' %}</span>
+                <span class="tema-solo-oscuro">{% include 'correo/_iconos.html' with nombre='sol' %}</span>
+                <span data-tema-texto>Modo oscuro</span>
+            </button>
             <a class="boton boton--cristal" href="{% url 'cambiar_clave' %}">Cambiar contraseña</a>
             <button type="submit" class="boton boton--cristal">{% include 'correo/_iconos.html' with nombre='salir' %}Cerrar sesión</button>
         </form>

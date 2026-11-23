@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Vicaf - Enterprise Experience V6{% endblock %}</title>
+    {# Modo claro/oscuro: sin defer, antes de pintar, para que no parpadee (static/js/tema.js). #}
+    <script src="{% static 'js/tema.js' %}"></script>
+    <meta name="color-scheme" content="light dark">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,6 +15,8 @@
 
     <link rel="stylesheet" href="{% static 'css/vicafstyle.css' %}">
     <link rel="stylesheet" href="{% static 'css/menu_lateral.css' %}">
+    <link rel="stylesheet" href="{% static 'css/tema_oscuro_utilidades.css' %}">
+    <link rel="stylesheet" href="{% static 'css/tema_oscuro.css' %}">
     <script src="https://cdn.tailwindcss.com"></script>
 
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
@@ -122,6 +127,7 @@
 
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
