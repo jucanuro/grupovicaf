@@ -22,10 +22,24 @@
             <span class="tema-solo-claro">{% include 'correo/_iconos.html' with nombre='luna' %}</span>
             <span class="tema-solo-oscuro">{% include 'correo/_iconos.html' with nombre='sol' %}</span>
         </button>
-        <button type="button" class="boton-icono" data-avisos-sonido aria-pressed="true" aria-label="Avisos con sonido" title="Avisos con sonido">
-            <span data-avisos-on>{% include 'correo/_iconos.html' with nombre='campana' %}</span>
-            <span data-avisos-off hidden>{% include 'correo/_iconos.html' with nombre='campana_off' %}</span>
-        </button>
+        <div class="avisos-menu">
+            <button type="button" class="boton-icono campana" id="avisos-boton" data-avisos-abrir aria-haspopup="true" aria-expanded="false" aria-controls="avisos-panel" aria-label="Avisos y pendientes" title="Avisos y pendientes">
+                {% include 'correo/_iconos.html' with nombre='campana' %}<span class="campana__n campana__n--pendientes" data-avisos-pendientes hidden>0</span>
+            </button>
+            <section class="avisos-panel" id="avisos-panel" data-avisos-panel aria-labelledby="avisos-panel-titulo" hidden>
+                <header class="avisos-panel__cabeza">
+                    <h2 class="avisos-panel__titulo" id="avisos-panel-titulo">Avisos</h2>
+                    <button type="button" class="avisos-panel__sonido" data-avisos-sonido aria-pressed="true" title="Avisos con sonido">
+                        <span data-avisos-on>{% include 'correo/_iconos.html' with nombre='campana' %}</span>
+                        <span data-avisos-off hidden>{% include 'correo/_iconos.html' with nombre='campana_off' %}</span>
+                        <span data-avisos-sonido-texto>Sonido activado</span>
+                    </button>
+                </header>
+                <div class="avisos-panel__cuerpo" data-avisos-cuerpo>
+                    <p class="avisos-panel__vacio">Cargando…</p>
+                </div>
+            </section>
+        </div>
         <a class="boton boton--primario boton--chico solo-movil" href="{% url 'redactar' %}{% if cuenta_actual %}?cuenta={{ cuenta_actual.slug }}{% endif %}" aria-label="Nuevo correo">{% include 'correo/_iconos.html' with nombre='lapiz' %}</a>
         {% puede_administrar_correo request.user as administra %}
         {% if administra %}<a class="boton-icono" href="{% url 'admin_cuentas' %}" aria-label="Administrar cuentas" title="Administrar cuentas y accesos">{% include 'correo/_iconos.html' with nombre='usuarios' %}</a>{% endif %}
