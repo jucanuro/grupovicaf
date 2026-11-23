@@ -77,13 +77,14 @@ def _slug_libre(direccion):
     return slug
 
 
-def crear_cuenta(actor, *, direccion, nombre, darme_acceso=True):
+def crear_cuenta(actor, *, direccion, nombre, darme_acceso=True, personal=False):
     if not es_admin_correo(actor):
         raise PermissionDenied('Solo un administrador del correo crea cuentas.')
     direccion = validar_direccion(direccion)
     nombre = (nombre or '').strip()[:120] or direccion.split('@')[0].title()
     with transaction.atomic():
-        cuenta = CuentaCorreo.objects.create(direccion=direccion, nombre=nombre, slug=_slug_libre(direccion))
+        cuenta = CuentaCorreo.objects.create(
+            direccion=direccion, nombre=nombre, slug=_slug_libre(direccion), personal=personal)
         asegurar_carpetas(cuenta)
         registrar(cuenta, actor, EventoCuenta.CREO, nombre=nombre)
         if darme_acceso:
@@ -99,6 +100,13 @@ def renombrar_cuenta(actor, cuenta, nombre):
         cuenta.save(update_fields=['nombre'])
         registrar(cuenta, actor, EventoCuenta.EDITO, nombre=[anterior, nombre])
     return cuenta
+
+
+def cambiar_tipo(actor, cuenta, personal):
+    if cuenta.personal != personal:
+        cuenta.personal = personal
+        cuenta.save(update_fields=['personal'])
+        registrar(cuenta, actor, EventoCuenta.EDITO, personal=[not personal, personal])
 
 
 def cambiar_estado(actor, cuenta, activa):

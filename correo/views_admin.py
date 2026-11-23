@@ -50,7 +50,7 @@ def crear(request):
     try:
         cuenta = adm.crear_cuenta(
             request.user, direccion=request.POST.get('direccion'), nombre=request.POST.get('nombre'),
-            darme_acceso=request.POST.get('darme_acceso') == '1',
+            darme_acceso=request.POST.get('darme_acceso') == '1', personal=request.POST.get('tipo') == 'personal',
         )
     except ValidationError as error:
         messages.error(request, ' '.join(error.messages))
@@ -80,6 +80,8 @@ def guardar(request, slug):
     if 'activa' in request.POST:  # primero lo que exige más permiso: si falla, no cambia nada
         adm.cambiar_estado(request.user, cuenta, request.POST.get('activa') == '1')
     adm.renombrar_cuenta(request.user, cuenta, request.POST.get('nombre'))
+    if 'tipo' in request.POST:
+        adm.cambiar_tipo(request.user, cuenta, request.POST.get('tipo') == 'personal')
     messages.success(request, 'Cuenta actualizada.')
     return redirect('admin_cuenta', cuenta.slug)
 

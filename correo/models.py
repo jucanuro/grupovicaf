@@ -21,6 +21,10 @@ class CuentaCorreo(models.Model):
     nombre = models.CharField('nombre visible', max_length=120)
     slug = models.SlugField(unique=True, help_text='Se usa en la URL: /c/<slug>/bandeja/')
     activa = models.BooleanField(default=True)
+    personal = models.BooleanField(
+        'buzón personal', default=False,
+        help_text='Buzón de una sola persona (juan@…). Se muestra arriba, aparte de los compartidos (informes@…).',
+    )
     firma_predeterminada = models.ForeignKey(
         'Firma', null=True, blank=True, on_delete=models.SET_NULL, related_name='+',
         verbose_name='firma predeterminada',
