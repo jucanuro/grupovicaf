@@ -13,7 +13,7 @@ DATOS = dict(nombre='Gina Gestora', cargo='Jefa de Laboratorio', telefono='+51 9
 class GenerarHtmlTests(SimpleTestCase):
     def test_lleva_los_datos_y_solo_las_redes_llenas(self):
         html = fp.generar_html(fp.limpiar_datos(DATOS))
-        for texto in ('Gina Gestora', 'Jefa de Laboratorio', 'mailto:gina@grupovicaf.com', 'tel:+51976000000',
+        for texto in ('Gina Gestora', 'JEFA DE LABORATORIO', 'mailto:gina@grupovicaf.com', 'tel:+51976000000',
                       'Jr. Lima 123, Cajamarca', 'https://instagram.com/vicaf', 'LogoF'):
             self.assertIn(texto, html)
         self.assertNotIn('Facebook', html)
