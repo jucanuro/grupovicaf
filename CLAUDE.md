@@ -90,6 +90,84 @@ y quejas de SES (`procesar_evento_ses`: rebote permanente = «Falló el envío»
 `CORREO_SES_CONFIG_SET` añade la cabecera de conjunto de configuración. Guía:
 `deploy/cloudflare/README.md`.
 
+**Resultados de ensayo (fase 1).** Cada línea de la solicitud
+(`DetalleSolicitudEnsayo`) tiene un `ResultadoEnsayo` (antes `EnsayoCompresion`)
+con `plantilla`: «compresion» (ASTM C39 / EC001, lo de abajo) o «general»
+(fecha, resumen, hoja de cálculo privada en `ENSAYOS_FOTOS_DIR` y 2 fotos; no
+pide sesión). Rutas en `/proyectos/resultados/` (las viejas `/compresion/`
+redirigen con 301). El estado de la `SolicitudEnsayo` lo pone
+`sincronizar_estado()`: en proceso con el primer resultado, finalizado cuando
+todas las líneas terminan; «Finalizar» a mano se bloquea sin todos los
+resultados. Quien ejecutó una línea no la devuelve ni la aprueba (ISO 17025).
+En la lista de solicitudes, ▶ inicia (pasa a «en proceso») y el icono verde
+abre `/proyectos/resultados/solicitud/<id>/` (pantalla completa con los pasos
+Iniciar → Registrar resultados → Revisión → Informe y cada ensayo por
+registrar); ya no se finaliza a mano. Quien ve todos los ensayos puede pasar el
+formato en papel a nombre del técnico asignado: abre su sesión
+(`?tecnico=<id>`) y la línea queda «Ejecutado por» el técnico y
+`registrado_por` quien la escribió.
+El registro de compresión sigue el orden del laboratorio: 1 datos del cliente
+(el técnico los copia; `DatosClienteProbetaForm`), 2 medidas y masa, 3 fotos
+en la prensa antes de ensayar, 4 carga + resultado preliminar + foto del
+display, 5 probeta rota (falla y 2 fotos); orden en `FotoEnsayo.ORDEN_TOMA`.
+«Medir y pesar todas primero» (`/resultados/solicitud/<id>/medidas/`) guarda
+masa, D y L de todas las probetas de corrido. Trazabilidad: toda corrección de
+un dato ya guardado (también datos del cliente y fotos reemplazadas) queda en
+`CambioResultado` (`proyectos/trazabilidad.py`) y se ve en la revisión.
+Plazo de entrega (oferta VCF-LAB-FOR-001, `proyectos/plazos.py`): probetas 24 h
+después del ensayo; sábado/domingo → lunes. Se ve en la pantalla de la
+solicitud y en la lista de revisión (vencido en rojo).
+
+**Informe tipo Word (fase 2).** Todo informe, también el de compresión, pasa por el
+editor: al aprobar los resultados se abre `/proyectos/resultados/informe/<id>/editor/`
+(`views_informe_editor.py`, `informe_editor.py`, permiso `informes.aprobar`).
+TipTap 2.27.1 va empaquetado en `static/vendor/tiptap-2.27.1/` (sin CDN). El
+`BorradorInforme` guarda el JSON del editor con autoguardado y control de
+versión (409 si otra pestaña guardó antes) y un `VersionInforme` cada 10 min o
+al cambiar de autor. Los «bloques de datos» (carátula, resultados, fotos,
+equipos, firmas) solo guardan tipo y referencia y se dibujan desde la base
+(`templates/proyectos/informe_bloques/`); el JSON se valida con lista blanca
+antes de guardar y de renderizar. Emitir exige los bloques obligatorios y que
+quien firma no haya ejecutado ningún ensayo; congela `html_emitido` y Celery
+(`generar_informe_editor`) arma el PDF con WeasyPrint. El texto de los bloques
+se puede seleccionar y copiar; con el permiso `informes.editar_datos` (no se da a
+ningún rol por defecto) un bloque de carátula, resultados, equipos o notas se
+puede «Convertir en texto editable» (nodo `bloqueEditado`): queda en el
+historial, ya no se actualiza solo y el servidor rechaza (403) que alguien sin
+el permiso lo cree o cambie su texto. El editor se abre a pantalla completa
+(como Word: barra arriba, hoja A4 con cortes de página aproximados, barra de
+estado con palabras, páginas y zoom); «Salir» vuelve a la vista con el menú.
+
+**Ensayo de compresión (HU-LIMS-14).** `proyectos/views_compresion.py`:
+el técnico registra en el celular cada probeta de ASTM C39 / EC001 asignada
+(`/proyectos/resultados/`) con 5 fotos obligatorias recortadas con proporción
+fija (Cropper.js 1.6.2 vendorizado; carga 18:7, probeta 4:7, en
+`FotoEnsayo.PROPORCIONES`). Al abrir el recorte, `static/js/centrado_foto.js`
+coloca el marco sobre la probeta o el display (en el celular, sin librerías;
+si no encuentra nada claro deja el marco centrado). Sin las 5 fotos y la fecha no se puede terminar.
+Las fotos van a `ENSAYOS_FOTOS_DIR` (privado, nunca MEDIA_ROOT; en prod debe
+existir, ser escribible por el servicio y entrar en el backup) y se sirven
+por una vista con sesión. Permiso `ensayos.registrar`.
+Medidas y cálculos (HU-LIMS-11 a 13): recepción llena los datos FOR-004 de
+cada probeta (`/proyectos/recepcion/<id>/probetas/`, permiso `muestras.editar`);
+el técnico abre una `SesionEnsayo` (T/HR y los 6 equipos con calibración
+vigente; `Equipo` en `/proyectos/equipos/`, permisos `equipos.ver`/`equipos.editar`)
+y registra masa, D1-D2, L1-L3, carga y fractura. Como en el formato de registro en papel
+(versión 09): la sesión también pide anillos retenedores, neoprenos (con n.º de
+usos) y la comprobación funcional de equipos (`SesionEnsayo.COMPROBACION`; si un
+equipo no pasa, no se abre la sesión), y cada probeta lleva la verificación del
+diámetro (calculada, ≤ 2 %), perpendicularidad y planitud (las marca el técnico),
+defectos a-e (`tipos_defecto` + texto de «Otros») y si se grabó video. Las reglas de cálculo están en
+`proyectos/calculos_compresion.py` (π = 3,1416 como la hoja del laboratorio) y
+su copia de vista previa en `static/js/compresion_calculos.js`: si cambia una,
+cambiar la otra.
+Revisión e informe (HU-LIMS-15 a 19, `views_informe_compresion.py`): quien
+tiene `informes.aprobar` devuelve o aprueba en `/proyectos/resultados/revision/`;
+al aprobar (todas terminadas y sesiones cerradas) se pasa al editor del informe;
+el PDF antiguo (`informe_compresion_pdf.html`, `generar_informe_compresion`)
+solo queda para regenerar informes emitidos antes del editor. Excel con openpyxl (`informes.exportar`); envío al cliente con
+`enviar_informe_cliente`.
+
 ### Capa web (pública) — prefijo `web_` obligatorio
 
 | App | Responsabilidad |

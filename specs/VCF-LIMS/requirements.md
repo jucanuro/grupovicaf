@@ -100,6 +100,54 @@ pago y aprobación a crédito (PM-R01); por eso cobrado y saldo son "referencial
 | REQ-LIMS-42 | HU-LIMS-06 | EL SISTEMA DEBE mostrar cada número según su tipo: montos en S/ con dos decimales, conteos y cantidades sin decimales de más, días y porcentajes con un decimal en promedios; y elegir el cálculo al soltar (montos y cantidades se suman, días y % se promedian). | sí (unitaria JS + E2E) | [Decisión Gerente] |
 | REQ-LIMS-43 | HU-LIMS-08 | EL SISTEMA DEBE explicar el resultado con una frase y mostrar los totales antes de la tabla, y ofrecer las vistas rápidas como preguntas frecuentes. | sí (E2E) | [Decisión Gerente] |
 
+## 2c. Panel de proyectos con avance por muestra (v3)
+
+Origen: pedido del Gerente del 2026-11-22 en el hilo «Rediseñar dashboard con
+avance por muestra», aprobado sobre el segundo mockup («me gusta, impleméntalo»).
+Pantalla: `/proyectos/pendientes/` (menú «Proyectos»). HU-LIMS-19: *como jefe de
+laboratorio quiero ver, por proyecto, en qué etapa está cada muestra y la acción
+más urgente, para no perder ninguna muestra en el flujo*.
+
+| ID | Regla |
+|---|---|
+| RN-09 | Etapa de una muestra (`MuestraDetalle`): **Con informe** si la solicitud de su recepción tiene `InformeFinal`; si no, **En ensayo** si tiene una línea `DetalleSolicitudEnsayo`; si no, **Recibida**. **Por ingresar** = `Proyecto.numero_muestras` − muestras registradas (nunca negativo). [Supuesto] una fila de `MuestraDetalle` = una muestra, igual que `sembrar_demo` y Análisis. |
+| RN-10 | % de avance = Σ peso de cada muestra / (total × 3), con pesos Por ingresar 0, Recibida 1, En ensayo 2, Con informe 3. Total = previstas o registradas, la mayor. [Propuesto] |
+| RN-11 | Acción más urgente, en orden: registrar las que faltan → revisar y emitir el informe de una solicitud finalizada sin informe → asignar ensayos a las recibidas → seguir las que están en ensayo → ver informes (proyecto completo). [Propuesto] |
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-44 | HU-LIMS-19 | CUANDO un usuario con `proyectos.ver` abra el panel de proyectos, EL SISTEMA DEBE mostrar por proyecto el % de avance (RN-10) con una barra en degradado verde → azul. | sí (unitaria + E2E) | [Validado con usuario] |
+| REQ-LIMS-45 | HU-LIMS-19 | EL SISTEMA DEBE mostrar por proyecto cuatro etapas en orden del flujo (Por ingresar, Recibidas, En ensayo, Con informe) con la cantidad de muestras de cada una (RN-09). | sí (unitaria + E2E) | [Validado con usuario] |
+| REQ-LIMS-46 | HU-LIMS-19 | CUANDO el usuario pulse una etapa, EL SISTEMA DEBE abrir su pantalla acotada al proyecto: Por ingresar → nueva recepción del proyecto; Recibidas → recepciones; En ensayo → solicitudes; Con informe → informes (`?proyecto=<id>`, con aviso del filtro y «Ver todos»). | sí (unitaria + E2E) | [Validado con usuario] |
+| REQ-LIMS-47 | HU-LIMS-19 | EL SISTEMA DEBE mostrar un botón destacado con la acción más urgente (RN-11) que lleve a su pantalla. | sí (unitaria + E2E) | [Validado con usuario] |
+| REQ-LIMS-48 | HU-LIMS-19 | SI una solicitud del proyecto está finalizada sin informe y no faltan muestras, ENTONCES EL SISTEMA DEBE ofrecer «Revisar y emitir informe» hacia la revisión de esa solicitud. | sí (unitaria) | [Propuesto] |
+| REQ-LIMS-49 | HU-LIMS-19 | SI el proyecto no tiene cotización, ENTONCES EL SISTEMA DEBE mostrar «Sin cotización vinculada» sin etapas ni acción. | sí (unitaria) | [Propuesto] |
+| REQ-LIMS-50 | HU-LIMS-19 | CUANDO todas las muestras tengan informe, EL SISTEMA DEBE mostrar «Completo» en lugar del % y la acción «Ver informes». | sí (unitaria) | [Propuesto] |
+| REQ-LIMS-51 | HU-LIMS-19 | SI el usuario no tiene el permiso de la pantalla de una etapa o de la acción, ENTONCES EL SISTEMA DEBE mostrarla sin enlace. | sí (unitaria + E2E) | [Propuesto] |
+| REQ-LIMS-52 | HU-LIMS-19 | EL SISTEMA DEBE calcular el avance de una página del panel con un número fijo de consultas. | sí (unitaria) | [Propuesto] |
+
+## 2d. Formulario de cotización: pasos en pills y detalle en modal (v4)
+
+Origen: pedido del Gerente del 2026-11-22 en el hilo «Rediseñar formulario de
+cotización con modal», aprobado sobre el mockup («del resto de los tabs dale el
+mismo diseño»). Pantallas: `/servicios/cotizaciones/crear/` y
+`/servicios/cotizaciones/editar/<id>/`. HU-LIMS-20: *como comercial quiero
+llenar el detalle de la cotización en una ventana amplia, para elegir servicios
+con comodidad*. Solo cambia la presentación: agregar, editar, ordenar y quitar
+ítems, el total y las validaciones al guardar siguen igual.
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-53 | HU-LIMS-20 | EL SISTEMA DEBE mostrar los 4 pasos (Cliente, Servicios, Condiciones, Contenido) como pills redondeadas con su número; el paso activo con fondo en degradado azul → índigo y texto blanco, los demás en gris claro. | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-54 | HU-LIMS-20 | MIENTRAS el detalle no tenga ítems, EL SISTEMA DEBE mostrar en el paso Servicios un estado vacío con un solo botón «Agregar detalle», sin el panel de selección ni la tabla. | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-55 | HU-LIMS-20 | CUANDO el usuario pulse «Agregar detalle», EL SISTEMA DEBE abrir un modal a pantalla completa con el formulario (categoría, sub-categoría, servicio, norma, método, cantidad y precio) apilado a la izquierda y la tabla del detalle a la derecha, ocupando el resto del ancho (el formulario usa cerca de un tercio, entre 380 y 640 px). | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-56 | HU-LIMS-20 | CUANDO el usuario pulse «Agregar a la tabla», EL SISTEMA DEBE añadir el ítem a la tabla del modal sin cerrarlo; CUANDO pulse «Guardar detalle», EL SISTEMA DEBE cerrar el modal y mostrar en el paso Servicios solo la tabla con un botón «Editar» por fila. | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-57 | HU-LIMS-20 | CUANDO el usuario pulse «Editar» en una fila (del paso Servicios o de la tabla del modal), EL SISTEMA DEBE abrir el modal, cargar la fila en el formulario, resaltarla y, al «Actualizar ítem», reemplazarla sin cerrar el modal. | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-58 | HU-LIMS-20 | SI el usuario pulsa «Agregar a la tabla» sin elegir un servicio, ENTONCES EL SISTEMA DEBE avisarlo dentro del modal sin cerrarlo. | sí (E2E) | [Propuesto] |
+| REQ-LIMS-59 | HU-LIMS-20 | DONDE la pantalla mida menos de 768 px, EL SISTEMA DEBE mostrar el modal a pantalla completa y sin desplazamiento horizontal. | sí (E2E) | [Propuesto] |
+| REQ-LIMS-60 | HU-LIMS-20 | SI al pulsar «Guardar detalle» hay un servicio elegido sin agregar, ENTONCES EL SISTEMA DEBE agregarlo (o actualizar la fila en edición) antes de cerrar. | sí (E2E) | [Propuesto] |
+| REQ-LIMS-61 | HU-LIMS-20 | MIENTRAS se edita una fila, EL SISTEMA DEBE ofrecer «Cancelar edición», que vuelve el formulario a «Agregar ítem» sin cambiar la fila. | sí (E2E) | [Propuesto] |
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -114,6 +162,8 @@ pago y aprobación a crédito (PM-R01); por eso cobrado y saldo son "referencial
 | HU-LIMS-08 | Vistas rápidas y guardadas | REQ-LIMS-34 a 36 |
 | HU-LIMS-09 | Exportar | REQ-LIMS-37 |
 | HU-LIMS-10 | Seguridad y rendimiento | REQ-LIMS-38 a 40 |
+| HU-LIMS-19 | Panel de proyectos con avance por muestra | REQ-LIMS-44 a 52 |
+| HU-LIMS-20 | Formulario de cotización con detalle en modal | REQ-LIMS-53 a 61 |
 
 ## 4. Preguntas abiertas
 
@@ -128,3 +178,6 @@ pago y aprobación a crédito (PM-R01); por eso cobrado y saldo son "referencial
 | v0 | 2026-10-12 | DLF | Plantilla inicial |
 | v1 | 2026-11-03 | Claude (DLF) | Alcance del dashboard y estados de cotización: RN-01 a 08, REQ-LIMS-01 a 26 |
 | v2 | 2026-11-03 | Claude (DLF) | Análisis con tabla dinámica (PR 1): REQ-LIMS-27 a 40 |
+| v3 | 2026-11-22 | Claude (DLF) | Panel de proyectos con avance por muestra: RN-09 a 11, REQ-LIMS-44 a 52 |
+| v4 | 2026-11-22 | Claude (DLF) | Formulario de cotización: pills y detalle en modal, REQ-LIMS-53 a 59 |
+| v5 | 2026-11-22 | Claude (DLF) | Modal del detalle a pantalla completa (formulario a la izquierda, tabla a la derecha): REQ-LIMS-55 a 57 ajustados, 60 y 61 nuevos |

@@ -1,0 +1,238 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+{% block title %}Informe {{ solicitud.codigo_solicitud }} | VICAF LIMS{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/ensayos.css' %}">
+<style>
+    .ed-barra { position: sticky; top: 0; z-index: 25; background: rgba(248,250,252,.95); backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid var(--v-borde); }
+    .ed-herr { display: flex; align-items: center; gap: .25rem; overflow-x: auto; padding: .4rem .5rem; scrollbar-width: thin; }
+    .ed-herr button, .ed-herr select { flex-shrink: 0; height: 2.1rem; min-width: 2.1rem; padding: 0 .45rem; border-radius: .55rem;
+                display: inline-flex; align-items: center; justify-content: center; gap: .3rem; color: #334155;
+                font-size: .8rem; font-weight: 600; background: transparent; border: 1px solid transparent; }
+    .ed-herr button:hover:not(:disabled), .ed-herr select:hover { background: #fff; border-color: #cbd5e1; }
+    .ed-herr button.activo { background: #dbeafe; color: #1d4ed8; border-color: #bfdbfe; }
+    .ed-herr button:disabled { opacity: .35; }
+    .ed-herr svg { width: 1rem; height: 1rem; }
+    .ed-herr select { border-color: #cbd5e1; background: #fff; padding-right: 1.6rem; }
+    @media (min-width: 1024px) { .ed-herr { flex-wrap: wrap; overflow-x: visible; } }
+    .ed-sep { width: 1px; height: 1.4rem; background: #cbd5e1; margin: 0 .2rem; flex-shrink: 0; }
+    .ed-mesa { background: #e2e8f0; padding: 1.25rem .5rem 2rem; border-radius: 1rem; }
+    .ed-pagina { background: #fff; max-width: 210mm; min-height: 297mm; margin: 0 auto; padding: 16mm 14mm;
+                 box-shadow: 0 12px 34px -12px rgba(15,23,42,.35); border-radius: .25rem; }
+    @media (max-width: 767px) { .ed-pagina { padding: 1.1rem .9rem; min-height: 0; } .ed-mesa { padding: .5rem .25rem 1rem; } }
+    .ed-pagina .ProseMirror { outline: none; min-height: 60vh; }
+    .ed-pagina .ProseMirror p.is-empty::before { content: attr(data-placeholder); color: #94a3b8; float: left; height: 0; pointer-events: none; }
+    .ed-pagina .ProseMirror .selectedCell::after { content: ""; position: absolute; inset: 0; background: rgba(59,130,246,.15); pointer-events: none; }
+    .ed-pagina .ProseMirror td, .ed-pagina .ProseMirror th { position: relative; min-width: 2.5rem; }
+    .bloque-dato { position: relative; margin: 8pt 0; border: 1px dashed #93c5fd; border-radius: 6px; padding: 0 8px 6px;
+                   background: linear-gradient(#f8fbff, #f8fbff); }
+    .bloque-dato__cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 0 4px;
+                   cursor: grab; user-select: none; font: 700 10px/1.3 system-ui, sans-serif; color: #2563eb;
+                   letter-spacing: .02em; text-transform: uppercase; }
+    .bloque-dato__cuerpo { user-select: text; cursor: text; }
+    .bloque-dato__convertir { font: 600 11px/1 system-ui, sans-serif; text-transform: none; letter-spacing: 0; color: #92400e;
+                   background: #fef3c7; border: 1px solid #fcd34d; border-radius: 999px; padding: 3px 8px; cursor: pointer; }
+    .bloque-dato__convertir[data-paso="confirmar"] { background: #b45309; color: #fff; border-color: #b45309; }
+    .bloque-dato.ProseMirror-selectednode { border-style: solid; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.18); }
+    .ed-pagina .bloque-editado { position: relative; margin: 8pt 0; border: 1px dashed #f59e0b; border-radius: 6px; padding: 16px 8px 6px; }
+    .ed-pagina .bloque-editado::before { content: "Dato del sistema editado a mano"; position: absolute; top: 2px; left: 8px;
+                   font: 700 10px/1.3 system-ui, sans-serif; color: #b45309; text-transform: uppercase; letter-spacing: .02em; }
+    .ed-pagina .bloque-editado[contenteditable="false"] { background: #fffbeb; }
+    .bloque-dato img { max-width: 100%; }
+    .ed-estado[data-tipo="error"] { color: #b91c1c; }
+    .ed-estado[data-tipo="ok"] { color: #047857; }
+    /* ---------- Pantalla completa (como Word) ---------- */
+    .ed-solo-completo { display: none !important; }
+    .ed-completo .ed-solo-completo { display: flex !important; }
+    .ed-completo .ed-solo-normal { display: none !important; }
+    .ed-completo { position: fixed; inset: 0; z-index: 1000; max-width: none !important; margin: 0 !important; padding: 0 !important;
+                   display: flex; flex-direction: column; background: #e8eaee; }
+    .ed-completo > * { margin-top: 0 !important; }
+    .ed-completo .v-volver { display: none; }
+    .ed-completo > header { background: #fff; padding: .45rem 1rem; border-bottom: 1px solid #dbe1ea; gap: .5rem; flex-shrink: 0; }
+    .ed-completo > header .v-cabecera__icono { width: 2.1rem; height: 2.1rem; border-radius: .6rem; }
+    .ed-completo > header h1 { font-size: 1rem; }
+    .ed-completo > header p { font-size: .75rem; }
+    .ed-completo > .v-aviso { margin: .5rem 1rem 0 !important; flex-shrink: 0; }
+    .ed-completo > [data-historial] { position: fixed; top: 3.6rem; right: 0; bottom: 2.6rem; width: min(24rem, 100vw); z-index: 1010;
+                   overflow: auto; border-radius: 0; box-shadow: -12px 0 32px -16px rgba(15,23,42,.35); }
+    .ed-completo > .ed-cuerpo { flex: 1; min-height: 0; display: flex; flex-direction: column; border: 0; border-radius: 0;
+                   box-shadow: none; background: transparent; }
+    .ed-completo .ed-barra { position: static; background: #f8fafc; border-bottom: 1px solid #dbe1ea;
+                   box-shadow: 0 2px 6px -4px rgba(15,23,42,.25); }
+    .ed-completo .ed-herr { justify-content: center; }
+    .ed-completo .ed-mesa { flex: 1; overflow: auto; border-radius: 0; background: #e8eaee; padding: 1.5rem .75rem 3rem; }
+    .ed-completo .ed-pagina { box-shadow: 0 1px 3px rgba(15,23,42,.18), 0 10px 30px -12px rgba(15,23,42,.3);
+                   /* Corte aproximado de página A4, como guía al escribir. */
+                   background: repeating-linear-gradient(to bottom, #fff 0, #fff calc(297mm - 1px), #c7ced9 calc(297mm - 1px), #c7ced9 297mm); }
+    .ed-completo > .v-barra { position: static; margin: 0; border-radius: 0; border: 0; border-top: 1px solid #dbe1ea;
+                   padding: .35rem 1rem; box-shadow: none; background: #fff; display: flex; align-items: center; gap: .75rem; }
+    .ed-completo > .v-barra .v-barra__nota { display: none; }
+    .ed-completo > .v-barra .v-barra__fila { margin-left: auto; flex-wrap: nowrap; }
+    .ed-completo > .v-barra .v-btn { min-width: 0; min-height: 2.25rem; padding: .35rem .9rem; font-size: .85rem; }
+    .ed-estado-barra { align-items: center; gap: .9rem; font-size: .75rem; color: #475569; white-space: nowrap; }
+    .ed-estado-barra select { border: 1px solid #cbd5e1; border-radius: .4rem; padding: .1rem 1.4rem .1rem .4rem; font-size: .75rem; background-color: #fff; }
+    @media (max-width: 767px) {
+        .ed-completo > header .v-cabecera p, .ed-estado-barra [data-paginas] { display: none; }
+        .ed-completo .ed-mesa { padding: .5rem .25rem 2rem; }
+        .ed-completo .ed-pagina { background: #fff; }
+        .ed-completo .ed-texto-boton { display: none; }
+        .ed-completo > header > div:last-child { width: 100%; justify-content: flex-end; }
+        .ed-completo > .v-barra { flex-wrap: wrap; }
+    }
+    {% include "proyectos/informe_hoja.css" %}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-3 sm:px-4 pt-4 pb-4 space-y-3" data-editor-informe
+     data-guardar-url="{% url 'proyectos:guardar_informe' solicitud.pk %}"
+     data-version="{{ borrador.version }}" data-solo-lectura="{{ solo_lectura|yesno:'1,' }}"
+     data-editar-datos="{{ puede_editar_datos|yesno:'1,' }}" data-convertibles="{{ bloques_convertibles|join:',' }}">
+
+    <a href="{% url 'proyectos:revision_compresion' solicitud.pk %}" class="v-volver">
+        <i data-lucide="arrow-left"></i> Revisión de resultados
+    </a>
+
+    <header class="flex flex-wrap items-center justify-between gap-3">
+        <div class="v-cabecera">
+            <div class="v-cabecera__icono"><i data-lucide="file-pen-line"></i></div>
+            <div class="min-w-0">
+                <h1>Informe de {{ solicitud.codigo_solicitud }}</h1>
+                <p>{{ solicitud.cotizacion.cliente.razon_social }}{% if informe %} · {{ informe.codigo_informe }}{% endif %}</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="ed-estado text-xs font-semibold text-slate-500" data-estado aria-live="polite">
+                {% if solo_lectura %}Emitido · solo lectura{% else %}Guardado{% endif %}
+            </span>
+            <a href="{% url 'proyectos:vista_previa_informe' solicitud.pk %}" target="_blank" rel="noopener" class="v-btn v-btn--secundario v-btn--sm" data-vista-previa>
+                <i data-lucide="eye"></i> <span class="ed-texto-boton">Vista previa</span>
+            </a>
+            <button type="button" class="v-btn v-btn--secundario v-btn--sm" data-abrir-historial aria-expanded="false" aria-controls="historial">
+                <i data-lucide="history"></i> <span class="ed-texto-boton">Historial</span>
+            </button>
+            <button type="button" class="v-btn v-btn--secundario v-btn--sm" data-pantalla title="Pantalla completa / cerrar (Esc)">
+                <span class="ed-solo-normal inline-flex items-center gap-1.5"><i data-lucide="maximize-2"></i> Pantalla completa</span>
+                <span class="ed-solo-completo items-center gap-1.5" aria-label="Cerrar pantalla completa"><i data-lucide="x"></i></span>
+            </button>
+        </div>
+    </header>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="v-aviso {% if message.tags == 'error' %}v-aviso--error{% else %}v-aviso--ok{% endif %}" role="status">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="v-aviso v-aviso--ambar {% if not faltan %}hidden{% endif %}" role="note" data-faltan>
+        <i data-lucide="triangle-alert"></i>
+        <span>Para emitir falta volver a insertar: <b data-faltan-lista>{{ faltan|join:", " }}</b>. Usa «Insertar dato».</span>
+    </div>
+
+    <aside id="historial" class="v-tarjeta hidden" data-historial>
+        <div class="v-tarjeta__cab"><div><h2>Historial de versiones</h2><p>Se guarda una versión cada 10 minutos de trabajo o cuando cambia la persona que edita.</p></div></div>
+        <ul class="v-tarjeta__cuerpo divide-y divide-slate-100 text-sm">
+            {% for v in versiones %}
+            <li class="py-2 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="font-semibold text-slate-800">Versión {{ v.numero }} · {{ v.creado_en|date:"d/m/Y H:i" }}</p>
+                    <p class="text-xs text-slate-500 truncate">{{ v.autor.nombre_completo|default:"Sistema" }}{% if v.nota %} · {{ v.nota }}{% endif %}</p>
+                </div>
+                {% if not solo_lectura and not forloop.first %}
+                <form method="post" action="{% url 'proyectos:restaurar_version_informe' solicitud.pk v.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="v-btn v-btn--secundario v-btn--sm"><i data-lucide="rotate-ccw"></i> Restaurar</button>
+                </form>
+                {% endif %}
+            </li>
+            {% empty %}
+            <li class="py-2 text-slate-500">Aún no hay versiones.</li>
+            {% endfor %}
+        </ul>
+    </aside>
+
+    <div class="v-tarjeta overflow-hidden ed-cuerpo">
+        {% if not solo_lectura %}
+        <div class="ed-barra">
+            <div class="ed-herr" role="toolbar" aria-label="Formato del texto">
+                <button type="button" data-cmd="deshacer" title="Deshacer (Ctrl+Z)" aria-label="Deshacer"><i data-lucide="undo-2"></i></button>
+                <button type="button" data-cmd="rehacer" title="Rehacer (Ctrl+Y)" aria-label="Rehacer"><i data-lucide="redo-2"></i></button>
+                <span class="ed-sep"></span>
+                <select data-estilo aria-label="Estilo del párrafo">
+                    <option value="p">Texto normal</option>
+                    <option value="1">Título 1</option>
+                    <option value="2">Título 2</option>
+                    <option value="3">Título 3</option>
+                </select>
+                <span class="ed-sep"></span>
+                <button type="button" data-cmd="negrita" title="Negrita (Ctrl+B)" aria-label="Negrita"><i data-lucide="bold"></i></button>
+                <button type="button" data-cmd="cursiva" title="Cursiva (Ctrl+I)" aria-label="Cursiva"><i data-lucide="italic"></i></button>
+                <button type="button" data-cmd="subrayado" title="Subrayado (Ctrl+U)" aria-label="Subrayado"><i data-lucide="underline"></i></button>
+                <button type="button" data-cmd="tachado" title="Tachado" aria-label="Tachado"><i data-lucide="strikethrough"></i></button>
+                <span class="ed-sep"></span>
+                <button type="button" data-cmd="vinetas" title="Lista con viñetas" aria-label="Lista con viñetas"><i data-lucide="list"></i></button>
+                <button type="button" data-cmd="numerada" title="Lista numerada" aria-label="Lista numerada"><i data-lucide="list-ordered"></i></button>
+                <span class="ed-sep"></span>
+                <button type="button" data-cmd="izquierda" title="Alinear a la izquierda" aria-label="Alinear a la izquierda"><i data-lucide="align-left"></i></button>
+                <button type="button" data-cmd="centro" title="Centrar" aria-label="Centrar"><i data-lucide="align-center"></i></button>
+                <button type="button" data-cmd="derecha" title="Alinear a la derecha" aria-label="Alinear a la derecha"><i data-lucide="align-right"></i></button>
+                <button type="button" data-cmd="justificar" title="Justificar" aria-label="Justificar"><i data-lucide="align-justify"></i></button>
+                <span class="ed-sep"></span>
+                <button type="button" data-cmd="tabla" title="Insertar tabla 3 × 3" aria-label="Insertar tabla"><i data-lucide="table"></i></button>
+                <button type="button" data-cmd="fila" data-tabla title="Agregar fila debajo" aria-label="Agregar fila"><i data-lucide="between-horizontal-end"></i></button>
+                <button type="button" data-cmd="columna" data-tabla title="Agregar columna a la derecha" aria-label="Agregar columna"><i data-lucide="between-vertical-end"></i></button>
+                <button type="button" data-cmd="quitar-fila" data-tabla title="Quitar fila" aria-label="Quitar fila"><i data-lucide="rows-3"></i></button>
+                <button type="button" data-cmd="quitar-columna" data-tabla title="Quitar columna" aria-label="Quitar columna"><i data-lucide="columns-3"></i></button>
+                <button type="button" data-cmd="quitar-tabla" data-tabla title="Quitar tabla" aria-label="Quitar tabla"><i data-lucide="table-2"></i></button>
+                <button type="button" data-cmd="linea" title="Línea divisoria" aria-label="Línea divisoria"><i data-lucide="minus"></i></button>
+                <span class="ed-sep"></span>
+                <select data-insertar-bloque aria-label="Insertar dato del sistema">
+                    <option value="">Insertar dato…</option>
+                    {% for b in bloques_menu %}<option value="{{ b.tipo }}|{{ b.ref }}">{{ b.titulo }}</option>{% endfor %}
+                </select>
+            </div>
+        </div>
+        {% endif %}
+        <div class="ed-mesa">
+            <div class="ed-pagina hoja tema-claro" data-hoja aria-label="Contenido del informe"></div>
+        </div>
+    </div>
+
+    <div class="v-barra">
+        <div class="ed-estado-barra ed-solo-completo" aria-live="polite">
+            <span data-palabras>0 palabras</span>
+            <span data-paginas>≈ 1 página</span>
+            <label class="inline-flex items-center gap-1.5">Zoom
+                <select data-zoom aria-label="Zoom de la hoja">
+                    <option value="0.75">75 %</option><option value="0.9">90 %</option><option value="1" selected>100 %</option>
+                    <option value="1.25">125 %</option><option value="1.5">150 %</option>
+                </select>
+            </label>
+        </div>
+        <p class="v-barra__nota">
+            {% if solo_lectura %}Informe emitido: ya no se puede editar.{% else %}Los recuadros azules son datos del sistema: se actualizan solos y puedes seleccionar y copiar su texto.{% if puede_editar_datos %} Si hace falta corregir uno, usa «Convertir en texto editable»: queda en el historial y ya no se actualiza solo.{% endif %} Se guarda solo mientras escribes.{% endif %}
+        </p>
+        <div class="v-barra__fila">
+            {% if not solo_lectura %}
+            <button type="button" class="v-btn v-btn--secundario" data-guardar><i data-lucide="save"></i> Guardar</button>
+            <form method="post" action="{% url 'proyectos:emitir_informe' solicitud.pk %}" data-form-emitir>
+                {% csrf_token %}
+                <button type="submit" class="v-btn v-btn--exito" data-emitir {% if faltan %}disabled{% endif %}>
+                    <i data-lucide="stamp"></i> Firmar y emitir
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{{ contenido|json_script:"informe-contenido" }}
+{{ bloques_html|json_script:"informe-bloques" }}
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'vendor/tiptap-2.27.1/tiptap.min.js' %}"></script>
+<script src="{% static 'js/informe_editor.js' %}"></script>
+{% endblock %}

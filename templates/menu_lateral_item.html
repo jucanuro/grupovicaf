@@ -1,0 +1,9 @@
+{# Un enlace del menú lateral (templates/menu_lateral.html). #}
+<a href="{{ url }}"
+   class="menu-lateral__item"
+   data-menu-item
+   data-search="{{ label|lower }} {{ buscar }}"
+   title="{{ label }}">
+    <i data-lucide="{{ icono }}" class="menu-lateral__icono"></i>
+    <span class="menu-lateral__texto">{{ label }}</span>
+</a>

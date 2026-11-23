@@ -12,6 +12,8 @@ en cada PR contra `dev` y `main`, y un PR con una prueba en rojo no se integra.
 | `asistente-whatsapp.spec.js` | Asistente de WhatsApp: menú, cotización, validaciones, enlace `wa.me`, fuera de horario | REQ-WEB-01, 04, 10 a 16, 18 |
 | `dashboard.spec.js` | Dashboard del LIMS (KPI, embudo, vencidas, proyectos, periodo, tablas, celular) y marcar cotización como enviada/rechazada | REQ-LIMS-01, 04 a 08, 10 a 20, 22 a 24 |
 | `correo-entrada.spec.js` | Pantalla de entrada tras el login (Correos / Sistema en pestaña nueva) y salto firmado a `email.localhost` | Módulo de correo, Paso 1 |
+| `panel-proyectos.spec.js` | Panel de proyectos: % de avance, muestras por etapa, cada número y el botón de acción abren su pantalla filtrada, permisos, celular | REQ-LIMS-44 a 47, 51 |
+| `cotizacion-modal.spec.js` | Formulario de cotización: pasos en pills, estado vacío, agregar y editar el detalle en el modal, asistente completo, celular | REQ-LIMS-53 a 61 |
 | `analisis.spec.js` | Análisis: menú de conjuntos, arrastrar o tocar campos a Filas/Columnas/Valores/Filtros, números en S/, gráficos, Excel, vistas guardadas y permisos | REQ-LIMS-27 a 43 |
 
 ## Correr en local (sin Docker)

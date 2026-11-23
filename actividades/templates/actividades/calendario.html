@@ -912,7 +912,7 @@
             </div>
 
             <div id="modalFormularioBody" class="flex-1 overflow-y-auto custom-scroll px-6">
-                <form id="actividadForm" class="actividad-form-shell space-y-6">
+                <form id="actividadForm" class="actividad-form-shell space-y-6" novalidate>
                     <input type="hidden" id="actividad_id">
 
                     <!-- TABS -->
@@ -1268,6 +1268,36 @@
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.19/index.global.min.js"></script>
 <script>
+    // El token sale de la plantilla: la cookie se llama gv_<rol>_csrftoken
+    // (CSRF_COOKIE_NAME), así que leer la cookie «csrftoken» devolvía null y
+    // todo guardado del calendario terminaba en 403 sin aviso.
+    const CSRF_TOKEN = '{{ csrf_token }}';
+
+    // POST al servidor que nunca falla en silencio: si la respuesta no es
+    // JSON (403, 500, sesión vencida) devuelve un error legible.
+    async function enviarAlServidor(url, opciones = {}) {
+        const headers = Object.assign({ 'X-CSRFToken': CSRF_TOKEN }, opciones.headers || {});
+        let response;
+        try {
+            response = await fetch(url, Object.assign({ method: 'POST', credentials: 'same-origin' }, opciones, { headers }));
+        } catch (e) {
+            return { ok: false, data: { error: 'No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo.' } };
+        }
+        let data = null;
+        try {
+            data = await response.json();
+        } catch (e) {
+            data = null;
+        }
+        if (!data) {
+            const motivo = response.status === 403
+                ? 'Tu sesión venció o no tienes permiso. Recarga la página e inténtalo de nuevo.'
+                : `El servidor respondió con un error (${response.status}). Inténtalo de nuevo.`;
+            return { ok: false, data: { error: motivo } };
+        }
+        return { ok: response.ok && data.success !== false, data };
+    }
+
     const modalDetalle = document.getElementById('modalDetalle');
     const modalContent = document.getElementById('modalContent');
     const cerrarModal = document.getElementById('cerrarModal');
@@ -1730,6 +1760,17 @@
     async function guardarActividad(event) {
         event.preventDefault();
 
+        // El formulario va en 3 pestañas: la validación nativa no puede mostrar
+        // el aviso de un campo de una pestaña oculta y el envío se perdía.
+        // Se valida aquí y se abre la pestaña del primer campo con problema.
+        const campoInvalido = Array.from(actividadForm.elements).find(el => el.willValidate && !el.checkValidity());
+        if (campoInvalido) {
+            const panel = campoInvalido.closest('.actividad-tab-panel');
+            if (panel) switchActividadTab(panel.id.replace('actividad-tab-panel-', ''));
+            campoInvalido.reportValidity();
+            return;
+        }
+
         const fechaInicioValue = document.getElementById('fecha_inicio')?.value;
         const fechaFinValue = document.getElementById('fecha_fin')?.value;
         const claseValue = document.getElementById('clase')?.value || 'OTRO';
@@ -1739,6 +1780,13 @@
 
         if (!fechaInicioValue || !fechaFinValue) {
             alert('Debes ingresar fecha de inicio y fin.');
+            switchActividadTab('general');
+            return;
+        }
+
+        if (new Date(fechaFinValue) < new Date(fechaInicioValue)) {
+            alert('La fecha de fin no puede ser anterior a la de inicio.');
+            switchActividadTab('general');
             return;
         }
 
@@ -1785,18 +1833,17 @@
             })).filter(r => r.minutos_antes),
         };
 
-        const response = await fetch('/actividades/calendario/evento/guardar/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken'),
-            },
+        const botonGuardar = actividadForm.querySelector('button[type="submit"]');
+        if (botonGuardar) botonGuardar.disabled = true;
+
+        const { ok, data } = await enviarAlServidor('/actividades/calendario/evento/guardar/', {
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
         });
 
-        const data = await response.json();
+        if (botonGuardar) botonGuardar.disabled = false;
 
-        if (!response.ok || !data.success) {
+        if (!ok) {
             alert(data.error || 'Error al guardar la actividad.');
             return;
         }
@@ -1811,16 +1858,9 @@
 
         if (!confirm('¿Eliminar esta actividad?')) return;
 
-        const response = await fetch(`/actividades/calendario/evento/${id}/eliminar/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
-            },
-        });
+        const { ok, data } = await enviarAlServidor(`/actividades/calendario/evento/${id}/eliminar/`);
 
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
+        if (!ok) {
             alert(data.error || 'Error al eliminar la actividad.');
             return;
         }
@@ -1846,17 +1886,11 @@
         formData.append('color', color);
         formData.append('icono', icono);
 
-        const response = await fetch('/actividades/calendario/categoria/crear/', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
-            },
+        const { ok, data } = await enviarAlServidor('/actividades/calendario/categoria/crear/', {
             body: formData,
         });
 
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
+        if (!ok) {
             alert(data.error || 'Error al crear la categoría.');
             return;
         }
@@ -1896,21 +1930,15 @@
 
         const numericId = String(info.event.id).replace('actividad-', '');
 
-        const response = await fetch(`/actividades/calendario/evento/${numericId}/reprogramar/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken'),
-            },
+        const { ok, data } = await enviarAlServidor(`/actividades/calendario/evento/${numericId}/reprogramar/`, {
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 fecha_inicio: info.event.start ? info.event.start.toISOString() : null,
                 fecha_fin: info.event.end ? info.event.end.toISOString() : info.event.start.toISOString(),
             }),
         });
 
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
+        if (!ok) {
             info.revert();
             alert(data.error || 'No se pudo reprogramar la actividad.');
         }
@@ -2283,21 +2311,6 @@
         calendar.render();
     }
 
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let cookie of cookies) {
-                cookie = cookie.trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
-
     function activarFiltroCategoria(button) {
         document.querySelectorAll('.filterCategoria').forEach(b => {
             b.classList.remove('bg-slate-900', 'text-white');
@@ -2322,8 +2335,13 @@
 
     if (btnNuevaActividad) {
         btnNuevaActividad.addEventListener('click', () => {
-            cerrarModalFormulario();
-            abrirFormulario();
+            // Propone la próxima hora en punto (1 h de duración) para no
+            // abrir el formulario con las fechas vacías.
+            const inicio = new Date();
+            inicio.setMinutes(0, 0, 0);
+            inicio.setHours(inicio.getHours() + 1);
+            const fin = new Date(inicio.getTime() + 60 * 60 * 1000);
+            abrirNuevaActividadDesdeRango(inicio.toISOString(), fin.toISOString());
         });
     }
 

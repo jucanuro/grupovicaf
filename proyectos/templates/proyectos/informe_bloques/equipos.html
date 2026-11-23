@@ -1,0 +1,18 @@
+<div class="bloque">
+{% for s in datos.equipos %}
+<table>
+  <tr><th colspan="4">Sesión del {{ s.sesion.fecha|date:"d/m/Y" }}{% if s.tecnico %} · {{ s.tecnico }}{% endif %}</th></tr>
+  <tr><td><b>Temperatura</b></td><td>{{ s.sesion.temperatura_inicial|floatformat:1 }} °C → {% if s.sesion.temperatura_final is not None %}{{ s.sesion.temperatura_final|floatformat:1 }} °C{% else %}-{% endif %}</td>
+      <td><b>Humedad relativa</b></td><td>{{ s.sesion.humedad_inicial|floatformat:0 }} % → {% if s.sesion.humedad_final is not None %}{{ s.sesion.humedad_final|floatformat:0 }} %{% else %}-{% endif %}</td></tr>
+  {% for nombre, codigo in s.equipos %}{% if forloop.counter0|divisibleby:2 %}<tr>{% endif %}<td><b>{{ nombre }}</b></td><td>{{ codigo }}</td>{% if not forloop.counter0|divisibleby:2 or forloop.last %}{% if forloop.last and forloop.counter0|divisibleby:2 %}<td></td><td></td>{% endif %}</tr>{% endif %}{% endfor %}
+</table>
+{% if s.comprobacion %}
+<table class="tabla-compacta">
+  <tr><th colspan="3">Comprobación funcional de equipos</th></tr>
+  {% for c in s.comprobacion %}<tr><td>{{ c.equipo }}</td><td>{{ c.pregunta }}</td><td>{% if c.respuesta is None %}-{% elif c.respuesta %}Sí{% else %}No{% endif %}</td></tr>{% endfor %}
+</table>
+{% endif %}
+{% empty %}
+<p class="bloque--vacio">Ningún ensayo de esta solicitud usó una sesión con equipos.</p>
+{% endfor %}
+</div>

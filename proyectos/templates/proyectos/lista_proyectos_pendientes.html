@@ -51,6 +51,33 @@
         border-color: #4f46e5;
         box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
     }
+
+    /* Avance por muestra (HU-LIMS-19) */
+    .avance-barra {
+        background-image: linear-gradient(90deg, #10b981 0%, #14b8a6 35%, #0ea5e9 65%, #2563eb 100%);
+        /* El degradado mide lo que mide el riel completo: con poco avance se ve verde, al final azul. */
+        background-size: calc(10000% / max(var(--avance), 1)) 100%;
+        background-repeat: no-repeat;
+    }
+    .etapa__circulo { background: #f1f5f9; color: #94a3b8; }
+    .etapa--activa.etapa--por_ingresar .etapa__circulo { background: #fef3c7; color: #b45309; box-shadow: inset 0 0 0 1.5px #fcd34d; }
+    .etapa--activa.etapa--recibida .etapa__circulo { background: #d1fae5; color: #047857; box-shadow: inset 0 0 0 1.5px #6ee7b7; }
+    .etapa--activa.etapa--en_ensayo .etapa__circulo { background: #e0f2fe; color: #0369a1; box-shadow: inset 0 0 0 1.5px #7dd3fc; }
+    .etapa--activa.etapa--informe .etapa__circulo { background: #dbeafe; color: #1d4ed8; box-shadow: inset 0 0 0 1.5px #93c5fd; }
+    .etapa--activa .etapa__circulo + span { color: #334155; }
+
+    .accion { color: #fff; box-shadow: 0 8px 20px -10px rgba(15, 23, 42, 0.45); }
+    .accion:hover { transform: translateY(-1px); box-shadow: 0 12px 24px -10px rgba(15, 23, 42, 0.5); }
+    .accion--registrar { background: linear-gradient(135deg, #059669, #10b981); }
+    .accion--solicitud { background: linear-gradient(135deg, #0d9488, #0ea5e9); }
+    .accion--informe { background: linear-gradient(135deg, #2563eb, #4f46e5); }
+    .accion--ensayo { background: #fff; color: #0369a1; box-shadow: inset 0 0 0 1.5px #bae6fd; }
+    .accion--ensayo:hover { background: #f0f9ff; box-shadow: inset 0 0 0 1.5px #7dd3fc; }
+    .accion--completo { background: #ecfdf5; color: #047857; box-shadow: inset 0 0 0 1.5px #a7f3d0; }
+    .accion--completo:hover { background: #d1fae5; box-shadow: inset 0 0 0 1.5px #6ee7b7; }
+    @media (prefers-reduced-motion: reduce) {
+        .avance-barra, .accion, .etapa__circulo { transition: none !important; }
+    }
 </style>
 
 <div class="bg-vicaf-engine"></div>
@@ -91,7 +118,7 @@
                                     Proyectos Pendientes
                                 </h1>
                                 <p class="command-header__subtitle truncate">
-                                    Gestión de Muestras && Control de Ensayos
+                                    Avance de cada muestra, de la recepción al informe
                                 </p>
                             </div>
                         </div>

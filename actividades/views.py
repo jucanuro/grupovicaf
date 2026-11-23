@@ -4,6 +4,7 @@ import re
 from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
@@ -512,6 +513,9 @@ def calendario_actividad_guardar_json(request):
         if not fecha_inicio or not fecha_fin:
             return JsonResponse({'success': False, 'error': 'Fechas inválidas.'}, status=400)
 
+        if fecha_fin < fecha_inicio:
+            return JsonResponse({'success': False, 'error': 'La fecha de fin no puede ser anterior a la de inicio.'}, status=400)
+
         cliente_id = payload.get('cliente_id') or None
         cliente_nombre_manual = (payload.get('cliente_nombre_manual') or '').strip()
         proyecto_id = payload.get('proyecto_id') or None
@@ -542,11 +546,29 @@ def calendario_actividad_guardar_json(request):
                 'error': 'El proyecto es obligatorio para actividades de tipo ensayo.'
             }, status=400)
 
+        estado = payload.get('estado') or 'PROGRAMADA'
+        prioridad = payload.get('prioridad') or 'MEDIA'
+        if (clase not in dict(CalendarioActividad.CLASE_ACTIVIDAD)
+                or estado not in dict(CalendarioActividad.ESTADO_ACTIVIDAD)
+                or prioridad not in dict(CalendarioActividad.PRIORIDAD)):
+            return JsonResponse({'success': False, 'error': 'Clase, estado o prioridad no válidos.'}, status=400)
+
+        recordatorios = payload.get('recordatorios') or []
+        for r in recordatorios:
+            minutos = r.get('minutos_antes')
+            if minutos in [None, '']:
+                continue
+            try:
+                if int(minutos) < 0:
+                    raise ValueError
+            except (TypeError, ValueError):
+                return JsonResponse({'success': False, 'error': 'Los minutos del recordatorio deben ser un número entero positivo.'}, status=400)
+
         actividad.titulo = titulo
         actividad.descripcion = descripcion
         actividad.clase = clase
-        actividad.estado = payload.get('estado') or 'PROGRAMADA'
-        actividad.prioridad = payload.get('prioridad') or 'MEDIA'
+        actividad.estado = estado
+        actividad.prioridad = prioridad
         actividad.fecha_inicio = fecha_inicio
         actividad.fecha_fin = fecha_fin
         actividad.todo_el_dia = bool(payload.get('todo_el_dia'))
@@ -562,53 +584,55 @@ def calendario_actividad_guardar_json(request):
         actividad.cliente_nombre_manual = '' if cliente_id else cliente_nombre_manual
         actividad.proyecto_id = proyecto_id
 
-        actividad.save()
+        # Todo o nada: si falla un participante o recordatorio no queda
+        # la actividad a medio guardar.
+        with transaction.atomic():
+            actividad.save()
 
-        participantes = payload.get('participantes') or []
-        recordatorios = payload.get('recordatorios') or []
+            participantes = payload.get('participantes') or []
 
-        actividad.participantes.all().delete()
-        actividad.recordatorios.all().delete()
+            actividad.participantes.all().delete()
+            actividad.recordatorios.all().delete()
 
-        participantes_bulk = []
+            participantes_bulk = []
 
-        for p in participantes:
-            trabajador_id = p.get('trabajador_id')
+            for p in participantes:
+                trabajador_id = p.get('trabajador_id')
 
-            if not trabajador_id:
-                continue
+                if not trabajador_id:
+                    continue
 
-            participantes_bulk.append(
-                CalendarioParticipante(
-                    actividad=actividad,
-                    trabajador_id=trabajador_id,
-                    rol=p.get('rol') or 'RESPONSABLE',
-                    confirmado=bool(p.get('confirmado')),
-                    comentario=p.get('comentario') or ''
+                participantes_bulk.append(
+                    CalendarioParticipante(
+                        actividad=actividad,
+                        trabajador_id=trabajador_id,
+                        rol=p.get('rol') or 'RESPONSABLE',
+                        confirmado=bool(p.get('confirmado')),
+                        comentario=p.get('comentario') or ''
+                    )
                 )
-            )
 
-        if participantes_bulk:
-            CalendarioParticipante.objects.bulk_create(participantes_bulk)
+            if participantes_bulk:
+                CalendarioParticipante.objects.bulk_create(participantes_bulk)
 
-        recordatorios_bulk = []
+            recordatorios_bulk = []
 
-        for r in recordatorios:
-            minutos_antes = r.get('minutos_antes')
+            for r in recordatorios:
+                minutos_antes = r.get('minutos_antes')
 
-            if minutos_antes in [None, '']:
-                continue
+                if minutos_antes in [None, '']:
+                    continue
 
-            recordatorios_bulk.append(
-                CalendarioRecordatorio(
-                    actividad=actividad,
-                    minutos_antes=int(minutos_antes),
-                    tipo=r.get('tipo') or 'APP'
+                recordatorios_bulk.append(
+                    CalendarioRecordatorio(
+                        actividad=actividad,
+                        minutos_antes=int(minutos_antes),
+                        tipo=r.get('tipo') or 'APP'
+                    )
                 )
-            )
 
-        if recordatorios_bulk:
-            CalendarioRecordatorio.objects.bulk_create(recordatorios_bulk)
+            if recordatorios_bulk:
+                CalendarioRecordatorio.objects.bulk_create(recordatorios_bulk)
 
         logger.info(f"Actividad guardada: {titulo} (ID: {actividad.id}) por usuario {request.user.username}")
 

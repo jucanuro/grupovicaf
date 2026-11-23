@@ -5,12 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Vicaf - Enterprise Experience V6{% endblock %}</title>
+    {# Modo claro/oscuro: sin defer, antes de pintar, para que no parpadee (static/js/tema.js). #}
+    <script src="{% static 'js/tema.js' %}"></script>
+    <meta name="color-scheme" content="light dark">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="{% static 'css/vicafstyle.css' %}">
+    <link rel="stylesheet" href="{% static 'css/menu_lateral.css' %}">
+    <link rel="stylesheet" href="{% static 'css/tema_oscuro_utilidades.css' %}">
+    <link rel="stylesheet" href="{% static 'css/tema_oscuro.css' %}">
     <script src="https://cdn.tailwindcss.com"></script>
 
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
@@ -121,6 +127,7 @@
 
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
@@ -635,6 +642,8 @@
     {% block modals %}{% endblock %}
     <script src="https://unpkg.com/lucide@latest" defer></script>
     <script src="{% static 'js/vicafbase.js' %}"></script>
+    <script src="{% static 'js/menu_lateral.js' %}"></script>
+    <script src="{% static 'js/notificaciones.js' %}"></script>
     <script src="{% static 'js/lista_buscador.js' %}"></script>
     <script src="{% static 'js/form_validador.js' %}"></script>
     {% block extra_scripts %}{% endblock %}

@@ -3,7 +3,9 @@
 Idempotente: se puede correr las veces que haga falta sobre la misma base y
 deja siempre el mismo estado. Todo lo que crea lleva el marcador E2E:
 
-    Usuarios          e2e.coordinador (con correo.ver y correo.administrar), e2e.tecnico.a, e2e.tecnico.b
+    Usuarios          e2e.jefe (panel de proyectos: todas las etapas), e2e.comercial (crear y editar cotizaciones), e2e.coordinador (con correo.ver y correo.administrar), e2e.tecnico.a, e2e.tecnico.b,
+                      e2e.recepcion (muestras, calendario, cotizaciones y proyectos: campana,
+                      menú lateral, «Nueva recepción» y guardar actividades)
     Roles             'E2E Coordinador', 'E2E Técnico'
     Cliente           RUC 20999999991 · 'Constructora E2E SAC'
     Cotización        COT-E2E-0001
@@ -20,6 +22,10 @@ deja siempre el mismo estado. Todo lo que crea lleva el marcador E2E:
                       más una plantilla que no debe contar; usuario
                       e2e.analista (reportes.ver + clientes.ver, sin
                       cotizaciones.ver)
+    Panel proyectos   P-E2E-AVANCE (COT-E2E-AVANCE, junio de 2001 para no
+                      contar en el dashboard): 8 muestras previstas, 3
+                      registradas y 1 de ellas en SOL-E2E-AV01 → por ingresar
+                      5, recibidas 2, en ensayo 1, con informe 0
 
 Las pruebas leen los mismos valores desde e2e/datos.js: si cambia uno aquí,
 cambia allí.
@@ -64,6 +70,17 @@ PERMISOS_COORDINADOR = (
 PERMISOS_ANALISTA = ('reportes.ver', 'clientes.ver')
 FECHA_ANALISIS = date(2001, 2, 10)
 PERMISOS_TECNICO = ('ensayos.ver', 'calendario.ver')
+# Panel de proyectos (HU-LIMS-19): abre todas las pantallas de las etapas.
+PERMISOS_JEFE = (
+    'proyectos.ver', 'muestras.ver', 'muestras.crear', 'ensayos.ver', 'ensayos.ver_todos', 'ensayos.crear',
+    'informes.ver', 'informes.aprobar',
+)
+# Formulario de cotización (asistente de 4 pasos con modal del detalle).
+PERMISOS_COMERCIAL = ('cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.editar', 'clientes.ver')
+PERMISOS_RECEPCION = (
+    'muestras.ver', 'muestras.crear', 'calendario.ver', 'calendario.crear', 'calendario.editar',
+    'cotizaciones.ver', 'proyectos.ver',
+)
 
 
 class Command(BaseCommand):
@@ -82,6 +99,7 @@ class Command(BaseCommand):
             self._solicitud_con_informe(coordinador, tecnico_a)
             self._datos_dashboard(coordinador, tecnico_a)
             self._datos_analisis()
+            self._proyecto_avance(coordinador)
 
         self.stdout.write(self.style.SUCCESS('Datos E2E listos.'))
 
@@ -121,6 +139,9 @@ class Command(BaseCommand):
         tecnico_a = self._trabajador('e2e.tecnico.a', rol_tecnico, 'Técnico E2E A', password)
         self._trabajador('e2e.tecnico.b', rol_tecnico, 'Técnico E2E B', password)
         self._trabajador('e2e.analista', self._rol('E2E Analista', PERMISOS_ANALISTA), 'Analista E2E', password)
+        self._trabajador('e2e.recepcion', self._rol('E2E Recepción', PERMISOS_RECEPCION), 'Recepción E2E', password)
+        self._trabajador('e2e.jefe', self._rol('E2E Jefe de laboratorio', PERMISOS_JEFE), 'Jefe E2E', password)
+        self._trabajador('e2e.comercial', self._rol('E2E Comercial', PERMISOS_COMERCIAL), 'Comercial E2E', password)
         return coordinador, tecnico_a
 
     def _catalogo_web(self):
@@ -304,6 +325,62 @@ class Command(BaseCommand):
                     'estado': estado, 'fecha_inicio': hoy,
                 },
             )
+
+    def _proyecto_avance(self, coordinador):
+        """Panel de proyectos con avance por muestra (e2e/panel-proyectos.spec.js)."""
+        junio = date(2001, 6, 15)
+        cliente = Cliente.objects.get(ruc='20999999991')
+        cotizacion, _ = Cotizacion.objects.update_or_create(
+            numero_oferta='COT-E2E-AVANCE',
+            defaults={
+                'cliente': cliente, 'estado': 'Aceptada', 'fecha_generacion': junio,
+                'asunto_servicio': 'Compresión de probetas E2E', 'persona_contacto': 'Ana E2E',
+                'correo_contacto': 'ana@e2e.invalid', 'telefono_contacto': '999999991',
+            },
+        )
+        grupo, _ = CotizacionGrupo.objects.get_or_create(cotizacion=cotizacion, nombre_grupo='Concreto')
+        detalle_cot, _ = CotizacionDetalle.objects.update_or_create(
+            grupo=grupo, servicio=Servicio.objects.get(codigo_facturacion='E2E-001'),
+            defaults={'descripcion_especifica': 'Compresión', 'precio_unitario': Decimal('30.00'), 'cantidad': 8},
+        )
+        Proyecto.objects.update_or_create(
+            codigo_proyecto='P-E2E-AVANCE',
+            defaults={
+                'nombre_proyecto': 'Proyecto E2E Avance por muestra', 'cliente': cliente, 'cotizacion': cotizacion,
+                'estado': 'EN_CURSO', 'fecha_inicio': junio, 'numero_muestras': 8,
+            },
+        )
+        tipo_muestra = TipoMuestra.objects.get(nombre='Suelo E2E')
+        recepcion = RecepcionMuestra.objects.filter(cotizacion=cotizacion).first()
+        if recepcion is None:
+            recepcion = RecepcionMuestra.objects.create(
+                cotizacion=cotizacion, procedencia='Cajamarca', responsable_cliente='Ana E2E',
+                telefono='999999991', responsable_recepcion=coordinador.user,
+            )
+        muestras = [
+            MuestraDetalle.objects.get_or_create(
+                recepcion=recepcion, descripcion=f'Probeta avance {n}',
+                defaults={'tipo_muestra': tipo_muestra, 'masa_aprox': Decimal('12.00'), 'nro_item': n},
+            )[0]
+            for n in (1, 2, 3)
+        ]
+        # Siempre deja exactamente 3 muestras (por si una prueba registró más).
+        MuestraDetalle.objects.filter(recepcion__cotizacion=cotizacion).exclude(
+            pk__in=[m.pk for m in muestras]).delete()
+        solicitud, _ = SolicitudEnsayo.objects.update_or_create(
+            codigo_solicitud='SOL-E2E-AV01',
+            defaults={
+                'recepcion': recepcion, 'cotizacion': cotizacion, 'estado': 'proceso', 'fecha_solicitud': junio,
+                'fecha_entrega_programada': date(2099, 1, 1), 'elaborado_por': coordinador,
+            },
+        )
+        DetalleSolicitudEnsayo.objects.update_or_create(
+            solicitud=solicitud, muestra=muestras[0],
+            defaults={
+                'servicio_cotizado': detalle_cot, 'descripcion_ensayo': 'Compresión', 'norma': 'ASTM C39',
+                'fecha_entrega_programada': date(2099, 1, 1),
+            },
+        )
 
     def _datos_analisis(self):
         """Datos de la tabla dinámica (e2e/analisis.spec.js), en febrero de 2001

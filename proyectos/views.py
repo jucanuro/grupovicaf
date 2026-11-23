@@ -15,6 +15,7 @@ from django.db.models import Q, Exists, OuterRef
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, Http404, FileResponse
 from django.template.loader import render_to_string, get_template
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.contrib import messages
@@ -23,6 +24,7 @@ from django.views.decorators.http import require_POST
 
 from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso, ve_todos_los_ensayos
 from .tasks import procesar_informe_final
+from .avance import calcular_avance, filtrar_por_proyecto, proyecto_de_filtro
 
 from .models import (
     Proyecto,
@@ -75,38 +77,11 @@ def lista_proyectos_pendientes(request):
 
     proyectos_list = proyectos_qs.order_by('-creado_en')
 
-    for proyecto in proyectos_list:
-        proyecto.etapa_operativa = 'PENDIENTE_MUESTRAS'
-        proyecto.etapa_operativa_label = 'Pendiente de muestras'
-
-        if proyecto.cotizacion:
-            tiene_muestras = MuestraDetalle.objects.filter(
-                recepcion__cotizacion=proyecto.cotizacion
-            ).exists()
-
-            if tiene_muestras:
-                proyecto.etapa_operativa = 'MUESTRAS_REGISTRADAS'
-                proyecto.etapa_operativa_label = 'Muestras registradas'
-
-                solicitud = SolicitudEnsayo.objects.filter(
-                    cotizacion=proyecto.cotizacion
-                ).order_by('-id').first()
-
-                if solicitud:
-                    if solicitud.estado in ['pendiente', 'proceso']:
-                        proyecto.etapa_operativa = 'ENSAYOS_EN_PROCESO'
-                        proyecto.etapa_operativa_label = 'Ensayos en proceso'
-                    elif solicitud.estado == 'finalizado':
-                        informe = InformeFinal.objects.filter(solicitud=solicitud).first()
-                        if informe:
-                            proyecto.etapa_operativa = 'INFORME_EMITIDO'
-                            proyecto.etapa_operativa_label = 'Informe emitido'
-                        else:
-                            proyecto.etapa_operativa = 'PENDIENTE_INFORME'
-                            proyecto.etapa_operativa_label = 'Pendiente de informe'
-
+    # Avance por muestra (HU-LIMS-19): se calcula solo para la página visible,
+    # con un número fijo de consultas.
     paginator = Paginator(proyectos_list, 10)
     proyectos_paginados = paginator.get_page(request.GET.get('page'))
+    proyectos_paginados.object_list = calcular_avance(proyectos_paginados.object_list, request.user)
 
     context = {
         'proyectos_pendientes': proyectos_paginados,
@@ -163,6 +138,32 @@ def crear_tipo_muestra_ajax(request):
         return JsonResponse({'status': 'error', 'message': 'Error interno del servidor.'}, status=500)
 
 
+def _seleccionar_proyecto_recepcion(request):
+    """Lista de proyectos abiertos con cotización para iniciar una recepción."""
+    proyectos = (
+        Proyecto.objects.filter(cotizacion__isnull=False)
+        .exclude(estado__in=['FINALIZADO', 'CANCELADO'])
+        .select_related('cliente', 'cotizacion')
+        .only(
+            'id', 'codigo_proyecto', 'nombre_proyecto', 'estado', 'creado_en',
+            'cliente__razon_social', 'cotizacion__numero_oferta',
+        )
+        .order_by('-creado_en')
+    )
+    query = (request.GET.get('q') or '').strip()
+    if query:
+        proyectos = proyectos.filter(
+            Q(nombre_proyecto__icontains=query)
+            | Q(codigo_proyecto__icontains=query)
+            | Q(cliente__razon_social__icontains=query)
+            | Q(cotizacion__numero_oferta__icontains=query)
+        )
+    return render(request, 'proyectos/recepcion_elegir_proyecto.html', {
+        'proyectos': proyectos[:100],
+        'query': query,
+    })
+
+
 @login_required
 def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
     if pk:
@@ -183,8 +184,9 @@ def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
         proyecto_id = proyecto_obj.id
 
     if not proyecto_id:
-        messages.error(request, 'Debe seleccionar un proyecto para crear una recepción.')
-        return redirect('proyectos:lista_proyectos_pendientes')
+        # «Nueva recepción» desde la lista: primero se elige el proyecto
+        # (la recepción cuelga de su cotización).
+        return _seleccionar_proyecto_recepcion(request)
 
     proyecto = get_object_or_404(
         Proyecto.objects.select_related('cotizacion__cliente'),
@@ -378,7 +380,14 @@ class RecepcionMuestraListView(HeaderSearchMixin, LoginRequiredMixin, ListView):
                 Q(responsable_cliente__icontains=query)
             )
 
-        return queryset
+        self.filtro_proyecto = proyecto_de_filtro(self.request)
+        return filtrar_por_proyecto(queryset, self.filtro_proyecto)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['filtro_proyecto'] = self.filtro_proyecto
+        context['puede_crear_recepcion'] = trabajador_tiene_permiso(self.request.user, 'muestras.crear')
+        return context
 
 
 @login_required
@@ -967,6 +976,19 @@ def cambiar_estado_solicitud(request, pk, nuevo_estado):
         messages.error(request, "Estado no válido.")
         return redirect('proyectos:lista_solicitudes')
 
+    pantalla_resultados = reverse('proyectos:resultados_solicitud', args=[solicitud.pk])
+    if nuevo_estado == 'finalizado':
+        # Secuencia obligatoria: sin todos los resultados terminados no se finaliza.
+        # Se lleva a la pantalla de resultados para registrar lo que falta.
+        terminadas, total = solicitud.avance_resultados()
+        if not total or terminadas < total:
+            messages.error(
+                request,
+                f"Para finalizar {solicitud.codigo_solicitud} faltan resultados: hay {terminadas} de {total} "
+                "terminados. Regístralos aquí.",
+            )
+            return redirect(pantalla_resultados)
+
     solicitud.estado = nuevo_estado
 
     if nuevo_estado == 'finalizado':
@@ -976,11 +998,14 @@ def cambiar_estado_solicitud(request, pk, nuevo_estado):
     solicitud.save()
 
     if nuevo_estado == 'finalizado':
-        messages.success(request, f"La solicitud {solicitud.codigo_solicitud} fue finalizada. Ahora registra el informe final.")
-        return redirect('proyectos:gestionar_informe', solicitud_id=solicitud.pk)
+        # Siguiente paso: revisión de resultados y editor del informe.
+        messages.success(request, f"La solicitud {solicitud.codigo_solicitud} fue finalizada y pasa a revisión.")
+        return redirect(pantalla_resultados)
 
     messages.success(request, f"La solicitud {solicitud.codigo_solicitud} cambió a estado {nuevo_estado.upper()}.")
 
+    if request.POST.get('volver') == pantalla_resultados:
+        return redirect(pantalla_resultados)
     return redirect('proyectos:lista_solicitudes')
 
 
@@ -1006,12 +1031,16 @@ def lista_solicitudes(request):
             filtro |= Q(cotizacion__cliente__codigo_confidencial__icontains=q)
         solicitudes = solicitudes.filter(filtro).distinct()
 
+    filtro_proyecto = proyecto_de_filtro(request)
+    solicitudes = filtrar_por_proyecto(solicitudes, filtro_proyecto)
+
     placeholder = 'Buscar por N° solicitud, cliente o cotización...' if ve_todos else 'Buscar por N° solicitud, código de cliente o cotización...'
     return render(request, 'proyectos/ensayos_list.html', {
         'solicitudes': solicitudes,
         'q': q,
         'query': q,
         'ocultar_cliente': not ve_todos,
+        'filtro_proyecto': filtro_proyecto,
         'header_search': {'id': 'buscar-solicitudes', 'placeholder': placeholder},
     })
 
@@ -1073,8 +1102,12 @@ def lista_informes_finales(request):
             Q(solicitud__cotizacion__cliente__razon_social__icontains=query)
         ).distinct()
 
+    filtro_proyecto = proyecto_de_filtro(request)
+    informes = filtrar_por_proyecto(informes, filtro_proyecto, 'solicitud__cotizacion_id')
+
     return render(request, 'proyectos/informes_list.html', {
         'informes': informes,
+        'filtro_proyecto': filtro_proyecto,
         'query': query,
         'header_search': {'id': 'buscar-informes', 'placeholder': 'Buscar informe por código o cliente...'},
     })

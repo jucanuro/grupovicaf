@@ -1,0 +1,18 @@
+<div class="bloque">
+<table class="kv">
+  <tr><td>Cliente (*)</td><td>{{ datos.cliente.razon_social }}</td></tr>
+  <tr><td>RUC (*)</td><td>{{ datos.cliente.ruc }}</td></tr>
+  <tr><td>Dirección (*)</td><td>{{ datos.cliente.direccion }}</td></tr>
+  <tr><td>Atención (*)</td><td>{{ datos.cliente.contacto }}</td></tr>
+  <tr><td>Proyecto (*)</td><td>{{ datos.proyecto }}</td></tr>
+  <tr><td>Ubicación (*)</td><td>{{ datos.ubicacion }}</td></tr>
+  <tr><td>Solicitud de ensayo</td><td>{{ datos.solicitud.codigo_solicitud }}</td></tr>
+  <tr><td>Recepción de muestras</td><td>{{ datos.recepcion|date:"d/m/Y"|default:"-" }}</td></tr>
+  <tr><td>Fecha de ensayo</td><td>{% for f in datos.fechas_ensayo %}{{ f|date:"d/m/Y" }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</td></tr>
+  <tr><td>Código de informe</td><td>{% if datos.informe %}{{ datos.informe.codigo_informe }}{% else %}<span class="pendiente">Se asigna al emitir</span>{% endif %}</td></tr>
+</table>
+<table>
+  <tr><th>Ensayo</th><th>Norma</th><th>Cantidad</th></tr>
+  {% for m in datos.metodos %}<tr><td>{{ m.nombre }}</td><td>{{ m.norma }}</td><td class="c">{{ m.cantidad }}</td></tr>{% endfor %}
+</table>
+</div>

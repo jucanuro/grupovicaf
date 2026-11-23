@@ -1,0 +1,399 @@
+/* Modo oscuro del LIMS (VCF-LIMS) — ajustes hechos a mano.
+ *
+ * static/js/tema.js pone la clase `dark` en <html>. Las clases de color de
+ * Tailwind las cubre static/css/tema_oscuro_utilidades.css (GENERADO, ver
+ * core/tema_oscuro.py). Aquí va lo que no es Tailwind: el CSS propio de cada
+ * pantalla (menú lateral, cabecera, dashboard, calendario...), las librerías
+ * (Tom Select, FullCalendar) y los controles de formulario.
+ *
+ * Paleta oscura (misma que el generador):
+ *   lienzo #0b1220 · superficie #111a2b · elevada #162133 · borde #27354b
+ *   texto #e2e8f0 · texto suave #94a3b8 · acento #60a5fa
+ */
+
+/* ---------- Interruptor (visible en ambos modos) ---------- */
+html:not(.dark) .tema-solo-oscuro,
+html.dark .tema-solo-claro { display: none !important; }
+
+html.dark {
+    color-scheme: dark;
+    --tema-lienzo: #0b1220;
+    --tema-superficie: #111a2b;
+    --tema-elevada: #162133;
+    --tema-borde: #27354b;
+    --tema-borde-suave: #1f2b3f;
+    --tema-texto: #e2e8f0;
+    --tema-texto-2: #cbd5e1;
+    --tema-texto-3: #94a3b8;
+    --tema-acento: #60a5fa;
+}
+
+/* ---------- Base ---------- */
+html.dark body,
+html.dark body.bg-slate-50 {
+    background-color: var(--tema-lienzo);
+    background-image:
+        radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.06) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.05) 0px, transparent 50%);
+    color: var(--tema-texto-2);
+}
+
+/* Controles sin clase de fondo: que no queden blancos (color-scheme da el resto). */
+:where(html.dark) :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), select, textarea) {
+    background-color: var(--tema-elevada);
+    color: var(--tema-texto);
+    border-color: var(--tema-borde);
+}
+html.dark ::placeholder { color: #64748b; }
+html.dark select option { background-color: var(--tema-superficie); color: var(--tema-texto); }
+html.dark input[type="date"]::-webkit-calendar-picker-indicator,
+html.dark input[type="time"]::-webkit-calendar-picker-indicator,
+html.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(0.85); }
+
+/* Sombras: en oscuro las grises no se ven; se usan sombras negras suaves. */
+html.dark .shadow-sm, html.dark .shadow, html.dark .shadow-md, html.dark .shadow-lg,
+html.dark .shadow-xl, html.dark .shadow-2xl, html.dark .shadow-floating, html.dark .shadow-glass {
+    --tw-shadow-color: rgba(0, 0, 0, 0.45);
+    --tw-shadow: var(--tw-shadow-colored);
+}
+
+/* Logo (texto azul marino): sobre un fondo claro para que se lea. */
+html.dark img[src*="LogoF"] {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 2px 6px;
+    box-sizing: content-box;
+}
+
+/* Barra de desplazamiento del área principal. */
+html.dark .app-main-scroll { scrollbar-color: #334155 transparent; }
+html.dark .app-main-scroll::-webkit-scrollbar-thumb { background: #334155; background-clip: padding-box; }
+html.dark .app-main-scroll::-webkit-scrollbar-thumb:hover { background: #475569; background-clip: padding-box; }
+
+/* Mensajes de error/aviso de los formularios (form_validador.js). */
+html.dark .campo-msg { color: #f87171; }
+html.dark .campo-estado[data-tono="ok"] .campo-msg { color: #34d399; }
+
+/* ---------- Menú lateral (menu_lateral.css) ---------- */
+@media (min-width: 1024px) {
+    html.dark .menu-lateral { background: var(--tema-superficie); border-right-color: var(--tema-borde-suave); }
+}
+html.dark .menu-lateral__cabecera,
+html.dark .menu-lateral__grupo + .menu-lateral__grupo,
+html.dark .menu-lateral__pie { border-color: var(--tema-borde-suave); }
+html.dark .menu-lateral__nombre { color: var(--tema-texto); }
+html.dark .menu-lateral__plegar { background: var(--tema-elevada); border-color: var(--tema-borde); color: var(--tema-texto-3); }
+html.dark .menu-lateral__plegar:hover { background: #1b273b; color: var(--tema-texto); }
+html.dark .menu-lateral__buscar { background: var(--tema-elevada); }
+html.dark .menu-lateral__buscar:focus-within { background: var(--tema-superficie); border-color: #3b82f6; }
+html.dark .menu-lateral__buscar input { color: var(--tema-texto); background: transparent; }
+html.dark .menu-lateral__titulo { color: #7f8ea5; }
+html.dark .menu-lateral__titulo:hover { color: var(--tema-texto-2); background: var(--tema-elevada); }
+html.dark .menu-lateral__item { color: var(--tema-texto-2); }
+html.dark .menu-lateral__item:hover { background: var(--tema-elevada); color: #f1f5f9; }
+html.dark .menu-lateral__item[aria-current="page"] { background: rgba(59, 130, 246, 0.16); color: #93c5fd; }
+html.dark .menu-lateral__vacio { color: #7f8ea5; }
+html.dark .menu-lateral__pie { background: #0e1626; }
+html.dark .menu-lateral__avatar { background: linear-gradient(135deg, #334155, #1e293b); color: var(--tema-texto); }
+html.dark .menu-lateral__accion { color: var(--tema-texto-3); }
+html.dark .menu-lateral__accion:hover { background: #1b273b; color: var(--tema-texto); }
+html.dark .menu-lateral__accion--salir { color: #fb7185; }
+html.dark .menu-lateral__accion--salir:hover { background: rgba(244, 63, 94, 0.16); color: #fda4af; }
+html.dark .menu-lateral[data-plegado="1"] .menu-lateral__titulo::before { background: var(--tema-borde); }
+
+/* ---------- Cabecera de comandos de las listas (base_vicafpro.html) ---------- */
+html.dark .command-header__trigger,
+html.dark .command-header__action--secondary {
+    background: rgba(17, 26, 43, 0.98);
+    border-color: var(--tema-borde);
+    color: var(--tema-texto);
+}
+html.dark .command-header__action--secondary:hover { background: var(--tema-elevada); color: #f1f5f9; border-color: #334359; }
+html.dark .command-header.is-open .command-header__trigger { background: #2563eb; border-color: #2563eb; color: #fff; }
+html.dark .command-header__action { background: #2563eb; }
+html.dark .command-header__action:hover { background: #3b82f6; }
+html.dark .command-header__card { background: rgba(17, 26, 43, 0.97); border-color: var(--tema-borde); }
+html.dark .command-header__close { background: var(--tema-elevada); border-color: var(--tema-borde); color: var(--tema-texto-3); }
+html.dark .command-header__close:hover { background: #1b273b; color: var(--tema-texto); }
+html.dark .command-header__title { color: #f1f5f9; }
+html.dark .command-header__subtitle,
+html.dark .command-header__meta-value { color: var(--tema-acento); }
+html.dark .command-header__search { background: var(--tema-elevada); color: var(--tema-texto); }
+html.dark .command-header__search:focus-within { background: var(--tema-superficie); }
+html.dark .command-header__search input,
+html.dark .command-header__search select { background: transparent; color: var(--tema-texto); }
+html.dark .command-header__chip,
+html.dark .command-header__meta-box { background: var(--tema-elevada); border-color: var(--tema-borde); color: var(--tema-texto-2); }
+html.dark .command-header__chip:hover { background: #1b273b; border-color: #334359; }
+
+/* ---------- Modales (.app-modal-*) ---------- */
+html.dark .app-modal-overlay { background: rgba(0, 0, 0, 0.7); }
+
+/* ---------- Dashboard (templates/dashboard.html) ---------- */
+html.dark .dash-card { background: var(--tema-superficie); border-color: var(--tema-borde); }
+html.dark .dash-vacio { color: var(--tema-texto-3); }
+html.dark .dash-tabla summary { color: #7cb0f0; }
+html.dark .dash-tabla th, html.dark .dash-tabla td { border-bottom-color: var(--tema-borde); }
+html.dark .dash-tabla thead th { color: var(--tema-texto-3); }
+
+/* ---------- Tom Select ---------- */
+html.dark .ts-wrapper .ts-control,
+html.dark .ts-wrapper.single .ts-control,
+html.dark .ts-wrapper.single.input-active .ts-control,
+html.dark .ts-dropdown {
+    background: var(--tema-elevada);
+    border-color: var(--tema-borde);
+    color: var(--tema-texto);
+    box-shadow: none;
+}
+html.dark .ts-control input { color: var(--tema-texto); }
+html.dark .ts-dropdown .option,
+html.dark .ts-dropdown .optgroup-header { color: var(--tema-texto-2); background: transparent; }
+html.dark .ts-dropdown .active { background: rgba(59, 130, 246, 0.18); color: #f1f5f9; }
+html.dark .ts-wrapper.multi .ts-control > div { background: #1b273b; color: var(--tema-texto); border-color: var(--tema-borde); }
+
+/* ---------- FullCalendar ---------- */
+html.dark .fc {
+    --fc-page-bg-color: var(--tema-superficie);
+    --fc-neutral-bg-color: var(--tema-elevada);
+    --fc-neutral-text-color: var(--tema-texto-3);
+    --fc-border-color: var(--tema-borde);
+    --fc-today-bg-color: rgba(59, 130, 246, 0.14);
+    --fc-now-indicator-color: #f87171;
+    --fc-list-event-hover-bg-color: var(--tema-elevada);
+    --fc-highlight-color: rgba(59, 130, 246, 0.18);
+    color: var(--tema-texto-2);
+}
+html.dark .fc .fc-col-header-cell-cushion,
+html.dark .fc .fc-daygrid-day-number,
+html.dark .fc .fc-list-day-text,
+html.dark .fc .fc-list-day-side-text { color: var(--tema-texto-2); }
+html.dark .fc .fc-toolbar-title { color: #f1f5f9; }
+html.dark .fc .fc-list-day-cushion { background: var(--tema-elevada); }
+html.dark .fc .fc-popover { background: var(--tema-superficie); border-color: var(--tema-borde); }
+html.dark .fc .fc-popover-header { background: var(--tema-elevada); color: var(--tema-texto); }
+
+/* ======================================================================
+   Pantallas con CSS propio (bloques <style> de cada plantilla).
+   ====================================================================== */
+
+/* Fondo cuadriculado de las listas y formularios (.bg-vicaf-engine, -grid, -calendar). */
+html.dark .bg-vicaf-engine,
+html.dark .bg-vicaf-grid,
+html.dark .bg-vicaf-calendar {
+    background-color: var(--tema-lienzo);
+    background-image:
+        linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+}
+
+/* Pestañas por pasos: cotización (plantilla), solicitud de ensayo, recepción, actividad. */
+html.dark :is(.cot-tab-btn, .sol-tab-btn, .recep-tab-btn, .actividad-tab-btn) {
+    background: var(--tema-superficie);
+    border-color: var(--tema-borde);
+    color: var(--tema-texto-2);
+}
+html.dark :is(.cot-tab-btn, .sol-tab-btn, .recep-tab-btn, .actividad-tab-btn):hover { border-color: #3b82f6; }
+html.dark :is(.cot-tab-btn, .sol-tab-btn, .recep-tab-btn, .actividad-tab-btn).active {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, var(--tema-superficie) 100%);
+    border-color: #3b82f6;
+}
+html.dark :is(.cot-tab-step, .sol-tab-step, .recep-tab-step, .actividad-tab-step) { background: #334155; color: #fff; }
+html.dark :is(.cot-tab-text, .sol-tab-text, .recep-tab-text, .actividad-tab-text) strong { color: var(--tema-texto); }
+html.dark :is(.cot-tab-text, .sol-tab-text, .recep-tab-text, .actividad-tab-text) small { color: var(--tema-texto-3); }
+
+/* Formulario de cotización: barra de pasos tipo «pills» y modal del detalle. */
+html.dark .cot-tabs { background: var(--tema-superficie); border-color: var(--tema-borde); }
+html.dark .cot-tabs .cot-tab-btn { background: transparent; border-color: transparent; color: var(--tema-texto-3); }
+html.dark .cot-tabs .cot-tab-btn:hover { background: var(--tema-elevada); color: var(--tema-texto); }
+html.dark .cot-tabs .cot-tab-btn.active { background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); color: #fff; }
+html.dark .cot-tabs .cot-tab-num { background: var(--tema-elevada); border-color: var(--tema-borde); color: var(--tema-texto-3); }
+html.dark .cot-tabs .cot-tab-btn.active .cot-tab-num { background: rgba(255, 255, 255, 0.22); border-color: rgba(255, 255, 255, 0.45); color: #fff; }
+html.dark .detalle-modal { background: var(--tema-lienzo); }
+html.dark .detalle-modal__form { background: var(--tema-superficie); border-color: var(--tema-borde); }
+html.dark .detalle-modal #content-registro .campo-servicio { background: rgba(99, 102, 241, 0.12); border-color: rgba(99, 102, 241, 0.35); }
+html.dark .detalle-modal .ts-dropdown .option { border-bottom-color: var(--tema-borde-suave); }
+html.dark .detalle-modal__tabla #detalle-tabla { background: var(--tema-superficie); border-color: var(--tema-borde); }
+html.dark .detalle-modal #cotizacion-detalles tr.editando td { background: rgba(245, 158, 11, 0.14) !important; }
+
+/* cotizacion-config.css: tabla, campos y selectores. */
+html.dark .vicaf-table th { background-color: var(--tema-elevada); color: var(--tema-texto-3); border-bottom-color: var(--tema-borde); }
+html.dark .vicaf-table td { border-bottom-color: var(--tema-borde-suave); color: var(--tema-texto-2); }
+html.dark .row-main-cat { background-color: #1b273b; color: var(--tema-texto); }
+html.dark .row-sub-cat { background-color: var(--tema-elevada); color: var(--tema-texto-2); }
+html.dark :is(.input-vicaf-new, .vicaf-search-select, .form-input-engine, .input-engine) {
+    background-color: var(--tema-elevada);
+    border-color: var(--tema-borde);
+    color: var(--tema-texto);
+}
+html.dark .form-input-engine:focus { background-color: var(--tema-superficie); }
+html.dark .summary-card-vicaf { background: #0e1626; border: 1px solid var(--tema-borde); }
+
+/* Tom Select con !important en cotizacion-config.css y ensayos_form.html. */
+html.dark .ts-wrapper.vicaf-search .ts-control,
+html.dark .ts-wrapper.single .ts-control,
+html.dark .ts-wrapper .ts-control {
+    background: var(--tema-elevada) !important;
+    border-color: var(--tema-borde) !important;
+    color: var(--tema-texto) !important;
+}
+html.dark .ts-wrapper .ts-control input,
+html.dark .ts-wrapper.single .ts-control .item { color: var(--tema-texto) !important; }
+html.dark .ts-dropdown { background: var(--tema-superficie) !important; border-color: var(--tema-borde) !important; }
+html.dark .ts-dropdown .option:hover { background: rgba(59, 130, 246, 0.18) !important; color: #bfdbfe !important; }
+
+/* Lista de cotizaciones / plantillas: estados y filas tipo tarjeta (celular). */
+html.dark .status-pendiente { background-color: rgba(245, 158, 11, 0.16); color: #fbbf24; border-color: rgba(245, 158, 11, 0.35); }
+html.dark .status-enviada { background-color: rgba(14, 165, 233, 0.16); color: #7dd3fc; border-color: rgba(14, 165, 233, 0.35); }
+html.dark .status-aceptada { background-color: rgba(34, 197, 94, 0.16); color: #4ade80; border-color: rgba(34, 197, 94, 0.35); }
+html.dark .status-rechazada { background-color: rgba(239, 68, 68, 0.16); color: #f87171; border-color: rgba(239, 68, 68, 0.35); }
+html.dark .status-anulada { background-color: #1b273b; color: var(--tema-texto-3); border-color: var(--tema-borde); }
+html.dark .service-badge { background-color: rgba(99, 102, 241, 0.16); color: #a5b4fc; border-color: rgba(99, 102, 241, 0.35); }
+html.dark .responsive-table tbody tr,
+html.dark .responsive-table tr { border-color: var(--tema-borde); }
+html.dark .responsive-table tbody td { border-bottom-color: var(--tema-borde-suave); }
+html.dark .responsive-table tbody td[data-label]::before,
+html.dark .responsive-table td:before { color: var(--tema-texto-3); }
+@media (max-width: 1023px) {
+    html.dark .responsive-table tbody tr { background: var(--tema-superficie); }
+}
+html.dark :is(.recepcion-mobile-card, .solicitud-mobile-card) { background: var(--tema-superficie); border-color: var(--tema-borde); }
+
+/* Muestras (muestras_list.html). */
+html.dark :is(.vicaf-panel, .vicaf-panel-soft) { background: var(--tema-superficie); border-color: var(--tema-borde); }
+html.dark .vicaf-table thead th { background: var(--tema-elevada); }
+
+/* Panel de proyectos (lista_proyectos_pendientes.html). */
+html.dark .etapa__circulo { background: #1b273b; color: #7f8ea5; }
+html.dark .etapa--activa.etapa--por_ingresar .etapa__circulo { background: rgba(245, 158, 11, 0.16); color: #fcd34d; box-shadow: inset 0 0 0 1.5px rgba(252, 211, 77, 0.6); }
+html.dark .etapa--activa.etapa--recibida .etapa__circulo { background: rgba(16, 185, 129, 0.16); color: #6ee7b7; box-shadow: inset 0 0 0 1.5px rgba(110, 231, 183, 0.6); }
+html.dark .etapa--activa.etapa--en_ensayo .etapa__circulo { background: rgba(14, 165, 233, 0.16); color: #7dd3fc; box-shadow: inset 0 0 0 1.5px rgba(125, 211, 252, 0.6); }
+html.dark .etapa--activa.etapa--informe .etapa__circulo { background: rgba(59, 130, 246, 0.18); color: #93c5fd; box-shadow: inset 0 0 0 1.5px rgba(147, 197, 253, 0.6); }
+html.dark .etapa--activa .etapa__circulo + span { color: var(--tema-texto); }
+html.dark .accion--ensayo { background: rgba(14, 165, 233, 0.12); color: #7dd3fc; box-shadow: inset 0 0 0 1.5px rgba(125, 211, 252, 0.45); }
+html.dark .accion--ensayo:hover { background: rgba(14, 165, 233, 0.2); }
+html.dark .accion--completo { background: rgba(16, 185, 129, 0.12); color: #6ee7b7; box-shadow: inset 0 0 0 1.5px rgba(110, 231, 183, 0.45); }
+html.dark .accion--completo:hover { background: rgba(16, 185, 129, 0.2); }
+
+/* Administración (administracion.html). */
+html.dark .glass-modal-vicaf { background: rgba(17, 26, 43, 0.98); border-color: var(--tema-borde); }
+html.dark .submenu-item,
+html.dark .submenu-item:hover { background: var(--tema-superficie); border-color: var(--tema-borde); }
+html.dark .item-icon-wrapper { background: var(--tema-elevada); }
+
+/* Recepción / solicitudes: barras de desplazamiento de tablas. */
+html.dark .table-container::-webkit-scrollbar-thumb,
+html.dark .custom-scroll::-webkit-scrollbar-thumb { background: #334155; }
+
+/* Registro de compresión (compresion_registro.html). */
+html.dark .foto-marco { background: var(--tema-elevada); border-color: #334359; }
+html.dark .foto-cargando { background: rgba(11, 18, 32, 0.75); color: var(--tema-texto); }
+
+/* ensayos.css: resultados, sesión, revisión, editor del informe. */
+html.dark {
+    --v-tinta: #f1f5f9;
+    --v-texto: #cbd5e1;
+    --v-suave: #94a3b8;
+    --v-borde: #27354b;
+    --v-fondo-campo: #162133;
+}
+html.dark .v-btn--secundario { background: var(--tema-elevada); border-color: #334359; color: var(--tema-texto-2); }
+html.dark .v-btn--secundario:hover:not(:disabled) { background: #1b273b; border-color: #475569; color: #f1f5f9; }
+html.dark .v-btn:disabled, html.dark .v-btn[aria-disabled="true"] { background: #1b273b; color: #64748b; }
+html.dark .v-barra { background: rgba(17, 26, 43, 0.94); border-color: var(--tema-borde); }
+html.dark .v-tarjeta { background: var(--tema-superficie); }
+html.dark .v-paso { background: rgba(59, 130, 246, 0.16); border-color: rgba(59, 130, 246, 0.4); color: #93c5fd; }
+html.dark .v-campo input, html.dark .v-campo select, html.dark .v-campo textarea { background: var(--tema-elevada); border-color: #334359; color: var(--tema-texto); }
+html.dark .v-campo input:focus, html.dark .v-campo select:focus, html.dark .v-campo textarea:focus { background: var(--tema-superficie); }
+html.dark .v-aviso--ambar { background: rgba(245, 158, 11, 0.12); color: #fcd34d; border-color: rgba(245, 158, 11, 0.35); }
+html.dark .v-aviso--ok { background: rgba(16, 185, 129, 0.12); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.35); }
+html.dark .v-aviso--error { background: rgba(239, 68, 68, 0.12); color: #fca5a5; border-color: rgba(239, 68, 68, 0.35); }
+html.dark .v-error { color: #f87171; }
+html.dark .rs-completo { background: var(--tema-lienzo); }
+
+/* Editor del informe: la hoja A4 (.tema-claro) sigue blanca como en Word. */
+html.dark .tema-claro { color: #0f172a; color-scheme: light; }
+html.dark .ed-barra { background: rgba(17, 26, 43, 0.95); border-color: var(--tema-borde); }
+html.dark .ed-herr button, html.dark .ed-herr select { color: var(--tema-texto-2); background: transparent; }
+html.dark .ed-herr button:hover:not(:disabled), html.dark .ed-herr select:hover { background: var(--tema-elevada); border-color: #334359; }
+html.dark .ed-herr button.activo { background: rgba(59, 130, 246, 0.2); color: #93c5fd; border-color: rgba(59, 130, 246, 0.45); }
+html.dark .ed-herr select { border-color: #334359; background: var(--tema-elevada); }
+html.dark .ed-sep { background: #334359; }
+html.dark .ed-mesa { background: #0e1626; }
+html.dark .ed-completo { background: #0e1626; }
+html.dark .ed-completo > header { background: var(--tema-superficie); border-bottom-color: var(--tema-borde); }
+html.dark .ed-estado[data-tipo="error"] { color: #f87171; }
+html.dark .ed-estado[data-tipo="ok"] { color: #34d399; }
+
+/* Análisis (analisis.css): variables propias. */
+html.dark .analisis {
+    --an-fondo: #111a2b;
+    --an-hundido: #0e1626;
+    --an-linea: #27354b;
+    --an-linea-fuerte: #334359;
+    --an-texto: #e2e8f0;
+    --an-suave: #94a3b8;
+    --an-tenue: #7f8ea5;
+    --an-acento: #3b82f6;
+    --an-acento-suave: rgba(59, 130, 246, 0.16);
+    --an-dim: #cbd5e1;
+    --an-dim-fondo: #1b273b;
+    --an-moneda: #4ade80;
+    --an-moneda-fondo: rgba(34, 197, 94, 0.14);
+    --an-conteo: #c4b5fd;
+    --an-conteo-fondo: rgba(139, 92, 246, 0.16);
+    --an-dias: #fbbf24;
+    --an-dias-fondo: rgba(245, 158, 11, 0.14);
+}
+html.dark .analisis :is(.an-btn, .an-emergente, .an-emergente-acciones button, .an-ficha) { background: var(--an-fondo); color: var(--an-texto); }
+html.dark .analisis :is(.an-rango input, .an-vistas input, .an-vistas select) { background: var(--tema-elevada); }
+html.dark .analisis .an-seg button[aria-pressed="true"] { background: #1b273b; }
+html.dark .analisis #an-aviso { background: var(--an-hundido); color: var(--an-suave); }
+html.dark .analisis #an-aviso[data-tipo="error"] { background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.35); color: #fca5a5; }
+html.dark .analisis .an-tabla td.an-total-col,
+html.dark .analisis .an-tabla tbody tr:hover td { background: var(--tema-elevada); }
+
+/* Calendario (calendario.html, calendario-config.css). */
+html.dark {
+    --cal-surface: #111a2b;
+    --cal-surface-soft: #162133;
+    --cal-border: #27354b;
+    --cal-border-strong: #334359;
+    --cal-text: #f1f5f9;
+    --cal-text-soft: #cbd5e1;
+    --cal-text-muted: #7f8ea5;
+}
+html.dark .calendar-glass { background: var(--tema-superficie); box-shadow: none; }
+html.dark .fc .fc-scrollgrid { background: var(--tema-superficie); box-shadow: none; }
+html.dark .fc .fc-col-header-cell { background: var(--tema-elevada); }
+html.dark .fc .fc-col-header-cell-cushion,
+html.dark .fc .fc-timegrid-axis-cushion,
+html.dark .fc .fc-timegrid-slot-label-cushion { color: var(--tema-texto-3); }
+html.dark .fc .fc-timegrid-col:hover { background: rgba(22, 33, 51, 0.6); }
+html.dark .fc-ensayo-pill { background: var(--tema-elevada); border-color: #334359; }
+html.dark .fc-ensayo-time { color: var(--tema-texto); }
+html.dark .fc-ensayo-label { color: var(--tema-texto-2); }
+html.dark .fc .fc-more-link { background: rgba(59, 130, 246, 0.16); color: #93c5fd; }
+html.dark .fc-theme-standard td, html.dark .fc-theme-standard th, html.dark .fc .fc-theme-standard th { border-color: var(--tema-borde); }
+html.dark .actividad-sticky-footer { background: var(--tema-superficie); }
+
+/* Gantt (gantt.html). */
+html.dark { --gantt-line: #27354b; }
+html.dark :is(.gantt-main-card, .gantt-header-dates, .tabs-container, .gantt-label) { background: var(--tema-superficie); }
+html.dark .toolbar-container,
+html.dark .gantt-row,
+html.dark .gantt-row:hover { background: var(--tema-elevada); }
+html.dark .vpro-select { background: var(--tema-elevada); border-color: #334359; color: var(--tema-texto); }
+html.dark .header-day { color: var(--tema-texto-3); border-right-color: rgba(39, 53, 75, 0.7); }
+html.dark .header-day span, html.dark .label-days, html.dark .label-subtext { color: #7f8ea5; }
+html.dark .label-text, html.dark .tooltip-title, html.dark .tt-value { color: var(--tema-texto); }
+html.dark .label-user { color: #a5b4fc; background: rgba(99, 102, 241, 0.16); border-color: rgba(99, 102, 241, 0.35); }
+html.dark .label-chip, html.dark .tt-badge.ensayo { color: #fcd34d; background: rgba(245, 158, 11, 0.16); border-color: rgba(245, 158, 11, 0.35); }
+html.dark .tt-badge.vencido { color: #fca5a5; background: rgba(239, 68, 68, 0.16); }
+html.dark .tt-badge, html.dark .tooltip-close { background: #1b273b; color: var(--tema-texto-3); }
+html.dark .gantt-bars-area { background-image: linear-gradient(to right, rgba(39, 53, 75, 0.7) 1px, transparent 1px); }
+html.dark .vpro-tooltip { background: var(--tema-superficie); border-color: var(--tema-borde); }
+html.dark .tooltip-header { border-bottom-color: var(--tema-borde); }
+html.dark .tooltip-body div { color: var(--tema-texto-2); }
+html.dark .tab-button { color: var(--tema-texto-3); }
+html.dark .tab-button:hover { background: var(--tema-elevada); color: var(--tema-texto); }

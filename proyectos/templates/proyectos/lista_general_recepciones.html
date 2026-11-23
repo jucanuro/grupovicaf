@@ -45,11 +45,16 @@
                 <span class="command-header__trigger-label">Panel</span>
             </button>
 
-            <a href="#"
-            class="command-header__action">
+            {% if puede_crear_recepcion %}
+            <a href="{% url 'proyectos:crear_recepcion' %}"
+               class="command-header__action"
+               data-testid="nueva-recepcion">
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
                 Nueva Recepción
             </a>
+            {% else %}
+            <span></span>
+            {% endif %}
         </div>
 
         <div class="command-header__panel" data-command-panel>
@@ -97,8 +102,9 @@
         </div>
     </div>
 
+    {% url 'proyectos:lista_recepciones' as url_sin_filtro %}{% include 'proyectos/includes/filtro_proyecto.html' %}
     <div class="bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden transition-all hover:border-slate-300"
-         data-lista-contenedor data-lista-url="{% url 'proyectos:lista_recepciones' %}">
+         data-lista-contenedor data-lista-url="{% url 'proyectos:lista_recepciones' %}{% if filtro_proyecto %}?proyecto={{ filtro_proyecto.pk }}{% endif %}">
         
         <!-- DESKTOP -->
         <div class="hidden md:block overflow-x-auto">
@@ -274,7 +280,7 @@
             <div class="flex items-center gap-2">
                 {% if is_paginated %}
                     {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 bg-white border border-slate-200 text-[9px] font-black rounded shadow-sm hover:bg-slate-900 hover:text-white transition-all uppercase">Prev</a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if filtro_proyecto %}&proyecto={{ filtro_proyecto.pk }}{% endif %}" class="px-3 py-1 bg-white border border-slate-200 text-[9px] font-black rounded shadow-sm hover:bg-slate-900 hover:text-white transition-all uppercase">Prev</a>
                     {% endif %}
 
                     <div class="flex gap-1">
@@ -282,7 +288,7 @@
                     </div>
 
                     {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 bg-white border border-slate-200 text-[9px] font-black rounded shadow-sm hover:bg-slate-900 hover:text-white transition-all uppercase">Next</a>
+                        <a href="?page={{ page_obj.next_page_number }}{% if filtro_proyecto %}&proyecto={{ filtro_proyecto.pk }}{% endif %}" class="px-3 py-1 bg-white border border-slate-200 text-[9px] font-black rounded shadow-sm hover:bg-slate-900 hover:text-white transition-all uppercase">Next</a>
                     {% endif %}
                 {% endif %}
             </div>

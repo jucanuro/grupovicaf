@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.core.management import CommandError, call_command
 from django.test import TestCase, override_settings
 
-from proyectos.models import InformeFinal, Proyecto, SolicitudEnsayo
+from proyectos.models import InformeFinal, MuestraDetalle, Proyecto, SolicitudEnsayo
 from servicios.models import Cotizacion
 from web_catalogo.models import ServicioPublicado
 
@@ -44,14 +44,16 @@ class SembrarE2ETests(TestCase):
         call_command('sembrar_e2e', stdout=StringIO())
         call_command('sembrar_e2e', stdout=StringIO())
 
-        self.assertEqual(User.objects.filter(username__startswith='e2e.').count(), 4)
+        self.assertEqual(User.objects.filter(username__startswith='e2e.').count(), 7)  # + e2e.recepcion, e2e.jefe y e2e.comercial
         self.assertEqual(SolicitudEnsayo.objects.filter(codigo_solicitud='SOL-E2E-0001').count(), 1)
         informe = InformeFinal.objects.get()
         self.assertEqual(str(informe.slug_validacion), 'e2e00000-0000-4000-8000-000000000001')
         self.assertTrue(ServicioPublicado.objects.publicados().filter(slug='e2e-proctor-modificado').exists())
         # Datos del dashboard (e2e/dashboard.spec.js).
         self.assertEqual(SolicitudEnsayo.objects.filter(codigo_solicitud__startswith='SOL-E2E-V').count(), 6)
-        self.assertEqual(Proyecto.objects.filter(codigo_proyecto__startswith='P-E2E-').count(), 5)
+        self.assertEqual(Proyecto.objects.filter(codigo_proyecto__startswith='P-E2E-').count(), 6)  # + P-E2E-AVANCE
+        # Panel de proyectos (e2e/panel-proyectos.spec.js): 3 de 8 muestras registradas.
+        self.assertEqual(MuestraDetalle.objects.filter(recepcion__cotizacion__numero_oferta='COT-E2E-AVANCE').count(), 3)
         self.assertEqual(Cotizacion.objects.get(numero_oferta='COT-E2E-MARCAR').estado, 'Pendiente')
         # Datos de Análisis (e2e/analisis.spec.js): totales fijos tras dos siembras.
         a01 = Cotizacion.objects.get(numero_oferta='COT-E2E-A01')

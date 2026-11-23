@@ -1,0 +1,86 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+{% block title %}Medir probetas {{ solicitud.codigo_solicitud }} | VICAF LIMS{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/ensayos.css' %}">
+<style>
+    .md-fila { padding: .8rem 1rem; border-top: 1px solid #f1f5f9; }
+    .md-fila:first-child { border-top: 0; }
+    .md-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .5rem; margin-top: .4rem; }
+    .md-grid .v-campo input { padding-left: .5rem; padding-right: .5rem; }
+    @media (max-width: 640px) { .md-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rs-completo" data-medidas-solicitud role="dialog" aria-modal="true" aria-labelledby="md-titulo">
+    <header class="rs-barra">
+        <div class="min-w-0">
+            <h1 id="md-titulo">Medir y pesar · {{ solicitud.codigo_solicitud }}</h1>
+            <p>Todas las probetas de corrido; después cada una pasa a la prensa.</p>
+        </div>
+        <a href="{{ pantalla }}" class="rs-cerrar" aria-label="Cerrar y volver a los resultados" title="Cerrar (Esc)" data-cerrar>
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </a>
+    </header>
+
+    <form method="post" class="rs-cuerpo" novalidate>
+        {% csrf_token %}
+        {% for e in errores %}<div class="v-aviso v-aviso--error" role="alert">{{ e }}</div>{% endfor %}
+
+        <section class="v-tarjeta p-4">
+            <label class="v-campo block" style="max-width: 16rem">
+                <span class="v-etiqueta">Fecha de ensayo</span>
+                <input type="date" name="fecha_ensayo" value="{{ fecha }}" max="{{ hoy|date:'Y-m-d' }}" class="w-full">
+            </label>
+            <p class="text-xs text-slate-500 mt-2">Masa en gramos; diámetros (D1, D2) y alturas (L1, L2, L3) en mm. Usa coma o punto decimal. Se guarda lo que escribas; lo que dejes vacío lo puedes completar después.</p>
+        </section>
+
+        <section class="v-tarjeta" data-filas>
+            {% for f in filas %}
+            <div class="md-fila" data-fila-medidas="{{ f.detalle.pk }}">
+                <div class="flex items-center justify-between gap-2">
+                    <p class="rs-codigo">{{ f.detalle.muestra.codigo_laboratorio }}</p>
+                    {% if f.terminado %}<span class="rs-chip rs-chip--verde">Terminado</span>{% endif %}
+                </div>
+                <div class="md-grid">
+                    {% for c in f.campos %}
+                    <label class="v-campo block">
+                        <span class="v-etiqueta">{{ c.etiqueta }}</span>
+                        <input type="text" inputmode="decimal" name="{{ c.nombre }}" value="{{ c.valor }}" autocomplete="off"
+                               {% if f.terminado %}disabled{% endif %} class="w-full font-mono">
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </section>
+
+        <div class="v-barra">
+            <p class="v-barra__nota">Si corriges un dato ya guardado, queda en la trazabilidad para el revisor.</p>
+            <div class="v-barra__fila">
+                <a href="{{ pantalla }}" class="v-btn v-btn--secundario">Cancelar</a>
+                <button type="submit" class="v-btn v-btn--exito" data-guardar-medidas><i data-lucide="save"></i> Guardar medidas</button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    document.body.classList.add('rs-abierto');
+    // Enter pasa al siguiente campo, como en una hoja de cálculo.
+    const campos = Array.from(document.querySelectorAll('[data-filas] input:not([disabled])'));
+    campos.forEach(function (c, i) {
+        c.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); if (campos[i + 1]) campos[i + 1].focus(); }
+        });
+    });
+    const cerrar = document.querySelector('[data-medidas-solicitud] [data-cerrar]');
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && cerrar) window.location.href = cerrar.href; });
+})();
+</script>
+{% endblock %}

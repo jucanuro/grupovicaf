@@ -298,11 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!item) return;
 
         EDIT_INDEX = index;
-
-        const content = document.getElementById('content-registro');
-        if (content && content.classList.contains('hidden') && typeof toggleRegistroPanel === 'function') {
-            toggleRegistroPanel();
-        }
+        window.openDetalleModal();
 
         if (tsRegCategoria) tsRegCategoria.isUpdating = true;
         if (tsRegSubcategoria) tsRegSubcategoria.isUpdating = true;
@@ -339,14 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tsRegSubcategoria) tsRegSubcategoria.isUpdating = false;
         if (tsServicio) tsServicio.isUpdating = false;
 
-        const btn = document.querySelector('button[onclick="addItem()"]');
-        if (btn) {
-            btn.innerHTML = `<i data-lucide="refresh-cw" class="w-4 h-4"></i> ACTUALIZAR ÍTEM`;
-            btn.classList.replace('bg-slate-900', 'bg-orange-600');
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
-
-        content?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        modoModalDetalle(item.tipo_fila === 'servicio' || !item.tipo_fila ? 'editar' : 'editar-cabecera');
     };
 
     window.resetEditor = () => {
@@ -376,13 +365,151 @@ document.addEventListener('DOMContentLoaded', () => {
         if (cantidadEl) cantidadEl.value = '1';
         if (precioEl) precioEl.value = '';
 
-        const btn = document.querySelector('button[onclick="addItem()"]');
-        if (btn) {
-            btn.innerHTML = `<i data-lucide="plus-circle" class="w-4 h-4"></i> Agregar Ítem al Detalle`;
-            btn.classList.replace('bg-orange-600', 'bg-slate-900');
+        modoModalDetalle('agregar');
+    };
+
+    // ---- Modal del detalle -------------------------------------------------
+    // Solo cambia la presentación: el formulario de selección (#content-registro)
+    // y addItem / editItem / addHeader siguen siendo los mismos de siempre.
+    const modalDetalle = document.getElementById('modalDetalle');
+    // Como el editor de informes: el modal va directo al <body> para que ningún
+    // contenedor con z-index o transform lo deje por debajo del menú.
+    if (modalDetalle && modalDetalle.parentElement !== document.body) {
+        document.body.appendChild(modalDetalle);
+    }
+
+    const _mensajeModal = (id, texto) => {
+        const caja = document.getElementById(id);
+        if (!caja) return;
+        caja.querySelector('[data-texto]').textContent = texto || '';
+        caja.classList.toggle('hidden', !texto);
+    };
+    const errorModalDetalle = (texto) => {
+        _mensajeModal('detalle-modal-aviso', '');
+        _mensajeModal('detalle-modal-error', texto);
+    };
+    function avisoModalDetalle(texto) {
+        if (!modalDetalle?.classList.contains('abierto')) return;
+        _mensajeModal('detalle-modal-error', '');
+        _mensajeModal('detalle-modal-aviso', texto);
+    }
+
+    // La tabla del detalle es una sola: mientras el modal está abierto se mueve a
+    // su lado derecho y al cerrarlo vuelve al paso Servicios (renderTable no cambia).
+    const tablaDetalle = document.getElementById('detalle-tabla');
+    const anclaTabla = document.getElementById('detalle-tabla-ancla');
+    const zonaTablaModal = document.getElementById('detalle-modal-tabla');
+    const modalAbierto = () => Boolean(modalDetalle?.classList.contains('abierto'));
+
+    let MODO_MODAL = 'agregar';
+    function modoModalDetalle(modo) {
+        MODO_MODAL = modo;
+        const etiqueta = document.getElementById('detalle-modal-modo');
+        const btnAgregar = document.getElementById('btn-detalle-agregar');
+        const btnCancelar = document.getElementById('btn-detalle-cancelar-edicion');
+        const textos = {
+            'agregar': ['Agregar ítem', 'Agregar a la tabla'],
+            'editar': ['Editar ítem', 'Actualizar ítem'],
+            'editar-cabecera': ['Editar cabecera: elige la nueva categoría o sub-categoría', ''],
+        }[modo];
+        if (etiqueta) etiqueta.textContent = textos[0];
+        if (btnAgregar) {
+            btnAgregar.querySelector('[data-texto]').textContent = textos[1];
+            btnAgregar.classList.toggle('hidden', modo === 'editar-cabecera');
+            btnAgregar.classList.toggle('bg-orange-600', modo === 'editar');
+            btnAgregar.classList.toggle('bg-slate-900', modo !== 'editar');
+        }
+        btnCancelar?.classList.toggle('hidden', modo === 'agregar');
+        marcarFilaEditando();
+    }
+
+    function marcarFilaEditando() {
+        document.querySelectorAll('#cotizacion-detalles tr').forEach((tr, i) => {
+            tr.classList.toggle('editando', EDIT_INDEX !== null && i === EDIT_INDEX);
+        });
+    }
+
+    function actualizarVacioModal() {
+        const vacio = document.getElementById('detalle-modal-vacio');
+        if (!vacio) return;
+        const sinItems = DATA_ARRAY.length === 0;
+        vacio.classList.toggle('hidden', !sinItems);
+        vacio.classList.toggle('flex', sinItems);
+        if (tablaDetalle) tablaDetalle.style.display = (sinItems && modalAbierto()) ? 'none' : '';
+    }
+
+    window.openDetalleModal = () => {
+        if (!modalDetalle) return;
+        errorModalDetalle('');
+        if (!modalAbierto()) {
+            if (tablaDetalle && zonaTablaModal) zonaTablaModal.appendChild(tablaDetalle);
+            modalDetalle.classList.add('abierto');
+            modalDetalle.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
+        modoModalDetalle(EDIT_INDEX === null ? 'agregar' : MODO_MODAL);
+        actualizarVacioModal();
+        // En el celular no se enfoca: abriría el teclado y la lista encima del formulario.
+        if (EDIT_INDEX === null && window.innerWidth >= 768) tsServicio?.focus();
     };
+
+    window.closeDetalleModal = () => {
+        if (!modalAbierto()) return;
+        if (EDIT_INDEX !== null) window.resetEditor();
+        if (tablaDetalle) tablaDetalle.style.display = '';
+        if (tablaDetalle && anclaTabla) anclaTabla.after(tablaDetalle);
+        modalDetalle.classList.remove('abierto');
+        modalDetalle.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = 'auto';
+        errorModalDetalle('');
+        window.renderTable();   // estado vacío / tabla del paso Servicios
+    };
+
+    const _servicioElegido = () => Boolean(document.getElementById('reg_servicio')?.value);
+    const MSG_SIN_SERVICIO = 'Selecciona un servicio (ensayo) para agregarlo a la tabla.';
+
+    // «Agregar detalle» (estado vacío y barra): abre el modal en modo agregar.
+    window.abrirDetalleNuevo = () => {
+        if (EDIT_INDEX !== null) window.resetEditor();
+        window.openDetalleModal();
+    };
+    modalDetalle?.querySelectorAll('[data-cerrar-detalle]').forEach(el => {
+        el.addEventListener('click', () => window.closeDetalleModal());
+    });
+
+    // «Agregar a la tabla» / «Actualizar ítem»: el modal sigue abierto.
+    document.getElementById('btn-detalle-agregar')?.addEventListener('click', () => {
+        if (!_servicioElegido()) {
+            errorModalDetalle(MSG_SIN_SERVICIO);
+            return;
+        }
+        const editando = EDIT_INDEX !== null;
+        const nombre = (tsServicio?.getItem(tsServicio.getValue())?.textContent || 'Servicio').trim();
+        window.addItem();
+        if (!editando) window.resetEditor();
+        avisoModalDetalle(editando ? `«${nombre}» actualizado.` : `«${nombre}» agregado a la tabla.`);
+        if (window.innerWidth >= 768) tsServicio?.focus();
+    });
+
+    document.getElementById('btn-detalle-cancelar-edicion')?.addEventListener('click', () => {
+        window.resetEditor();
+        errorModalDetalle('');
+    });
+
+    // «Guardar detalle»: si quedó un servicio elegido sin agregar, se agrega; luego cierra.
+    document.getElementById('btn-detalle-guardar')?.addEventListener('click', () => {
+        if (MODO_MODAL !== 'editar-cabecera' && _servicioElegido()) window.addItem();
+        window.closeDetalleModal();
+    });
+
+    document.addEventListener('keydown', (ev) => {
+        if (ev.key !== 'Escape' || !modalDetalle?.classList.contains('abierto')) return;
+        // Si hay otro modal (crear categoría / servicio) encima, ese se cierra primero.
+        const otroAbierto = ['modalCategoria', 'modalSubcategoria', 'modalServicio']
+            .some(id => { const m = document.getElementById(id); return m && !m.classList.contains('hidden'); });
+        if (!otroAbierto) window.closeDetalleModal();
+    });
 
     window.applyPlantillaDetalles = (detalles = []) => {
         if (!Array.isArray(detalles)) return;
@@ -424,14 +551,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.renderTable();
         scrollAlDetalle();
+        avisoModalDetalle(`${tipo === 'categoria' ? 'Categoría' : 'Sub-categoría'} «${val.toUpperCase()}» agregada al detalle.`);
     };
 
     window.addItem = () => {
         const sId = document.getElementById('reg_servicio')?.value;
-        if (!sId) return;
+        if (!sId) return false;
 
         const sBase = ALL_SERVICES.find(x => String(x.pk) === String(sId));
-        if (!sBase) return;
+        if (!sBase) return false;
 
         const cantidadEl = document.getElementById('reg_cantidad');
         const precioEl = document.getElementById('reg_precio');
@@ -458,6 +586,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.renderTable();
         scrollAlDetalle();
+        return true;
     };
 
     window.remove = (idx) => {
@@ -497,10 +626,15 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.className = 'cursor-pointer group transition-all duration-200 hover:bg-blue-50/40';
 
             const controls = `
-                <div class="flex gap-1" onclick="event.stopPropagation()">
-                    <button type="button" class="text-slate-400 hover:text-blue-600" onclick="moveItemUp(${index})">▲</button>
-                    <button type="button" class="text-slate-400 hover:text-blue-600" onclick="moveItemDown(${index})">▼</button>
-                    <button type="button" class="text-red-400 font-black hover:text-red-600 ml-2" onclick="remove(${index})">×</button>
+                <div class="flex items-center justify-center gap-1" onclick="event.stopPropagation()">
+                    <button type="button" data-editar-detalle="${index}" onclick="editItem(${index})"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-indigo-200 bg-white text-indigo-700 text-[10px] font-black uppercase hover:bg-indigo-50 transition-all"
+                            title="Editar">
+                        <i data-lucide="pencil" class="w-3 h-3"></i> Editar
+                    </button>
+                    <button type="button" class="text-slate-400 hover:text-blue-600 px-1" onclick="moveItemUp(${index})" title="Subir">▲</button>
+                    <button type="button" class="text-slate-400 hover:text-blue-600 px-1" onclick="moveItemDown(${index})" title="Bajar">▼</button>
+                    <button type="button" class="text-red-400 font-black hover:text-red-600 px-1" onclick="remove(${index})" title="Quitar">×</button>
                 </div>`;
 
             if (item.tipo_fila === 'categoria') {
@@ -544,6 +678,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const detallesInput = document.getElementById('detalles_json');
         if (detallesInput) detallesInput.value = JSON.stringify(DATA_ARRAY);
+
+        // Sin ítems: estado vacío con un solo botón; con ítems: tabla + botón en la barra.
+        const hayItems = DATA_ARRAY.length > 0;
+        document.getElementById('detalle-vacio')?.classList.toggle('hidden', hayItems);
+        document.getElementById('detalle-tabla')?.classList.toggle('hidden', !hayItems);
+        const btnBarra = document.getElementById('btn-agregar-detalle-barra');
+        if (btnBarra) {
+            btnBarra.classList.toggle('hidden', !hayItems);
+            btnBarra.classList.toggle('inline-flex', hayItems);
+        }
+        const contador = document.getElementById('detalle-modal-contador');
+        if (contador) {
+            const n = DATA_ARRAY.filter(x => x.tipo_fila === 'servicio').length;
+            contador.textContent = `${n} ${n === 1 ? 'servicio' : 'servicios'} en el detalle`;
+        }
+        if (modalAbierto()) actualizarVacioModal();
+        marcarFilaEditando();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
 
         const igv = subtotal * 0.18;
         const total = subtotal + igv;

@@ -16,6 +16,9 @@
     // Paleta categórica validada (specs/VCF-LIMS/design.md, skill dataviz), orden fijo.
     var SERIES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6', '#e34948'];
     var GRIS_OTROS = '#8a8984';
+    // Modo oscuro (static/js/tema.js): bordes, rejilla y leyenda sobre la superficie oscura.
+    function oscuro() { return document.documentElement.classList.contains('dark'); }
+    function colorSuperficie() { return oscuro() ? '#111a2b' : '#fff'; }
     var MAX_CATEGORIAS = 20;   // CA-07.3
     var MAX_PORCIONES = 7;
     var MAX_VALORES = 4;
@@ -444,7 +447,7 @@
             if (resto > 0) { etiquetasDona.push('Otros'); datosDona.push(resto); colores.push(GRIS_OTROS); }
             dibujar(lienzo, contenedor, avisos, {
                 type: 'doughnut',
-                data: { labels: etiquetasDona, datasets: [{ data: datosDona, backgroundColor: colores, borderColor: '#fff', borderWidth: 2 }] },
+                data: { labels: etiquetasDona, datasets: [{ data: datosDona, backgroundColor: colores, borderColor: colorSuperficie(), borderWidth: 2 }] },
                 options: opciones(v, true, { cutout: '58%', plugins: { legend: { position: 'right' } } })
             });
             return;
@@ -496,15 +499,15 @@
             if (conOtros) datos.push(valorEn(otrasFilas, s.claves));
             return lineas
                 ? { label: s.nombre, data: datos, borderColor: color, backgroundColor: color, borderWidth: 2, pointRadius: 3, tension: 0, spanGaps: true }
-                : { label: s.nombre, data: datos, backgroundColor: color, borderColor: '#fff', borderWidth: apilar ? { top: 2 } : 0, borderRadius: 3, maxBarThickness: 46 };
+                : { label: s.nombre, data: datos, backgroundColor: color, borderColor: colorSuperficie(), borderWidth: apilar ? { top: 2 } : 0, borderRadius: 3, maxBarThickness: 46 };
         });
         var horizontal = !lineas && !porTiempo;
         var entero = v[1] === 'conteo' || (aditivo && tipoDe(v[0]) === 'cantidad');
         var ejeValor = {
-            stacked: apilar, beginAtZero: true, grid: { color: '#eef2f6' },
-            ticks: { precision: entero ? 0 : undefined, callback: function (x) { return fmt(v, x, true); } }
+            stacked: apilar, beginAtZero: true, grid: { color: oscuro() ? '#243146' : '#eef2f6' },
+            ticks: { color: oscuro() ? '#94a3b8' : undefined, precision: entero ? 0 : undefined, callback: function (x) { return fmt(v, x, true); } }
         };
-        var ejeCategoria = { stacked: apilar, grid: { display: false }, ticks: { autoSkip: !horizontal } };
+        var ejeCategoria = { stacked: apilar, grid: { display: false }, ticks: { color: oscuro() ? '#94a3b8' : undefined, autoSkip: !horizontal } };
         if (horizontal) {
             var alto = 56 + etiquetas.length * (apilar || series.length === 1 ? 30 : 14 * series.length + 10);
             contenedor.querySelector('.an-grafico-lienzo').style.height = Math.max(240, Math.min(760, alto)) + 'px';
@@ -524,7 +527,7 @@
         var base = {
             responsive: true, maintainAspectRatio: false, animation: false,
             plugins: {
-                legend: { labels: { boxWidth: 12, boxHeight: 12, color: '#334155' } },
+                legend: { labels: { boxWidth: 12, boxHeight: 12, color: oscuro() ? '#cbd5e1' : '#334155' } },
                 tooltip: {
                     callbacks: {
                         label: function (ctx) {
@@ -952,6 +955,8 @@
 
         cargarMisVistas();
         cargar();
+        // Al cambiar de modo claro/oscuro se redibuja el resultado (gráfico incluido).
+        document.addEventListener('vicaf:tema', function () { if (estado.datos) pintarResultado(); });
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);

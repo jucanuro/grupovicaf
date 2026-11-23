@@ -110,3 +110,113 @@ def notificar_proyectos_vencidos():
         fail_silently=True,
     )
     return len(vencidos)
+
+
+# --- Informe de compresión armado por el sistema (HU-LIMS-16 y 19) ----------
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=30)
+def generar_informe_compresion(self, informe_id):
+    """Arma el PDF del informe de compresión con WeasyPrint (carátula con el QR
+    ya impreso + una página por probeta) y lo guarda en el InformeFinal."""
+    from django.core.files.base import ContentFile
+
+    from .informe_compresion import InformeIncompleto, generar_pdf
+    from .models import InformeFinal
+
+    informe = InformeFinal.objects.select_related(
+        'solicitud__recepcion', 'solicitud__cotizacion__cliente', 'responsable_firma__rol',
+    ).filter(pk=informe_id).first()
+    if informe is None:
+        logger.warning("InformeFinal %s ya no existe; no se genera el PDF.", informe_id)
+        return
+
+    try:
+        contenido = generar_pdf(informe)
+    except InformeIncompleto as exc:
+        InformeFinal.objects.filter(pk=informe.pk).update(pdf_estado=InformeFinal.PDF_ERROR, pdf_error=str(exc)[:255])
+        return
+    except Exception as exc:
+        logger.exception("Fallo al generar el PDF del informe %s", informe.codigo_informe)
+        if self.request.retries >= self.max_retries:
+            InformeFinal.objects.filter(pk=informe.pk).update(
+                pdf_estado=InformeFinal.PDF_ERROR, pdf_error="No se pudo generar el PDF; revisa el registro del servidor.",
+            )
+            return
+        raise self.retry(exc=exc)
+
+    anterior = informe.archivo_pdf.name if informe.archivo_pdf else None
+    informe.archivo_pdf.save(f"{informe.codigo_informe}.pdf", ContentFile(contenido), save=False)
+    informe.pdf_estado = InformeFinal.PDF_LISTO
+    informe.pdf_error = ''
+    informe.save(update_fields=['archivo_pdf', 'pdf_estado', 'pdf_error'])
+    if anterior and anterior != informe.archivo_pdf.name:
+        informe.archivo_pdf.storage.delete(anterior)
+
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=30)
+def generar_informe_editor(self, informe_id):
+    """PDF del informe redactado en el editor: el HTML ya quedó congelado al emitir."""
+    from django.core.files.base import ContentFile
+
+    from .informe_editor import generar_pdf_borrador
+    from .models import BorradorInforme, InformeFinal
+
+    informe = InformeFinal.objects.filter(pk=informe_id).first()
+    borrador = BorradorInforme.objects.filter(solicitud_id=getattr(informe, 'solicitud_id', None)).first()
+    if informe is None or borrador is None or not borrador.html_emitido:
+        logger.warning("Informe %s sin borrador emitido; no se genera el PDF.", informe_id)
+        return
+    try:
+        contenido = generar_pdf_borrador(borrador.html_emitido)
+    except Exception as exc:
+        logger.exception("Fallo al generar el PDF del informe %s", informe.codigo_informe)
+        if self.request.retries >= self.max_retries:
+            InformeFinal.objects.filter(pk=informe.pk).update(
+                pdf_estado=InformeFinal.PDF_ERROR, pdf_error="No se pudo generar el PDF; revisa el registro del servidor.",
+            )
+            return
+        raise self.retry(exc=exc)
+
+    anterior = informe.archivo_pdf.name if informe.archivo_pdf else None
+    informe.archivo_pdf.save(f"{informe.codigo_informe}.pdf", ContentFile(contenido), save=False)
+    informe.pdf_estado = InformeFinal.PDF_LISTO
+    informe.pdf_error = ''
+    informe.save(update_fields=['archivo_pdf', 'pdf_estado', 'pdf_error'])
+    if anterior and anterior != informe.archivo_pdf.name:
+        informe.archivo_pdf.storage.delete(anterior)
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def enviar_informe_cliente(self, informe_id, destinatario):
+    """Envía el PDF al contacto del cliente con el enlace de verificación y
+    marca el informe como enviado."""
+    from django.core.mail import EmailMessage
+
+    from .models import InformeFinal
+
+    informe = InformeFinal.objects.select_related('solicitud').filter(pk=informe_id).first()
+    if informe is None or not informe.archivo_pdf:
+        logger.warning("Informe %s sin PDF; no se envía.", informe_id)
+        return
+
+    enlace = f"{getattr(settings, 'SITE_URL', '').rstrip('/')}/proyectos/v/{informe.slug_validacion}/"
+    correo = EmailMessage(
+        subject=f"Informe de ensayo {informe.codigo_informe} - Grupo VICAF",
+        body=(
+            "Estimado cliente:\n\n"
+            f"Adjuntamos el informe de ensayo {informe.codigo_informe} correspondiente a la solicitud "
+            f"{informe.solicitud.codigo_solicitud}.\n\n"
+            f"Puede verificar su originalidad en: {enlace}\n\n"
+            "Atentamente,\nLaboratorio de Ensayo de Materiales - Grupo VICAF SAC"
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[destinatario],
+    )
+    with informe.archivo_pdf.open('rb') as archivo:
+        correo.attach(f"Informe_{informe.codigo_informe}.pdf", archivo.read(), 'application/pdf')
+    try:
+        correo.send()
+    except Exception as exc:
+        logger.exception("Fallo al enviar el informe %s", informe.codigo_informe)
+        raise self.retry(exc=exc)
+    InformeFinal.objects.filter(pk=informe.pk).update(estado_envio='enviado', fecha_envio=timezone.now())
