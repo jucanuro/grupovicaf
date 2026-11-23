@@ -229,6 +229,12 @@ class BloqueEnElBorradorTests(BasePlataforma):
         self.assertEqual(r.context['tiene_firma_bloque'], True)
         self.assertNotIn('Gina Gestora', r.context['cuerpo_editor'])
 
+    def test_la_pagina_no_ofrece_el_html_de_la_firma_con_plantilla_para_pegarlo_en_el_editor(self):
+        b = self._borrador()
+        r = self.get('borrador', b.pk)
+        self.assertContains(r, f'data-firma-html="{self.libre.pk}"')
+        self.assertNotContains(r, f'data-firma-html="{self.rica.pk}"')
+
     def test_guardar_el_texto_conserva_la_firma(self):
         from .firma_bloque import separar
         b = self._borrador()
