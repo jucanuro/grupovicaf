@@ -5,7 +5,7 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.management import call_command
-from django.test import TestCase, SimpleTestCase
+from django.test import TestCase, SimpleTestCase, override_settings
 
 from core.tema_oscuro import CLASE_RE, color_oscuro, generar_css
 
@@ -44,6 +44,7 @@ class GeneradorTemaOscuroTests(SimpleTestCase):
                 self.assertTrue(linea.lstrip().startswith('html.dark '), linea)
 
 
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab', SITE_ROLE='lab')
 class PlantillasConTemaTests(TestCase):
     def test_lims_carga_tema_antes_de_pintar_y_tiene_el_boton(self):
         usuario = User.objects.create_superuser('tema.admin', 'tema@e2e.invalid', 'x-clave-larga-123')

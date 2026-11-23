@@ -534,7 +534,7 @@ input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--acento);
 .mensaje__iconos { display: inline-flex; align-items: center; gap: 2px; margin-left: auto; }
 .mensaje__iframe { display: block; width: calc(100% - 32px); height: 320px; margin: 12px 16px; border: 0; background: var(--blanco); }
 .mensaje > .aviso { margin: 10px 16px 0; }
-.mensaje > .adjuntos { margin: 0 16px 16px; }
+.mensaje > .adjuntos { margin: 0 16px 10px; }
 .boton-icono--plano { width: 32px; height: 32px; background: transparent; border-radius: 6px; color: var(--tinta-2); }
 .boton-icono--plano svg { width: 16px; height: 16px; }
 .boton-icono--plano:hover { background: var(--hover); color: var(--acento); }
@@ -703,7 +703,7 @@ a.adjunto:hover { border-color: var(--acento); background: var(--acento-suave); 
 .ficha__quitar:hover { background: rgba(15, 23, 42, .12); }
 .editor__barra.ql-toolbar.ql-snow { border: 1px solid var(--borde); border-radius: 12px 12px 0 0; background: #F8FAFC; font-family: var(--texto); }
 .editor.ql-container.ql-snow { border: 1px solid var(--borde); border-top: 0; border-radius: 0 0 12px 12px; font-family: var(--texto); font-size: 15px; }
-.editor .ql-editor { min-height: 280px; line-height: 1.55; }
+.editor .ql-editor { min-height: 280px; line-height: 1.4; }
 .editor--firma .ql-editor { min-height: 140px; }
 .editor__barra.ql-snow .ql-picker.ql-font { width: 190px; }
 .editor__barra.ql-snow .ql-picker.ql-size { width: 110px; }

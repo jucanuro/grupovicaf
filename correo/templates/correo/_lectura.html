@@ -75,17 +75,6 @@
                 <div class="aviso aviso--ambar" role="alert"><p>No pudimos verificar al remitente: este mensaje no trae firma de su dominio. No hagas clic en enlaces ni abras adjuntos si no lo esperabas.</p></div>
                 {% endif %}
 
-                {% if m.imagenes_remotas %}
-                <p class="aviso aviso--suave">
-                    {% include 'correo/_iconos.html' with nombre='imagen' %}
-                    <span>Imágenes remotas bloqueadas por privacidad.</span>
-                    <a href="{% url 'mensaje_cuerpo' m.pk %}?imagenes=1" target="cuerpo-{{ m.pk }}" data-mostrar-imagenes>Mostrar imágenes</a>
-                </p>
-                {% endif %}
-                <iframe class="mensaje__iframe" name="cuerpo-{{ m.pk }}" title="Contenido del mensaje de {{ m|remitente }}"
-                        src="{% url 'mensaje_cuerpo' m.pk %}"
-                        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" loading="lazy" data-cuerpo></iframe>
-
                 {% if m.lista_adjuntos %}
                 <ul class="adjuntos" aria-label="Adjuntos">
                     {% for a in m.lista_adjuntos %}
@@ -100,6 +89,18 @@
                     {% endfor %}
                 </ul>
                 {% endif %}
+
+                {% if m.imagenes_remotas %}
+                <p class="aviso aviso--suave">
+                    {% include 'correo/_iconos.html' with nombre='imagen' %}
+                    <span>Imágenes remotas bloqueadas por privacidad.</span>
+                    <a href="{% url 'mensaje_cuerpo' m.pk %}?imagenes=1" target="cuerpo-{{ m.pk }}" data-mostrar-imagenes>Mostrar imágenes</a>
+                </p>
+                {% endif %}
+                <iframe class="mensaje__iframe" name="cuerpo-{{ m.pk }}" title="Contenido del mensaje de {{ m|remitente }}"
+                        src="{% url 'mensaje_cuerpo' m.pk %}"
+                        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" loading="lazy" data-cuerpo></iframe>
+
             </details>
         {% endfor %}
         </div>
