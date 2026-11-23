@@ -10,9 +10,13 @@ import re
 from django.conf import settings
 from django.templatetags.static import static
 
-AZUL = '#1E3A8A'
-AZUL_CLARO = '#6B9AD8'
+AZUL = '#12306B'
+NARANJA = '#F5A623'
+AZUL_CLARO = '#5B8DD6'
+FONDO = '#F3F6FC'
 GRIS = '#334155'
+TENUE = '#64748B'
+FUENTE = 'font-family:Arial,Helvetica,sans-serif'
 
 CAMPOS_TEXTO = (
     ('nombre', 'Nombre', 80),
@@ -23,10 +27,10 @@ CAMPOS_TEXTO = (
     ('ciudad', 'Ciudad', 80),
 )
 CAMPOS_REDES = (
-    ('web', 'Web', 'W'),
-    ('facebook', 'Facebook', 'f'),
-    ('instagram', 'Instagram', 'ig'),
-    ('linkedin', 'LinkedIn', 'in'),
+    ('web', 'Página web', 'Web'),
+    ('facebook', 'Facebook', 'Facebook'),
+    ('instagram', 'Instagram', 'Instagram'),
+    ('tiktok', 'TikTok', 'TikTok'),
 )
 _HTTPS = re.compile(r'^https://[^\s"<>]+$', re.IGNORECASE)
 
@@ -44,11 +48,11 @@ def datos_iniciales(usuario=None):
     if usuario is not None:
         nombre = (usuario.get_full_name() or '').strip()
     datos = {'nombre': nombre, 'cargo': '', 'telefono': '', 'correo': getattr(usuario, 'email', '') or '',
-             'direccion': '', 'ciudad': '', 'web': '', 'facebook': '', 'instagram': '', 'linkedin': ''}
+             'direccion': '', 'ciudad': '', 'web': '', 'facebook': '', 'instagram': '', 'tiktok': ''}
     if n:
         datos.update(telefono=n.telefono, direccion=n.direccion_calle, ciudad=n.direccion_localidad,
                      web=settings.SITE_URL if settings.SITE_URL.startswith('https://') else '',
-                     facebook=n.facebook_url, instagram=n.instagram_url, linkedin=n.linkedin_url)
+                     facebook=n.facebook_url, instagram=n.instagram_url)
         if not datos['correo']:
             datos['correo'] = n.correo
     return datos
@@ -81,53 +85,64 @@ def _e(texto):
     return html_lib.escape(texto, quote=True)
 
 
-def _fila(texto, enlace=None):
+def _fila(etiqueta, texto, enlace=None):
     if not texto:
         return ''
     contenido = _e(texto)
     if enlace:
         contenido = f'<a href="{_e(enlace)}" style="color:{GRIS};text-decoration:none">{contenido}</a>'
-    return (f'<tr><td style="padding:1px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;'
-            f'line-height:18px;color:{GRIS}">{contenido}</td></tr>')
+    return (
+        f'<tr>'
+        f'<td width="44" valign="top" style="width:44px;padding:3px 8px 3px 0;{FUENTE};font-size:10px;'
+        f'line-height:18px;font-weight:bold;letter-spacing:1px;color:{AZUL_CLARO}">{etiqueta}</td>'
+        f'<td valign="top" style="padding:3px 0;{FUENTE};font-size:13px;line-height:18px;color:{GRIS}">{contenido}</td>'
+        f'</tr>')
 
 
-def _insignia(enlace, marca, etiqueta):
-    """Círculo con la marca de la red. Es una celda (no un <a> en línea) porque
-    el sanitizador no admite display y el tamaño solo vale en celdas."""
-    return (f'<td width="24" height="24" align="center" valign="middle" bgcolor="{AZUL}" '
-            f'style="width:24px;height:24px;border-radius:12px;background-color:{AZUL};text-align:center">'
-            f'<a href="{_e(enlace)}" title="{_e(etiqueta)}" style="color:#ffffff;text-decoration:none;'
-            f'font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold">{_e(marca)}</a></td>'
-            f'<td width="4" style="width:4px"></td>')
+def _boton(enlace, texto):
+    """Botón redondeado: es una celda porque el tamaño y el fondo solo valen ahí
+    (el sanitizador no admite display ni degradados)."""
+    return (
+        f'<td bgcolor="{NARANJA}" style="background-color:{NARANJA};border-radius:14px;padding:5px 14px">'
+        f'<a href="{_e(enlace)}" style="color:{AZUL};text-decoration:none;{FUENTE};font-size:12px;'
+        f'font-weight:bold">{_e(texto)}</a></td>'
+        f'<td width="8" style="width:8px"></td>')
 
 
 def generar_html(datos):
     """HTML de la firma (ya listo para pasar por sanitizar_html)."""
     d = datos
     ubicacion = ', '.join(p for p in (d['direccion'], d['ciudad']) if p)
-    redes = ''.join(_insignia(d[c], m, e) for c, e, m in CAMPOS_REDES if d[c])
+    telefono_enlace = f"tel:{re.sub(r'[^0-9+]', '', d['telefono'])}" if re.search(r'\d', d['telefono']) else None
     filas = ''.join((
-        _fila(d['telefono'], f"tel:{re.sub(r'[^0-9+]', '', d['telefono'])}" if re.search(r'\d', d['telefono']) else None),
-        _fila(d['correo'], f"mailto:{d['correo']}" if '@' in d['correo'] else None),
-        _fila(ubicacion),
+        _fila('TEL', d['telefono'], telefono_enlace),
+        _fila('MAIL', d['correo'], f"mailto:{d['correo']}" if '@' in d['correo'] else None),
+        _fila('SEDE', ubicacion),
     ))
-    cargo = (f'<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:18px;'
-             f'color:{AZUL_CLARO};padding-bottom:4px">{_e(d["cargo"])}</div>') if d['cargo'] else ''
-    columna_redes = (f'<td valign="middle" align="right" style="padding:0 0 0 16px">'
-                     f'<table cellpadding="0" cellspacing="0" border="0"><tr>{redes}</tr></table></td>'
-                     if redes else '')
+    cargo = (f'<div style="{FUENTE};font-size:11px;line-height:16px;font-weight:bold;letter-spacing:2px;'
+             f'color:{NARANJA};padding:2px 0 10px 0">{_e(d["cargo"].upper())}</div>') if d['cargo'] else (
+        '<div style="height:8px;line-height:8px">&nbsp;</div>')
+    botones = ''.join(_boton(d[c], etiqueta) for c, _e_, etiqueta in CAMPOS_REDES if d[c])
+    barra_redes = (
+        f'<tr><td colspan="2" bgcolor="{AZUL}" style="background-color:{AZUL};padding:10px 16px">'
+        f'<table cellpadding="0" cellspacing="0" border="0"><tr>{botones}</tr></table></td></tr>'
+    ) if botones else ''
     return (
-        f'<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-top:12px">'
+        f'<table cellpadding="0" cellspacing="0" border="0" width="520" '
+        f'style="width:520px;max-width:100%;border-collapse:collapse;margin-top:14px">'
+        f'<tr><td width="40%" height="4" bgcolor="{AZUL}" style="height:4px;line-height:4px;font-size:1px;'
+        f'background-color:{AZUL}">&nbsp;</td>'
+        f'<td height="4" bgcolor="{NARANJA}" style="height:4px;line-height:4px;font-size:1px;'
+        f'background-color:{NARANJA}">&nbsp;</td></tr>'
         f'<tr>'
-        f'<td valign="middle" style="padding:4px 16px 4px 0;border-right:3px solid {AZUL_CLARO}">'
+        f'<td width="170" valign="middle" align="center" bgcolor="{FONDO}" style="width:170px;padding:16px 20px;background-color:{FONDO}">'
         f'<img src="{_e(url_logo())}" alt="Grupo VICAF" width="120" style="width:120px;height:auto">'
         f'</td>'
-        f'<td valign="middle" style="padding:0 16px">'
-        f'<div style="font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:22px;font-weight:bold;'
-        f'color:{AZUL}">{_e(d["nombre"])}</div>'
+        f'<td valign="middle" style="padding:16px 20px;border-bottom:1px solid #E2E8F0">'
+        f'<div style="{FUENTE};font-size:19px;line-height:24px;font-weight:bold;color:{AZUL}">{_e(d["nombre"])}</div>'
         f'{cargo}'
         f'<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">{filas}</table>'
-        f'</td>'
-        f'{columna_redes}'
-        f'</tr></table>'
+        f'</td></tr>'
+        f'{barra_redes}'
+        f'</table>'
     )

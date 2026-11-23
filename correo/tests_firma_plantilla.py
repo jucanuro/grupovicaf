@@ -7,7 +7,7 @@ from .tests_plataforma import BasePlataforma
 
 DATOS = dict(nombre='Gina Gestora', cargo='Jefa de Laboratorio', telefono='+51 976 000 000',
              correo='gina@grupovicaf.com', direccion='Jr. Lima 123', ciudad='Cajamarca',
-             web='https://www.grupovicaf.com', facebook='', instagram='https://instagram.com/vicaf', linkedin='')
+             web='https://www.grupovicaf.com', facebook='', instagram='https://instagram.com/vicaf', tiktok='')
 
 
 class GenerarHtmlTests(SimpleTestCase):
@@ -17,7 +17,7 @@ class GenerarHtmlTests(SimpleTestCase):
                       'Jr. Lima 123, Cajamarca', 'https://instagram.com/vicaf', 'LogoF'):
             self.assertIn(texto, html)
         self.assertNotIn('Facebook', html)
-        self.assertNotIn('LinkedIn', html)
+        self.assertNotIn('TikTok', html)
 
     def test_escapa_el_texto_y_descarta_enlaces_no_https(self):
         datos = fp.limpiar_datos({**DATOS, 'nombre': '<script>alert(1)</script>', 'web': 'javascript:alert(1)',
