@@ -4,7 +4,7 @@
 {% block title %}Calendario · Vicaf{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/calendario.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/calendario.css' %}?v=2">
 {% endblock %}
 
 {% block content %}
@@ -88,7 +88,15 @@
 {# Creación rápida: aparece al arrastrar sobre la grilla. #}
 <div id="popRapido" class="vc-pop" hidden role="dialog" aria-label="Nueva actividad rápida">
     <input id="rapido_titulo" class="vc-pop-titulo" placeholder="Añade un título" maxlength="200" autocomplete="off">
-    <div class="vc-pop-fila">🕑 <b id="rapido_cuando"></b></div>
+    <div class="vc-pop-fila vc-pop-cuando">
+        <svg class="vc-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <b id="rapido_cuando"></b>
+        <span class="vc-horas-par" id="rapido_horas">
+            <span class="vc-hora"><input id="rapido_hi" class="vc-in vc-in-hora" aria-label="Hora de inicio" inputmode="numeric"></span>
+            <span class="vc-guion">–</span>
+            <span class="vc-hora"><input id="rapido_hf" class="vc-in vc-in-hora" aria-label="Hora de fin" inputmode="numeric"></span>
+        </span>
+    </div>
     <div class="vc-pop-fila vc-chips" id="rapido_calendarios"></div>
     <p class="vc-pop-error" id="rapido_error" hidden></p>
     <div class="vc-pop-pie">
@@ -123,21 +131,28 @@
                 <div class="vc-fila">
                     <span class="vc-lbl">Cuándo</span>
                     <div class="vc-cuando">
-                        <input type="datetime-local" id="fecha_inicio" class="vc-in" aria-label="Inicio">
-                        <span class="vc-sub">a</span>
-                        <input type="datetime-local" id="fecha_fin" class="vc-in" aria-label="Fin">
-                        <label class="vc-chip vc-chip-check"><input type="checkbox" id="todo_el_dia"> Todo el día</label>
+                        <input type="hidden" id="fecha_inicio">
+                        <input type="hidden" id="fecha_fin">
+                        <input type="date" id="fi_dia" class="vc-in vc-in-dia" aria-label="Fecha de inicio">
+                        <span class="vc-hora" data-solo-hora><input id="fi_hora" class="vc-in vc-in-hora" aria-label="Hora de inicio" inputmode="numeric"></span>
+                        <span class="vc-guion">–</span>
+                        <span class="vc-hora" data-solo-hora><input id="ff_hora" class="vc-in vc-in-hora" aria-label="Hora de fin" inputmode="numeric"></span>
+                        <input type="date" id="ff_dia" class="vc-in vc-in-dia" aria-label="Fecha de fin">
+                        <label class="vc-switch"><input type="checkbox" id="todo_el_dia"><i></i>Todo el día</label>
                     </div>
                 </div>
 
                 <div class="vc-fila">
                     <span class="vc-lbl">Tipo</span>
                     <div class="vc-cuando">
-                        <select id="clase" class="vc-in"></select>
-                        <span class="vc-lbl vc-lbl-in">Prioridad</span>
-                        <div class="vc-segp" id="prioridad_seg" role="radiogroup" aria-label="Prioridad"></div>
-                        <select id="estado" class="vc-in" hidden aria-label="Estado"></select>
+                        <select id="clase" class="vc-in vc-in-tipo" aria-label="Tipo"></select>
+                        <select id="estado" class="vc-in vc-in-tipo" hidden aria-label="Estado"></select>
                     </div>
+                </div>
+
+                <div class="vc-fila">
+                    <span class="vc-lbl">Prioridad</span>
+                    <div class="vc-segp" id="prioridad_seg" role="radiogroup" aria-label="Prioridad"></div>
                 </div>
 
                 <div class="vc-fila vc-fila-top">
@@ -180,7 +195,7 @@
                 <details class="vc-mas-opc" id="masOpciones">
                     <summary>Más opciones: descripción, ubicación, enlace, recordatorio, bloquear agenda, notas internas</summary>
                     <div class="vc-grid2">
-                        <label class="vc-span2">Descripción <i>(va en el aviso al cliente)</i>
+                        <label class="vc-span2"><span>Descripción <i>(va en el aviso al cliente)</i></span>
                             <textarea id="descripcion" class="vc-in" rows="2" maxlength="1000"></textarea></label>
                         <label>Ubicación<input id="ubicacion" class="vc-in" maxlength="255"></label>
                         <label>Enlace (Meet, Zoom…)<input id="enlace_externo" type="url" class="vc-in" placeholder="https://"></label>
@@ -193,7 +208,7 @@
                                 <option value="1440">1 día antes</option>
                             </select></label>
                         <label class="vc-check vc-check-in"><input type="checkbox" id="bloquea_agenda"> Bloquea agenda</label>
-                        <label class="vc-span2">Observaciones internas <i>(no salen al cliente)</i>
+                        <label class="vc-span2"><span>Observaciones internas <i>(no salen al cliente)</i></span>
                             <textarea id="observaciones" class="vc-in" rows="2"></textarea></label>
                     </div>
                 </details>
@@ -268,5 +283,5 @@
     };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.19/index.global.min.js"></script>
-<script src="{% static 'js/calendario.js' %}?v=1"></script>
+<script src="{% static 'js/calendario.js' %}?v=2"></script>
 {% endblock %}

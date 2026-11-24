@@ -83,7 +83,11 @@ test('crear rápido arrastrando en la semana, en el calendario elegido', async (
 
     const pop = page.locator('#popRapido');
     await expect(pop).toBeVisible();
-    await expect(page.locator('#rapido_cuando')).toContainText('19:00');
+    await expect(page.locator('#rapido_hi')).toHaveValue('19:00');
+    // La hora de fin se elige de una lista con la duración al lado.
+    await page.locator('#rapido_hf').click();
+    await page.locator('#rapido_hf_lista').getByRole('option', { name: /20:00\s*1 h$/ }).click();
+    await expect(page.locator('#rapido_hf')).toHaveValue('20:00');
     const titulo = `Rápida E2E ${Date.now()}`;
     await page.locator('#rapido_titulo').fill(titulo);
     await page.locator('#rapido_calendarios').getByText(CALENDARIO.personal).click();
@@ -138,4 +142,43 @@ test('un calendario personal nuevo solo aparece para quien lo creó', async ({ p
     await page.context().clearCookies();
     await abrirCalendario(page, USUARIOS.agenda);
     await expect(page.locator('#vc-cal-personal')).not.toContainText(nombre);
+});
+
+test('estirar o mover un evento lo guarda y ofrece deshacer', async ({ page }) => {
+    await abrirCalendario(page, USUARIOS.agenda);
+    const ev = evento(page, EV.equipo);
+    await ev.hover();
+    const r = await ev.locator('.fc-event-resizer-end').boundingBox();
+    const respuesta = page.waitForResponse((x) => x.url().includes('/reprogramar/'));
+    await page.mouse.move(r.x + r.width / 2, r.y + r.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(r.x + r.width / 2, r.y + 45, { steps: 6 });
+    await page.mouse.up();
+    expect((await respuesta).status()).toBe(200);
+    const toast = page.locator('#vc-toast');
+    await expect(toast).toContainText('movida');
+    // Deshacer lo deja como estaba.
+    const deshacer = page.waitForResponse((x) => x.url().includes('/reprogramar/'));
+    await toast.getByRole('button', { name: 'Deshacer' }).click();
+    expect((await deshacer).status()).toBe(200);
+    await expect(evento(page, EV.equipo)).toContainText('10:00 – 11:00');
+});
+
+test('la hora se elige de una lista y el fin conserva la duración', async ({ page }) => {
+    await abrirCalendario(page, USUARIOS.agenda);
+    await page.locator('#btnNuevaActividad').click();
+    await page.locator('#fi_hora').click();
+    const lista = page.locator('#fi_hora_lista');
+    await expect(lista).toBeVisible();
+    await lista.getByRole('option', { name: '10:30', exact: true }).click();
+    await expect(lista).toBeHidden();
+    await expect(page.locator('#fi_hora')).toHaveValue('10:30');
+    await expect(page.locator('#ff_hora')).toHaveValue('11:30');
+
+    // También se puede escribir: «4pm» → 16:00.
+    await page.locator('#ff_hora').fill('4pm');
+    await page.locator('#ff_hora').press('Enter');
+    await expect(page.locator('#ff_hora')).toHaveValue('16:00');
+    await expect(page.locator('#fecha_fin')).toHaveValue(/T16:00$/);
+    await expect(page.locator('#resumen')).toContainText('10:30 – 16:00');
 });
