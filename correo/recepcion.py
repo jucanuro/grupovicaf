@@ -27,7 +27,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from .mensajeria import crear_mensaje
-from .models import CuentaCorreo, Mensaje, ReglaBloqueo
+from .models import Carpeta, CuentaCorreo, Mensaje, ReglaBloqueo, ReglaPermitido
 from .servicios import ServicioRecepcion
 
 logger = logging.getLogger(__name__)
@@ -88,7 +88,8 @@ def _suplanta_dominio(msg, remitente):
         return False
     resultados = ' '.join(_texto(v).lower() for v in (msg.get_all('Authentication-Results') or []))
     resultados += ' ' + _texto(msg.get('Received-SPF')).lower()
-    if any(f'{m}={r}' in resultados for m in ('spf', 'dkim', 'dmarc') for r in ('fail', 'softfail', 'none')):
+    # «none» no es un fallo (p. ej. spf=none cuando el correo sale por SES): lo que manda es el DKIM de abajo.
+    if any(f'{m}={r}' in resultados for m in ('spf', 'dkim', 'dmarc') for r in ('fail', 'softfail')):
         return True
     firmas = ' '.join(_texto(v).lower().replace(' ', '') for v in (msg.get_all('DKIM-Signature') or []))
     respaldado = any(f'd={d}' in firmas for d in (*settings.CORREO_DOMINIOS, 'amazonses.com'))
@@ -105,6 +106,19 @@ def _bloqueado(remitente):
         if regla.tipo == ReglaBloqueo.DOMINIO and (dominio == regla.valor or dominio.endswith('.' + regla.valor)):
             return True
     return False
+
+
+def _de_confianza(remitente):
+    """Lista de confianza del admin, o alguien a quien ya le escribimos desde una cuenta VICAF."""
+    correo = remitente['correo']
+    dominio = correo.rpartition('@')[2]
+    for regla in ReglaPermitido.objects.filter(activa=True):
+        if regla.tipo == ReglaPermitido.CORREO and regla.valor == correo:
+            return True
+        if regla.tipo == ReglaPermitido.DOMINIO and (dominio == regla.valor or dominio.endswith('.' + regla.valor)):
+            return True
+    previos = Mensaje.objects.filter(carpeta__tipo=Carpeta.ENVIADOS, para__icontains=correo).values_list('para', flat=True)[:20]
+    return any((p.get('correo') or '').lower() == correo for para in previos for p in para if isinstance(p, dict))
 
 
 def _fraccion_cjk(texto):
@@ -215,8 +229,10 @@ class RecepcionEML(ServicioRecepcion):
         fecha = _fecha(msg)
         suplantado = _suplanta_dominio(msg, remitente)
         bloqueado = _bloqueado(remitente)
-        phishing = _puntaje_phishing(msg, remitente, html, texto, adjuntos) >= 2 if getattr(settings, 'CORREO_FILTRAR_SUPLANTACION', False) else False
-        carpeta = 'spam' if (suplantado or bloqueado or phishing or _es_spam(msg)) else 'entrada'
+        confianza = not bloqueado and not suplantado and _de_confianza(remitente)
+        phishing = (not confianza and getattr(settings, 'CORREO_FILTRAR_SUPLANTACION', False)
+                    and _puntaje_phishing(msg, remitente, html, texto, adjuntos) >= 2)
+        carpeta = 'spam' if (suplantado or bloqueado or phishing or (_es_spam(msg) and not confianza)) else 'entrada'
         asunto = _texto(msg.get('Subject'))[:500]
         if bloqueado or phishing:
             logger.warning('Correo de %s a No deseado (bloqueo o phishing).', remitente['correo'])
@@ -224,7 +240,7 @@ class RecepcionEML(ServicioRecepcion):
             logger.warning('Posible suplantación de %s: va a No deseado.', remitente['correo'])
             asunto = f'[POSIBLE SUPLANTACIÓN] {asunto}'[:500]
 
-        sin_verificar = suplantado or _sin_verificar(msg, remitente)
+        sin_verificar = suplantado or (not confianza and _sin_verificar(msg, remitente))
         sha = hashlib.sha256(crudo).hexdigest()
         creados = []
         for cuenta in cuentas:

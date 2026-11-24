@@ -5,7 +5,7 @@ queda la vista de respaldo para el superusuario; los mensajes no se exponen.
 """
 from django.contrib import admin
 
-from .models import AccesoCuenta, CuentaCorreo, EventoCuenta, ReglaBloqueo
+from .models import AccesoCuenta, CuentaCorreo, EventoCuenta, ReglaBloqueo, ReglaPermitido
 
 
 class AccesoInline(admin.TabularInline):
@@ -43,6 +43,13 @@ class EventoCuentaAdmin(admin.ModelAdmin):
 
 @admin.register(ReglaBloqueo)
 class ReglaBloqueoAdmin(admin.ModelAdmin):
+    list_display = ['valor', 'tipo', 'activa', 'nota', 'creada_en']
+    list_filter = ['tipo', 'activa']
+    search_fields = ['valor', 'nota']
+
+
+@admin.register(ReglaPermitido)
+class ReglaPermitidoAdmin(admin.ModelAdmin):
     list_display = ['valor', 'tipo', 'activa', 'nota', 'creada_en']
     list_filter = ['tipo', 'activa']
     search_fields = ['valor', 'nota']
