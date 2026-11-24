@@ -26,7 +26,7 @@
         get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
         set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ } },
     };
-    const urlCon = (plantilla, id) => plantilla.replace(/\/0\/(?=[^/]*$)/, `/${id}/`);
+    const urlCon = (plantilla, id) => plantilla.replace(/\/0\/(?!.*\/0\/)/, `/${id}/`);
 
     const COLORES = ['#2563eb', '#7c3aed', '#db2777', '#dc2626', '#ea580c', '#f59e0b', '#16a34a', '#0891b2', '#0d9488', '#64748b'];
     const TERMINADAS = ['COMPLETADA', 'CANCELADA'];
@@ -64,6 +64,155 @@
         }
         if (!fin || mismoDia(inicio, fin)) return `${fechaCorta(inicio)} · ${hora(inicio)} – ${fin ? hora(fin) : ''}`;
         return `${fechaCorta(inicio)} ${hora(inicio)} – ${fechaCorta(fin)} ${hora(fin)}`;
+    }
+
+    // ---------- selector de hora (lista cada 15 min, como Google/Apple) ----------
+    const PASO_MIN = 15;
+    const minDelDia = (d) => d.getHours() * 60 + d.getMinutes();
+    const textoHora = (min) => `${pad(Math.floor(min / 60) % 24)}:${pad(min % 60)}`;
+    function textoDuracion(min) {
+        if (min < 60) return `${min} min`;
+        const h = Math.floor(min / 60), m = min % 60;
+        return m ? `${h} h ${m} min` : `${h} h`;
+    }
+    // Acepta «9», «930», «9:30», «9.30», «2pm», «2:15 p. m.».
+    function leerHora(txt) {
+        const t = String(txt || '').toLowerCase().replace(/[\s.]/g, '');
+        if (!t) return null;
+        const pm = /p/.test(t), am = /a/.test(t);
+        const dig = t.replace(/[^0-9:]/g, '');
+        let h, m = 0;
+        if (dig.includes(':')) { const p = dig.split(':'); h = Number(p[0]); m = Number(p[1] || 0); }
+        else if (dig.length <= 2) h = Number(dig);
+        else { h = Number(dig.slice(0, -2)); m = Number(dig.slice(-2)); }
+        if (!dig || Number.isNaN(h) || Number.isNaN(m)) return null;
+        if (pm && h < 12) h += 12;
+        if (am && h === 12) h = 0;
+        if (h > 23 || m > 59) return null;
+        return h * 60 + m;
+    }
+
+    /**
+     * Convierte un <input> de texto en un selector de hora: al enfocarlo abre
+     * una lista (flechas, Enter, Esc) y también acepta lo que se escriba.
+     * opciones() → [{min, dur?, extra}] ; elegir(opción) guarda; actual() → min.
+     */
+    let selectorAbierto = null;
+    function selectorHora(input, { opciones, elegir, actual }) {
+        const lista = document.createElement('div');
+        lista.className = 'vc-horas';
+        lista.hidden = true;
+        lista.setAttribute('role', 'listbox');
+        lista.id = `${input.id}_lista`;
+        input.setAttribute('role', 'combobox');
+        input.setAttribute('aria-controls', lista.id);
+        input.setAttribute('aria-expanded', 'false');
+        input.setAttribute('autocomplete', 'off');
+        input.insertAdjacentElement('afterend', lista);
+        let marcado = -1;
+        let items = [];
+
+        function pintar() {
+            const sel = actual();
+            items = opciones();
+            lista.innerHTML = items.map((o, i) => `<button type="button" role="option" tabindex="-1" data-i="${i}"`
+                + ` class="${o.min === sel ? 'sel' : ''}" aria-selected="${o.min === sel}">`
+                + `<span>${textoHora(o.min)}</span>${o.extra ? `<small>${esc(o.extra)}</small>` : ''}</button>`).join('');
+            marcado = items.findIndex((o) => o.min === sel);
+        }
+        function marcar(i, centrar) {
+            const bs = lista.querySelectorAll('button');
+            bs.forEach((b) => b.classList.remove('foco'));
+            marcado = Math.max(0, Math.min(items.length - 1, i));
+            const b = bs[marcado];
+            if (!b) return;
+            b.classList.add('foco');
+            if (centrar) lista.scrollTop = b.offsetTop - lista.clientHeight / 2 + b.offsetHeight / 2;
+            else b.scrollIntoView({ block: 'nearest' });
+        }
+        function abrir() {
+            if (selectorAbierto && selectorAbierto !== cerrar) selectorAbierto();
+            pintar();
+            lista.hidden = false;
+            input.setAttribute('aria-expanded', 'true');
+            selectorAbierto = cerrar;
+            // Sin hora elegida, se ubica en las 8:00.
+            const i = marcado >= 0 ? marcado : items.findIndex((o) => o.min >= 480);
+            marcar(i < 0 ? 0 : i, true);
+            requestAnimationFrame(() => { input.select(); });
+        }
+        function cerrar() {
+            lista.hidden = true;
+            input.setAttribute('aria-expanded', 'false');
+            if (selectorAbierto === cerrar) selectorAbierto = null;
+        }
+        function confirmarTexto() {
+            const min = leerHora(input.value);
+            if (min == null) { input.value = textoHora(actual()); return; }
+            if (min !== actual()) elegir({ min }); else input.value = textoHora(min);
+        }
+        input.addEventListener('focus', abrir);
+        input.addEventListener('click', () => { if (lista.hidden) abrir(); });
+        input.addEventListener('blur', () => setTimeout(() => {
+            if (lista.contains(document.activeElement)) return;
+            cerrar();
+            confirmarTexto();
+        }, 120));
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (lista.hidden) abrir();
+                marcar(marcado + (e.key === 'ArrowDown' ? 1 : -1));
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                const escrito = leerHora(input.value);
+                if (!lista.hidden && marcado >= 0 && (escrito == null || escrito === actual())) elegir(items[marcado]);
+                else confirmarTexto();
+                cerrar();
+            } else if (e.key === 'Escape' && !lista.hidden) {
+                e.preventDefault();
+                e.stopPropagation();
+                input.value = textoHora(actual());
+                cerrar();
+            } else if (e.key === 'Tab') {
+                cerrar();
+            }
+        });
+        input.addEventListener('input', () => {
+            // Al escribir, salta a la hora más cercana de la lista.
+            const min = leerHora(input.value);
+            if (min == null || lista.hidden) return;
+            let i = items.findIndex((o) => o.min >= min);
+            if (i < 0) i = items.length - 1;
+            marcar(i, true);
+        });
+        lista.addEventListener('mousedown', (e) => e.preventDefault());
+        lista.addEventListener('click', (e) => {
+            const b = e.target.closest('button[data-i]');
+            if (!b) return;
+            elegir(items[Number(b.dataset.i)]);
+            cerrar();
+        });
+        return { cerrar };
+    }
+    const horasDelDia = () => Array.from({ length: 1440 / PASO_MIN }, (_, i) => ({ min: i * PASO_MIN }));
+    // Lista del fin: desde el inicio, con la duración al lado (hasta 24 h).
+    function horasDesde(inicio) {
+        const base = minDelDia(inicio);
+        return Array.from({ length: 1440 / PASO_MIN }, (_, i) => {
+            const dur = (i + 1) * PASO_MIN;
+            return { min: (base + dur) % 1440, dur, extra: textoDuracion(dur) };
+        });
+    }
+
+    const fijarHora = (d, min) => { const x = new Date(d); x.setHours(Math.floor(min / 60), min % 60, 0, 0); return x; };
+    // Fin a partir de una opción de la lista (con duración) o de una hora escrita.
+    function finDesde(inicio, o) {
+        if (o.dur != null) return sumarMin(inicio, o.dur);
+        let f = fijarHora(inicio, o.min);
+        if (f <= inicio) f = sumarMin(f, 1440);
+        return f;
     }
 
     // ---------- servidor ----------
@@ -421,13 +570,37 @@
             rapido = Object.assign(rapido, { inicio: d, fin: sumarMin(d, 60), todoElDia: false });
         }
         $('rapido_titulo').value = '';
-        $('rapido_cuando').textContent = cuandoTexto(rapido.inicio, rapido.fin, rapido.todoElDia);
+        pintarRapidoHoras();
         $('rapido_error').hidden = true;
         chipsCalendario($('rapido_calendarios'), rapido.cal, (id) => { rapido.cal = id; });
         // Junto a lo que se arrastró (el bloque provisional), no donde soltó el ratón.
         colocar($('popRapido'), anclaDeFecha(info.start, info.allDay));
         $('rapido_titulo').focus();
     }
+
+    // Horas editables en la creación rápida (en el mismo día).
+    function pintarRapidoHoras() {
+        const conHoras = !rapido.todoElDia && mismoDia(rapido.inicio, sumarMin(rapido.fin, -1));
+        $('rapido_cuando').textContent = conHoras ? fechaCorta(rapido.inicio) : cuandoTexto(rapido.inicio, rapido.fin, rapido.todoElDia);
+        $('rapido_horas').hidden = !conHoras;
+        $('rapido_hi').value = textoHora(minDelDia(rapido.inicio));
+        $('rapido_hf').value = textoHora(minDelDia(rapido.fin));
+    }
+    selectorHora($('rapido_hi'), {
+        opciones: horasDelDia,
+        actual: () => minDelDia(rapido.inicio),
+        elegir: (o) => {
+            const dur = rapido.fin - rapido.inicio;
+            rapido.inicio = fijarHora(rapido.inicio, o.min);
+            rapido.fin = new Date(rapido.inicio.getTime() + dur);
+            pintarRapidoHoras();
+        },
+    });
+    selectorHora($('rapido_hf'), {
+        opciones: () => horasDesde(rapido.inicio),
+        actual: () => minDelDia(rapido.fin),
+        elegir: (o) => { rapido.fin = finDesde(rapido.inicio, o); pintarRapidoHoras(); },
+    });
 
     function anclaDeFecha(fecha, todoElDia) {
         const dia = aInputFecha(fecha);
@@ -639,10 +812,11 @@
     seg.onclick = (e) => { const b = e.target.closest('button'); if (b) { form.prioridad = b.dataset.v; pintarPrioridad(); actualizarVista(); } };
     function pintarPrioridad() { seg.querySelectorAll('button').forEach((b) => { const a = b.dataset.v === form.prioridad; b.classList.toggle('activo', a); b.setAttribute('aria-checked', a); }); }
 
+    // Los campos ocultos #fecha_inicio/#fecha_fin guardan el valor; lo visible es
+    // fecha + hora (lista cada 15 min) de inicio y de fin.
+    const V = { fiDia: $('fi_dia'), fiHora: $('fi_hora'), ffDia: $('ff_dia'), ffHora: $('ff_hora') };
     function ponerFechas(inicio, fin, todoElDia) {
         F.todoElDia.checked = !!todoElDia;
-        F.inicio.type = todoElDia ? 'date' : 'datetime-local';
-        F.fin.type = todoElDia ? 'date' : 'datetime-local';
         if (todoElDia) {
             F.inicio.value = aInputFecha(inicio);
             F.fin.value = aInputFecha(sumarMin(fin || sumarMin(inicio, 1440), -1));
@@ -650,6 +824,7 @@
             F.inicio.value = aInputFechaHora(inicio);
             F.fin.value = aInputFechaHora(fin || sumarMin(inicio, 60));
         }
+        pintarCuando();
     }
     function leerFechas() {
         if (!F.inicio.value || !F.fin.value) return null;
@@ -660,23 +835,76 @@
         }
         return { inicio: new Date(F.inicio.value), fin: new Date(F.fin.value), todoElDia: false };
     }
+    function pintarCuando() {
+        const f = leerFechas();
+        const todo = F.todoElDia.checked;
+        F.modal.querySelectorAll('[data-solo-hora]').forEach((el) => { el.hidden = todo; });
+        if (!f) return;
+        V.fiDia.value = aInputFecha(f.inicio);
+        V.ffDia.value = aInputFecha(todo ? sumarMin(f.fin, -1) : f.fin);
+        V.fiHora.value = textoHora(minDelDia(f.inicio));
+        V.ffHora.value = textoHora(minDelDia(f.fin));
+        // La fecha de fin solo se muestra si es otro día (como Google).
+        V.ffDia.classList.toggle('vc-tenue', !todo && mismoDia(f.inicio, f.fin));
+    }
+    function fijarFechas(inicio, fin) {
+        if (F.todoElDia.checked) ponerFechas(inicio, sumarMin(fin, 1440), true);
+        else ponerFechas(inicio, fin, false);
+        actualizarVista();
+    }
+    const diaDe = (valor, base) => {
+        if (!valor) return null;
+        const d = new Date(`${valor}T00:00`);
+        d.setHours(base.getHours(), base.getMinutes(), 0, 0);
+        return d;
+    };
+    V.fiDia.addEventListener('change', () => {
+        // Mover el inicio arrastra el fin: se conserva la duración.
+        const f = leerFechas(); const i = f && diaDe(V.fiDia.value, f.inicio);
+        if (!i) return pintarCuando();
+        const dur = f.fin - f.inicio;
+        fijarFechas(i, new Date(i.getTime() + (F.todoElDia.checked ? dur - 86400000 : dur)));
+    });
+    V.ffDia.addEventListener('change', () => {
+        const f = leerFechas(); let fin = f && diaDe(V.ffDia.value, F.todoElDia.checked ? f.inicio : f.fin);
+        if (!fin) return pintarCuando();
+        if (fin < f.inicio) fin = F.todoElDia.checked ? new Date(f.inicio) : sumarMin(f.inicio, 60);
+        fijarFechas(f.inicio, fin);
+    });
+    selectorHora(V.fiHora, {
+        opciones: horasDelDia,
+        actual: () => { const f = leerFechas(); return f ? minDelDia(f.inicio) : 540; },
+        elegir: (o) => {
+            const f = leerFechas(); if (!f) return;
+            const i = fijarHora(f.inicio, o.min);
+            fijarFechas(i, new Date(i.getTime() + (f.fin - f.inicio)));
+        },
+    });
+    selectorHora(V.ffHora, {
+        opciones: () => { const f = leerFechas(); return f && mismoDia(f.inicio, sumarMin(f.fin, -1)) ? horasDesde(f.inicio) : horasDelDia(); },
+        actual: () => { const f = leerFechas(); return f ? minDelDia(f.fin) : 600; },
+        elegir: (o) => {
+            const f = leerFechas(); if (!f) return;
+            const otroDia = !mismoDia(f.inicio, sumarMin(f.fin, -1));
+            const fin = o.dur != null || !otroDia ? finDesde(f.inicio, o) : fijarHora(f.fin, o.min);
+            fijarFechas(f.inicio, fin <= f.inicio ? sumarMin(f.inicio, PASO_MIN) : fin);
+        },
+    });
     F.todoElDia.addEventListener('change', () => {
+        // Se leen las fechas con el estado anterior de la casilla.
+        const ahora = F.todoElDia.checked;
+        F.todoElDia.checked = !ahora;
         const f = leerFechas() || { inicio: new Date(), fin: sumarMin(new Date(), 60) };
-        if (F.todoElDia.checked) {
-            ponerFechas(f.inicio, sumarMin(f.fin, 1440), true);
+        if (ahora) {
+            const i = new Date(f.inicio); i.setHours(0, 0, 0, 0);
+            const u = new Date(sumarMin(f.fin, -1)); u.setHours(0, 0, 0, 0);
+            ponerFechas(i, sumarMin(u, 1440), true);
         } else {
             const i = new Date(f.inicio); i.setHours(9, 0, 0, 0);
             ponerFechas(i, sumarMin(i, 60), false);
         }
         actualizarVista();
     });
-    F.inicio.addEventListener('change', () => {
-        // Al mover el inicio, el fin conserva la duración.
-        const f = leerFechas();
-        if (!f || F.todoElDia.checked) return;
-        if (form.duracion && f.fin <= f.inicio) F.fin.value = aInputFechaHora(sumarMin(f.inicio, form.duracion));
-    });
-    F.fin.addEventListener('change', () => { const f = leerFechas(); if (f && f.fin > f.inicio) form.duracion = (f.fin - f.inicio) / 60000; });
 
     // participantes
     function pintarParticipantes() {
@@ -769,7 +997,6 @@
             fin = sumarMin(inicio, 60); todo = false;
         }
         ponerFechas(inicio, fin, todo);
-        form.duracion = todo ? null : (fin - inicio) / 60000;
 
         const cals = calendariosParaCrear();
         form.cal = d ? (d.categoria_id || '') : (op.categoria_id || calendarioPorDefecto());
@@ -876,7 +1103,7 @@
         const alCliente = F.avisar.checked ? `<span>Se le enviará un aviso a ${esc(form.cliente.correo_contacto)}</span>` : '<span class="vc-ok">No se le envía nada</span>';
         const recTxt = $('recordatorio').selectedOptions[0] ? $('recordatorio').selectedOptions[0].textContent : 'Sin recordatorio';
         const estado = F.estado.hidden ? 'Programada' : nombreDe(D.estados, F.estado.value);
-        res.innerHTML = `<dt>Calendario</dt><dd><span class="vc-chip" style="--c:${cal.color};padding:0;border:0!important;background:none!important"><i></i>${esc(cal.nombre)}</span></dd>`
+        res.innerHTML = `<dt>Calendario</dt><dd><span class="vc-cal-ref" style="--c:${cal.color}"><i></i>${esc(cal.nombre)}</span></dd>`
             + `<dt>Lo verán</dt><dd>${esc(loVeran)}</dd>`
             + `<dt>Cuándo</dt><dd>${esc(cuandoTexto(f.inicio, f.fin, f.todoElDia))}</dd>`
             + `<dt>Tipo</dt><dd>${esc(nombreDe(D.clases, F.clase.value))} · prioridad ${esc(nombreDe(D.prioridades, form.prioridad).toLowerCase())} · ${esc(estado)}</dd>`
@@ -895,8 +1122,8 @@
         const fallar = (msg, el) => { F.error.textContent = msg; if (el) el.focus(); };
         if (titulo.length < 2) return fallar('Escribe el título de la actividad.', F.titulo);
         const f = leerFechas();
-        if (!f) return fallar('Indica la fecha de inicio y de fin.', F.inicio);
-        if (f.fin < f.inicio) return fallar('La fecha de fin no puede ser anterior a la de inicio.', F.fin);
+        if (!f) return fallar('Indica la fecha de inicio y de fin.', V.fiDia);
+        if (f.fin < f.inicio) return fallar('La fecha de fin no puede ser anterior a la de inicio.', V.ffDia);
         if (F.clase.value === 'ENSAYO' && !F.proyecto.value) return fallar('Para una actividad de tipo Ensayo elige el proyecto.', F.proyecto);
         if (!form.cal && calendariosParaCrear().length && !$('actividad_id').value) return fallar('Elige un calendario.', null);
         agregarParticipante();
