@@ -62,6 +62,12 @@ def ir_al_login(request):
     return redirect(url_lab(request, abrir, next=destino_seguro(request.GET.get('next', '/'))))
 
 
+def sin_permiso(request, exception=None):
+    """403 con el motivo (p. ej. «Este borrador es de otra persona») en vez de la página pelada."""
+    detalle = str(exception or '') or 'No tienes permiso para esto.'
+    return render(request, 'correo/sin_acceso.html', {'motivo': 'accion', 'detalle': detalle}, status=403)
+
+
 @never_cache
 def entrar(request):
     """Consume el enlace firmado y abre la sesión propia del host de correo."""

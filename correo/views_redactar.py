@@ -25,7 +25,7 @@ from django.views.decorators.http import require_POST
 from servicios.models import Cotizacion
 from trabajadores.permissions import trabajador_tiene_permiso
 
-from .cuentas import ADMINISTRA, GESTIONA, cuentas_de, exigir_cuenta, exigir_mensaje, permite, roles_de
+from .cuentas import GESTIONA, cuentas_de, exigir_cuenta, exigir_mensaje, permite, roles_de
 from .enlaces import adjunto_de_token, url_adjunto
 from .firma_bloque import envolver, para_vista, quitar_firma_vieja, separar
 from .mensajeria import (
@@ -167,8 +167,6 @@ def _exigir_borrador(user, pk):
     borrador = exigir_mensaje(user, pk, GESTIONA)
     if borrador.estado_envio != Mensaje.BORRADOR:
         raise Http404('Ese mensaje ya no es un borrador.')
-    if borrador.creado_por_id not in (None, user.pk) and not permite(roles_de(user).get(borrador.cuenta_id), ADMINISTRA):
-        raise PermissionDenied('Este borrador es de otra persona.')
     return borrador
 
 

@@ -6,6 +6,10 @@
         {% if motivo == 'sin_cuentas' %}
         <h1 class="panel__titulo">Aún no tienes cuentas de correo</h1>
         <p class="panel__sub">Para entrar necesitas al menos una cuenta asignada (por ejemplo informes@ o laboratorio@). Pide a quien administra el correo que te dé acceso.</p>
+        {% elif motivo == 'accion' %}
+        <h1 class="panel__titulo">No puedes abrir esto</h1>
+        <p class="panel__sub">{{ detalle }}</p>
+        <p class="panel__sub"><a href="{% url 'bandeja' %}">Volver a la bandeja</a></p>
         {% else %}
         <h1 class="panel__titulo">No tienes acceso al correo</h1>
         <p class="panel__sub">Tu rol no incluye el permiso del módulo de correo. Pide a un administrador que te lo asigne.</p>
