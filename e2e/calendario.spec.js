@@ -147,14 +147,28 @@ test('un calendario personal nuevo solo aparece para quien lo creó', async ({ p
 test('estirar o mover un evento lo guarda y ofrece deshacer', async ({ page }) => {
     await abrirCalendario(page, USUARIOS.agenda);
     const ev = evento(page, EV.equipo);
-    await ev.hover();
-    const r = await ev.locator('.fc-event-resizer-end').boundingBox();
-    const respuesta = page.waitForResponse((x) => x.url().includes('/reprogramar/'));
-    await page.mouse.move(r.x + r.width / 2, r.y + r.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(r.x + r.width / 2, r.y + 45, { steps: 6 });
-    await page.mouse.up();
-    expect((await respuesta).status()).toBe(200);
+    // En CI la grilla se reacomoda un momento (fuentes web, eventos de todo
+    // el día y ajuste de solapes): se espera a que quede quieta y, si el
+    // arrastre no llegó a guardar, se cierra lo que se haya abierto y se
+    // vuelve a intentar con la posición nueva.
+    await page.waitForLoadState('networkidle');
+    await page.evaluate(() => document.fonts.ready);
+    let respuesta;
+    await expect(async () => {
+        await page.keyboard.press('Escape');
+        // Centrado en la grilla: si queda pegado al borde, arrastrar 45 px
+        // hacia abajo sale de la grilla y FullCalendar descarta el cambio.
+        await ev.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+        await ev.hover();
+        const r = await ev.locator('.fc-event-resizer-end').boundingBox();
+        const espera = page.waitForResponse((x) => x.url().includes('/reprogramar/'), { timeout: 3000 });
+        await page.mouse.move(r.x + r.width / 2, r.y + r.height / 2);
+        await page.mouse.down();
+        await page.mouse.move(r.x + r.width / 2, r.y + 45, { steps: 6 });
+        await page.mouse.up();
+        respuesta = await espera;
+    }).toPass({ timeout: 20000 });
+    expect(respuesta.status()).toBe(200);
     const toast = page.locator('#vc-toast');
     await expect(toast).toContainText('movida');
     // Deshacer lo deja como estaba.
