@@ -84,6 +84,18 @@ class DescargaR2Tests(BasePlataforma):
         self.assertEqual(vence, 300)
         self.assertEqual(parametros['ResponseContentDisposition'], "attachment; filename*=UTF-8''planos.pdf")
 
+    def test_ver_pide_disposicion_en_linea_solo_si_se_puede_previsualizar(self):
+        adjunto = self.m.adjuntos.get()
+        falso = _AlmacenFalso(almacen.almacen_correo._wrapped)
+        with mock.patch.object(almacen, 'almacen_correo', falso):
+            self.client.get(url_adjunto(adjunto) + '?ver=1', HTTP_HOST=HOST)
+        self.assertIn('inline', falso.pedidas[0][1]['ResponseContentDisposition'])
+        from .mensajeria import agregar_adjunto
+        word = agregar_adjunto(self.m, 'informe.docx', 'application/octet-stream', b'PK\x03')
+        with mock.patch.object(almacen, 'almacen_correo', falso):
+            self.client.get(url_adjunto(word) + '?ver=1', HTTP_HOST=HOST)
+        self.assertIn('attachment', falso.pedidas[1][1]['ResponseContentDisposition'])
+
     def test_imagen_incrustada_sigue_por_el_servidor(self):
         from .mensajeria import agregar_adjunto
         imagen = agregar_adjunto(self.m, 'logo.png', 'image/png', b'\x89PNG\r\n', content_id='logo@x', incrustado=True)
@@ -93,6 +105,30 @@ class DescargaR2Tests(BasePlataforma):
     def test_enlace_vencido_no_llega_a_r2(self):
         respuesta = self.client.get(ruta('adjunto', 'token-falso'), HTTP_HOST=HOST)
         self.assertEqual(respuesta.status_code, 404)
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab', SITE_ROLE='lab')
+class VerAdjuntoTests(BasePlataforma):
+    def test_ver_abre_pdf_en_el_navegador_y_descargar_lo_baja(self):
+        adjunto = self.m.adjuntos.get()
+        ver = self.client.get(url_adjunto(adjunto) + '?ver=1', HTTP_HOST=HOST)
+        self.assertEqual(ver.status_code, 200)
+        self.assertNotIn('attachment', ver.get('Content-Disposition', ''))
+        self.assertNotIn('sandbox', ver['Content-Security-Policy'])
+        bajar = self.client.get(url_adjunto(adjunto), HTTP_HOST=HOST)
+        self.assertIn('attachment', bajar['Content-Disposition'])
+
+    def test_ver_no_abre_html_ni_office(self):
+        from .mensajeria import agregar_adjunto
+        for nombre in ('pagina.html', 'hoja.xlsx', 'logo.svg'):
+            a = agregar_adjunto(self.m, nombre, 'text/html', b'<script>1</script>')
+            r = self.client.get(url_adjunto(a) + '?ver=1', HTTP_HOST=HOST)
+            self.assertIn('attachment', r['Content-Disposition'], nombre)
+
+    def test_la_lectura_ofrece_ver_y_descargar(self):
+        from .tipos_archivo import tipo_vista_previa
+        self.assertEqual(tipo_vista_previa('plano.PDF'), 'application/pdf')
+        self.assertIsNone(tipo_vista_previa('a.docx', 'application/msword'))
 
 
 @override_settings(ROOT_URLCONF='grupovicaf.urls_lab', SITE_ROLE='lab')

@@ -37,6 +37,7 @@ from .models import Adjunto, Asignacion, Carpeta, Contacto, EventoMensaje, Hilo,
 from .permisos import motivo_sin_correo, puede_entrar_correo
 from .presentacion import abrir_hilo, filas_de_hilos, panel_cuentas
 from .sanitizar import bloquear_imagenes_remotas, origenes_propios, reemplazar_cid, tiene_imagenes_remotas
+from .tipos_archivo import tipo_vista_previa
 
 BACKEND = 'core.backends.UsuarioOCorreoBackend'  # el de AUTHENTICATION_BACKENDS: si no, la sesión no es válida
 URLCONF_LAB = 'grupovicaf.urls_lab'
@@ -254,6 +255,9 @@ def adjunto(request, token):
     adj = get_object_or_404(Adjunto, pk=pk)
     seguro_en_linea = adj.tipo_mime in ('image/png', 'image/jpeg', 'image/gif', 'image/webp')
     tipo = adj.tipo_mime if seguro_en_linea else (mimetypes.guess_type(adj.nombre)[0] or adj.tipo_mime)
+    vista = tipo_vista_previa(adj.nombre, adj.tipo_mime) if request.GET.get('ver') == '1' else None
+    if vista:  # «Ver»: se abre en el navegador (solo PDF, imágenes y texto plano)
+        seguro_en_linea, tipo = True, vista
     if es_r2() and not adj.incrustado and not _descarga_por_servidor():
         # R2: el archivo no pasa por el servidor (2 GB de RAM); se redirige a una URL
         # prefirmada de 300 s. Las imágenes del cuerpo (cid:) siguen por aquí porque
@@ -267,7 +271,8 @@ def adjunto(request, token):
         adj.archivo.open('rb'), as_attachment=not seguro_en_linea, filename=adj.nombre,
         content_type=tipo,
     )
-    respuesta['Content-Security-Policy'] = "default-src 'none'; sandbox"
+    # El visor de PDF del navegador no funciona dentro de un documento con sandbox.
+    respuesta['Content-Security-Policy'] = "default-src 'none'" if vista == 'application/pdf' else "default-src 'none'; sandbox"
     respuesta['X-Content-Type-Options'] = 'nosniff'
     respuesta['Cache-Control'] = 'private, max-age=300'
     return respuesta
