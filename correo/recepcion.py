@@ -247,13 +247,17 @@ class RecepcionEML(ServicioRecepcion):
         sha = hashlib.sha256(crudo).hexdigest()
         creados = []
         for cuenta in cuentas:
-            repetido = Mensaje.objects.filter(cuenta=cuenta, eml_sha256=sha)
-            if message_id:
-                repetido = repetido | Mensaje.objects.filter(cuenta=cuenta, message_id=message_id)
-            if repetido.exists():
-                logger.info('Correo repetido en %s (%s): se ignora.', cuenta.direccion, message_id or sha[:12])
-                continue
             with transaction.atomic():
+                # Cloudflare entrega una copia por cada destinatario (informes@, raquel@, frank@…) y cada
+                # copia corre en su propia tarea, a la vez. Se bloquea la cuenta y se vuelve a revisar
+                # dentro: la segunda tarea espera a la primera y ve el mensaje ya creado.
+                CuentaCorreo.objects.select_for_update().get(pk=cuenta.pk)
+                repetido = Mensaje.objects.filter(cuenta=cuenta, eml_sha256=sha)
+                if message_id:
+                    repetido = repetido | Mensaje.objects.filter(cuenta=cuenta, message_id=message_id)
+                if repetido.exists():
+                    logger.info('Correo repetido en %s (%s): se ignora.', cuenta.direccion, message_id or sha[:12])
+                    continue
                 creados.append(crear_mensaje(
                     cuenta, carpeta,
                     de=remitente['correo'], de_nombre=remitente['nombre'], para=para, cc=cc,
