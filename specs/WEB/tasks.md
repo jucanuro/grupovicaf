@@ -46,6 +46,9 @@
 ### v8 · Web en el celular y aviso de bienvenida [Decisión Gerente] (2026-11-24)
 - [x] **T25 · Sistema Interno en móvil, hero sin capa y aviso de bienvenida** — `home.html`: botón del hero visible en todos los anchos y panel de texto abajo con degradado en móvil; `header.html`: "Sistema Interno" en el menú móvil; `partials/modal_bienvenida.html` + `static/web/js/bienvenida.js` (una vez por navegador, 3 s); `id="acreditacion"` en la sección de la home. Sin migraciones. Cubre REQ-WEB-74 a 77. Se verifica con `e2e/web-movil.spec.js` y capturas a 390 y 1440 px.
 
+### v9 · Ajustes del hero móvil y del aviso [Decisión Gerente] (2026-11-24)
+- [x] **T26 · Hero móvil más liviano y aviso rediseñado de 10 s** — `home.html`: en móvil texto y botones más pequeños, botones en fila con "Brochure" corto y degradado más suave; `partials/modal_bienvenida.html` rediseñado (panel oscuro, tarjetas por certificación, cuenta regresiva); `bienvenida.js` a 10 s con cuenta regresiva y entrada con escala. Sin migraciones. Cubre REQ-WEB-78 y 79. Se verifica con `e2e/web-movil.spec.js` y capturas a 390 y 1440 px.
+
 ## Trazabilidad HU → REQ
 | HU | REQ |
 |---|---|

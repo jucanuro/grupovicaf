@@ -1,4 +1,4 @@
-// Web pública en el celular y aviso de bienvenida (specs/WEB v8, REQ-WEB-74 a 77).
+// Web pública en el celular y aviso de bienvenida (specs/WEB v8 y v9, REQ-WEB-74 a 79).
 const { test, expect } = require('@playwright/test');
 const { WEB_URL } = require('./datos');
 
@@ -34,6 +34,12 @@ test.describe('celular', () => {
         expect(Math.abs((panel.y + panel.height) - (hero.y + hero.height))).toBeLessThan(2);
         expect(panel.y).toBeGreaterThan(hero.y + hero.height / 2 - 120);
         // Ni el botón Sistema Interno ni el panel se solapan.
+        // REQ-WEB-78: botones en una fila y bajos, sin quedar bajo el de WhatsApp.
+        const servicios = await page.getByRole('link', { name: /Ver Servicios/ }).first().boundingBox();
+        const brochure = await page.getByRole('link', { name: /Brochure/ }).first().boundingBox();
+        expect(Math.abs(servicios.y - brochure.y)).toBeLessThan(2);
+        expect(servicios.height).toBeLessThanOrEqual(40);
+        expect(panel.height).toBeLessThan(hero.height * 0.5);
         const boton = await page.locator('#home [data-sistema-interno]').boundingBox();
         expect(boton.y + boton.height).toBeLessThan(panel.y + 96);
     });
@@ -51,7 +57,7 @@ test.describe('escritorio', () => {
 });
 
 test.describe('aviso de bienvenida', () => {
-    test('REQ-WEB-76: sale la primera vez con los sellos y se va solo a los 3 s', async ({ page }) => {
+    test('REQ-WEB-76/79: sale la primera vez con los sellos y se va solo a los 10 s', async ({ page }) => {
         await page.goto(`${WEB_URL}/`);
         const aviso = page.locator('[data-bienvenida]');
         await expect(aviso).toBeVisible();
@@ -64,9 +70,11 @@ test.describe('aviso de bienvenida', () => {
         await expect(aviso.getByRole('link', { name: /Acreditación/ })).toHaveAttribute('href', '#acreditacion');
         await expect(page.locator('section#acreditacion')).toHaveCount(1);
 
-        await page.waitForTimeout(2000);
+        // REQ-WEB-79: dura 10 s con cuenta regresiva.
+        await expect(aviso.locator('[data-bienvenida-segundos]')).toHaveText(/^(10|9)$/);
+        await page.waitForTimeout(8500);
         await expect(aviso).toBeVisible();
-        await expect(aviso).toBeHidden({ timeout: 2500 });
+        await expect(aviso).toBeHidden({ timeout: 3000 });
     });
 
     test('REQ-WEB-76: no vuelve a salir en la siguiente visita', async ({ page }) => {

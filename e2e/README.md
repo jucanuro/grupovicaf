@@ -15,7 +15,7 @@ en cada PR contra `dev` y `main`, y un PR con una prueba en rojo no se integra.
 | `panel-proyectos.spec.js` | Panel de proyectos: % de avance, muestras por etapa, cada número y el botón de acción abren su pantalla filtrada, permisos, celular | REQ-LIMS-44 a 47, 51 |
 | `cotizacion-modal.spec.js` | Formulario de cotización: pasos en pills, estado vacío, agregar y editar el detalle en el modal, asistente completo, celular | REQ-LIMS-53 a 61 |
 | `analisis.spec.js` | Análisis: menú de conjuntos, arrastrar o tocar campos a Filas/Columnas/Valores/Filtros, números en S/, gráficos, Excel, vistas guardadas y permisos | REQ-LIMS-27 a 43 |
-| `web-movil.spec.js` | Web en el celular: Sistema Interno en hero y menú, hero sin capa encima, aviso de bienvenida (1.ª visita, 3 s) | REQ-WEB-74 a 77 |
+| `web-movil.spec.js` | Web en el celular: Sistema Interno en hero y menú, hero sin capa encima, aviso de bienvenida (1.ª visita, 10 s) | REQ-WEB-74 a 79 |
 
 ## Correr en local (sin Docker)
 
