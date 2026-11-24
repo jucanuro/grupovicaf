@@ -43,6 +43,9 @@
 ### Integración de ramas [Decisión Gerente] (2026-10-23)
 - [x] **T24 · Migración de merge siteconfig** — `siteconfig/0010_merge_20261023_1820` une `0008_descripcion_solo_cajamarca` (T20, rama `certificado-iso9001`) con `0008_negocioconfig_receso` y `0009_seed_receso_mediodia` (T1, rama `asistente-whatsapp`). Sin operaciones ni REQ nuevos. Se verifica con `migrate` y `python manage.py test` con `SITE_ROLE=lab` y `web`.
 
+### v8 · Web en el celular y aviso de bienvenida [Decisión Gerente] (2026-11-24)
+- [x] **T25 · Sistema Interno en móvil, hero sin capa y aviso de bienvenida** — `home.html`: botón del hero visible en todos los anchos y panel de texto abajo con degradado en móvil; `header.html`: "Sistema Interno" en el menú móvil; `partials/modal_bienvenida.html` + `static/web/js/bienvenida.js` (una vez por navegador, 3 s); `id="acreditacion"` en la sección de la home. Sin migraciones. Cubre REQ-WEB-74 a 77. Se verifica con `e2e/web-movil.spec.js` y capturas a 390 y 1440 px.
+
 ## Trazabilidad HU → REQ
 | HU | REQ |
 |---|---|

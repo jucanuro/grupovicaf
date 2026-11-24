@@ -42,9 +42,11 @@
 {% endcomment %}
 <div id="home" class="relative min-h-screen bg-blue-950 text-white">
 
-    <div class="absolute top-24 right-4 z-30 hidden sm:block">
+    {# v8 (REQ-WEB-74): también visible en móvil, más compacto; en móvil el panel de texto va abajo, así no se tapan. #}
+    <div class="absolute top-24 right-4 z-30">
         <a href="https://laboratorio.grupovicaf.com/" target="_blank" rel="noopener noreferrer"
-           class="group inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-4 py-2.5 text-sm font-semibold text-white shadow-xl backdrop-blur-md transition-all duration-300 hover:border-blue-400 hover:bg-blue-700 md:text-base">
+           data-sistema-interno
+           class="group inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs font-semibold text-white shadow-xl backdrop-blur-md transition-all duration-300 hover:border-blue-400 hover:bg-blue-700 sm:px-4 sm:py-2.5 sm:text-sm md:text-base">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400 transition-colors duration-300 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
             </svg>
@@ -54,7 +56,12 @@
 
     <div class="relative w-full h-screen">
 
-        <div class="absolute rounded-lg px-4 lg:px-0 top-20 lg:left-12 z-20 w-full md:w-1/2 lg:w-1/3 pt-10 pb-6 px-4 sm:px-6 lg:px-8 flex flex-col items-start text-left border border-white/10 bg-blue-950/85 backdrop-blur-sm">
+        {% comment %}
+          v8 (REQ-WEB-75): en móvil el panel ya no es una caja opaca arriba que
+          tapa media foto; va pegado abajo sobre un degradado que deja ver la
+          imagen. Desde md vuelve a la caja de siempre (top-20, 1/2 o 1/3).
+        {% endcomment %}
+        <div data-hero-panel class="absolute inset-x-0 bottom-0 z-20 flex w-full flex-col items-start bg-gradient-to-t from-blue-950/95 via-blue-950/70 to-transparent px-4 pb-8 pt-24 text-left sm:px-6 md:inset-x-auto md:bottom-auto md:top-20 md:w-1/2 md:rounded-lg md:border md:border-white/10 md:bg-none md:bg-blue-950/85 md:pt-10 md:pb-6 md:backdrop-blur-sm lg:left-12 lg:w-1/3 lg:px-8">
             <a {% if certificacion_acreditacion %}{% include 'web/partials/enlace_certificacion.html' with certificacion=certificacion_acreditacion %}{% else %}href="{% url 'web_acreditacion:acreditacion' %}"{% endif %}
                     class="group inline-flex items-center gap-2.5 rounded-full border border-white/25 bg-slate-900/70 py-1.5 pl-1.5 pr-4 text-[11px] font-black uppercase tracking-[0.28em] text-white transition-colors hover:bg-slate-800/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
                 <img src="{% static 'web/img/LogoInacal1.webp' %}" alt=""
@@ -70,11 +77,11 @@
             <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white mb-3 mt-5 leading-[1.05]" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.6);">
                 Laboratorio para la construcción en Cajamarca
             </h1>
-            <p class="text-lg mt-6 sm:text-xl lg:text-2xl text-gray-200 mb-6" style="text-shadow: 1px 1px 4px rgba(0,0,0,0.6);">
+            <p class="text-base mt-3 sm:mt-6 sm:text-xl lg:text-2xl text-gray-200 mb-6" style="text-shadow: 1px 1px 4px rgba(0,0,0,0.6);">
                 Suelos · Agregados · Concreto · Asfalto · Rocas · Cal · Carbón
             </p>
 
-            <div class="flex flex-col sm:flex-row justify-center items-center gap-3 mt-6 w-full">
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-3 mt-2 sm:mt-6 w-full">
                 <a href="#servicios" class="btn-primary-inverse w-full sm:w-auto">
                     Ver Servicios
                     <svg class="h-4 w-4 fill-current transition-transform duration-300 ease-in-out group-hover:translate-x-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" aria-hidden="true">
@@ -252,7 +259,7 @@
   mismas cards horizontales de /acreditacion/, con borde y sombra claros
   sobre el azul, y "Ver todas" en la fila del título.
 {% endcomment %}
-<section class="reveal section-dark relative overflow-hidden py-20 text-white lg:py-28" aria-labelledby="acreditacion-titulo">
+<section id="acreditacion" class="reveal section-dark relative overflow-hidden scroll-mt-24 py-20 text-white lg:py-28" aria-labelledby="acreditacion-titulo">
     {% include 'web/partials/textura_tecnica.html' %}
 
     <div class="relative z-10 mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 xl:px-0">
@@ -454,10 +461,12 @@
 
 
 {% if certificaciones or certificacion_acreditacion %}{% include 'web/partials/modal_certificacion.html' %}{% endif %}
+{% if certificaciones %}{% include 'web/partials/modal_bienvenida.html' %}{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'web/js/inicio.js' %}" defer></script>
 {% if certificaciones or certificacion_acreditacion %}<script src="{% static 'web/js/certificaciones.js' %}" defer></script>{% endif %}
 <script src="{% static 'web/js/scroll-reveal.js' %}" defer></script>
+{% if certificaciones %}<script src="{% static 'web/js/bienvenida.js' %}" defer></script>{% endif %}
 {% endblock %}
