@@ -184,6 +184,29 @@ class RecepcionTests(BasePlataforma):
             [c] = self.recibir(eml(de='Contacto <c@pyme2.example>', message_id='<c1@x>', texto='Hola {{EMAIL}}'))
             self.assertEqual(c.carpeta.tipo, 'entrada')  # cliente activo del LIMS
 
+    def test_misma_entrega_con_cabeceras_distintas_no_se_duplica(self):
+        # Cloudflare entrega una copia por destinatario y los bytes cambian (Delivered-To, Received).
+        a = eml(para='informes@grupovicaf.com, laboratorio@grupovicaf.com', message_id='<dup@x>',
+                cabeceras={'Delivered-To': 'informes@grupovicaf.com'})
+        b = eml(para='informes@grupovicaf.com, laboratorio@grupovicaf.com', message_id='<dup@x>',
+                cabeceras={'Delivered-To': 'laboratorio@grupovicaf.com'})
+        self.recibir(a, destinatarios=['informes@grupovicaf.com'])
+        self.recibir(b, destinatarios=['laboratorio@grupovicaf.com'])
+        self.assertEqual(Mensaje.objects.filter(message_id='<dup@x>', cuenta=self.informes).count(), 1)
+        self.assertEqual(Mensaje.objects.filter(message_id='<dup@x>', cuenta=self.lab).count(), 1)
+
+    def test_comando_deduplicar_borra_las_copias_y_conserva_la_primera(self):
+        from io import StringIO
+        from django.core.management import call_command
+        kw = dict(de='x@cliente.example', asunto='Repetido', message_id='<rep@x>')
+        primero = crear_mensaje(self.informes, 'entrada', **kw)
+        crear_mensaje(self.informes, 'entrada', **kw)
+        crear_mensaje(self.informes, 'entrada', **kw)
+        call_command('deduplicar_correo', stdout=StringIO())  # solo informa
+        self.assertEqual(Mensaje.objects.filter(message_id='<rep@x>').count(), 3)
+        call_command('deduplicar_correo', '--aplicar', stdout=StringIO())
+        self.assertEqual(list(Mensaje.objects.filter(message_id='<rep@x>').values_list('pk', flat=True)), [primero.pk])
+
     def test_marcado_como_spam_va_a_no_deseado(self):
         [m] = self.recibir(eml(cabeceras={'X-Spam-Flag': 'YES'}))
         self.assertEqual(m.carpeta.tipo, 'spam')
