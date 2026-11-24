@@ -168,6 +168,15 @@ el PDF antiguo (`informe_compresion_pdf.html`, `generar_informe_compresion`)
 solo queda para regenerar informes emitidos antes del editor. Excel con openpyxl (`informes.exportar`); envío al cliente con
 `enviar_informe_cliente`.
 
+**Calendario (HU-LIMS-21).** `CalendarioCategoria` es el «calendario»: de
+equipo (con `CalendarioMiembro` que ve o ve y crea; sin miembros lo ven todos)
+o personal (solo su dueño, ni el superusuario). Una actividad con participantes
+la ven solo ellos y quien la creó. Toda consulta pasa por
+`actividades/visibilidad.py` (404 si no se ve, 403 si no puede crear en ese
+calendario). El cliente es opcional (solo referencia); «Enviar aviso al
+cliente» encola `actividades.tasks.enviar_aviso_cliente` (sin observaciones).
+Frontend en `static/js/calendario.js` + `static/css/calendario.css`.
+
 ### Capa web (pública) — prefijo `web_` obligatorio
 
 | App | Responsabilidad |

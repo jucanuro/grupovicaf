@@ -27,6 +27,10 @@
 | T66 | `cotizaciones_form.html` (pasos en pills, estado vacío, modal del detalle) y `cotizacion-config.js` (abrir/cerrar modal, «Editar» por fila) sin tocar la lógica del detalle | 53-59 | Revisión visual (escritorio y 390 px) | [x] |
 | T67 | `sembrar_e2e` (usuario `e2e.comercial`) + `e2e/cotizacion-modal.spec.js` | 53-59 | `npm run test:e2e` | [x] |
 | T68 | Modal del detalle a pantalla completa: formulario a la izquierda, tabla a la derecha (se mueve al modal), editar sin cerrar, «Guardar detalle» + pruebas | 55-57, 60, 61 | `e2e/cotizacion-modal.spec.js` | [x] |
+| T69 | Calendarios de equipo y personales: `CalendarioCategoria.tipo/propietario`, `CalendarioMiembro`, migración 0003 (aditiva), `actividades/visibilidad.py` y vistas JSON filtradas (detalle, guardar, mover, eliminar, Gantt) + pruebas | 62-66 | `python manage.py test actividades` | [x] |
+| T70 | Aviso opcional al cliente: tarea Celery `enviar_aviso_cliente`, plantilla de texto y `aviso_cliente_enviado_en` + pruebas | 67 | `python manage.py test actividades` | [x] |
+| T71 | Nueva `calendario.html`, `calendario.css` y `calendario.js`: lateral con calendarios, creación rápida, formulario en dos paneles, tarjeta de detalle, bloques por calendario y solapes, modo oscuro y celular | 68-73 | Revisión visual (claro, oscuro y 390 px) | [x] |
+| T72 | `sembrar_e2e` (usuario `e2e.agenda`, calendarios y eventos E2E) + `e2e/calendario.spec.js`; ajuste de `e2e/lims-correcciones.spec.js` | 63, 64, 66-71 | `npm run test:e2e` | [x] |
 
 ## Historial
 
@@ -39,3 +43,4 @@
 | v4 | 2026-11-22 | Claude (DLF) | T64-T65: panel de proyectos con avance por muestra |
 | v5 | 2026-11-22 | Claude (DLF) | T66-T67: formulario de cotización con detalle en modal |
 | v6 | 2026-11-22 | Claude (DLF) | T68: modal del detalle a pantalla completa |
+| v7 | 2026-11-24 | Claude (DLF) | T69-T72: calendario rediseñado |
