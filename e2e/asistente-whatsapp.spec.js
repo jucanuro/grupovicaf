@@ -6,6 +6,12 @@
 const { test, expect } = require('@playwright/test');
 const { WEB_URL, ENSAYO_WEB, WHATSAPP_DIGITOS } = require('./datos');
 
+// El aviso de bienvenida de la home (REQ-WEB-76) taparía el botón 3 s: se
+// marca como ya visto, como en una segunda visita.
+test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => window.localStorage.setItem('vicaf_bienvenida_vista', '1'));
+});
+
 async function fijarHorario(page, abierto) {
     await page.route('**/contacto/asistente/', async (route) => {
         const respuesta = await route.fetch();

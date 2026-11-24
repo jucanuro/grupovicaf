@@ -1,0 +1,49 @@
+{% comment %}
+  Aviso de bienvenida (specs/WEB v8, REQ-WEB-76 y 77). Solo en la home y solo
+  la primera vez que el navegador abre la web: bienvenida.js lo muestra si no
+  encuentra la marca `vicaf_bienvenida_vista` en localStorage, la guarda y lo
+  cierra solo a los 3 s. Sin JavaScript queda oculto (clase hidden).
+
+  Muestra los paneles de color de las dos primeras certificaciones publicadas
+  (el mismo logo_certificacion.html de las cards de Acreditación: INACAL
+  LE-230 e ISO 9001:2015) y un enlace a la sección #acreditacion de la home.
+  No es modal de verdad: no bloquea la página ni atrapa el foco, porque se
+  va solo.
+{% endcomment %}
+<div id="aviso-bienvenida" data-bienvenida
+     class="fixed inset-0 z-[70] hidden items-center justify-center bg-slate-950/60 p-4 opacity-0 backdrop-blur-sm transition-opacity duration-300 motion-reduce:transition-none"
+     role="dialog" aria-modal="false" aria-labelledby="aviso-bienvenida-titulo">
+    <div class="relative w-full max-w-lg overflow-hidden rounded-2xl bg-white text-slate-900 shadow-2xl">
+
+        <div class="grid {% if certificaciones|length > 1 %}grid-cols-2{% else %}grid-cols-1{% endif %}">
+            {% for certificacion in certificaciones|slice:":2" %}
+            <div class="flex [&>div]:!w-full" data-bienvenida-sello>{% include 'web/partials/logo_certificacion.html' %}</div>
+            {% endfor %}
+        </div>
+
+        <div class="relative px-10 py-5 text-center">
+            <button type="button" data-bienvenida-cerrar aria-label="Cerrar aviso"
+                    class="absolute right-2 top-2 rounded-full p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
+                </svg>
+            </button>
+            <p id="aviso-bienvenida-titulo" class="text-lg font-black tracking-tight">
+                Laboratorio acreditado y certificado
+            </p>
+            <p class="mt-1 text-sm text-slate-600">
+                {% for certificacion in certificaciones|slice:":2" %}{% if not forloop.first %} · {% endif %}{{ certificacion.titulo }}{% endfor %}
+            </p>
+            <a href="#acreditacion" data-bienvenida-ir
+               class="mt-4 inline-flex items-center gap-2 text-sm font-bold text-blue-700 hover:text-blue-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700">
+                Revísalas en Acreditación
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
+                </svg>
+            </a>
+        </div>
+        <div class="h-1 bg-slate-100" aria-hidden="true">
+            <div data-bienvenida-barra class="h-full w-full origin-left bg-blue-700"></div>
+        </div>
+    </div>
+</div>
