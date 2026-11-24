@@ -253,6 +253,11 @@ class Firma(models.Model):
     )
     actualizada_en = models.DateTimeField(auto_now=True)
 
+    @property
+    def es_bloque(self):
+        """Va como bloque fijo en Redactar: las de plantilla y cualquiera con tabla (el editor desarma las tablas)."""
+        return bool(self.plantilla) or '<table' in (self.html or '').lower()
+
     class Meta:
         ordering = ['nombre']
         constraints = [

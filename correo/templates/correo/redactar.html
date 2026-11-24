@@ -29,7 +29,7 @@
             <label class="solo-lector" for="r-firma">Insertar firma</label>
             <select id="r-firma" class="redactor__firma" data-insertar-firma>
                 <option value="">Firma…</option>
-                {% for f in firmas %}<option value="{{ f.pk }}"{% if f.plantilla %} data-rica="1"{% endif %}>{{ f.nombre }}{% if f.cuenta %} ({{ f.cuenta.nombre }}){% endif %}</option>{% endfor %}
+                {% for f in firmas %}<option value="{{ f.pk }}"{% if f.es_bloque %} data-rica="1"{% endif %}>{{ f.nombre }}{% if f.cuenta %} ({{ f.cuenta.nombre }}){% endif %}</option>{% endfor %}
             </select>
             {% endif %}
             <span class="comandos__fin">
@@ -123,7 +123,7 @@
     </section>
 </div>
 
-    {% for f in firmas %}{% if not f.plantilla %}<textarea hidden data-firma-html="{{ f.pk }}">{{ f.html }}</textarea>{% endif %}{% endfor %}
+    {% for f in firmas %}{% if not f.es_bloque %}<textarea hidden data-firma-html="{{ f.pk }}">{{ f.html }}</textarea>{% endif %}{% endfor %}
 
     {% if puede_cotizar %}
     <dialog class="dialogo" data-dialogo-cotizaciones aria-labelledby="t-cot">

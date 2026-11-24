@@ -60,7 +60,7 @@ def firma_por_defecto(user, cuenta, respuesta):
         firma = Firma.objects.filter(usuario=user, **{campo: True}).first()
     if not firma:
         return ''
-    return envolver(firma.html) if firma.plantilla else firma.html
+    return envolver(firma.html) if firma.es_bloque else firma.html
 
 
 PARTE = re.compile(r'(?:"[^"]*"|<[^>]*>|[^,;"<])+')
@@ -252,8 +252,8 @@ def firma_bloque_cambiar(request, pk):
     if not request.POST.get('quitar'):
         firma_id = request.POST.get('firma_id', '')
         firma = firmas_de(request.user, cuentas_para_enviar(request.user)).filter(
-            pk=int(firma_id) if firma_id.isdigit() else 0, plantilla__isnull=False).first()
-        if firma is None:
+            pk=int(firma_id) if firma_id.isdigit() else 0).first()
+        if firma is None or not firma.es_bloque:
             raise Http404('Firma no disponible.')
         nueva = envolver(firma.html)
     b.cuerpo_html, b.cuerpo_texto, b.vista_previa = preparar_cuerpo(html=editable + nueva)

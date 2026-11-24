@@ -235,6 +235,18 @@ class BloqueEnElBorradorTests(BasePlataforma):
         self.assertContains(r, f'data-firma-html="{self.libre.pk}"')
         self.assertNotContains(r, f'data-firma-html="{self.rica.pk}"')
 
+    def test_una_firma_libre_con_tabla_tambien_va_como_bloque(self):
+        from .firma_bloque import separar
+        from .models import Firma
+        Firma.objects.all().delete()
+        Firma.objects.create(usuario=self.gestor, nombre='Libre con tabla', para_nuevos=True,
+                             html='<table><tr><td>Gina Tabla</td></tr></table>')
+        b = self._borrador()
+        editable, firma = separar(b.cuerpo_html)
+        self.assertIn('Gina Tabla', firma)
+        self.assertNotIn('<table', editable)
+        self.assertNotContains(self.get('borrador', b.pk), 'data-firma-html')
+
     def test_un_borrador_viejo_con_la_firma_como_tabla_se_repara(self):
         from .firma_bloque import separar
         b = self._borrador()
