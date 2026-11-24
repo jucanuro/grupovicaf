@@ -1,8 +1,8 @@
 // Correcciones pedidas por el cliente (2026-11-22): campana de notificaciones,
-// «Nueva recepción», guardar actividad del calendario tras el aviso de datos
-// faltantes y menú lateral plegable (como el del correo).
+// «Nueva recepción», actividad interna del calendario sin cliente y menú
+// lateral plegable (como el del correo).
 const { test, expect } = require('@playwright/test');
-const { LAB_URL, USUARIOS, CLIENTE } = require('./datos');
+const { LAB_URL, USUARIOS } = require('./datos');
 const { entrarAlLab, cdnLocal } = require('./ayudas');
 
 test.beforeEach(async ({ context }) => {
@@ -49,7 +49,7 @@ test('«Nueva recepción» pide el proyecto y abre el formulario de recepción',
     await expect(page).toHaveURL(/\/proyectos\/recepcion\/nueva\/\d+\/$/);
 });
 
-test('la actividad se guarda después del aviso de cliente faltante', async ({ page }) => {
+test('una actividad interna se guarda sin cliente', async ({ page }) => {
     const avisos = [];
     page.on('dialog', async (d) => { avisos.push(d.message()); await d.accept(); });
 
@@ -57,36 +57,29 @@ test('la actividad se guarda después del aviso de cliente faltante', async ({ p
     await page.goto(`${LAB_URL}/actividades/calendario/`);
 
     await page.locator('#btnNuevaActividad').click();
-    // Ya no abre con las fechas vacías.
+    // Abre con las fechas llenas.
     await expect(page.locator('#fecha_inicio')).not.toHaveValue('');
     await expect(page.locator('#fecha_fin')).not.toHaveValue('');
-    const titulo = `Visita de obra E2E ${Date.now()}`;
-    await page.locator('#titulo').fill(titulo);
-
-    const guardar = page.getByRole('button', { name: /Guardar actividad/i });
-    await guardar.click();
-    await expect.poll(() => avisos.length).toBe(1);
-    expect(avisos[0]).toContain('cliente');
-    // El aviso lleva a la pestaña del cliente; se completa y se reintenta.
-    // (Sin ensayos.ver_todos la lista de clientes viene vacía: se usa el campo manual.)
-    await expect(page.locator('#cliente_nombre_manual')).toBeVisible();
-    await page.locator('#cliente_nombre_manual').fill(CLIENTE.razonSocial);
+    await page.locator('#titulo').fill(`Visita de obra E2E ${Date.now()}`);
+    // El cliente es opcional (HU-LIMS-21): no hay aviso ni pestaña de cliente.
+    await page.locator('#form_calendarios').getByText('Laboratorio E2E').click();
 
     const respuesta = page.waitForResponse((r) => r.url().includes('/calendario/evento/guardar/'));
-    await guardar.click();
+    await page.getByRole('button', { name: /Guardar actividad/i }).click();
     expect((await respuesta).status()).toBe(200);
     await expect(page.locator('#modalFormulario')).toBeHidden();
-    expect(avisos).toHaveLength(1);
+    expect(avisos).toHaveLength(0);
 });
 
-test('si falta el título estando en otra pestaña, vuelve a «General» y no se pierde el clic', async ({ page }) => {
+test('si falta el título, el formulario lo dice y vuelve al título', async ({ page }) => {
     await entrarAlLab(page, USUARIOS.recepcion);
     await page.goto(`${LAB_URL}/actividades/calendario/`);
 
     await page.locator('#btnNuevaActividad').click();
-    await page.locator('[data-actividad-tab="config"]').click();
+    await page.locator('#masOpciones summary').click();
+    await page.locator('#descripcion').fill('Sin título');
     await page.getByRole('button', { name: /Guardar actividad/i }).click();
-    await expect(page.locator('#titulo')).toBeVisible();
+    await expect(page.locator('#form_error')).toContainText('título');
     await expect(page.locator('#titulo')).toBeFocused();
 });
 

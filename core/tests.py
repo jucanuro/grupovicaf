@@ -44,7 +44,7 @@ class SembrarE2ETests(TestCase):
         call_command('sembrar_e2e', stdout=StringIO())
         call_command('sembrar_e2e', stdout=StringIO())
 
-        self.assertEqual(User.objects.filter(username__startswith='e2e.').count(), 7)  # + e2e.recepcion, e2e.jefe y e2e.comercial
+        self.assertEqual(User.objects.filter(username__startswith='e2e.').count(), 8)  # + e2e.recepcion, e2e.jefe, e2e.comercial y e2e.agenda
         self.assertEqual(SolicitudEnsayo.objects.filter(codigo_solicitud='SOL-E2E-0001').count(), 1)
         informe = InformeFinal.objects.get()
         self.assertEqual(str(informe.slug_validacion), 'e2e00000-0000-4000-8000-000000000001')
@@ -60,6 +60,10 @@ class SembrarE2ETests(TestCase):
         self.assertEqual(a01.monto_total, Decimal('1180.00'))
         self.assertEqual(a01.voucher.monto_pagado, Decimal('590.00'))
         self.assertEqual(Cotizacion.objects.filter(es_plantilla=True, nombre_plantilla='E2E Plantilla Análisis').count(), 1)
+        # Calendario (e2e/calendario.spec.js): calendarios y eventos sin duplicar.
+        from actividades.models import CalendarioActividad, CalendarioCategoria
+        self.assertEqual(CalendarioCategoria.objects.filter(nombre__endswith=' E2E').count(), 3)
+        self.assertEqual(CalendarioActividad.objects.filter(titulo='Revisión E2E de informes').count(), 1)
 
     @override_settings(DEBUG=False)
     def test_no_corre_con_debug_false(self):
