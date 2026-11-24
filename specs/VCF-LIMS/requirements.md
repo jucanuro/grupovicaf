@@ -148,6 +148,31 @@ con comodidad*. Solo cambia la presentación: agregar, editar, ordenar y quitar
 | REQ-LIMS-60 | HU-LIMS-20 | SI al pulsar «Guardar detalle» hay un servicio elegido sin agregar, ENTONCES EL SISTEMA DEBE agregarlo (o actualizar la fila en edición) antes de cerrar. | sí (E2E) | [Propuesto] |
 | REQ-LIMS-61 | HU-LIMS-20 | MIENTRAS se edita una fila, EL SISTEMA DEBE ofrecer «Cancelar edición», que vuelve el formulario a «Agregar ítem» sin cambiar la fila. | sí (E2E) | [Propuesto] |
 
+## 2e. Calendario: calendarios de equipo y personales, formulario en dos paneles (v6)
+
+Origen: pedido del Gerente del 2026-11-23 (calendarios como «Supervisión DICAP»,
+personales «Casa / Personal / Estudio», cliente solo de referencia, aviso
+opcional, todo en una ventana, vista semanal tipo Google) y capturas de su
+calendario de Apple del 2026-11-24; mockups aprobados («Procede con el
+desarrollo», 2026-11-24). Pantalla: `/actividades/calendario/`. HU-LIMS-21:
+*como coordinador quiero agendar en calendarios de equipo y personales con
+pocos clics, para que cada quien vea solo lo que le toca*.
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-62 | HU-LIMS-21 | EL SISTEMA DEBE manejar dos tipos de calendario: de equipo (con miembros que ven o ven y crean) y personal (de un solo usuario). Un calendario de equipo sin miembros lo ven todos los que tienen `calendario.ver`. | sí (unitaria) | [Decisión Gerente] |
+| REQ-LIMS-63 | HU-LIMS-21 | EL SISTEMA DEBE mostrar un calendario personal y sus eventos solo a su dueño, también frente al superusuario. | sí (unitaria + E2E) | [Decisión Gerente] |
+| REQ-LIMS-64 | HU-LIMS-21 | CUANDO una actividad tenga participantes, EL SISTEMA DEBE mostrarla solo a sus participantes y a quien la creó; si no tiene, a quienes ven su calendario. | sí (unitaria + E2E) | [Decisión Gerente] |
+| REQ-LIMS-65 | HU-LIMS-21 | SI el usuario no ve una actividad, ENTONCES EL SISTEMA DEBE responder 404 al ver su detalle, moverla o eliminarla; SI la ve pero no puede crear en su calendario, ENTONCES DEBE responder 403 al guardarla, moverla o eliminarla. | sí (unitaria) | [Propuesto] |
+| REQ-LIMS-66 | HU-LIMS-21 | EL SISTEMA DEBE permitir guardar una actividad sin cliente (actividad interna); el cliente es solo referencia y no se invita. | sí (unitaria + E2E) | [Decisión Gerente] |
+| REQ-LIMS-67 | HU-LIMS-21 | DONDE el usuario marque «Enviar aviso al cliente por correo» y el cliente tenga correo, EL SISTEMA DEBE enviarle por Celery el título, fecha, hora, lugar, enlace y descripción (nunca las observaciones internas) y registrar cuándo se envió; SI el cliente no tiene correo, ENTONCES DEBE rechazar la casilla (400). | sí (unitaria + E2E) | [Decisión Gerente] |
+| REQ-LIMS-68 | HU-LIMS-21 | EL SISTEMA DEBE mostrar el formulario en una sola ventana con dos paneles: campos a la izquierda y vista previa, resumen y choques de horario a la derecha; sin el campo «categoría» (lo reemplaza el calendario). | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-69 | HU-LIMS-21 | CUANDO el usuario arrastre o pulse un hueco del calendario, EL SISTEMA DEBE abrir una creación rápida (título y calendario) con «Más opciones» hacia el formulario completo. | sí (E2E) | [Propuesto] |
+| REQ-LIMS-70 | HU-LIMS-21 | EL SISTEMA DEBE mostrar en la vista semanal cada evento como bloque con título y hora, del color de su calendario, y los eventos que se cruzan lado a lado sin tapar el título. | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-71 | HU-LIMS-21 | EL SISTEMA DEBE ofrecer vistas Día, Semana, Mes y Lista, mini mes, filtro por calendario, «Solo donde participo», «Vencidas» y búsqueda; y recordar la vista y los calendarios ocultos en el navegador. | sí (E2E) | [Propuesto] |
+| REQ-LIMS-72 | HU-LIMS-21 | CUANDO el usuario mueva o cambie la duración de un evento, EL SISTEMA DEBE guardarlo y ofrecer «Deshacer». | revisión visual | [Propuesto] |
+| REQ-LIMS-73 | HU-LIMS-21 | DONDE la pantalla mida menos de 900 px, EL SISTEMA DEBE abrir en vista Día, con el panel lateral plegable y un botón flotante para crear. | revisión visual | [Propuesto] |
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -164,6 +189,7 @@ con comodidad*. Solo cambia la presentación: agregar, editar, ordenar y quitar
 | HU-LIMS-10 | Seguridad y rendimiento | REQ-LIMS-38 a 40 |
 | HU-LIMS-19 | Panel de proyectos con avance por muestra | REQ-LIMS-44 a 52 |
 | HU-LIMS-20 | Formulario de cotización con detalle en modal | REQ-LIMS-53 a 61 |
+| HU-LIMS-21 | Calendarios de equipo y personales, formulario en dos paneles | REQ-LIMS-62 a 73 |
 
 ## 4. Preguntas abiertas
 
@@ -181,3 +207,4 @@ con comodidad*. Solo cambia la presentación: agregar, editar, ordenar y quitar
 | v3 | 2026-11-22 | Claude (DLF) | Panel de proyectos con avance por muestra: RN-09 a 11, REQ-LIMS-44 a 52 |
 | v4 | 2026-11-22 | Claude (DLF) | Formulario de cotización: pills y detalle en modal, REQ-LIMS-53 a 59 |
 | v5 | 2026-11-22 | Claude (DLF) | Modal del detalle a pantalla completa (formulario a la izquierda, tabla a la derecha): REQ-LIMS-55 a 57 ajustados, 60 y 61 nuevos |
+| v6 | 2026-11-24 | Claude (DLF) | Calendario rediseñado: REQ-LIMS-62 a 73 (HU-LIMS-21) |
