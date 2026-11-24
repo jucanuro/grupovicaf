@@ -12,6 +12,8 @@ from correo import views_admin as ad
 from correo import views_pwa as pwa
 from correo import webhooks as wh
 
+handler403 = 'correo.views_correo.sin_permiso'
+
 urlpatterns = [
     # App instalable (PWA)
     path('manifest.webmanifest', pwa.manifiesto, name='manifest'),
