@@ -43,3 +43,18 @@ def tipo_de(nombre, mime=''):
         if fragmento in mime:
             return tipo
     return 'otro', (extension.upper()[:4] if 1 <= len(extension) <= 4 else 'ARCH')
+
+
+# Lo que se puede abrir en el navegador sin riesgo: nunca HTML ni SVG (podrían ejecutar código).
+VISTA_PREVIA_MIME = ('application/pdf', 'text/plain', 'image/png', 'image/jpeg', 'image/gif', 'image/webp')
+VISTA_PREVIA_EXT = {'pdf': 'application/pdf', 'txt': 'text/plain', 'log': 'text/plain', 'csv': 'text/plain',
+                    'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'gif': 'image/gif',
+                    'webp': 'image/webp'}
+
+
+def tipo_vista_previa(nombre, mime=''):
+    """Tipo MIME con el que se puede mostrar el adjunto en el navegador, o None (solo descarga)."""
+    extension = os.path.splitext(nombre or '')[1].lstrip('.').lower()
+    if extension in VISTA_PREVIA_EXT:
+        return VISTA_PREVIA_EXT[extension]
+    return mime if mime in VISTA_PREVIA_MIME else None
