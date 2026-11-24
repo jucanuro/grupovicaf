@@ -44,7 +44,7 @@ class SembrarE2ETests(TestCase):
         call_command('sembrar_e2e', stdout=StringIO())
         call_command('sembrar_e2e', stdout=StringIO())
 
-        self.assertEqual(User.objects.filter(username__startswith='e2e.').count(), 8)  # + e2e.recepcion, e2e.jefe, e2e.comercial y e2e.agenda
+        self.assertEqual(User.objects.filter(username__startswith='e2e.').count(), 11)  # + e2e.recepcion, e2e.jefe, e2e.comercial, e2e.agenda, e2e.gantt y 2 técnicos del Gantt
         self.assertEqual(SolicitudEnsayo.objects.filter(codigo_solicitud='SOL-E2E-0001').count(), 1)
         informe = InformeFinal.objects.get()
         self.assertEqual(str(informe.slug_validacion), 'e2e00000-0000-4000-8000-000000000001')

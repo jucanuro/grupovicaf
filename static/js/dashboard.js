@@ -2,37 +2,26 @@
  *
  * Lee los datos de <script id="dashboard-datos"> (json_script de Django) y
  * dibuja con Chart.js 4.4.1 (static/vendor/chartjs, cargado con defer antes
- * que este archivo). Los colores salen de la paleta validada en
- * specs/VCF-LIMS/design.md. El resto del dashboard es HTML del servidor.
+ * que este archivo). Colores, ejes y ficha emergente salen del tema común
+ * static/js/graficos_tema.js (paleta validada de specs/VCF-LIMS/design.md). El resto del dashboard es HTML del servidor.
  */
 (function () {
     'use strict';
 
-    var CLARO = {
-        aceptadas: '#2a78d6',
-        enGestion: '#1baf7a',
-        perdidas: '#eb6834',
-        linea: '#2a78d6',
-        rejilla: '#e1e0d9',
-        eje: '#c3c2b7',
-        textoEje: '#6b6a65',
-        superficie: '#ffffff'
-    };
-    // Modo oscuro (static/js/tema.js): mismas series, rejilla y textos sobre la superficie #111a2b.
-    var OSCURO = {
-        aceptadas: '#3b8ae6',
-        enGestion: '#1fbf86',
-        perdidas: '#f07a4a',
-        linea: '#5b9be6',
-        rejilla: '#243146',
-        eje: '#334359',
-        textoEje: '#94a3b8',
-        superficie: '#111a2b'
-    };
-    var COLORES = CLARO;
+    // Paleta y estilo comunes (static/js/graficos_tema.js, REQ-LIMS-85).
+    var G = window.VicafGraficos;
+    var COLORES = null;
 
     function paleta() {
-        return document.documentElement.classList.contains('dark') ? OSCURO : CLARO;
+        var p = G.paleta();
+        return {
+            aceptadas: p.series[0],
+            enGestion: p.series[2],
+            perdidas: p.series[1],
+            linea: p.series[0],
+            eje: p.eje,
+            superficie: p.superficie
+        };
     }
 
     function leerDatos() {
@@ -46,35 +35,17 @@
     }
 
     function tooltipBase(titulos) {
-        return {
-            backgroundColor: '#0f172a',
-            padding: 10,
-            cornerRadius: 8,
-            titleFont: { weight: '600' },
+        return G.ficha({
             callbacks: {
                 title: function (items) {
                     return items.length ? titulos[items[0].dataIndex] : '';
                 }
             }
-        };
+        });
     }
 
     function ejes(apilado) {
-        return {
-            x: {
-                stacked: apilado,
-                grid: { display: false },
-                border: { color: COLORES.eje },
-                ticks: { color: COLORES.textoEje, maxRotation: 0, autoSkip: true }
-            },
-            y: {
-                stacked: apilado,
-                beginAtZero: true,
-                grid: { color: COLORES.rejilla },
-                border: { display: false },
-                ticks: { color: COLORES.textoEje, precision: 0 }
-            }
-        };
+        return G.ejes({ apilado: apilado });
     }
 
     function barrasCotizaciones(Chart, datos) {
@@ -129,7 +100,7 @@
                     label: 'Ensayos finalizados',
                     data: datos.valores,
                     borderColor: COLORES.linea,
-                    backgroundColor: COLORES === OSCURO ? 'rgba(91, 155, 230, 0.16)' : 'rgba(42, 120, 214, 0.10)',
+                    backgroundColor: function (ctx) { return G.degradado(ctx.chart, COLORES.linea); },
                     borderWidth: 2,
                     fill: true,
                     tension: 0,
@@ -182,9 +153,8 @@
         }
         var Chart = window.Chart;
         var datos = leerDatos();
-        if (!Chart || !datos) return;
-        Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
-        Chart.defaults.font.size = 11;
+        if (!Chart || !datos || !G) return;
+        G.aplicar();
         dibujar(Chart, datos);
         // Al cambiar de modo claro/oscuro se vuelven a dibujar con la otra paleta.
         document.addEventListener('vicaf:tema', function () { dibujar(Chart, datos); });

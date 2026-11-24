@@ -169,10 +169,13 @@ def _bloque_comercial(periodo):
         cotizaciones.annotate(mes=TruncMonth('fecha_generacion'))
         .values('mes', 'estado').annotate(n=Count('id'))
     )
+    rechazadas_mes = {mes: 0 for mes in meses}
     for fila in filas:
         mes = _como_fecha(fila['mes'])
         if mes not in serie:
             continue
+        if fila['estado'] == 'Rechazada':
+            rechazadas_mes[mes] += fila['n']
         if fila['estado'] == 'Aceptada':
             serie[mes]['aceptadas'] += fila['n']
         elif fila['estado'] in ('Rechazada', 'Anulada'):
@@ -188,6 +191,10 @@ def _bloque_comercial(periodo):
         }
         for mes, valores in serie.items()
     ]
+
+    emitidas_por_mes = [m['total'] for m in por_mes]
+    # RN-03 mes a mes: aceptadas / (aceptadas + rechazadas); None si nada se decidió.
+    tasa_por_mes = [_porcentaje(v['aceptadas'], v['aceptadas'] + rechazadas_mes[mes]) for mes, v in serie.items()]
 
     embudo = [
         {'etiqueta': 'Emitidas', 'cantidad': emitidas, 'ancho': _ancho(emitidas, emitidas)},
@@ -213,6 +220,12 @@ def _bloque_comercial(periodo):
         'pct_aceptadas_de_enviadas': _porcentaje(aceptadas, enviadas),
         'embudo': embudo,
         'por_mes': por_mes,
+        # Minigráficos de las cifras (REQ-LIMS-86): un punto por mes del periodo.
+        'emitidas_por_mes': emitidas_por_mes,
+        'tasa_por_mes': tasa_por_mes,
+        'sparkline': _sparkline_periodo(emitidas_por_mes),
+        # Un mes sin cotizaciones decididas no es una tasa de 0 %: se omite.
+        'sparkline_tasa': _sparkline_periodo([t for t in tasa_por_mes if t is not None]),
         'tiene_datos': emitidas > 0,
     }
 
@@ -261,6 +274,13 @@ def _sparkline(valores, ancho=120, alto=36, margen=4):
     ]
     x, y = puntos[-1]
     return {'puntos': ' '.join(f'{px},{py}' for px, py in puntos), 'x': x, 'y': y}
+
+
+def _sparkline_periodo(valores):
+    """Minigráfico de una cifra (REQ-LIMS-86); None si el periodo tiene un solo mes."""
+    if len(valores) < 2:
+        return None
+    return _sparkline(valores)
 
 
 def _bloque_laboratorio(periodo, user, hoy):
@@ -355,11 +375,17 @@ def _bloque_proyectos(periodo):
 
 
 def _bloque_informes(periodo):
+    emitidos = InformeFinal.objects.filter(fecha_emision__date__range=(periodo.desde, periodo.hasta))
+    por_mes = {mes: 0 for mes in _meses_entre(periodo.desde, periodo.hasta)}
+    for fila in emitidos.annotate(mes=TruncMonth('fecha_emision')).values('mes').annotate(n=Count('id')):
+        mes = _como_fecha(fila['mes'])
+        if mes in por_mes:
+            por_mes[mes] += fila['n']
     return {
         'por_enviar': InformeFinal.objects.filter(estado_envio='pendiente').count(),
-        'emitidos_periodo': InformeFinal.objects.filter(
-            fecha_emision__date__range=(periodo.desde, periodo.hasta),
-        ).count(),
+        'emitidos_periodo': sum(por_mes.values()),
+        'emitidos_por_mes': list(por_mes.values()),
+        'sparkline': _sparkline_periodo(list(por_mes.values())),
     }
 
 

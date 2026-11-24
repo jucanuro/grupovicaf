@@ -31,6 +31,10 @@
 | T70 | Aviso opcional al cliente: tarea Celery `enviar_aviso_cliente`, plantilla de texto y `aviso_cliente_enviado_en` + pruebas | 67 | `python manage.py test actividades` | [x] |
 | T71 | Nueva `calendario.html`, `calendario.css` y `calendario.js`: lateral con calendarios, creación rápida, formulario en dos paneles, tarjeta de detalle, bloques por calendario y solapes, modo oscuro y celular | 68-73 | Revisión visual (claro, oscuro y 390 px) | [x] |
 | T72 | `sembrar_e2e` (usuario `e2e.agenda`, calendarios y eventos E2E) + `e2e/calendario.spec.js`; ajuste de `e2e/lims-correcciones.spec.js` | 63, 64, 66-71 | `npm run test:e2e` | [x] |
+| T75 | `actividades/gantt_ensayos.py`: estado y avance real por línea desde `ResultadoEnsayo`, atraso contra la entrega programada, entrega de la solicitud = última fecha de sus líneas, vista del técnico + `actividades/test_gantt.py` | 74-78, 82 | `python manage.py test actividades` | [x] |
+| T76 | Nueva `gantt.html`, `gantt.css` y `gantt.js`: agrupar por solicitud/técnico/cliente, filas de 34 px, cifras que filtran, carga por técnico, ficha de detalle, vista Actividades por calendario, modo oscuro y celular | 74, 79-84 | Revisión visual (claro, oscuro y 390 px) | [x] |
+| T77 | `static/js/graficos_tema.js` (tema común de Chart.js) usado por `dashboard.js` y `analisis.js`; minigráficos en cotizaciones, tasa e informes del dashboard + pruebas | 85, 86 | `python manage.py test core` | [x] |
+| T78 | `sembrar_e2e` (usuarios `e2e.gantt`, `e2e.tecnico.c/d`, SOL-E2E-G01..G03) + `e2e/gantt.spec.js` | 74-84 | `npm run test:e2e` | [x] |
 
 ## Historial
 
@@ -44,3 +48,4 @@
 | v5 | 2026-11-22 | Claude (DLF) | T66-T67: formulario de cotización con detalle en modal |
 | v6 | 2026-11-22 | Claude (DLF) | T68: modal del detalle a pantalla completa |
 | v7 | 2026-11-24 | Claude (DLF) | T69-T72: calendario rediseñado |
+| v8 | 2026-11-24 | Claude (DLF) | T75-T78: Gantt de ensayos y tema común de gráficos |

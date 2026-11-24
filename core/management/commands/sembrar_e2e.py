@@ -53,6 +53,7 @@ from proyectos.models import (
     MuestraDetalle,
     Proyecto,
     RecepcionMuestra,
+    ResultadoEnsayo,
     SolicitudEnsayo,
     TipoMuestra,
 )
@@ -83,6 +84,8 @@ PERMISOS_AGENDA = (
     'calendario.ver', 'calendario.crear', 'calendario.editar', 'calendario.eliminar',
     'ensayos.ver_todos', 'clientes.ver',
 )
+# Gantt de ensayos (HU-LIMS-22): ve todos los ensayos y el Gantt.
+PERMISOS_GANTT = ('gantt.ver', 'ensayos.ver', 'ensayos.ver_todos', 'calendario.ver')
 CLIENTE_AGENDA = {'ruc': '20999999995', 'razon_social': 'Minera Agenda E2E SAC', 'correo': 'agenda@e2e.invalid'}
 PERMISOS_RECEPCION = (
     'muestras.ver', 'muestras.crear', 'calendario.ver', 'calendario.crear', 'calendario.editar',
@@ -108,6 +111,7 @@ class Command(BaseCommand):
             self._datos_analisis()
             self._proyecto_avance(coordinador)
             self._calendario(tecnico_a)
+            self._gantt_ensayos(coordinador, password)
 
         self.stdout.write(self.style.SUCCESS('Datos E2E listos.'))
 
@@ -442,6 +446,95 @@ class Command(BaseCommand):
                 'fecha_entrega_programada': date(2099, 1, 1),
             },
         )
+
+    def _gantt_ensayos(self, coordinador, password):
+        """Solicitudes con líneas en cada estado, fechadas respecto de hoy (e2e/gantt.spec.js).
+
+        SOL-E2E-G01: dos líneas terminadas. SOL-E2E-G02: una en registro atrasada
+        4 días, una terminada y una devuelta. SOL-E2E-G03: dos sin empezar.
+        """
+        hoy = timezone.localdate()
+        self._trabajador('e2e.gantt', self._rol('E2E Gantt', PERMISOS_GANTT), 'Jefa Gantt E2E', password)
+        # REQ-LIMS-82: el técnico entra al Gantt y ve solo sus líneas.
+        rol_tecnico = self._rol('E2E Técnico Gantt', (*PERMISOS_TECNICO, 'gantt.ver'))
+        daniela = self._trabajador('e2e.tecnico.c', rol_tecnico, 'Daniela Torres E2E', password)
+        carlos = self._trabajador('e2e.tecnico.d', rol_tecnico, 'Carlos Mendoza E2E', password)
+        cliente = Cliente.objects.get(ruc='20999999991')
+        cotizacion, _ = Cotizacion.objects.update_or_create(
+            numero_oferta='COT-E2E-GANTT',
+            defaults={
+                'cliente': cliente, 'estado': 'Aceptada', 'fecha_generacion': hoy - timedelta(days=25),
+                'asunto_servicio': 'Ensayos de suelos Gantt E2E', 'persona_contacto': 'Ana E2E',
+                'correo_contacto': 'ana@e2e.invalid', 'telefono_contacto': '999999991',
+            },
+        )
+        grupo, _ = CotizacionGrupo.objects.get_or_create(cotizacion=cotizacion, nombre_grupo='Suelos')
+        detalle_cot, _ = CotizacionDetalle.objects.update_or_create(
+            grupo=grupo, servicio=Servicio.objects.get(codigo_facturacion='E2E-001'),
+            defaults={'descripcion_especifica': 'Ensayo de suelos', 'precio_unitario': Decimal('50.00'), 'cantidad': 7},
+        )
+        tipo_muestra = TipoMuestra.objects.get(nombre='Suelo E2E')
+        terminado, aprobado = ResultadoEnsayo.ESTADO_TERMINADO, ResultadoEnsayo.ESTADO_APROBADO
+        borrador = ResultadoEnsayo.ESTADO_BORRADOR
+        # (solicitud, días desde hoy de la solicitud, [(muestra, ensayo, técnico, entrega, estado, devuelto)])
+        plan = (
+            ('SOL-E2E-G01', -20, [
+                ('Gantt 1', 'Contenido de humedad', daniela, -12, terminado, False),
+                ('Gantt 2', 'Límites de Atterberg', daniela, -10, aprobado, False),
+            ]),
+            ('SOL-E2E-G02', -18, [
+                ('Gantt 3', 'Análisis granulométrico', carlos, -4, borrador, False),
+                ('Gantt 4', 'Contenido de humedad', daniela, -9, terminado, False),
+                ('Gantt 5', 'Proctor modificado', carlos, 3, borrador, True),
+            ]),
+            ('SOL-E2E-G03', -7, [
+                ('Gantt 6', 'CBR', carlos, 5, None, False),
+                ('Gantt 7', 'Corte directo', daniela, 12, None, False),
+            ]),
+        )
+        for codigo, desfase, lineas in plan:
+            # Cada solicitud tiene su propia recepción (relación uno a uno).
+            recepcion = RecepcionMuestra.objects.filter(solicitud_ensayo__codigo_solicitud=codigo).first()
+            if recepcion is None:
+                recepcion = RecepcionMuestra.objects.create(
+                    cotizacion=cotizacion, procedencia='Cajamarca', responsable_cliente='Ana E2E',
+                    telefono='999999991', responsable_recepcion=coordinador.user,
+                )
+            solicitud, _ = SolicitudEnsayo.objects.update_or_create(
+                codigo_solicitud=codigo,
+                defaults={
+                    'recepcion': recepcion, 'cotizacion': cotizacion,
+                    'estado': 'finalizado' if all(l[4] in (terminado, aprobado) for l in lineas) else 'proceso',
+                    'fecha_solicitud': hoy + timedelta(days=desfase),
+                    'fecha_entrega_programada': hoy + timedelta(days=max(l[3] for l in lineas)),
+                    'elaborado_por': coordinador,
+                },
+            )
+            for descripcion, ensayo, tecnico, entrega, estado, devuelto in lineas:
+                muestra, _ = MuestraDetalle.objects.get_or_create(
+                    recepcion=recepcion, descripcion=descripcion,
+                    defaults={'tipo_muestra': tipo_muestra, 'masa_aprox': Decimal('5.00')},
+                )
+                detalle, _ = DetalleSolicitudEnsayo.objects.update_or_create(
+                    solicitud=solicitud, muestra=muestra,
+                    defaults={
+                        'servicio_cotizado': detalle_cot, 'descripcion_ensayo': ensayo, 'norma': 'MTC E 1XX',
+                        'tecnico_asignado': tecnico, 'fecha_entrega_programada': hoy + timedelta(days=entrega),
+                    },
+                )
+                if estado is None:
+                    ResultadoEnsayo.objects.filter(detalle=detalle).delete()
+                    continue
+                ResultadoEnsayo.objects.update_or_create(
+                    detalle=detalle,
+                    defaults={
+                        'plantilla': ResultadoEnsayo.PLANTILLA_GENERAL, 'estado': estado,
+                        'fecha_ensayo': hoy - timedelta(days=3) if estado != borrador else hoy,
+                        'resumen': 'Resultado E2E' if estado != borrador or not devuelto else '',
+                        'observacion_revision': 'Revisar la hoja de cálculo' if devuelto else '',
+                        'tecnico': tecnico,
+                    },
+                )
 
     def _datos_analisis(self):
         """Datos de la tabla dinámica (e2e/analisis.spec.js), en febrero de 2001

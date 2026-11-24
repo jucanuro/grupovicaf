@@ -29,6 +29,7 @@ from .models import (
     CalendarioParticipante,
     CalendarioRecordatorio,
 )
+from .gantt_ensayos import lineas_de_ensayo
 from .tasks import enviar_aviso_cliente
 from .visibilidad import actividades_visibles, calendarios_visibles, puede_crear_en
 
@@ -1031,102 +1032,19 @@ def gantt_actividades_json(request):
             'cliente': nombre_cliente_visible(request.user, actividad.cliente, ve_todos),
             'descripcion': actividad.descripcion or '',
             'tipo': 'actividad',
+            'calendario_id': actividad.categoria_id,
+            'calendario': actividad.categoria.nombre if actividad.categoria_id else 'Sin calendario',
+            'calendario_color': (actividad.categoria.color if actividad.categoria_id else '') or actividad.color_visual or '#2563eb',
         })
 
     if incluir_ensayos:
-        detalles_ensayo = DetalleSolicitudEnsayo.objects.filter(
-            solicitud__fecha_solicitud__gte=hace_1_ano.date(),
-            solicitud__fecha_solicitud__lte=hasta_1_ano.date(),
-        ).select_related(
-            'solicitud',
-            'solicitud__cotizacion',
-            'solicitud__cotizacion__cliente',
-            'muestra',
-            'servicio_cotizado',
-            'servicio_cotizado__servicio',
-            'tecnico_asignado',
-        ).order_by('solicitud__fecha_solicitud', 'id')
-
-        if cotizacion_id_proyecto:
-            detalles_ensayo = detalles_ensayo.filter(solicitud__cotizacion_id=cotizacion_id_proyecto)
-
-        if estado:
-            estado_lower = estado.lower()
-
-            if estado_lower in ['pendiente', 'proceso', 'finalizado']:
-                detalles_ensayo = detalles_ensayo.filter(solicitud__estado=estado_lower)
-
-            elif estado.upper() in ['PROGRAMADA', 'EN_CURSO', 'COMPLETADA', 'CANCELADA', 'REPROGRAMADA', 'VENCIDA']:
-                detalles_ensayo = detalles_ensayo.none()
-
-        if responsable_id:
-            detalles_ensayo = detalles_ensayo.filter(tecnico_asignado_id=responsable_id)
-
-        if not ve_todos:
-            detalles_ensayo = detalles_ensayo.filter(tecnico_asignado__user=request.user)
-
-        colores_ensayos = {
-            'pendiente': '#94a3b8',
-            'proceso': '#f59e0b',
-            'finalizado': '#10b981',
-        }
-
-        for detalle in detalles_ensayo:
-            solicitud = detalle.solicitud
-            inicio_date = solicitud.fecha_solicitud if solicitud and solicitud.fecha_solicitud else hoy
-            fin_date = detalle.fecha_entrega_programada or inicio_date
-            inicio_date, fin_date = normalizar_rango_fechas(inicio_date, fin_date)
-
-            metricas = calcular_metricas_tiempo(inicio_date, fin_date, hoy=hoy)
-
-            estado_val = (solicitud.estado or 'pendiente').lower()
-            color = colores_ensayos.get(estado_val, '#94a3b8')
-
-            cliente_nombre = ''
-
-            if solicitud and solicitud.cotizacion and solicitud.cotizacion.cliente:
-                cliente_nombre = nombre_cliente_visible(request.user, solicitud.cotizacion.cliente, ve_todos)
-
-            muestra_codigo = detalle.muestra.codigo_laboratorio if detalle.muestra else 'Sin muestra'
-
-            if detalle.servicio_cotizado and detalle.servicio_cotizado.servicio:
-                servicio_nombre = detalle.servicio_cotizado.servicio.nombre
-            else:
-                servicio_nombre = detalle.descripcion_ensayo or 'Ensayo'
-
-            responsable_nombre = detalle.tecnico_asignado.nombre_completo if detalle.tecnico_asignado else 'Sin asignar'
-
-            codigo_solicitud = solicitud.codigo_solicitud if solicitud else f'DET-{detalle.id}'
-            nombre_barra = f'{codigo_solicitud} | {muestra_codigo} | {servicio_nombre}'
-
-            data.append({
-                'id': f'ensayo-detalle-{detalle.id}',
-                'db_id': detalle.id,
-                'solicitud_id': solicitud.id if solicitud else None,
-                'name': nombre_barra[:140],
-                'start': inicio_date.strftime('%Y-%m-%d'),
-                'end': fin_date.strftime('%Y-%m-%d'),
-                'progress': metricas['progreso_temporal'],
-                'progreso_temporal': metricas['progreso_temporal'],
-                'duracion_total_dias': metricas['duracion_total_dias'],
-                'dias_transcurridos': metricas['dias_transcurridos'],
-                'dias_restantes': metricas['dias_restantes'],
-                'esta_vencido': metricas['esta_vencido'] and estado_val != 'finalizado',
-                'responsable': responsable_nombre,
-                'responsable_id': detalle.tecnico_asignado_id,
-                'responsable_rol': 'TÉCNICO',
-                'custom_class': f'estado-{estado_val}',
-                'color': color,
-                'estado': estado_val.upper(),
-                'clase': 'ENSAYO',
-                'proyecto': proyecto_obj.nombre_proyecto if proyecto_obj else '',
-                'cliente': cliente_nombre,
-                'descripcion': detalle.descripcion_ensayo or servicio_nombre,
-                'tipo': 'ensayo',
-                'muestra': muestra_codigo,
-                'servicio': servicio_nombre,
-                'codigo_solicitud': codigo_solicitud,
-            })
+        # HU-LIMS-22: estado y avance real por línea (actividades/gantt_ensayos.py).
+        data.extend(lineas_de_ensayo(
+            request.user, ve_todos, hoy,
+            desde=hace_1_ano.date(), hasta=hasta_1_ano.date(),
+            cotizacion_id=cotizacion_id_proyecto,
+            responsable_id=responsable_id,
+        ))
 
     data.sort(key=lambda x: (x['start'], x['name']))
 

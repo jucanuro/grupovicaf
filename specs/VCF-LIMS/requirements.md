@@ -173,6 +173,35 @@ pocos clics, para que cada quien vea solo lo que le toca*.
 | REQ-LIMS-72 | HU-LIMS-21 | CUANDO el usuario mueva o cambie la duración de un evento, EL SISTEMA DEBE guardarlo y ofrecer «Deshacer». | revisión visual | [Propuesto] |
 | REQ-LIMS-73 | HU-LIMS-21 | DONDE la pantalla mida menos de 900 px, EL SISTEMA DEBE abrir en vista Día, con el panel lateral plegable y un botón flotante para crear. | revisión visual | [Propuesto] |
 
+## 2f. Gantt de ensayos y tema común de gráficos (v7)
+
+Origen: pedido del Gerente del 2026-11-24 («tomar como referencia el diseño
+del calendario y darle el mismo estilo al Gantt y mejorar la presentación de
+gráficos»; luego «la prioridad son los ensayos, se ven muy llenos»). Mockups
+v2 aprobados el 2026-11-24 («programa entonces aprobado»), con las decisiones
+DP-01 a DP-04 tal como se recomendaron. Pantalla: `/actividades/gantt/`.
+HU-LIMS-22: *como jefe de laboratorio quiero ver en una línea de tiempo cada
+ensayo de cada solicitud, su avance real y su atraso, para saber qué está por
+vencer sin abrir cada solicitud*. HU-LIMS-23: *como Gerente quiero que los
+gráficos del dashboard y de Análisis tengan un mismo estilo, legible en claro
+y en oscuro*.
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-74 | HU-LIMS-22 | EL SISTEMA DEBE abrir el Gantt en la vista «Ensayos», agrupado por solicitud: una fila de encabezado con el código, el cliente, «n/m listos» y la fecha de entrega, y debajo una fila por línea de ensayo con la muestra, el ensayo y el técnico. | sí (E2E) | [Decisión Gerente] DP-02 |
+| REQ-LIMS-75 | HU-LIMS-22 | EL SISTEMA DEBE calcular el avance de cada línea con su resultado: 0 % sin resultado, 100 % terminado o aprobado y, en registro, la parte de los datos y fotos obligatorios ya cargados (entre 5 y 95 %). | sí (unitaria) | [Decisión Gerente] DP-01 |
+| REQ-LIMS-76 | HU-LIMS-22 | EL SISTEMA DEBE pintar cada línea según su propio estado: sin empezar (borde punteado), en registro o devuelta (ámbar), terminada o aprobada (verde). | sí (unitaria + E2E) | [Propuesto] |
+| REQ-LIMS-77 | HU-LIMS-22 | MIENTRAS una línea no esté terminada y su entrega programada ya haya pasado, EL SISTEMA DEBE mostrar una franja de atraso desde esa fecha hasta hoy con los días de retraso, y contarla en «Atrasados». | sí (unitaria + E2E) | [Propuesto] |
+| REQ-LIMS-78 | HU-LIMS-22 | EL SISTEMA DEBE marcar la entrega de cada solicitud con un rombo en la última `fecha_entrega_programada` de sus líneas. | sí (unitaria) | [Decisión Gerente] DP-03 [Supuesto] |
+| REQ-LIMS-79 | HU-LIMS-22 | EL SISTEMA DEBE mostrar arriba cuántas líneas están en proceso, cuántas se entregan esta semana, cuántas están atrasadas y cuántas se terminaron en el mes, según los filtros. | sí (E2E) | [Propuesto] |
+| REQ-LIMS-80 | HU-LIMS-22 | EL SISTEMA DEBE ofrecer en la barra lateral: agrupar por solicitud, técnico o cliente; filtro por estado, «Solo atrasados» y técnico (con su carga); búsqueda por solicitud, muestra o ensayo; y zoom Semana, 6 semanas o Trimestre con «Hoy». | sí (E2E) | [Propuesto] |
+| REQ-LIMS-81 | HU-LIMS-22 | CUANDO el usuario haga clic en una línea, EL SISTEMA DEBE abrir una ficha con solicitud, cliente, muestra, fechas, técnico, estado, avance y un enlace a «Resultados de la solicitud». | sí (E2E) | [Propuesto] |
+| REQ-LIMS-82 | HU-LIMS-22 | EL SISTEMA DEBE seguir mostrando a un técnico sin `ensayos.ver_todos` solo sus líneas, y el cliente según la regla vigente. | sí (unitaria) | [Validado con usuario] |
+| REQ-LIMS-83 | HU-LIMS-22 | EL SISTEMA DEBE mostrar las actividades del calendario en la vista «Actividades» con el mismo diseño, agrupadas por calendario y con su color. | revisión visual | [Decisión Gerente] |
+| REQ-LIMS-84 | HU-LIMS-22 | DONDE la pantalla mida menos de 900 px, EL SISTEMA DEBE mostrar cada solicitud como tarjeta con una franja de tiempo por línea. | revisión visual | [Propuesto] |
+| REQ-LIMS-85 | HU-LIMS-23 | EL SISTEMA DEBE dibujar los gráficos del dashboard y de Análisis con un tema común (`static/js/graficos_tema.js`): misma paleta validada, tipografía, rejilla, barras redondeadas y ficha emergente, con colores propios del modo oscuro que se actualizan al cambiar el tema. | sí (E2E) | [Decisión Gerente] DP-04 |
+| REQ-LIMS-86 | HU-LIMS-23 | EL SISTEMA DEBE mostrar en las cifras del dashboard de cotizaciones, tasa de aceptación e informes un minigráfico de los meses del periodo. | sí (unitaria) | [Propuesto] |
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -190,6 +219,8 @@ pocos clics, para que cada quien vea solo lo que le toca*.
 | HU-LIMS-19 | Panel de proyectos con avance por muestra | REQ-LIMS-44 a 52 |
 | HU-LIMS-20 | Formulario de cotización con detalle en modal | REQ-LIMS-53 a 61 |
 | HU-LIMS-21 | Calendarios de equipo y personales, formulario en dos paneles | REQ-LIMS-62 a 73 |
+| HU-LIMS-22 | Gantt de ensayos por solicitud con avance real y atraso | REQ-LIMS-74 a 84 |
+| HU-LIMS-23 | Tema común de gráficos (dashboard y Análisis) | REQ-LIMS-85, 86 |
 
 ## 4. Preguntas abiertas
 
@@ -208,3 +239,4 @@ pocos clics, para que cada quien vea solo lo que le toca*.
 | v4 | 2026-11-22 | Claude (DLF) | Formulario de cotización: pills y detalle en modal, REQ-LIMS-53 a 59 |
 | v5 | 2026-11-22 | Claude (DLF) | Modal del detalle a pantalla completa (formulario a la izquierda, tabla a la derecha): REQ-LIMS-55 a 57 ajustados, 60 y 61 nuevos |
 | v6 | 2026-11-24 | Claude (DLF) | Calendario rediseñado: REQ-LIMS-62 a 73 (HU-LIMS-21) |
+| v7 | 2026-11-24 | Claude (DLF) | Gantt de ensayos y tema de gráficos: REQ-LIMS-74 a 86 (HU-LIMS-22, 23) |
