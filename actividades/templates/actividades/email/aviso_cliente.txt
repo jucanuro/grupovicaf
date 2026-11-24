@@ -1,0 +1,16 @@
+{% autoescape off %}Estimado(a) {{ cliente.razon_social }}:
+
+Le informamos que GRUPO VICAF ha programado la siguiente actividad relacionada con su atención:
+
+  {{ actividad.titulo }}
+  Fecha: {{ inicio|date:"l d \d\e F \d\e Y" }}{% if not actividad.todo_el_dia %}, de {{ inicio|time:"H:i" }} a {{ fin|time:"H:i" }}{% endif %}{% if actividad.ubicacion %}
+  Lugar: {{ actividad.ubicacion }}{% endif %}{% if actividad.enlace_externo %}
+  Enlace: {{ actividad.enlace_externo }}{% endif %}{% if actividad.descripcion %}
+
+{{ actividad.descripcion }}{% endif %}
+
+Si necesita reprogramarla, responda a este correo o comuníquese con nosotros.
+
+Atentamente,
+GRUPO VICAF · Laboratorio de ensayo de materiales · Cajamarca
+{% endautoescape %}

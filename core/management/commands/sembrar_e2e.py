@@ -4,6 +4,7 @@ Idempotente: se puede correr las veces que haga falta sobre la misma base y
 deja siempre el mismo estado. Todo lo que crea lleva el marcador E2E:
 
     Usuarios          e2e.jefe (panel de proyectos: todas las etapas), e2e.comercial (crear y editar cotizaciones), e2e.coordinador (con correo.ver y correo.administrar), e2e.tecnico.a, e2e.tecnico.b,
+                      e2e.agenda (calendario completo y clientes: HU-LIMS-21),
                       e2e.recepcion (muestras, calendario, cotizaciones y proyectos: campana,
                       menú lateral, «Nueva recepción» y guardar actividades)
     Roles             'E2E Coordinador', 'E2E Técnico'
@@ -35,7 +36,7 @@ Uso:
 """
 import os
 import uuid
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 from django.conf import settings
@@ -77,6 +78,12 @@ PERMISOS_JEFE = (
 )
 # Formulario de cotización (asistente de 4 pasos con modal del detalle).
 PERMISOS_COMERCIAL = ('cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.editar', 'clientes.ver')
+# Calendario rediseñado (HU-LIMS-21): ve clientes, crea, edita y elimina.
+PERMISOS_AGENDA = (
+    'calendario.ver', 'calendario.crear', 'calendario.editar', 'calendario.eliminar',
+    'ensayos.ver_todos', 'clientes.ver',
+)
+CLIENTE_AGENDA = {'ruc': '20999999995', 'razon_social': 'Minera Agenda E2E SAC', 'correo': 'agenda@e2e.invalid'}
 PERMISOS_RECEPCION = (
     'muestras.ver', 'muestras.crear', 'calendario.ver', 'calendario.crear', 'calendario.editar',
     'cotizaciones.ver', 'proyectos.ver',
@@ -100,6 +107,7 @@ class Command(BaseCommand):
             self._datos_dashboard(coordinador, tecnico_a)
             self._datos_analisis()
             self._proyecto_avance(coordinador)
+            self._calendario(tecnico_a)
 
         self.stdout.write(self.style.SUCCESS('Datos E2E listos.'))
 
@@ -142,7 +150,60 @@ class Command(BaseCommand):
         self._trabajador('e2e.recepcion', self._rol('E2E Recepción', PERMISOS_RECEPCION), 'Recepción E2E', password)
         self._trabajador('e2e.jefe', self._rol('E2E Jefe de laboratorio', PERMISOS_JEFE), 'Jefe E2E', password)
         self._trabajador('e2e.comercial', self._rol('E2E Comercial', PERMISOS_COMERCIAL), 'Comercial E2E', password)
+        self._trabajador('e2e.agenda', self._rol('E2E Agenda', PERMISOS_AGENDA), 'Agenda E2E', password)
         return coordinador, tecnico_a
+
+    def _calendario(self, tecnico_a):
+        """Calendarios y actividades de la semana actual para HU-LIMS-21.
+
+        - «Supervisión E2E» (equipo con miembros: e2e.agenda crea, e2e.recepcion ve).
+        - «Laboratorio E2E» (equipo sin miembros: lo ven todos).
+        - «Casa E2E» (personal de e2e.agenda).
+        """
+        from actividades.models import CalendarioActividad, CalendarioCategoria, CalendarioMiembro, CalendarioParticipante
+
+        agenda = User.objects.get(username='e2e.agenda')
+        recepcion = User.objects.get(username='e2e.recepcion')
+        # El evento privado lo crea otra persona: e2e.agenda no debe verlo.
+        coordinador = User.objects.get(username='e2e.coordinador')
+        Cliente.objects.update_or_create(
+            ruc=CLIENTE_AGENDA['ruc'],
+            defaults={'razon_social': CLIENTE_AGENDA['razon_social'], 'correo_contacto': CLIENTE_AGENDA['correo']},
+        )
+        supervision, _ = CalendarioCategoria.objects.update_or_create(
+            nombre='Supervisión E2E', tipo='EQUIPO', defaults={'color': '#7c3aed', 'activo': True},
+        )
+        CalendarioMiembro.objects.update_or_create(calendario=supervision, user=agenda, defaults={'puede_crear': True})
+        CalendarioMiembro.objects.update_or_create(calendario=supervision, user=recepcion, defaults={'puede_crear': False})
+        laboratorio, _ = CalendarioCategoria.objects.update_or_create(
+            nombre='Laboratorio E2E', tipo='EQUIPO', defaults={'color': '#0891b2', 'activo': True},
+        )
+        casa, _ = CalendarioCategoria.objects.update_or_create(
+            nombre='Casa E2E', tipo='PERSONAL', propietario=agenda, defaults={'color': '#ea580c', 'activo': True},
+        )
+
+        lunes = timezone.localdate() - timedelta(days=timezone.localdate().weekday())
+        def momento(dia, hora, minuto=0):
+            return timezone.make_aware(datetime.combine(lunes + timedelta(days=dia), time(hora, minuto)))
+
+        eventos = [
+            ('Revisión E2E de informes', supervision, 1, (10, 0), (11, 0), None),
+            ('Coordinación E2E privada', laboratorio, 2, (9, 0), (10, 0), tecnico_a),
+            ('Asunto personal E2E', casa, 3, (18, 0), (19, 0), None),
+            ('Triaxial E2E largo', laboratorio, 0, (8, 0), (13, 0), None),
+            ('Seguimiento E2E corto', laboratorio, 0, (8, 30), (9, 0), None),
+        ]
+        CalendarioActividad.objects.filter(titulo__in=[e[0] for e in eventos]).delete()
+        # Lo que crean las pruebas E2E en corridas anteriores.
+        CalendarioActividad.objects.filter(titulo__contains=' E2E ', creado_por__in=(agenda, recepcion)).delete()
+        for titulo, calendario, dia, ini, fin, participante in eventos:
+            actividad = CalendarioActividad.objects.create(
+                titulo=titulo, categoria=calendario, clase='REUNION', estado='PROGRAMADA', prioridad='MEDIA',
+                fecha_inicio=momento(dia, *ini), fecha_fin=momento(dia, *fin),
+                creado_por=coordinador if participante else agenda,
+            )
+            if participante:
+                CalendarioParticipante.objects.create(actividad=actividad, trabajador=participante, rol='RESPONSABLE')
 
     def _catalogo_web(self):
         categoria, _ = CategoriaServicio.objects.get_or_create(nombre='E2E Mecánica de Suelos')

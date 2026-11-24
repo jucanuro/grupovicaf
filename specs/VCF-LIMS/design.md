@@ -98,6 +98,36 @@ Riesgos: R4 `xlsx` 0.18.5 de npm tiene avisos de seguridad al **leer** archivos;
 aquí solo se escribe, en el navegador. R5 El arrastrar HTML5 no funciona con el
 dedo en celulares: ahí se toca el campo y se agrega en la zona que corresponde.
 
+## 5c. Calendario rediseñado (v4, REQ-LIMS-62 a 73)
+
+**Modelo.** No se crea un modelo nuevo de «calendario»: `CalendarioCategoria`
+pasa a ser el calendario (verbose «Calendario») con `tipo` EQUIPO/PERSONAL y
+`propietario` (solo personal). El nombre es único entre los de equipo y por
+dueño entre los personales. `CalendarioMiembro` (calendario, user,
+`puede_crear`) da acceso a un calendario de equipo; sin miembros lo ven todos.
+`CalendarioActividad.aviso_cliente_enviado_en` registra el aviso. Migración
+0003 aditiva: las categorías existentes quedan como calendarios de equipo sin
+miembros, así nadie deja de ver lo que veía.
+
+**Visibilidad** (`actividades/visibilidad.py`, única fuente): `calendarios_visibles`,
+`puede_crear_en` y `actividades_visibles` (creó, participa, o sin participantes
+y en un calendario visible o sin calendario). Toda vista JSON busca la actividad
+dentro de `actividades_visibles` (404 si no está) y revisa `puede_crear_en`
+para cambiarla (403). El superusuario ve todos los de equipo, nunca los personales.
+
+**Aviso al cliente.** `actividades.tasks.enviar_aviso_cliente` (Celery, 3
+reintentos) se encola con `transaction.on_commit`; texto en
+`actividades/templates/actividades/email/aviso_cliente.txt`, sin observaciones.
+
+**Frontend.** `calendario.html` + `static/css/calendario.css` (variables
+`--vc-*`, `html.dark`) + `static/js/calendario.js` (FullCalendar 6.1.19).
+Los eventos se piden por rango y se filtran en el cliente (calendarios ocultos,
+«Solo donde participo», vencidas, búsqueda). Los ensayos del laboratorio van
+como calendario automático de solo lectura (todo el día). Los solapes con un
+evento de 3 h o más se corren a la derecha para no tapar su título.
+Preferencias en `localStorage` con try/catch (`vc_vista`, `vc_ocultos`,
+`vc_ultimo_cal`). Miembros: al crear un calendario de equipo o desde el admin.
+
 ## 6. Historial
 
 | Versión | Fecha | Autor | Cambio |
@@ -106,3 +136,4 @@ dedo en celulares: ahí se toca el campo y se agrega en la zona que corresponde.
 | v1 | 2026-11-03 | Claude (DLF) | Diseño del dashboard y de las transiciones de cotización |
 | v3 | 2026-11-04 | Claude (DLF) | Análisis sin PivotTable.js: menú de conjuntos, zonas para arrastrar y números por tipo (aprobado por el Gerente el 2026-11-04) |
 | v2 | 2026-11-03 | Claude (DLF) | Diseño de Análisis con tabla dinámica (app `analisis`) |
+| v4 | 2026-11-24 | Claude (DLF) | Calendario rediseñado: calendarios de equipo y personales, visibilidad y aviso al cliente (aprobado por el Gerente el 2026-11-24) |

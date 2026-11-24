@@ -8,19 +8,77 @@ from proyectos.models import Proyecto, RecepcionMuestra, SolicitudEnsayo, Inform
 
 
 class CalendarioCategoria(models.Model):
-    nombre = models.CharField(max_length=100, unique=True)
+    """Un calendario (antes «categoría»): da el color a sus actividades.
+
+    - EQUIPO: compartido. Sin miembros lo ven y usan todos (como antes); con
+      miembros solo ellos lo ven y solo los que «pueden crear» agregan eventos.
+    - PERSONAL: de un solo usuario (Casa, Estudio...); nadie más lo ve.
+    """
+    TIPO_EQUIPO = 'EQUIPO'
+    TIPO_PERSONAL = 'PERSONAL'
+    TIPOS = [
+        (TIPO_EQUIPO, 'De equipo (compartido)'),
+        (TIPO_PERSONAL, 'Personal (solo yo)'),
+    ]
+
+    nombre = models.CharField(max_length=100)
     color = models.CharField(max_length=20, default='#2563eb')
     icono = models.CharField(max_length=50, blank=True, null=True)
     activo = models.BooleanField(default=True)
+    tipo = models.CharField(max_length=10, choices=TIPOS, default=TIPO_EQUIPO)
+    propietario = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='calendarios_personales',
+        verbose_name="Dueño (solo calendarios personales)",
+    )
 
     class Meta:
-        verbose_name = "Categoría de Calendario"
-        verbose_name_plural = "Categorías de Calendario"
+        verbose_name = "Calendario"
+        verbose_name_plural = "Calendarios"
         ordering = ['nombre']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['nombre'],
+                condition=models.Q(tipo='EQUIPO'),
+                name='calendario_equipo_nombre_unico',
+            ),
+            models.UniqueConstraint(
+                fields=['propietario', 'nombre'],
+                condition=models.Q(tipo='PERSONAL'),
+                name='calendario_personal_nombre_unico',
+            ),
+        ]
 
     def __str__(self):
         return self.nombre
-       
+
+    @property
+    def es_personal(self):
+        return self.tipo == self.TIPO_PERSONAL
+
+
+class CalendarioMiembro(models.Model):
+    """Quién ve un calendario de equipo y si puede crear eventos en él."""
+    calendario = models.ForeignKey(
+        CalendarioCategoria, on_delete=models.CASCADE, related_name='miembros'
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='calendarios_miembro', verbose_name="Usuario"
+    )
+    puede_crear = models.BooleanField(default=True, verbose_name="Puede crear eventos")
+
+    class Meta:
+        verbose_name = "Miembro del calendario"
+        verbose_name_plural = "Miembros del calendario"
+        unique_together = [('calendario', 'user')]
+
+    def __str__(self):
+        return f"{self.user} en {self.calendario}"
+
+
 class CalendarioActividad(models.Model):
     TIPO_ACTIVIDAD = [
         ('MANUAL', 'Manual'),
@@ -97,7 +155,7 @@ class CalendarioActividad(models.Model):
         null=True,
         blank=True,
         related_name='actividades',
-        verbose_name="Categoría"
+        verbose_name="Calendario"
     )
 
     fecha_inicio = models.DateTimeField(verbose_name="Inicio")
@@ -127,6 +185,11 @@ class CalendarioActividad(models.Model):
         blank=True,
         null=True,
         verbose_name="Cliente manual"
+    )
+    # El cliente es solo referencia: no se le invita. Solo si quien crea el
+    # evento marca «Enviar aviso al cliente» se le manda un correo (Celery).
+    aviso_cliente_enviado_en = models.DateTimeField(
+        null=True, blank=True, verbose_name="Aviso al cliente enviado"
     )
 
     proyecto = models.ForeignKey(
