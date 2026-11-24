@@ -182,3 +182,22 @@ test('la hora se elige de una lista y el fin conserva la duración', async ({ pa
     await expect(page.locator('#fecha_fin')).toHaveValue(/T16:00$/);
     await expect(page.locator('#resumen')).toContainText('10:30 – 16:00');
 });
+
+test('un clic en la grilla propone 1 hora y sin cliente queda como «Actividad interna»', async ({ page }) => {
+    await abrirCalendario(page, USUARIOS.agenda);
+    const columna = page.locator('#fullcalendar .fc-timegrid-col[data-date]').last();
+    const fila = page.locator('#fullcalendar .fc-timegrid-slot-lane[data-time="17:00:00"]');
+    const col = await columna.boundingBox();
+    const f = await fila.boundingBox();
+    await page.mouse.click(col.x + col.width / 2, f.y + 3);
+    await expect(page.locator('#popRapido')).toBeVisible();
+    await expect(page.locator('#rapido_hi')).toHaveValue('17:00');
+    await expect(page.locator('#rapido_hf')).toHaveValue('18:00');
+
+    const titulo = `Clic E2E ${Date.now()}`;
+    await page.locator('#rapido_titulo').fill(titulo);
+    await page.locator('#rapido_titulo').press('Enter');
+    await expect(page.locator('#popRapido')).toBeHidden();
+    await evento(page, titulo).click();
+    await expect(page.locator('#popDetalle')).toContainText('Actividad interna');
+});

@@ -376,6 +376,7 @@
     // ---------- FullCalendar ----------
     const vistaGuardada = ls.get('vc_vista', null);
     const enCelular = window.matchMedia('(max-width: 700px)').matches;
+    let ajustandoSeleccion = false;
     const calendar = new FullCalendar.Calendar($('fullcalendar'), {
         locale: 'es',
         firstDay: 1,
@@ -408,7 +409,19 @@
         eventContent: contenidoEvento,
         eventClassNames: clasesEvento,
         eventDidMount: alMontarEvento,
-        select: (info) => abrirRapido(info),
+        select: (info) => {
+            // Un clic (un solo tramo de 15 min) propone 1 hora, como Google;
+            // arrastrar respeta lo que se marcó.
+            if (ajustandoSeleccion) return;
+            if (!info.allDay && info.end - info.start <= 15 * 60000) {
+                const fin = sumarMin(info.start, 60);
+                ajustandoSeleccion = true;
+                calendar.select({ start: info.start, end: fin, allDay: false });
+                ajustandoSeleccion = false;
+                info = Object.assign({}, info, { end: fin, endStr: fin.toISOString() });
+            }
+            abrirRapido(info);
+        },
         eventClick: (info) => { info.jsEvent.preventDefault(); abrirDetalle(info.event, info.el); },
         eventDrop: moverEvento,
         eventResize: moverEvento,
@@ -735,7 +748,7 @@
         cuerpo.innerHTML = cabecera(d.titulo, `${cuandoTexto(new Date(d.fecha_inicio), new Date(d.fecha_fin), d.todo_el_dia)} · ${d.calendario_nombre || 'Otras actividades'}`)
             + linea('👥', personas)
             + linea('🏷', `${esc(nombreDe(D.clases, d.clase))} · prioridad ${esc(nombreDe(D.prioridades, d.prioridad).toLowerCase())} · <span class="vc-badge">${esc(nombreDe(D.estados, d.estado))}</span>`)
-            + linea('🏢', d.cliente_nombre ? `${esc(d.cliente_nombre)}${avisoTxt}` : 'Sin cliente · actividad interna')
+            + linea('🏢', d.cliente_id ? `${esc(d.cliente_nombre)}${avisoTxt}` : esc(d.cliente_nombre || 'Actividad interna'))
             + linea('📁', esc(d.proyecto_nombre))
             + linea('📍', (d.ubicacion || enlace) ? `${esc(d.ubicacion || '')}${enlace}` : '')
             + linea('📝', esc(d.descripcion))
@@ -1018,7 +1031,7 @@
         pintarParticipantes();
 
         const cliente = d && d.cliente_id ? (D.clientes.find((c) => c.id === d.cliente_id) || { id: d.cliente_id, razon_social: d.cliente_nombre || 'Cliente', correo_contacto: d.cliente_tiene_correo ? '…' : '' }) : null;
-        F.clienteManual.value = d ? (d.cliente_nombre_manual || '') : '';
+        F.clienteManual.value = d && d.cliente_nombre_manual !== 'Actividad interna' ? (d.cliente_nombre_manual || '') : '';
         F.avisar.checked = false;
         ponerCliente(cliente);
 
@@ -1099,7 +1112,7 @@
         $('participantes_ayuda').textContent = cal.tipo === 'PERSONAL'
             ? 'En un calendario personal solo lo verás tú, aunque agregues personas.'
             : (form.participantes.length ? 'Con participantes, el evento solo les aparece a ellos (y a ti).' : `Sin participantes lo verán todos los que ven «${cal.nombre}».`);
-        const clienteTxt = form.cliente ? esc(form.cliente.razon_social) : (F.clienteManual.value.trim() ? esc(F.clienteManual.value.trim()) : 'Ninguno · <b>actividad interna</b>');
+        const clienteTxt = form.cliente ? esc(form.cliente.razon_social) : (F.clienteManual.value.trim() ? esc(F.clienteManual.value.trim()) : '<b>Actividad interna</b> · sin cliente');
         const alCliente = F.avisar.checked ? `<span>Se le enviará un aviso a ${esc(form.cliente.correo_contacto)}</span>` : '<span class="vc-ok">No se le envía nada</span>';
         const recTxt = $('recordatorio').selectedOptions[0] ? $('recordatorio').selectedOptions[0].textContent : 'Sin recordatorio';
         const estado = F.estado.hidden ? 'Programada' : nombreDe(D.estados, F.estado.value);

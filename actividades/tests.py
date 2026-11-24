@@ -81,7 +81,10 @@ class GuardarActividadTest(TestCase):
         self.assertEqual(resp.status_code, 200, resp.content)
         actividad = CalendarioActividad.objects.get()
         self.assertIsNone(actividad.cliente)
-        self.assertEqual(actividad.cliente_nombre_manual, '')
+        # Queda registrada como «Actividad interna» y así se muestra (2026-11-24).
+        self.assertEqual(actividad.cliente_nombre_manual, 'Actividad interna')
+        detalle = self.client.get(reverse('actividades:calendario_actividad_detalle_json', args=[actividad.pk])).json()
+        self.assertEqual(detalle['cliente_nombre'], 'Actividad interna')
 
     def test_valida_fechas_y_opciones_sin_guardar_a_medias(self):
         self.client.force_login(self.user)
