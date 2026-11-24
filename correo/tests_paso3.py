@@ -138,6 +138,15 @@ class AdministrarTests(BasePlataforma):
                          [EventoCuenta.DIO_ACCESO, EventoCuenta.CREO])
         self.assertEqual(cuenta.bitacora.last().usuario, self.admin)
 
+    def test_crear_cuenta_con_tipo_y_personas(self):
+        self.entrar(self.admin)
+        self.post('admin_cuenta_crear', direccion='ana@grupovicaf.com', nombre='Ana', tipo='personal',
+                  usuarios=[self.gestor.pk, self.portal.pk], rol='gestiona')
+        cuenta = CuentaCorreo.objects.get(direccion='ana@grupovicaf.com')
+        self.assertTrue(cuenta.personal)
+        self.assertEqual(AccesoCuenta.objects.get(cuenta=cuenta, usuario=self.gestor).rol, AccesoCuenta.GESTIONA)
+        self.assertFalse(AccesoCuenta.objects.filter(cuenta=cuenta, usuario=self.portal).exists())  # portal nunca
+
     def test_solo_el_dominio_de_la_empresa_y_sin_duplicados(self):
         self.entrar(self.admin)
         self.post('admin_cuenta_crear', direccion='ventas@gmail.com', nombre='X')
