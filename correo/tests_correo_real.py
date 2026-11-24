@@ -17,6 +17,7 @@ from django.test import override_settings
 from .envio import ServicioEnvioSMTP, construir_mime
 from .mailpit import traer
 from .mensajeria import agregar_adjunto, crear_mensaje
+from clientes.models import Cliente
 from .models import CuentaCorreo, Mensaje
 from .recepcion import CorreoRechazado, RecepcionEML
 from .servicios import ServicioEnvioSimulado, servicio_envio
@@ -178,6 +179,10 @@ class RecepcionTests(BasePlataforma):
                           asunto='Cotización', estado=Mensaje.ENVIADO)
             [p] = self.recibir(eml(de='Pedro <p@pyme.example>', message_id='<p1@x>', texto='Hola {{EMAIL}}'))
             self.assertEqual(p.carpeta.tipo, 'entrada')  # ya le escribimos
+            Cliente.objects.create(razon_social='Pyme SAC', ruc='20123456789', correo_contacto='c@pyme2.example',
+                                   celular_contacto='999', activo=True)
+            [c] = self.recibir(eml(de='Contacto <c@pyme2.example>', message_id='<c1@x>', texto='Hola {{EMAIL}}'))
+            self.assertEqual(c.carpeta.tipo, 'entrada')  # cliente activo del LIMS
 
     def test_marcado_como_spam_va_a_no_deseado(self):
         [m] = self.recibir(eml(cabeceras={'X-Spam-Flag': 'YES'}))

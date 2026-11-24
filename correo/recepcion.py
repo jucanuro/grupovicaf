@@ -109,7 +109,7 @@ def _bloqueado(remitente):
 
 
 def _de_confianza(remitente):
-    """Lista de confianza del admin, o alguien a quien ya le escribimos desde una cuenta VICAF."""
+    """Lista de confianza del admin, cliente activo del LIMS o alguien a quien ya le escribimos."""
     correo = remitente['correo']
     dominio = correo.rpartition('@')[2]
     for regla in ReglaPermitido.objects.filter(activa=True):
@@ -117,6 +117,9 @@ def _de_confianza(remitente):
             return True
         if regla.tipo == ReglaPermitido.DOMINIO and (dominio == regla.valor or dominio.endswith('.' + regla.valor)):
             return True
+    from clientes.models import Cliente  # correo de contacto de un cliente activo del LIMS (dirección exacta)
+    if Cliente.objects.filter(activo=True, correo_contacto__iexact=correo).exists():
+        return True
     previos = Mensaje.objects.filter(carpeta__tipo=Carpeta.ENVIADOS, para__icontains=correo).values_list('para', flat=True)[:20]
     return any((p.get('correo') or '').lower() == correo for para in previos for p in para if isinstance(p, dict))
 
