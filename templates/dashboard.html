@@ -55,12 +55,7 @@
             <p class="text-[13px] text-slate-600">Clientes registrados</p>
             <div class="flex items-end justify-between gap-2">
                 <p class="text-3xl font-bold leading-none">{{ clientes.total }}</p>
-                <svg width="120" height="36" viewBox="0 0 120 36" role="img"
-                     aria-label="Clientes nuevos por mes, últimos 12 meses">
-                    <polyline points="{{ clientes.sparkline.puntos }}" fill="none" stroke="#2a78d6" stroke-width="2"
-                              stroke-linejoin="round" stroke-linecap="round"></polyline>
-                    <circle cx="{{ clientes.sparkline.x|unlocalize }}" cy="{{ clientes.sparkline.y|unlocalize }}" r="3" fill="#2a78d6"></circle>
-                </svg>
+                {% include 'dashboard_sparkline.html' with s=clientes.sparkline etiqueta='Clientes nuevos por mes, últimos 12 meses' %}
             </div>
             {% if clientes.nuevos_periodo %}
                 <p class="text-xs font-semibold text-[#006300]">+{{ clientes.nuevos_periodo }} nuevo{{ clientes.nuevos_periodo|pluralize }} en el periodo</p>
@@ -71,7 +66,10 @@
 
         <article class="dash-card p-4 flex flex-col gap-1.5" data-kpi="cotizaciones">
             <p class="text-[13px] text-slate-600">Cotizaciones emitidas</p>
-            <p class="text-3xl font-bold leading-none">{{ comercial.emitidas }}</p>
+            <div class="flex items-end justify-between gap-2">
+                <p class="text-3xl font-bold leading-none">{{ comercial.emitidas }}</p>
+                {% if comercial.sparkline %}{% include 'dashboard_sparkline.html' with s=comercial.sparkline etiqueta='Cotizaciones emitidas por mes del periodo' %}{% endif %}
+            </div>
             <p class="text-xs font-semibold
                       {% if comercial.tendencia == 'sube' %}text-[#006300]{% elif comercial.tendencia == 'baja' %}text-[#b42323]{% else %}text-slate-500{% endif %}"
                data-tendencia="{{ comercial.tendencia }}">
@@ -88,7 +86,10 @@
                 <p class="text-3xl font-bold leading-none text-slate-400">Sin datos</p>
                 <p class="text-xs text-slate-500">Ninguna cotización aceptada ni rechazada en el periodo</p>
             {% else %}
-                <p class="text-3xl font-bold leading-none">{{ comercial.tasa_aceptacion }} %</p>
+                <div class="flex items-end justify-between gap-2">
+                    <p class="text-3xl font-bold leading-none whitespace-nowrap">{{ comercial.tasa_aceptacion }}&nbsp;%</p>
+                    {% if comercial.sparkline_tasa %}{% include 'dashboard_sparkline.html' with s=comercial.sparkline_tasa etiqueta='Tasa de aceptación de los meses del periodo con cotizaciones decididas' %}{% endif %}
+                </div>
                 <p class="text-xs text-slate-500">{{ comercial.aceptadas }} aceptada{{ comercial.aceptadas|pluralize }} de {{ comercial.decididas }} decidida{{ comercial.decididas|pluralize }}</p>
             {% endif %}
         </article>
@@ -107,7 +108,10 @@
 
         <article class="dash-card p-4 flex flex-col gap-1.5" data-kpi="informes">
             <p class="text-[13px] text-slate-600">Informes por enviar</p>
-            <p class="text-3xl font-bold leading-none">{{ informes.por_enviar }}</p>
+            <div class="flex items-end justify-between gap-2">
+                <p class="text-3xl font-bold leading-none">{{ informes.por_enviar }}</p>
+                {% if informes.sparkline %}{% include 'dashboard_sparkline.html' with s=informes.sparkline etiqueta='Informes emitidos por mes del periodo' %}{% endif %}
+            </div>
             <p class="text-xs text-slate-500">{{ informes.emitidos_periodo }} emitido{{ informes.emitidos_periodo|pluralize }} en el periodo</p>
         </article>
     </section>
@@ -123,9 +127,9 @@
             </div>
             {% if comercial.tiene_datos %}
                 <ul class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600" aria-label="Leyenda">
-                    <li class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-[3px]" style="background:#2a78d6"></span>Aceptadas</li>
-                    <li class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-[3px]" style="background:#1baf7a"></span>En gestión (pendiente o enviada)</li>
-                    <li class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-[3px]" style="background:#eb6834"></span>Rechazadas o anuladas</li>
+                    <li class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-[3px]" style="background:var(--dash-s1)"></span>Aceptadas</li>
+                    <li class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-[3px]" style="background:var(--dash-s3)"></span>En gestión (pendiente o enviada)</li>
+                    <li class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-[3px]" style="background:var(--dash-s2)"></span>Rechazadas o anuladas</li>
                 </ul>
                 <div class="relative h-60">
                     <canvas id="grafico-cotizaciones-mes" role="img"
@@ -335,7 +339,11 @@
 {{ graficos|json_script:"dashboard-datos" }}
 
 <style>
+    /* Series del tema común de gráficos (static/js/graficos_tema.js). */
+    :root { --dash-s1: #2a78d6; --dash-s2: #eb6834; --dash-s3: #1baf7a; }
+    html.dark { --dash-s1: #3987e5; --dash-s2: #d95926; --dash-s3: #199e70; }
     .dash-card { background: #ffffff; border: 1px solid #e6e5e0; border-radius: 12px; }
+    .dash-spark { color: var(--dash-s1); flex: 0 1 120px; min-width: 0; height: auto; overflow: visible; }
     .dash-vacio { font-size: 13px; color: #64748b; padding: 28px 0; text-align: center; }
     .dash-tabla summary { cursor: pointer; font-size: 12px; color: #1c5cab; width: fit-content; }
     .dash-tabla summary:hover { text-decoration: underline; }
@@ -348,5 +356,6 @@
 
 {% block extra_scripts %}
 <script src="{% static 'vendor/chartjs/chart.umd.js' %}" defer></script>
+<script src="{% static 'js/graficos_tema.js' %}" defer></script>
 <script src="{% static 'js/dashboard.js' %}" defer></script>
 {% endblock %}

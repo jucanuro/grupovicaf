@@ -377,23 +377,3 @@ html.dark .fc .fc-more-link { background: rgba(59, 130, 246, 0.16); color: #93c5
 html.dark .fc-theme-standard td, html.dark .fc-theme-standard th, html.dark .fc .fc-theme-standard th { border-color: var(--tema-borde); }
 html.dark .actividad-sticky-footer { background: var(--tema-superficie); }
 
-/* Gantt (gantt.html). */
-html.dark { --gantt-line: #27354b; }
-html.dark :is(.gantt-main-card, .gantt-header-dates, .tabs-container, .gantt-label) { background: var(--tema-superficie); }
-html.dark .toolbar-container,
-html.dark .gantt-row,
-html.dark .gantt-row:hover { background: var(--tema-elevada); }
-html.dark .vpro-select { background: var(--tema-elevada); border-color: #334359; color: var(--tema-texto); }
-html.dark .header-day { color: var(--tema-texto-3); border-right-color: rgba(39, 53, 75, 0.7); }
-html.dark .header-day span, html.dark .label-days, html.dark .label-subtext { color: #7f8ea5; }
-html.dark .label-text, html.dark .tooltip-title, html.dark .tt-value { color: var(--tema-texto); }
-html.dark .label-user { color: #a5b4fc; background: rgba(99, 102, 241, 0.16); border-color: rgba(99, 102, 241, 0.35); }
-html.dark .label-chip, html.dark .tt-badge.ensayo { color: #fcd34d; background: rgba(245, 158, 11, 0.16); border-color: rgba(245, 158, 11, 0.35); }
-html.dark .tt-badge.vencido { color: #fca5a5; background: rgba(239, 68, 68, 0.16); }
-html.dark .tt-badge, html.dark .tooltip-close { background: #1b273b; color: var(--tema-texto-3); }
-html.dark .gantt-bars-area { background-image: linear-gradient(to right, rgba(39, 53, 75, 0.7) 1px, transparent 1px); }
-html.dark .vpro-tooltip { background: var(--tema-superficie); border-color: var(--tema-borde); }
-html.dark .tooltip-header { border-bottom-color: var(--tema-borde); }
-html.dark .tooltip-body div { color: var(--tema-texto-2); }
-html.dark .tab-button { color: var(--tema-texto-3); }
-html.dark .tab-button:hover { background: var(--tema-elevada); color: var(--tema-texto); }

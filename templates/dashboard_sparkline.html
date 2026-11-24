@@ -1,0 +1,6 @@
+{% load l10n %}{# Minigráfico de una cifra del dashboard (REQ-LIMS-86). Recibe `s` (core.dashboard._sparkline) y `etiqueta`. #}
+<svg class="dash-spark" width="120" height="36" viewBox="0 0 120 36" role="img" aria-label="{{ etiqueta }}">
+    <polyline points="{{ s.puntos }}" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linejoin="round" stroke-linecap="round"></polyline>
+    <circle cx="{{ s.x|unlocalize }}" cy="{{ s.y|unlocalize }}" r="3" fill="currentColor"></circle>
+</svg>
