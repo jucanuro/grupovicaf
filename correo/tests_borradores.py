@@ -1,41 +1,29 @@
-"""Borradores: cada quien ve y abre los suyos; quien administra la cuenta ve todos."""
-from django.contrib.auth.models import Permission  # noqa: F401  (lo usa BasePlataforma)
-
-from .models import Mensaje
+"""Borradores de una cuenta compartida: los ve y edita quien gestiona la cuenta."""
 from .mensajeria import crear_mensaje, nuevo_message_id
+from .models import Carpeta, Mensaje
 from .tests_plataforma import BasePlataforma
 
 
-class BorradoresAjenosTests(BasePlataforma):
+class BorradoresCompartidosTests(BasePlataforma):
     def setUp(self):
         super().setUp()
         self.de_jefe = crear_mensaje(
             self.informes, 'borradores', de=self.informes.direccion, de_nombre='Informes', para=[],
             asunto='Borrador del jefe', html='<p>x</p>', estado=Mensaje.BORRADOR, creado_por=self.jefe,
             message_id=nuevo_message_id(self.informes), leido=True)
-        self.de_gina = crear_mensaje(
-            self.informes, 'borradores', de=self.informes.direccion, de_nombre='Informes', para=[],
-            asunto='Borrador de Gina', html='<p>x</p>', estado=Mensaje.BORRADOR, creado_por=self.gestor,
-            message_id=nuevo_message_id(self.informes), leido=True)
 
-    def _lista(self, usuario):
-        from .models import Carpeta
-        self.entrar(usuario)
-        carpeta = Carpeta.objects.get(cuenta=self.informes, tipo='borradores')
-        return self.get('carpeta', 'informes', carpeta.pk)
-
-    def test_quien_gestiona_ve_solo_sus_borradores(self):
-        r = self._lista(self.gestor)
-        self.assertContains(r, 'Borrador de Gina')
-        self.assertNotContains(r, 'Borrador del jefe')
-
-    def test_quien_administra_ve_todos(self):
-        r = self._lista(self.jefe)
-        self.assertContains(r, 'Borrador de Gina')
-        self.assertContains(r, 'Borrador del jefe')
-
-    def test_abrir_el_borrador_de_otra_persona_explica_el_motivo(self):
+    def test_quien_gestiona_ve_y_abre_los_borradores_de_la_cuenta(self):
         self.entrar(self.gestor)
+        carpeta = Carpeta.objects.get(cuenta=self.informes, tipo='borradores')
+        self.assertContains(self.get('carpeta', 'informes', carpeta.pk), 'Borrador del jefe')
+        self.assertEqual(self.get('borrador', self.de_jefe.pk).status_code, 200)
+
+    def test_quien_solo_lee_no_puede_abrirlos_y_se_le_explica(self):
+        self.entrar(self.lector)
         r = self.get('borrador', self.de_jefe.pk)
         self.assertEqual(r.status_code, 403)
-        self.assertContains(r, 'Este borrador es de otra persona', status_code=403)
+        self.assertContains(r, 'Tu rol en esta cuenta no permite esta acción', status_code=403)
+
+    def test_quien_no_tiene_la_cuenta_no_ve_ni_que_existe(self):
+        self.entrar(self.ajeno)
+        self.assertEqual(self.get('borrador', self.de_jefe.pk).status_code, 404)

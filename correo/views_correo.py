@@ -28,7 +28,7 @@ from trabajadores.permissions import trabajador_tiene_permiso
 from . import busqueda
 from .almacen import es_r2, url_prefirmada
 from .cuentas import (
-    ADMINISTRA, GESTIONA, LECTURA, cuentas_de, exigir_cuenta, exigir_hilo, exigir_mensaje, mensajes_visibles, permite, roles_de,
+    GESTIONA, LECTURA, cuentas_de, exigir_cuenta, exigir_hilo, exigir_mensaje, mensajes_visibles, permite, roles_de,
 )
 from .enlaces import adjunto_de_token, consumir_enlace, destino_seguro, url_adjunto, url_lab
 from .mensajeria import carpeta as carpeta_de, mover, registrar_evento
@@ -96,9 +96,6 @@ def contexto_bandeja(request, *, titulo, filtro, url_base, cuenta=None, carpeta=
     """Contexto de la lista (y del hilo abierto con ?h=). Lo usa también Redactar,
     que muestra la lista a la izquierda y el correo nuevo en el panel de lectura."""
     hilo_id = request.GET.get('h') if abrir else None
-    if carpeta is not None and carpeta.tipo == 'borradores' and not permite(
-            roles_de(request.user).get(carpeta.cuenta_id), ADMINISTRA):
-        filtro = {**filtro, 'creado_por': request.user}  # cada quien ve solo sus borradores
     lectura = None
     if hilo_id and hilo_id.isdigit():
         lectura = abrir_hilo(request, exigir_hilo(request.user, int(hilo_id)), carpeta)
