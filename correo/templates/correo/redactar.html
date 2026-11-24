@@ -4,7 +4,7 @@
 {% block head_extra %}
 <link rel="stylesheet" href="{% static 'vendor/quill-2.0.3/quill.snow.css' %}">
 <script src="{% static 'vendor/quill-2.0.3/quill.js' %}" defer></script>
-<script src="{% static 'correo/js/redactar.js' %}" defer></script>
+<script src="{% static 'correo/js/redactar.js' %}?v=firma2" defer></script>
 {% endblock %}
 {% block clase_app %}app--leyendo app--redactando{% if completo %} app--completo{% endif %}{% endblock %}
 {% block contenido %}
@@ -29,7 +29,7 @@
             <label class="solo-lector" for="r-firma">Insertar firma</label>
             <select id="r-firma" class="redactor__firma" data-insertar-firma>
                 <option value="">Firma…</option>
-                {% for f in firmas %}<option value="{{ f.pk }}">{{ f.nombre }}{% if f.cuenta %} ({{ f.cuenta.nombre }}){% endif %}</option>{% endfor %}
+                {% for f in firmas %}<option value="{{ f.pk }}"{% if f.es_bloque %} data-rica="1"{% endif %}>{{ f.nombre }}{% if f.cuenta %} ({{ f.cuenta.nombre }}){% endif %}</option>{% endfor %}
             </select>
             {% endif %}
             <span class="comandos__fin">
@@ -103,6 +103,14 @@
             <textarea id="cuerpo-html" name="cuerpo_html" class="editor__respaldo" rows="14">{{ cuerpo_editor }}</textarea>
         </div>
 
+        <section class="firma-bloque" data-firma-bloque data-url-firma="{% url 'borrador_firma' b.pk %}"{% if not tiene_firma_bloque %} hidden{% endif %} aria-label="Firma del mensaje">
+            <div class="firma-bloque__barra">
+                <span class="etiqueta">Firma</span>
+                <button class="comando comando--chico" type="button" data-quitar-firma-bloque>Quitar firma</button>
+            </div>
+            <iframe class="firma-bloque__marco" title="Firma del mensaje" src="{% url 'borrador_firma_vista' b.pk %}" data-firma-marco></iframe>
+        </section>
+
         {% if original %}
         <details class="cita">
             <summary>{% if modo == 'reenviar' %}Mensaje reenviado{% else %}Mensaje original{% endif %} de {{ original.de_nombre|default:original.de }} · se añadirá al enviar</summary>
@@ -115,7 +123,7 @@
     </section>
 </div>
 
-    {% for f in firmas %}<textarea hidden data-firma-html="{{ f.pk }}">{{ f.html }}</textarea>{% endfor %}
+    {% for f in firmas %}{% if not f.es_bloque %}<textarea hidden data-firma-html="{{ f.pk }}">{{ f.html }}</textarea>{% endif %}{% endfor %}
 
     {% if puede_cotizar %}
     <dialog class="dialogo" data-dialogo-cotizaciones aria-labelledby="t-cot">

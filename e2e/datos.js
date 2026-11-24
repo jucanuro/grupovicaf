@@ -14,6 +14,8 @@ module.exports = {
         jefe: 'e2e.jefe',
         comercial: 'e2e.comercial',
         agenda: 'e2e.agenda',
+        gantt: 'e2e.gantt',
+        tecnicoGanttC: 'e2e.tecnico.c',   // Daniela Torres E2E
     },
 
     // Panel de proyectos con avance por muestra (HU-LIMS-19).

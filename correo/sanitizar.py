@@ -15,7 +15,7 @@ import nh3
 ETIQUETAS = set(nh3.ALLOWED_TAGS) | {'font', 'u', 's', 'center'}
 ATRIBUTOS = {
     '*': {'style', 'align', 'valign', 'width', 'height', 'bgcolor', 'dir', 'title',
-          'colspan', 'rowspan', 'border', 'cellpadding', 'cellspacing', 'lang'},
+          'colspan', 'rowspan', 'border', 'cellpadding', 'cellspacing', 'lang', 'data-vicaf-firma'},
     'a': {'href', 'title', 'name'},
     'img': {'src', 'alt', 'width', 'height', 'title'},
     'font': {'color', 'face', 'size'},
@@ -63,12 +63,26 @@ def sanitizar_html(contenido):
 _IMG_REMOTA = re.compile(r'(<img\b[^>]*?\s)src="(https?://[^"]*)"', re.IGNORECASE)
 
 
+def origenes_propios():
+    """Sitios de VICAF cuyas imágenes (logo e íconos de las firmas) no son
+    rastreadores: no se bloquean ni piden «Mostrar imágenes»."""
+    from django.conf import settings
+    origenes = {settings.SITE_URL, getattr(settings, 'LAB_BASE_URL', ''), getattr(settings, 'CORREO_BASE_URL', '')}
+    return tuple(sorted(o.rstrip('/') + '/' for o in origenes if o))
+
+
+def _es_propia(url):
+    return url.startswith(origenes_propios())
+
+
 def bloquear_imagenes_remotas(contenido):
     """Cambia src remoto por data-src-bloqueada. Devuelve (html, cuántas)."""
     cuenta = 0
 
     def _cambiar(m):
         nonlocal cuenta
+        if _es_propia(m.group(2)):
+            return m.group(0)
         cuenta += 1
         return f'{m.group(1)}data-src-bloqueada="{m.group(2)}" title="Imagen remota bloqueada"'
 
@@ -76,7 +90,7 @@ def bloquear_imagenes_remotas(contenido):
 
 
 def tiene_imagenes_remotas(contenido):
-    return bool(_IMG_REMOTA.search(contenido or ''))
+    return any(not _es_propia(m.group(2)) for m in _IMG_REMOTA.finditer(contenido or ''))
 
 
 _CID = re.compile(r'src="cid:([^"]+)"', re.IGNORECASE)

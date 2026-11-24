@@ -24,6 +24,26 @@
                 <input id="n-nombre" name="nombre" maxlength="120" placeholder="Ventas">
                 <small class="nota-campo">Es el nombre que verán los clientes en «De».</small>
             </div>
+            <div class="campo">
+                <label for="n-tipo">Tipo</label>
+                <select id="n-tipo" name="tipo">
+                    <option value="compartida">Compartida (informes@, quejas@…)</option>
+                    <option value="personal">Personal (juan@…)</option>
+                </select>
+            </div>
+            <div class="campo">
+                <label for="n-usuarios">¿Quién tendrá esta cuenta?</label>
+                <select id="n-usuarios" name="usuarios" multiple size="6">
+                    {% for u in candidatos %}<option value="{{ u.pk }}">{{ u.trabajadorprofile.nombre_completo|default:u.username }} ({{ u.username }})</option>{% endfor %}
+                </select>
+                <small class="nota-campo">Personal: elige a su dueño. Compartida: elige a todos los que la atenderán (Ctrl+clic para varios).</small>
+            </div>
+            <div class="campo">
+                <label for="n-rol">Rol que recibirán</label>
+                <select id="n-rol" name="rol">
+                    {% for valor, texto in roles %}<option value="{{ valor }}"{% if valor == 'gestiona' %} selected{% endif %}>{{ texto }}</option>{% endfor %}
+                </select>
+            </div>
             <label class="casilla-texto"><input type="checkbox" name="darme_acceso" value="1" checked> Darme acceso como administrador</label>
             <button class="boton boton--primario" type="submit">Crear cuenta</button>
         </form>

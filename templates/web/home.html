@@ -42,9 +42,11 @@
 {% endcomment %}
 <div id="home" class="relative min-h-screen bg-blue-950 text-white">
 
-    <div class="absolute top-24 right-4 z-30 hidden sm:block">
+    {# v8 (REQ-WEB-74): también visible en móvil, más compacto; en móvil el panel de texto va abajo, así no se tapan. #}
+    <div class="absolute top-24 right-4 z-30">
         <a href="https://laboratorio.grupovicaf.com/" target="_blank" rel="noopener noreferrer"
-           class="group inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-4 py-2.5 text-sm font-semibold text-white shadow-xl backdrop-blur-md transition-all duration-300 hover:border-blue-400 hover:bg-blue-700 md:text-base">
+           data-sistema-interno
+           class="group inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs font-semibold text-white shadow-xl backdrop-blur-md transition-all duration-300 hover:border-blue-400 hover:bg-blue-700 sm:px-4 sm:py-2.5 sm:text-sm md:text-base">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400 transition-colors duration-300 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
             </svg>
@@ -54,11 +56,18 @@
 
     <div class="relative w-full h-screen">
 
-        <div class="absolute rounded-lg px-4 lg:px-0 top-20 lg:left-12 z-20 w-full md:w-1/2 lg:w-1/3 pt-10 pb-6 px-4 sm:px-6 lg:px-8 flex flex-col items-start text-left border border-white/10 bg-blue-950/85 backdrop-blur-sm">
+        {% comment %}
+          v8 (REQ-WEB-75): en móvil el panel ya no es una caja opaca arriba que
+          tapa media foto; va pegado abajo sobre un degradado que deja ver la
+          imagen. Desde md vuelve a la caja de siempre (top-20, 1/2 o 1/3).
+          v9 (REQ-WEB-78): en móvil, texto y botones más pequeños y los dos
+          botones en una fila, a la izquierda del botón de WhatsApp.
+        {% endcomment %}
+        <div data-hero-panel class="absolute inset-x-0 bottom-0 z-20 flex w-full flex-col items-start bg-gradient-to-t from-blue-950/90 via-blue-950/45 to-transparent px-4 pb-6 pt-20 text-left sm:px-6 md:inset-x-auto md:bottom-auto md:top-20 md:w-1/2 md:rounded-lg md:border md:border-white/10 md:bg-none md:bg-blue-950/85 md:pt-10 md:pb-6 md:backdrop-blur-sm lg:left-12 lg:w-1/3 lg:px-8">
             <a {% if certificacion_acreditacion %}{% include 'web/partials/enlace_certificacion.html' with certificacion=certificacion_acreditacion %}{% else %}href="{% url 'web_acreditacion:acreditacion' %}"{% endif %}
-                    class="group inline-flex items-center gap-2.5 rounded-full border border-white/25 bg-slate-900/70 py-1.5 pl-1.5 pr-4 text-[11px] font-black uppercase tracking-[0.28em] text-white transition-colors hover:bg-slate-800/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
+                    class="group inline-flex items-center gap-2 rounded-full border border-white/25 bg-slate-900/70 py-1 pl-1 pr-3 text-[9px] font-black uppercase tracking-[0.2em] sm:gap-2.5 sm:py-1.5 sm:pl-1.5 sm:pr-4 sm:text-[11px] sm:tracking-[0.28em] text-white transition-colors hover:bg-slate-800/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
                 <img src="{% static 'web/img/LogoInacal1.webp' %}" alt=""
-                     class="h-6 w-6 rounded-full bg-white object-contain p-0.5"
+                     class="h-5 w-5 rounded-full bg-white object-contain p-0.5 sm:h-6 sm:w-6"
                      width="400" height="400" decoding="async">
                 {# Dos renglones fijos en vez de dejar que el texto quiebre solo: el hero ocupa 1/3 en escritorio y "LE-230" se partía por el guion. #}
                 <span class="flex flex-col leading-tight">
@@ -67,24 +76,24 @@
                 </span>
             </a>
 
-            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white mb-3 mt-5 leading-[1.05]" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.6);">
+            <h1 class="text-xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white mb-1 mt-3 sm:mb-3 sm:mt-5 leading-[1.1] sm:leading-[1.05]" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.6);">
                 Laboratorio para la construcción en Cajamarca
             </h1>
-            <p class="text-lg mt-6 sm:text-xl lg:text-2xl text-gray-200 mb-6" style="text-shadow: 1px 1px 4px rgba(0,0,0,0.6);">
+            <p class="text-xs mt-1 mb-4 sm:mt-6 sm:mb-6 sm:text-xl lg:text-2xl text-gray-200" style="text-shadow: 1px 1px 4px rgba(0,0,0,0.6);">
                 Suelos · Agregados · Concreto · Asfalto · Rocas · Cal · Carbón
             </p>
 
-            <div class="flex flex-col sm:flex-row justify-center items-center gap-3 mt-6 w-full">
-                <a href="#servicios" class="btn-primary-inverse w-full sm:w-auto">
+            <div class="flex flex-row items-center gap-2 w-full pr-16 sm:justify-center sm:gap-3 sm:mt-6 sm:pr-0">
+                <a href="#servicios" class="btn-primary-inverse flex-1 max-sm:!h-9 max-sm:!gap-1.5 max-sm:!px-3 max-sm:!text-xs sm:flex-none">
                     Ver Servicios
-                    <svg class="h-4 w-4 fill-current transition-transform duration-300 ease-in-out group-hover:translate-x-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" aria-hidden="true">
+                    <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-current transition-transform duration-300 ease-in-out group-hover:translate-x-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" aria-hidden="true">
                         <path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM144 256a144 144 0 1 1 288 0 144 144 0 1 1 -288 0zm144-64c0 35.3-28.7 64-64 64c-7.1 0-13.9-1.2-20.3-3.3c-5.5-1.8-11.9 1.6-11.7 7.4c.3 6.9 1.3 13.8 3.2 20.7c13.7 51.2 66.4 81.6 117.6 67.9s81.6-66.4 67.9-117.6c-11.1-41.5-47.8-69.4-88.6-71.1c-5.8-.2-9.2 6.1-7.4 11.7c2.1 6.4 3.3 13.2 3.3 20.3z"/>
                     </svg>
                 </a>
                 <a href="{% static 'web/pdf/Brochure_2026c.pdf' %}" target="_blank" rel="noopener noreferrer"
-                   class="btn-secondary-inverse w-full sm:w-auto">
-                    Descargar Brochure
-                    <svg class="h-4 w-4 fill-current transition-transform duration-300 ease-in-out group-hover:translate-x-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" aria-hidden="true">
+                   class="btn-secondary-inverse flex-1 max-sm:!h-9 max-sm:!gap-1.5 max-sm:!px-3 max-sm:!text-xs sm:flex-none">
+                    <span class="sm:hidden">Brochure</span><span class="hidden sm:inline">Descargar Brochure</span>
+                    <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-current transition-transform duration-300 ease-in-out group-hover:translate-x-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" aria-hidden="true">
                         <path d="M288 32c0-17.7-14.3-32-32-32s-32 14.3-32 32v242.7l-73.4-73.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l128 128c12.5 12.5 32.8 12.5 45.3 0l128-128c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L288 274.7V32zM64 352c-35.3 0-64 28.7-64 64v32c0 35.3 28.7 64 64 64h384c35.3 0 64-28.7 64-64v-32c0-35.3-28.7-64-64-64H64zm368 56a24 24 0 1 1 0 48 24 24 0 1 1 0-48z"></path>
                     </svg>
                 </a>
@@ -252,7 +261,7 @@
   mismas cards horizontales de /acreditacion/, con borde y sombra claros
   sobre el azul, y "Ver todas" en la fila del título.
 {% endcomment %}
-<section class="reveal section-dark relative overflow-hidden py-20 text-white lg:py-28" aria-labelledby="acreditacion-titulo">
+<section id="acreditacion" class="reveal section-dark relative overflow-hidden scroll-mt-24 py-20 text-white lg:py-28" aria-labelledby="acreditacion-titulo">
     {% include 'web/partials/textura_tecnica.html' %}
 
     <div class="relative z-10 mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 xl:px-0">
@@ -454,10 +463,12 @@
 
 
 {% if certificaciones or certificacion_acreditacion %}{% include 'web/partials/modal_certificacion.html' %}{% endif %}
+{% if certificaciones %}{% include 'web/partials/modal_bienvenida.html' %}{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'web/js/inicio.js' %}" defer></script>
 {% if certificaciones or certificacion_acreditacion %}<script src="{% static 'web/js/certificaciones.js' %}" defer></script>{% endif %}
 <script src="{% static 'web/js/scroll-reveal.js' %}" defer></script>
+{% if certificaciones %}<script src="{% static 'web/js/bienvenida.js' %}" defer></script>{% endif %}
 {% endblock %}

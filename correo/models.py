@@ -21,6 +21,10 @@ class CuentaCorreo(models.Model):
     nombre = models.CharField('nombre visible', max_length=120)
     slug = models.SlugField(unique=True, help_text='Se usa en la URL: /c/<slug>/bandeja/')
     activa = models.BooleanField(default=True)
+    personal = models.BooleanField(
+        'buzón personal', default=False,
+        help_text='Buzón de una sola persona (juan@…). Se muestra arriba, aparte de los compartidos (informes@…).',
+    )
     firma_predeterminada = models.ForeignKey(
         'Firma', null=True, blank=True, on_delete=models.SET_NULL, related_name='+',
         verbose_name='firma predeterminada',
@@ -238,7 +242,21 @@ class Firma(models.Model):
     )
     para_nuevos = models.BooleanField('predeterminada para correos nuevos', default=False)
     para_respuestas = models.BooleanField('predeterminada para respuestas', default=False)
+    plantilla = models.JSONField(
+        null=True, blank=True,
+        help_text='Datos de la firma con plantilla (nombre, cargo, teléfono…); vacío = firma libre.',
+    )
+    logo = models.ImageField(
+        upload_to='correo/firmas/', blank=True,
+        help_text='Logo subido para la firma con plantilla (vacío = logo de Grupo VICAF). Es público: '
+                  'lo cargan los clientes de correo de quien recibe el mensaje.',
+    )
     actualizada_en = models.DateTimeField(auto_now=True)
+
+    @property
+    def es_bloque(self):
+        """Va como bloque fijo en Redactar: las de plantilla y cualquiera con tabla (el editor desarma las tablas)."""
+        return bool(self.plantilla) or '<table' in (self.html or '').lower()
 
     class Meta:
         ordering = ['nombre']
@@ -352,6 +370,31 @@ class ReglaBloqueo(models.Model):
         verbose_name = 'regla de bloqueo'
         verbose_name_plural = 'reglas de bloqueo'
         constraints = [models.UniqueConstraint(fields=['tipo', 'valor'], name='correo_regla_bloqueo_unica')]
+
+    def save(self, *args, **kwargs):
+        self.valor = (self.valor or '').strip().lower().lstrip('@')
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.get_tipo_display()}: {self.valor}'
+
+
+class ReglaPermitido(models.Model):
+    """Remitente o dominio de confianza: su correo entrante no se manda a «No deseado» por puntaje ni por encabezados (un bloqueo expreso sí gana)."""
+    CORREO, DOMINIO = 'correo', 'dominio'
+    TIPOS = [(CORREO, 'Dirección exacta'), (DOMINIO, 'Dominio completo')]
+
+    tipo = models.CharField(max_length=8, choices=TIPOS, default=DOMINIO)
+    valor = models.CharField(max_length=254, help_text='Dirección (x@y.com) o dominio (y.com), sin espacios.')
+    activa = models.BooleanField(default=True)
+    nota = models.CharField(max_length=200, blank=True)
+    creada_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['valor']
+        verbose_name = 'remitente de confianza'
+        verbose_name_plural = 'remitentes de confianza'
+        constraints = [models.UniqueConstraint(fields=['tipo', 'valor'], name='correo_regla_permitido_unica')]
 
     def save(self, *args, **kwargs):
         self.valor = (self.valor or '').strip().lower().lstrip('@')

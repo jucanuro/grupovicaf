@@ -12,6 +12,8 @@ from correo import views_admin as ad
 from correo import views_pwa as pwa
 from correo import webhooks as wh
 
+handler403 = 'correo.views_correo.sin_permiso'
+
 urlpatterns = [
     # App instalable (PWA)
     path('manifest.webmanifest', pwa.manifiesto, name='manifest'),
@@ -51,6 +53,8 @@ urlpatterns = [
     path('redactar/<int:pk>/guardar/', r.guardar, name='borrador_guardar'),
     path('redactar/<int:pk>/enviar/', r.enviar, name='borrador_enviar'),
     path('redactar/<int:pk>/descartar/', r.descartar, name='borrador_descartar'),
+    path('redactar/<int:pk>/firma/', r.firma_bloque_cambiar, name='borrador_firma'),
+    path('redactar/<int:pk>/firma/vista/', r.firma_bloque_vista, name='borrador_firma_vista'),
     path('redactar/<int:pk>/adjuntos/', r.adjuntos, name='borrador_adjuntos'),
     path('redactar/<int:pk>/adjuntos/<int:adjunto_id>/quitar/', r.adjunto_quitar, name='borrador_adjunto_quitar'),
     path('redactar/<int:pk>/cotizacion/', r.adjuntar_cotizacion_vista, name='borrador_cotizacion'),
@@ -60,6 +64,7 @@ urlpatterns = [
     # Firmas
     path('firmas/', f.firmas, name='firmas'),
     path('firmas/nueva/', f.firma_editar, name='firma_nueva'),
+    path('firmas/previa/', f.firma_previa, name='firma_previa'),
     path('firmas/<int:pk>/', f.firma_editar, name='firma_editar'),
     path('firmas/<int:pk>/eliminar/', f.firma_eliminar, name='firma_eliminar'),
     path('firmas/<int:pk>/vista/', f.firma_vista, name='firma_vista'),

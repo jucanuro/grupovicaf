@@ -2,7 +2,7 @@
 
 | Módulo | Fuente | Versión | Fecha | Estado |
 |---|---|---|---|---|
-| VCF-WEB | `docs/proc/VCF-WEB_HU_CU_v1.md` v1.9 (G1 + cambio de alcance v1.5 + requerimiento nuevo v1.6 + cambio de alcance v1.7 + cambios de diseño v1.8 y v1.9 [Decisión Gerente]) · v1.10 (cambio visual [Encargo de diseño]) · D-VCF-002 · D-VCF-004 | v7 | 2026-10-23 | Aprobado por el Gerente (modo rápido) |
+| VCF-WEB | `docs/proc/VCF-WEB_HU_CU_v1.md` v1.9 (G1 + cambio de alcance v1.5 + requerimiento nuevo v1.6 + cambio de alcance v1.7 + cambios de diseño v1.8 y v1.9 [Decisión Gerente]) · v1.10 (cambio visual [Encargo de diseño]) · D-VCF-002 · D-VCF-004 | v9 | 2026-11-24 | Aprobado por el Gerente (modo rápido) |
 
 Alcance: opción A de DP-WEB-01. Es un widget guiado que termina en `wa.me` con el mensaje armado y queda preparado para pasar a C (leads). HU-WEB-05 queda **fuera de alcance**.
 
@@ -122,6 +122,22 @@ Solo visual: no cambian el modelo de datos, la lista blanca (`para_card()`), el 
 | REQ-WEB-71 | EL SISTEMA DEBE mostrar cada card de certificación en horizontal desde 640 px (alto mínimo 300 px) y en vertical por debajo, con dos paneles: (a) un panel de color de un tercio del ancho (arriba en móvil) con degradado por tipo (Acreditación: azul corporativo; Certificación ISO: azul a dorado; Otro: azul pizarra), el tipo en versalitas, el logo de la institución en un recuadro blanco con sombra (o el sello genérico de REQ-WEB-62) y el código corto `Certificacion.codigo_corto` (registro `LE-nnn` o norma `ISO nnnn:aaaa` extraídos del título; sin coincidencia, nada) en una pastilla oscura; (b) un panel blanco con "Otorgada por <institución>", el título (H3, máx. 3 líneas), la descripción (máx. 3 líneas), la vigencia ("Vigente hasta dd/mm/aaaa" en `<time>`, o "Vigente") con check verde y la pastilla "Ver documento" con degradado e ícono. Texto con contraste AA. | HU-WEB-08 · CA-08.2 |
 | REQ-WEB-72 | MIENTRAS haya certificaciones publicadas, EL SISTEMA DEBE mostrar en `/acreditacion/`, debajo del hero, las cards en el orden del admin en una grilla centrada de 1200 px como máximo: 1 card por fila (hasta 672 px de ancho, centrada) por debajo de 1280 px y 2 desde 1280 px, con el mismo alto en cada fila y una card sola centrada. Cada card: esquinas de 16 px, sombra en capas; con hover sube 4 px, crece la sombra y el logo hace zoom (200 ms), sin movimiento con `prefers-reduced-motion: reduce`; un único enlace estirado sobre toda la card (`<a href>` al archivo, `target="_blank"`) y, con foco de teclado, un anillo alrededor de toda la card. | HU-WEB-08 · CA-08.1, CA-08.2, CA-08.14, CA-08.15 |
 | REQ-WEB-73 | MIENTRAS haya certificaciones publicadas, EL SISTEMA DEBE mostrar en la home como máximo 4 cards iguales a las de REQ-WEB-71 y 72, en el orden del admin, con borde y sombra claros sobre el fondo azul de la sección, y el enlace "Ver todas" a `/acreditacion/` en la misma fila que el H2 de la sección; NO DEBE mostrar la imagen grande del certificado. | HU-WEB-08 · CA-08.8, CA-08.9 |
+
+### v8 · Web en el celular y aviso de bienvenida [Decisión Gerente] (2026-11-24)
+
+| ID | Requisito | HU / CA |
+|---|---|---|
+| REQ-WEB-74 | EL SISTEMA DEBE mostrar el acceso "Sistema Interno" (`https://laboratorio.grupovicaf.com/`, pestaña nueva) en el hero de la home en todos los anchos de pantalla, y DONDE el ancho sea menor de 768 px, también como última opción del menú móvil en todas las páginas. | Pedido del Gerente 2026-11-24 |
+| REQ-WEB-75 | DONDE el ancho sea menor de 768 px, EL SISTEMA DEBE mostrar el panel de texto del hero pegado al borde inferior, sobre un degradado que deja ver la foto del carrusel en la mitad superior; desde 768 px DEBE mantener la caja de siempre arriba a la izquierda. | Pedido del Gerente 2026-11-24 |
+| REQ-WEB-76 | CUANDO un navegador abra la home por primera vez (sin la marca `vicaf_bienvenida_vista` en `localStorage`) y haya certificaciones publicadas, EL SISTEMA DEBE mostrar un aviso con los paneles de las dos primeras certificaciones (los de REQ-WEB-71: INACAL LE-230 e ISO 9001:2015 en prod), sus títulos y el enlace "Revísalas en Acreditación" a la sección `#acreditacion` de la home, guardar la marca y cerrarlo solo a los 3 s *(v9: 10 s, REQ-WEB-79)*. EL SISTEMA NO DEBE volver a mostrarlo en ese navegador. SI `localStorage` no está disponible o no hay JavaScript, ENTONCES NO DEBE mostrarlo. | Pedido del Gerente 2026-11-24 |
+| REQ-WEB-77 | MIENTRAS el aviso de bienvenida esté visible, EL SISTEMA DEBE cerrarlo con la X, con Esc, al tocar fuera de él o al seguir el enlace a Acreditación, sin bloquear la página ni atrapar el foco. | Pedido del Gerente 2026-11-24 |
+
+### v9 · Ajustes del hero móvil y del aviso [Decisión Gerente] (2026-11-24)
+
+| ID | Requisito | HU / CA |
+|---|---|---|
+| REQ-WEB-78 | DONDE el ancho sea menor de 640 px, EL SISTEMA DEBE mostrar en el hero el texto en tamaño reducido (H1 20 px, líneas de servicio 12 px) y los botones "Ver Servicios" y "Brochure" en una sola fila de 36 px de alto, a la izquierda del botón de WhatsApp, de modo que el panel ocupe menos de la mitad del hero. | Pedido del Gerente 2026-11-24 |
+| REQ-WEB-79 | *(Amplía REQ-WEB-76.)* EL SISTEMA DEBE mostrar el aviso de bienvenida como un panel oscuro amplio (hasta 768 px de ancho) con título, texto breve y una tarjeta blanca por certificación (logo, tipo, título, institución desde 640 px y vigencia), el botón "Revísalas en Acreditación", la cuenta regresiva "Se cierra en N s" y una barra de progreso, y DEBE cerrarlo solo a los 10 s. | Pedido del Gerente 2026-11-24 |
 
 ## Fuera de alcance
 - Enlaces "Ver en la web" dentro de las listas de líneas y de ensayos: cada fila ya lleva a su detalle, y ahí está el enlace (REQ-WEB-20).

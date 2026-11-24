@@ -317,12 +317,39 @@
 
     // ------------------------------------------------------------- firmas
     var selFirma = document.querySelector('[data-insertar-firma]');
+    var bloqueFirma = document.querySelector('[data-firma-bloque]');
+    var marcoFirma = bloqueFirma && bloqueFirma.querySelector('[data-firma-marco]');
+    var ajustarMarco = function () {
+        try { marcoFirma.style.height = (marcoFirma.contentDocument.documentElement.scrollHeight + 8) + 'px'; } catch (e) { /* otro origen */ }
+    };
+    var cambiarBloque = function (datos, alTerminar) {
+        var cuerpo = new FormData();
+        Object.keys(datos).forEach(function (k) { cuerpo.append(k, datos[k]); });
+        pedir(bloqueFirma.getAttribute('data-url-firma'), { method: 'POST', body: cuerpo }).then(alTerminar).catch(function (e) {
+            window.alert(e.message);
+        });
+    };
+    if (marcoFirma) { marcoFirma.addEventListener('load', ajustarMarco); }
+    if (bloqueFirma) {
+        bloqueFirma.querySelector('[data-quitar-firma-bloque]').addEventListener('click', function () {
+            cambiarBloque({ quitar: '1' }, function () { bloqueFirma.hidden = true; });
+        });
+    }
     if (selFirma && quill) {
         selFirma.addEventListener('change', function () {
-            var fuente = document.querySelector('textarea[data-firma-html="' + selFirma.value + '"]');
-            if (fuente) {
-                var rango = quill.getSelection() || { index: quill.getLength() };
-                quill.clipboard.dangerouslyPasteHTML(rango.index, fuente.value, 'user');
+            var opcion = selFirma.options[selFirma.selectedIndex];
+            if (opcion && opcion.getAttribute('data-rica') && bloqueFirma) {
+                // Firma con plantilla: va como bloque aparte, sin pasar por el editor.
+                cambiarBloque({ firma_id: selFirma.value }, function () {
+                    bloqueFirma.hidden = false;
+                    marcoFirma.contentWindow.location.reload();
+                });
+            } else {
+                var fuente = document.querySelector('textarea[data-firma-html="' + selFirma.value + '"]');
+                if (fuente) {
+                    var rango = quill.getSelection() || { index: quill.getLength() };
+                    quill.clipboard.dangerouslyPasteHTML(rango.index, fuente.value, 'user');
+                }
             }
             selFirma.value = '';
         });

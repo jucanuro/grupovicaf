@@ -10,7 +10,7 @@ from django.utils import timezone
 from .cuentas import GESTIONA, cuentas_de, permite, roles_de
 from .enlaces import url_adjunto
 from .mensajeria import registrar_evento
-from .tipos_archivo import tipo_de
+from .tipos_archivo import tipo_de, tipo_vista_previa
 from .sanitizar import tiene_imagenes_remotas
 from .models import AccesoCuenta, Adjunto, Carpeta, EventoMensaje, Hilo, Mensaje
 
@@ -26,7 +26,7 @@ def nombre_usuario(user):
 
 def panel_cuentas(user):
     """Cuentas del usuario con sus carpetas y contadores (panel izquierdo)."""
-    cuentas = list(cuentas_de(user))
+    cuentas = sorted(cuentas_de(user), key=lambda c: (not c.personal, c.nombre.lower()))  # personales primero
     carpetas = (
         Carpeta.objects.filter(cuenta__in=cuentas)
         .annotate(
@@ -123,7 +123,8 @@ def abrir_hilo(request, hilo, carpeta_actual=None):
     for m in mensajes:
         m.lista_adjuntos = [
             {'nombre': a.nombre, 'tamano': a.tamano, 'url': url_adjunto(a), 'es_imagen': a.es_imagen,
-             'tipo_mime': a.tipo_mime}
+             'tipo_mime': a.tipo_mime,
+             'url_ver': url_adjunto(a) + '?ver=1' if tipo_vista_previa(a.nombre, a.tipo_mime) else ''}
             for a in m.adjuntos.all() if not a.incrustado
         ]
         m.lista_para = ', '.join(d.get('nombre') or d['correo'] for d in m.para)

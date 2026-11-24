@@ -168,14 +168,16 @@ class PermisosTests(BasePlataforma):
         self.assertEqual(self.m.cuenta, self.informes)
         self.assertEqual(self.m.carpeta.tipo, 'entrada')
 
-    def test_borrador_de_otra_persona_no_se_abre(self):
+    def test_borrador_de_la_cuenta_lo_abre_quien_la_gestiona_y_no_quien_solo_lee(self):
         self.entrar(self.gestor)
         respuesta = self.get('redactar', cuenta='informes')
         borrador = Mensaje.objects.get(estado_envio=Mensaje.BORRADOR)
         self.assertRedirects(respuesta, ruta('borrador', borrador.pk), fetch_redirect_response=False)
-        AccesoCuenta.objects.filter(usuario=self.lector).update(rol=AccesoCuenta.GESTIONA)
-        self.entrar(self.lector)
+        self.entrar(self.lector)  # solo lectura: no
         self.assertEqual(self.get('borrador', borrador.pk).status_code, 403)
+        AccesoCuenta.objects.filter(usuario=self.lector).update(rol=AccesoCuenta.GESTIONA)
+        self.entrar(self.lector)  # gestiona la cuenta compartida: sí, aunque lo creó otra persona
+        self.assertEqual(self.get('borrador', borrador.pk).status_code, 200)
         self.entrar(self.ajeno)
         self.assertEqual(self.get('borrador', borrador.pk).status_code, 404)
 

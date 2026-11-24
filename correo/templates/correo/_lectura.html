@@ -75,6 +75,22 @@
                 <div class="aviso aviso--ambar" role="alert"><p>No pudimos verificar al remitente: este mensaje no trae firma de su dominio. No hagas clic en enlaces ni abras adjuntos si no lo esperabas.</p></div>
                 {% endif %}
 
+                {% if m.lista_adjuntos %}
+                <ul class="adjuntos" aria-label="Adjuntos">
+                    {% for a in m.lista_adjuntos %}
+                    <li class="adjunto-fila">
+                        <span class="adjunto adjunto--info">
+                            {% tipo_archivo a.nombre a.tipo_mime %}
+                            <span class="adjunto__nombre">{{ a.nombre }}</span>
+                            <span class="adjunto__peso mono">{{ a.tamano|filesizeformat }}</span>
+                        </span>
+                        {% if a.url_ver %}<a class="adjunto__accion" href="{{ a.url_ver }}" target="_blank" rel="noopener" aria-label="Ver {{ a.nombre }}">Ver</a>{% endif %}
+                        <a class="adjunto__accion" href="{{ a.url }}" download aria-label="Descargar {{ a.nombre }}">{% include 'correo/_iconos.html' with nombre='descargar' %}Descargar</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+
                 {% if m.imagenes_remotas %}
                 <p class="aviso aviso--suave">
                     {% include 'correo/_iconos.html' with nombre='imagen' %}
@@ -86,20 +102,6 @@
                         src="{% url 'mensaje_cuerpo' m.pk %}"
                         sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" loading="lazy" data-cuerpo></iframe>
 
-                {% if m.lista_adjuntos %}
-                <ul class="adjuntos" aria-label="Adjuntos">
-                    {% for a in m.lista_adjuntos %}
-                    <li>
-                        <a class="adjunto" href="{{ a.url }}" {% if a.es_imagen %}target="_blank" rel="noopener"{% else %}download{% endif %}>
-                            {% tipo_archivo a.nombre a.tipo_mime %}
-                            <span class="adjunto__nombre">{{ a.nombre }}</span>
-                            <span class="adjunto__peso mono">{{ a.tamano|filesizeformat }}</span>
-                            {% include 'correo/_iconos.html' with nombre='descargar' %}
-                        </a>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% endif %}
             </details>
         {% endfor %}
         </div>
