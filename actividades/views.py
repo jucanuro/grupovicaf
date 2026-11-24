@@ -35,6 +35,18 @@ from .visibilidad import actividades_visibles, calendarios_visibles, puede_crear
 COLOR_HEX = re.compile(r'^#[0-9a-fA-F]{6}$')
 CALENDARIO_ENSAYOS = 'ensayos'
 COLOR_ENSAYOS = '#0891b2'
+# Sin cliente, la actividad queda registrada como interna (pedido del Gerente).
+ACTIVIDAD_INTERNA = 'Actividad interna'
+
+
+def _cliente_visible(user, actividad, ve_todos):
+    """Nombre del cliente que puede ver este usuario; sin cliente, «Actividad interna»."""
+    if actividad.cliente:
+        return nombre_cliente_visible(user, actividad.cliente, ve_todos)
+    manual = (actividad.cliente_nombre_manual or '').strip()
+    if not manual or manual == ACTIVIDAD_INTERNA:
+        return ACTIVIDAD_INTERNA
+    return manual if ve_todos else ''
 
 logger = logging.getLogger(__name__)
 
@@ -246,12 +258,7 @@ def calendario_eventos_json(request):
             for p in actividad.participantes.all()
         ]
 
-        cliente_nombre = ''
-
-        if actividad.cliente:
-            cliente_nombre = nombre_cliente_visible(request.user, actividad.cliente, ve_todos)
-        elif ve_todos:
-            cliente_nombre = actividad.cliente_nombre_manual or ''
+        cliente_nombre = _cliente_visible(request.user, actividad, ve_todos)
 
         color = actividad.color_visual if COLOR_HEX.match(actividad.color_visual or '') else '#334155'
         eventos.append({
@@ -462,10 +469,7 @@ def calendario_actividad_detalle_json(request, pk):
         'categoria_id': actividad.categoria_id,
         'calendario_nombre': actividad.categoria.nombre if actividad.categoria else '',
         'color_visual': actividad.color_visual,
-        'cliente_nombre': (
-            nombre_cliente_visible(request.user, actividad.cliente, ve_todos) if actividad.cliente
-            else (actividad.cliente_nombre_manual or '') if ve_todos else ''
-        ),
+        'cliente_nombre': _cliente_visible(request.user, actividad, ve_todos),
         'cliente_tiene_correo': bool(actividad.cliente and actividad.cliente.correo_contacto and ve_todos),
         'aviso_cliente_enviado_en': (
             actividad.aviso_cliente_enviado_en.isoformat() if actividad.aviso_cliente_enviado_en else ''
@@ -672,7 +676,7 @@ def calendario_actividad_guardar_json(request):
 
         actividad.categoria = calendario
         actividad.cliente = cliente
-        actividad.cliente_nombre_manual = '' if cliente else cliente_nombre_manual
+        actividad.cliente_nombre_manual = '' if cliente else (cliente_nombre_manual or ACTIVIDAD_INTERNA)
         actividad.proyecto_id = proyecto_id
 
         # Todo o nada: si falla un participante o recordatorio no queda
