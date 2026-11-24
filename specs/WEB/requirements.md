@@ -2,7 +2,7 @@
 
 | Módulo | Fuente | Versión | Fecha | Estado |
 |---|---|---|---|---|
-| VCF-WEB | `docs/proc/VCF-WEB_HU_CU_v1.md` v1.9 (G1 + cambio de alcance v1.5 + requerimiento nuevo v1.6 + cambio de alcance v1.7 + cambios de diseño v1.8 y v1.9 [Decisión Gerente]) · v1.10 (cambio visual [Encargo de diseño]) · D-VCF-002 · D-VCF-004 | v8 | 2026-11-24 | Aprobado por el Gerente (modo rápido) |
+| VCF-WEB | `docs/proc/VCF-WEB_HU_CU_v1.md` v1.9 (G1 + cambio de alcance v1.5 + requerimiento nuevo v1.6 + cambio de alcance v1.7 + cambios de diseño v1.8 y v1.9 [Decisión Gerente]) · v1.10 (cambio visual [Encargo de diseño]) · D-VCF-002 · D-VCF-004 | v9 | 2026-11-24 | Aprobado por el Gerente (modo rápido) |
 
 Alcance: opción A de DP-WEB-01. Es un widget guiado que termina en `wa.me` con el mensaje armado y queda preparado para pasar a C (leads). HU-WEB-05 queda **fuera de alcance**.
 
@@ -129,8 +129,15 @@ Solo visual: no cambian el modelo de datos, la lista blanca (`para_card()`), el 
 |---|---|---|
 | REQ-WEB-74 | EL SISTEMA DEBE mostrar el acceso "Sistema Interno" (`https://laboratorio.grupovicaf.com/`, pestaña nueva) en el hero de la home en todos los anchos de pantalla, y DONDE el ancho sea menor de 768 px, también como última opción del menú móvil en todas las páginas. | Pedido del Gerente 2026-11-24 |
 | REQ-WEB-75 | DONDE el ancho sea menor de 768 px, EL SISTEMA DEBE mostrar el panel de texto del hero pegado al borde inferior, sobre un degradado que deja ver la foto del carrusel en la mitad superior; desde 768 px DEBE mantener la caja de siempre arriba a la izquierda. | Pedido del Gerente 2026-11-24 |
-| REQ-WEB-76 | CUANDO un navegador abra la home por primera vez (sin la marca `vicaf_bienvenida_vista` en `localStorage`) y haya certificaciones publicadas, EL SISTEMA DEBE mostrar un aviso con los paneles de las dos primeras certificaciones (los de REQ-WEB-71: INACAL LE-230 e ISO 9001:2015 en prod), sus títulos y el enlace "Revísalas en Acreditación" a la sección `#acreditacion` de la home, guardar la marca y cerrarlo solo a los 3 s. EL SISTEMA NO DEBE volver a mostrarlo en ese navegador. SI `localStorage` no está disponible o no hay JavaScript, ENTONCES NO DEBE mostrarlo. | Pedido del Gerente 2026-11-24 |
+| REQ-WEB-76 | CUANDO un navegador abra la home por primera vez (sin la marca `vicaf_bienvenida_vista` en `localStorage`) y haya certificaciones publicadas, EL SISTEMA DEBE mostrar un aviso con los paneles de las dos primeras certificaciones (los de REQ-WEB-71: INACAL LE-230 e ISO 9001:2015 en prod), sus títulos y el enlace "Revísalas en Acreditación" a la sección `#acreditacion` de la home, guardar la marca y cerrarlo solo a los 3 s *(v9: 10 s, REQ-WEB-79)*. EL SISTEMA NO DEBE volver a mostrarlo en ese navegador. SI `localStorage` no está disponible o no hay JavaScript, ENTONCES NO DEBE mostrarlo. | Pedido del Gerente 2026-11-24 |
 | REQ-WEB-77 | MIENTRAS el aviso de bienvenida esté visible, EL SISTEMA DEBE cerrarlo con la X, con Esc, al tocar fuera de él o al seguir el enlace a Acreditación, sin bloquear la página ni atrapar el foco. | Pedido del Gerente 2026-11-24 |
+
+### v9 · Ajustes del hero móvil y del aviso [Decisión Gerente] (2026-11-24)
+
+| ID | Requisito | HU / CA |
+|---|---|---|
+| REQ-WEB-78 | DONDE el ancho sea menor de 640 px, EL SISTEMA DEBE mostrar en el hero el texto en tamaño reducido (H1 20 px, líneas de servicio 12 px) y los botones "Ver Servicios" y "Brochure" en una sola fila de 36 px de alto, a la izquierda del botón de WhatsApp, de modo que el panel ocupe menos de la mitad del hero. | Pedido del Gerente 2026-11-24 |
+| REQ-WEB-79 | *(Amplía REQ-WEB-76.)* EL SISTEMA DEBE mostrar el aviso de bienvenida como un panel oscuro amplio (hasta 768 px de ancho) con título, texto breve y una tarjeta blanca por certificación (logo, tipo, título, institución desde 640 px y vigencia), el botón "Revísalas en Acreditación", la cuenta regresiva "Se cierra en N s" y una barra de progreso, y DEBE cerrarlo solo a los 10 s. | Pedido del Gerente 2026-11-24 |
 
 ## Fuera de alcance
 - Enlaces "Ver en la web" dentro de las listas de líneas y de ensayos: cada fila ya lleva a su detalle, y ahí está el enlace (REQ-WEB-20).
