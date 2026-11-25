@@ -13,6 +13,9 @@ module.exports = {
         recepcion: 'e2e.recepcion',
         jefe: 'e2e.jefe',
         comercial: 'e2e.comercial',
+        agenda: 'e2e.agenda',
+        gantt: 'e2e.gantt',
+        tecnicoGanttC: 'e2e.tecnico.c',   // Daniela Torres E2E
     },
 
     // Panel de proyectos con avance por muestra (HU-LIMS-19).
@@ -24,6 +27,21 @@ module.exports = {
     },
 
     CLIENTE: { ruc: '20999999991', razonSocial: 'Constructora E2E SAC' },
+
+    // Calendario (HU-LIMS-21): calendarios y eventos de la semana actual.
+    CALENDARIO: {
+        equipo: 'Supervisión E2E',      // miembros: agenda crea, recepción solo ve
+        abierto: 'Laboratorio E2E',     // sin miembros: lo ven todos
+        personal: 'Casa E2E',           // personal de e2e.agenda
+        eventos: {
+            equipo: 'Revisión E2E de informes',
+            privado: 'Coordinación E2E privada',   // participante: e2e.tecnico.a
+            personal: 'Asunto personal E2E',
+            largo: 'Triaxial E2E largo',
+            corto: 'Seguimiento E2E corto',
+        },
+        clienteConCorreo: 'Minera Agenda E2E SAC',
+    },
     SOLICITUD: 'SOL-E2E-0001',
     SLUG_INFORME: 'e2e00000-0000-4000-8000-000000000001',
 

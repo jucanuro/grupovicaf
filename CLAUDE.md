@@ -121,7 +121,7 @@ Plazo de entrega (oferta VCF-LAB-FOR-001, `proyectos/plazos.py`): probetas 24 h
 después del ensayo; sábado/domingo → lunes. Se ve en la pantalla de la
 solicitud y en la lista de revisión (vencido en rojo).
 
-**Programa del día (HU-LIMS-21).** El supervisor entrega una hoja por cliente y
+**Programa del día (HU-LIMS-24).** El supervisor entrega una hoja por cliente y
 por día, no por recepción: `/proyectos/programa/` (`proyectos/programa.py`,
 vistas en `views_compresion.py`) junta las probetas de compresión cuya fecha
 prevista (moldeo + edad; si no, `RecepcionMuestra.fecha_ensayo_programado`) es
@@ -181,6 +181,15 @@ al aprobar (todas terminadas y sesiones cerradas) se pasa al editor del informe;
 el PDF antiguo (`informe_compresion_pdf.html`, `generar_informe_compresion`)
 solo queda para regenerar informes emitidos antes del editor. Excel con openpyxl (`informes.exportar`); envío al cliente con
 `enviar_informe_cliente`.
+
+**Calendario (HU-LIMS-21).** `CalendarioCategoria` es el «calendario»: de
+equipo (con `CalendarioMiembro` que ve o ve y crea; sin miembros lo ven todos)
+o personal (solo su dueño, ni el superusuario). Una actividad con participantes
+la ven solo ellos y quien la creó. Toda consulta pasa por
+`actividades/visibilidad.py` (404 si no se ve, 403 si no puede crear en ese
+calendario). El cliente es opcional (solo referencia); «Enviar aviso al
+cliente» encola `actividades.tasks.enviar_aviso_cliente` (sin observaciones).
+Frontend en `static/js/calendario.js` + `static/css/calendario.css`.
 
 **Oferta técnico-económica (FOR-001 v7).** El PDF de la cotización
 (`servicios/oferta_pdf.py` + `templates/servicios/oferta_pdf.html`, WeasyPrint)

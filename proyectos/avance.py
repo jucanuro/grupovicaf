@@ -189,7 +189,7 @@ def filtrar_por_proyecto(queryset, proyecto, campo_cotizacion='cotizacion_id'):
 
 
 # ---------------------------------------------------------------------------
-# Pestañas y filtro por fecha del panel (HU-LIMS-22, REQ-LIMS-72 a 77).
+# Pestañas y filtro por fecha del panel (HU-LIMS-25, REQ-LIMS-97 a 102).
 # ---------------------------------------------------------------------------
 
 # RN-14: cada proyecto cae en UNA pestaña según su acción más urgente (RN-11),

@@ -39,6 +39,7 @@ def lista(request):
                       .order_by('-activa', 'nombre'))
     return render(request, 'correo/admin_cuentas.html', _contexto(
         request, administrables=administrables,
+        candidatos=list(adm.usuarios_asignables()),
         dominios=' o '.join(f'@{d}' for d in settings.CORREO_DOMINIOS),
         bitacora=EventoCuenta.objects.filter(cuenta__in=administrables).select_related('usuario__trabajadorprofile')[:15],
     ))
@@ -55,7 +56,20 @@ def crear(request):
     except ValidationError as error:
         messages.error(request, ' '.join(error.messages))
         return redirect('admin_cuentas')
-    messages.success(request, f'Cuenta {cuenta.direccion} creada. Ahora da acceso a quienes la atenderán.')
+    dados, fallos = 0, []
+    pks = [p for p in request.POST.getlist('usuarios') if p.isdigit()]
+    for usuario in adm.usuarios_asignables().filter(pk__in=pks):
+        if usuario == request.user and request.POST.get('darme_acceso') == '1':
+            continue
+        try:
+            adm.dar_acceso(request.user, cuenta, usuario, request.POST.get('rol'))
+            dados += 1
+        except ValidationError as error:
+            fallos.append(' '.join(error.messages))
+    messages.success(request, f'Cuenta {cuenta.direccion} creada con {dados} acceso(s) nuevo(s).'
+                     + ('' if dados else ' Ahora da acceso a quienes la atenderán.'))
+    for f in fallos:
+        messages.error(request, f)
     return redirect('admin_cuenta', cuenta.slug)
 
 

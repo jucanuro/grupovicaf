@@ -148,15 +148,69 @@ con comodidad*. Solo cambia la presentación: agregar, editar, ordenar y quitar
 | REQ-LIMS-60 | HU-LIMS-20 | SI al pulsar «Guardar detalle» hay un servicio elegido sin agregar, ENTONCES EL SISTEMA DEBE agregarlo (o actualizar la fila en edición) antes de cerrar. | sí (E2E) | [Propuesto] |
 | REQ-LIMS-61 | HU-LIMS-20 | MIENTRAS se edita una fila, EL SISTEMA DEBE ofrecer «Cancelar edición», que vuelve el formulario a «Agregar ítem» sin cambiar la fila. | sí (E2E) | [Propuesto] |
 
-## 2e. Programa de ensayos del día y pestañas del panel (v6)
+## 2e. Calendario: calendarios de equipo y personales, formulario en dos paneles (v6)
+
+Origen: pedido del Gerente del 2026-11-23 (calendarios como «Supervisión DICAP»,
+personales «Casa / Personal / Estudio», cliente solo de referencia, aviso
+opcional, todo en una ventana, vista semanal tipo Google) y capturas de su
+calendario de Apple del 2026-11-24; mockups aprobados («Procede con el
+desarrollo», 2026-11-24). Pantalla: `/actividades/calendario/`. HU-LIMS-21:
+*como coordinador quiero agendar en calendarios de equipo y personales con
+pocos clics, para que cada quien vea solo lo que le toca*.
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-62 | HU-LIMS-21 | EL SISTEMA DEBE manejar dos tipos de calendario: de equipo (con miembros que ven o ven y crean) y personal (de un solo usuario). Un calendario de equipo sin miembros lo ven todos los que tienen `calendario.ver`. | sí (unitaria) | [Decisión Gerente] |
+| REQ-LIMS-63 | HU-LIMS-21 | EL SISTEMA DEBE mostrar un calendario personal y sus eventos solo a su dueño, también frente al superusuario. | sí (unitaria + E2E) | [Decisión Gerente] |
+| REQ-LIMS-64 | HU-LIMS-21 | CUANDO una actividad tenga participantes, EL SISTEMA DEBE mostrarla solo a sus participantes y a quien la creó; si no tiene, a quienes ven su calendario. | sí (unitaria + E2E) | [Decisión Gerente] |
+| REQ-LIMS-65 | HU-LIMS-21 | SI el usuario no ve una actividad, ENTONCES EL SISTEMA DEBE responder 404 al ver su detalle, moverla o eliminarla; SI la ve pero no puede crear en su calendario, ENTONCES DEBE responder 403 al guardarla, moverla o eliminarla. | sí (unitaria) | [Propuesto] |
+| REQ-LIMS-66 | HU-LIMS-21 | EL SISTEMA DEBE permitir guardar una actividad sin cliente (actividad interna); el cliente es solo referencia y no se invita. | sí (unitaria + E2E) | [Decisión Gerente] |
+| REQ-LIMS-67 | HU-LIMS-21 | DONDE el usuario marque «Enviar aviso al cliente por correo» y el cliente tenga correo, EL SISTEMA DEBE enviarle por Celery el título, fecha, hora, lugar, enlace y descripción (nunca las observaciones internas) y registrar cuándo se envió; SI el cliente no tiene correo, ENTONCES DEBE rechazar la casilla (400). | sí (unitaria + E2E) | [Decisión Gerente] |
+| REQ-LIMS-68 | HU-LIMS-21 | EL SISTEMA DEBE mostrar el formulario en una sola ventana con dos paneles: campos a la izquierda y vista previa, resumen y choques de horario a la derecha; sin el campo «categoría» (lo reemplaza el calendario). | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-69 | HU-LIMS-21 | CUANDO el usuario arrastre o pulse un hueco del calendario, EL SISTEMA DEBE abrir una creación rápida (título y calendario) con «Más opciones» hacia el formulario completo. | sí (E2E) | [Propuesto] |
+| REQ-LIMS-70 | HU-LIMS-21 | EL SISTEMA DEBE mostrar en la vista semanal cada evento como bloque con título y hora, del color de su calendario, y los eventos que se cruzan lado a lado sin tapar el título. | sí (E2E) | [Decisión Gerente] |
+| REQ-LIMS-71 | HU-LIMS-21 | EL SISTEMA DEBE ofrecer vistas Día, Semana, Mes y Lista, mini mes, filtro por calendario, «Solo donde participo», «Vencidas» y búsqueda; y recordar la vista y los calendarios ocultos en el navegador. | sí (E2E) | [Propuesto] |
+| REQ-LIMS-72 | HU-LIMS-21 | CUANDO el usuario mueva o cambie la duración de un evento, EL SISTEMA DEBE guardarlo y ofrecer «Deshacer». | revisión visual | [Propuesto] |
+| REQ-LIMS-73 | HU-LIMS-21 | DONDE la pantalla mida menos de 900 px, EL SISTEMA DEBE abrir en vista Día, con el panel lateral plegable y un botón flotante para crear. | revisión visual | [Propuesto] |
+
+## 2f. Gantt de ensayos y tema común de gráficos (v7)
+
+Origen: pedido del Gerente del 2026-11-24 («tomar como referencia el diseño
+del calendario y darle el mismo estilo al Gantt y mejorar la presentación de
+gráficos»; luego «la prioridad son los ensayos, se ven muy llenos»). Mockups
+v2 aprobados el 2026-11-24 («programa entonces aprobado»), con las decisiones
+DP-01 a DP-04 tal como se recomendaron. Pantalla: `/actividades/gantt/`.
+HU-LIMS-22: *como jefe de laboratorio quiero ver en una línea de tiempo cada
+ensayo de cada solicitud, su avance real y su atraso, para saber qué está por
+vencer sin abrir cada solicitud*. HU-LIMS-23: *como Gerente quiero que los
+gráficos del dashboard y de Análisis tengan un mismo estilo, legible en claro
+y en oscuro*.
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-74 | HU-LIMS-22 | EL SISTEMA DEBE abrir el Gantt en la vista «Ensayos», agrupado por solicitud: una fila de encabezado con el código, el cliente, «n/m listos» y la fecha de entrega, y debajo una fila por línea de ensayo con la muestra, el ensayo y el técnico. | sí (E2E) | [Decisión Gerente] DP-02 |
+| REQ-LIMS-75 | HU-LIMS-22 | EL SISTEMA DEBE calcular el avance de cada línea con su resultado: 0 % sin resultado, 100 % terminado o aprobado y, en registro, la parte de los datos y fotos obligatorios ya cargados (entre 5 y 95 %). | sí (unitaria) | [Decisión Gerente] DP-01 |
+| REQ-LIMS-76 | HU-LIMS-22 | EL SISTEMA DEBE pintar cada línea según su propio estado: sin empezar (borde punteado), en registro o devuelta (ámbar), terminada o aprobada (verde). | sí (unitaria + E2E) | [Propuesto] |
+| REQ-LIMS-77 | HU-LIMS-22 | MIENTRAS una línea no esté terminada y su entrega programada ya haya pasado, EL SISTEMA DEBE mostrar una franja de atraso desde esa fecha hasta hoy con los días de retraso, y contarla en «Atrasados». | sí (unitaria + E2E) | [Propuesto] |
+| REQ-LIMS-78 | HU-LIMS-22 | EL SISTEMA DEBE marcar la entrega de cada solicitud con un rombo en la última `fecha_entrega_programada` de sus líneas. | sí (unitaria) | [Decisión Gerente] DP-03 [Supuesto] |
+| REQ-LIMS-79 | HU-LIMS-22 | EL SISTEMA DEBE mostrar arriba cuántas líneas están en proceso, cuántas se entregan esta semana, cuántas están atrasadas y cuántas se terminaron en el mes, según los filtros. | sí (E2E) | [Propuesto] |
+| REQ-LIMS-80 | HU-LIMS-22 | EL SISTEMA DEBE ofrecer en la barra lateral: agrupar por solicitud, técnico o cliente; filtro por estado, «Solo atrasados» y técnico (con su carga); búsqueda por solicitud, muestra o ensayo; y zoom Semana, 6 semanas o Trimestre con «Hoy». | sí (E2E) | [Propuesto] |
+| REQ-LIMS-81 | HU-LIMS-22 | CUANDO el usuario haga clic en una línea, EL SISTEMA DEBE abrir una ficha con solicitud, cliente, muestra, fechas, técnico, estado, avance y un enlace a «Resultados de la solicitud». | sí (E2E) | [Propuesto] |
+| REQ-LIMS-82 | HU-LIMS-22 | EL SISTEMA DEBE seguir mostrando a un técnico sin `ensayos.ver_todos` solo sus líneas, y el cliente según la regla vigente. | sí (unitaria) | [Validado con usuario] |
+| REQ-LIMS-83 | HU-LIMS-22 | EL SISTEMA DEBE mostrar las actividades del calendario en la vista «Actividades» con el mismo diseño, agrupadas por calendario y con su color. | revisión visual | [Decisión Gerente] |
+| REQ-LIMS-84 | HU-LIMS-22 | DONDE la pantalla mida menos de 900 px, EL SISTEMA DEBE mostrar cada solicitud como tarjeta con una franja de tiempo por línea. | revisión visual | [Propuesto] |
+| REQ-LIMS-85 | HU-LIMS-23 | EL SISTEMA DEBE dibujar los gráficos del dashboard y de Análisis con un tema común (`static/js/graficos_tema.js`): misma paleta validada, tipografía, rejilla, barras redondeadas y ficha emergente, con colores propios del modo oscuro que se actualizan al cambiar el tema. | sí (E2E) | [Decisión Gerente] DP-04 |
+| REQ-LIMS-86 | HU-LIMS-23 | EL SISTEMA DEBE mostrar en las cifras del dashboard de cotizaciones, tasa de aceptación e informes un minigráfico de los meses del periodo. | sí (unitaria) | [Propuesto] |
+
+## 2g. Programa de ensayos del día y pestañas del panel (v8)
 
 Origen: reunión del Gerente con el PM sobre el ensayo de rotura (pedido de Frank)
 y su respuesta del 2026-11-24 en el hilo «Terminar el proyecto»: «la opción A …
 y en proyectos … tabs para muestras, los que estén en ensayos, informes etc. y por
-fecha». HU-LIMS-21: *como supervisor de ensayos quiero entregar una hoja por
+fecha». HU-LIMS-24: *como supervisor de ensayos quiero entregar una hoja por
 cliente y por día con todas las probetas que tocan romper, sin importar su edad,
 para que los técnicos las ubiquen en las pozas, las midan todas y las rompan*.
-HU-LIMS-22: *como jefe de laboratorio quiero ver los proyectos separados por etapa
+HU-LIMS-25: *como jefe de laboratorio quiero ver los proyectos separados por etapa
 y por fecha, para que el panel no se vea lleno*.
 
 | ID | Regla |
@@ -168,22 +222,22 @@ y por fecha, para que el panel no se vea lleno*.
 
 | ID | HU | Requisito (EARS) | Verificable | Origen |
 |---|---|---|---|---|
-| REQ-LIMS-62 | HU-LIMS-21 | CUANDO un usuario con `ensayos.ver` abra el programa del día, EL SISTEMA DEBE listar las probetas de compresión cuya fecha (RN-12) sea la elegida, aunque vengan de varias recepciones y solicitudes. | sí (unitaria) | [Validado con usuario] |
-| REQ-LIMS-63 | HU-LIMS-21 | EL SISTEMA DEBE agrupar el programa en una hoja por cliente, con el total de probetas, las rotas, las edades y las solicitudes de origen. | sí (unitaria) | [Validado con usuario] |
-| REQ-LIMS-64 | HU-LIMS-21 | SI el usuario no ve todos los ensayos, ENTONCES EL SISTEMA DEBE mostrarle solo sus probetas y el código confidencial del cliente en lugar de su nombre. | sí (unitaria) | [Propuesto] |
-| REQ-LIMS-65 | HU-LIMS-21 | MIENTRAS el programa sea el de hoy, EL SISTEMA DEBE incluir las atrasadas (RN-13) y avisar cuántas probetas pendientes no tienen fecha. | sí (unitaria) | [Propuesto] |
-| REQ-LIMS-66 | HU-LIMS-21 | CUANDO el usuario abra la hoja de un cliente, EL SISTEMA DEBE mostrar por probeta código de laboratorio, ID del cliente, elemento, f'c, moldeo, edad, solicitud, técnico y estado, y permitir imprimirla. | sí (unitaria) | [Validado con usuario] |
-| REQ-LIMS-67 | HU-LIMS-21 | CUANDO el técnico pulse «Medir y pesar todas primero» en la hoja, EL SISTEMA DEBE guardar masa, D1-D2 y L1-L3 de todas sus probetas pendientes en un solo formulario, aunque sean de solicitudes distintas. | sí (unitaria) | [Validado con usuario] |
-| REQ-LIMS-68 | HU-LIMS-21 | CUANDO el técnico abra una probeta desde la hoja, EL SISTEMA DEBE seguir el registro ya validado (datos del cliente → medidas → fotos en prensa → carga y foto de la carga → probeta rota) y volver a la hoja al salir o terminar. | sí (unitaria) | [Validado con usuario] |
-| REQ-LIMS-69 | HU-LIMS-21 | SI se corrige una medida ya guardada desde la hoja, ENTONCES EL SISTEMA DEBE anotarla en la trazabilidad (`CambioResultado`). | sí (unitaria) | [Validado con usuario] |
-| REQ-LIMS-70 | HU-LIMS-21 | EL SISTEMA DEBE mantener cada probeta en su solicitud y su informe; la hoja muestra a quien aprueba el acceso a la revisión de cada solicitud finalizada. | sí (revisión) | [Propuesto] |
-| REQ-LIMS-71 | HU-LIMS-21 | EL SISTEMA DEBE ofrecer el programa del día en el menú «Laboratorio» y en el menú del celular. | sí (revisión visual) | [Propuesto] |
-| REQ-LIMS-72 | HU-LIMS-22 | EL SISTEMA DEBE mostrar en el panel de proyectos las pestañas Todos, Muestras, En ensayo, Por emitir informe y Con informe, cada una con su cantidad (RN-14). | sí (unitaria) | [Validado con usuario] |
-| REQ-LIMS-73 | HU-LIMS-22 | CUANDO el usuario elija una pestaña, EL SISTEMA DEBE mostrar solo los proyectos de esa etapa, paginados. | sí (unitaria) | [Validado con usuario] |
-| REQ-LIMS-74 | HU-LIMS-22 | CUANDO el usuario elija un periodo o un rango de fechas, EL SISTEMA DEBE filtrar los proyectos por su fecha de inicio (RN-15) y recalcular las cantidades de las pestañas. | sí (unitaria) | [Validado con usuario] |
-| REQ-LIMS-75 | HU-LIMS-22 | EL SISTEMA DEBE conservar pestaña, periodo y búsqueda al cambiar de página, de pestaña o al buscar en vivo. | sí (unitaria + revisión) | [Propuesto] |
-| REQ-LIMS-76 | HU-LIMS-22 | SI ningún proyecto cumple los filtros, ENTONCES EL SISTEMA DEBE decir «Ningún proyecto con estos filtros». | sí (revisión) | [Propuesto] |
-| REQ-LIMS-77 | HU-LIMS-22 | DONDE la pantalla mida menos de 768 px, EL SISTEMA DEBE desplazar las pestañas en horizontal sin desbordar la página. | sí (revisión visual) | [Propuesto] |
+| REQ-LIMS-87 | HU-LIMS-24 | CUANDO un usuario con `ensayos.ver` abra el programa del día, EL SISTEMA DEBE listar las probetas de compresión cuya fecha (RN-12) sea la elegida, aunque vengan de varias recepciones y solicitudes. | sí (unitaria) | [Validado con usuario] |
+| REQ-LIMS-88 | HU-LIMS-24 | EL SISTEMA DEBE agrupar el programa en una hoja por cliente, con el total de probetas, las rotas, las edades y las solicitudes de origen. | sí (unitaria) | [Validado con usuario] |
+| REQ-LIMS-89 | HU-LIMS-24 | SI el usuario no ve todos los ensayos, ENTONCES EL SISTEMA DEBE mostrarle solo sus probetas y el código confidencial del cliente en lugar de su nombre. | sí (unitaria) | [Propuesto] |
+| REQ-LIMS-90 | HU-LIMS-24 | MIENTRAS el programa sea el de hoy, EL SISTEMA DEBE incluir las atrasadas (RN-13) y avisar cuántas probetas pendientes no tienen fecha. | sí (unitaria) | [Propuesto] |
+| REQ-LIMS-91 | HU-LIMS-24 | CUANDO el usuario abra la hoja de un cliente, EL SISTEMA DEBE mostrar por probeta código de laboratorio, ID del cliente, elemento, f'c, moldeo, edad, solicitud, técnico y estado, y permitir imprimirla. | sí (unitaria) | [Validado con usuario] |
+| REQ-LIMS-92 | HU-LIMS-24 | CUANDO el técnico pulse «Medir y pesar todas primero» en la hoja, EL SISTEMA DEBE guardar masa, D1-D2 y L1-L3 de todas sus probetas pendientes en un solo formulario, aunque sean de solicitudes distintas. | sí (unitaria) | [Validado con usuario] |
+| REQ-LIMS-93 | HU-LIMS-24 | CUANDO el técnico abra una probeta desde la hoja, EL SISTEMA DEBE seguir el registro ya validado (datos del cliente → medidas → fotos en prensa → carga y foto de la carga → probeta rota) y volver a la hoja al salir o terminar. | sí (unitaria) | [Validado con usuario] |
+| REQ-LIMS-94 | HU-LIMS-24 | SI se corrige una medida ya guardada desde la hoja, ENTONCES EL SISTEMA DEBE anotarla en la trazabilidad (`CambioResultado`). | sí (unitaria) | [Validado con usuario] |
+| REQ-LIMS-95 | HU-LIMS-24 | EL SISTEMA DEBE mantener cada probeta en su solicitud y su informe; la hoja muestra a quien aprueba el acceso a la revisión de cada solicitud finalizada. | sí (revisión) | [Propuesto] |
+| REQ-LIMS-96 | HU-LIMS-24 | EL SISTEMA DEBE ofrecer el programa del día en el menú «Laboratorio» y en el menú del celular. | sí (revisión visual) | [Propuesto] |
+| REQ-LIMS-97 | HU-LIMS-25 | EL SISTEMA DEBE mostrar en el panel de proyectos las pestañas Todos, Muestras, En ensayo, Por emitir informe y Con informe, cada una con su cantidad (RN-14). | sí (unitaria) | [Validado con usuario] |
+| REQ-LIMS-98 | HU-LIMS-25 | CUANDO el usuario elija una pestaña, EL SISTEMA DEBE mostrar solo los proyectos de esa etapa, paginados. | sí (unitaria) | [Validado con usuario] |
+| REQ-LIMS-99 | HU-LIMS-25 | CUANDO el usuario elija un periodo o un rango de fechas, EL SISTEMA DEBE filtrar los proyectos por su fecha de inicio (RN-15) y recalcular las cantidades de las pestañas. | sí (unitaria) | [Validado con usuario] |
+| REQ-LIMS-100 | HU-LIMS-25 | EL SISTEMA DEBE conservar pestaña, periodo y búsqueda al cambiar de página, de pestaña o al buscar en vivo. | sí (unitaria + revisión) | [Propuesto] |
+| REQ-LIMS-101 | HU-LIMS-25 | SI ningún proyecto cumple los filtros, ENTONCES EL SISTEMA DEBE decir «Ningún proyecto con estos filtros». | sí (revisión) | [Propuesto] |
+| REQ-LIMS-102 | HU-LIMS-25 | DONDE la pantalla mida menos de 768 px, EL SISTEMA DEBE desplazar las pestañas en horizontal sin desbordar la página. | sí (revisión visual) | [Propuesto] |
 
 
 ## 3. Trazabilidad HU → REQ
@@ -202,8 +256,11 @@ y por fecha, para que el panel no se vea lleno*.
 | HU-LIMS-10 | Seguridad y rendimiento | REQ-LIMS-38 a 40 |
 | HU-LIMS-19 | Panel de proyectos con avance por muestra | REQ-LIMS-44 a 52 |
 | HU-LIMS-20 | Formulario de cotización con detalle en modal | REQ-LIMS-53 a 61 |
-| HU-LIMS-21 | Programa de ensayos del día (hoja por cliente y día) | REQ-LIMS-62 a 71 |
-| HU-LIMS-22 | Pestañas por etapa y filtro por fecha del panel | REQ-LIMS-72 a 77 |
+| HU-LIMS-21 | Calendarios de equipo y personales, formulario en dos paneles | REQ-LIMS-62 a 73 |
+| HU-LIMS-22 | Gantt de ensayos por solicitud con avance real y atraso | REQ-LIMS-74 a 84 |
+| HU-LIMS-23 | Tema común de gráficos (dashboard y Análisis) | REQ-LIMS-85, 86 |
+| HU-LIMS-24 | Programa de ensayos del día (hoja por cliente y día) | REQ-LIMS-87 a 96 |
+| HU-LIMS-25 | Pestañas por etapa y filtro por fecha del panel | REQ-LIMS-97 a 102 |
 
 ## 4. Preguntas abiertas
 
@@ -223,4 +280,6 @@ y por fecha, para que el panel no se vea lleno*.
 | v3 | 2026-11-22 | Claude (DLF) | Panel de proyectos con avance por muestra: RN-09 a 11, REQ-LIMS-44 a 52 |
 | v4 | 2026-11-22 | Claude (DLF) | Formulario de cotización: pills y detalle en modal, REQ-LIMS-53 a 59 |
 | v5 | 2026-11-22 | Claude (DLF) | Modal del detalle a pantalla completa (formulario a la izquierda, tabla a la derecha): REQ-LIMS-55 a 57 ajustados, 60 y 61 nuevos |
-| v6 | 2026-11-24 | Claude (DLF) | Programa de ensayos del día (RN-12, 13, REQ-LIMS-62 a 71) y pestañas + fecha del panel (RN-14, 15, REQ-LIMS-72 a 77), opción A aprobada por el Gerente |
+| v6 | 2026-11-24 | Claude (DLF) | Calendario rediseñado: REQ-LIMS-62 a 73 (HU-LIMS-21) |
+| v7 | 2026-11-24 | Claude (DLF) | Gantt de ensayos y tema de gráficos: REQ-LIMS-74 a 86 (HU-LIMS-22, 23) |
+| v8 | 2026-11-24 | Claude (DLF) | Programa de ensayos del día (RN-12, 13, REQ-LIMS-87 a 96) y pestañas + fecha del panel (RN-14, 15, REQ-LIMS-97 a 102), opción A aprobada por el Gerente |

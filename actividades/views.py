@@ -5,7 +5,8 @@ from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import JsonResponse
+from django.db.models import Count
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -24,9 +25,29 @@ from trabajadores.permissions import (
 from .models import (
     CalendarioActividad,
     CalendarioCategoria,
+    CalendarioMiembro,
     CalendarioParticipante,
     CalendarioRecordatorio,
 )
+from .gantt_ensayos import lineas_de_ensayo
+from .tasks import enviar_aviso_cliente
+from .visibilidad import actividades_visibles, calendarios_visibles, puede_crear_en
+
+COLOR_HEX = re.compile(r'^#[0-9a-fA-F]{6}$')
+CALENDARIO_ENSAYOS = 'ensayos'
+COLOR_ENSAYOS = '#0891b2'
+# Sin cliente, la actividad queda registrada como interna (pedido del Gerente).
+ACTIVIDAD_INTERNA = 'Actividad interna'
+
+
+def _cliente_visible(user, actividad, ve_todos):
+    """Nombre del cliente que puede ver este usuario; sin cliente, «Actividad interna»."""
+    if actividad.cliente:
+        return nombre_cliente_visible(user, actividad.cliente, ve_todos)
+    manual = (actividad.cliente_nombre_manual or '').strip()
+    if not manual or manual == ACTIVIDAD_INTERNA:
+        return ACTIVIDAD_INTERNA
+    return manual if ve_todos else ''
 
 logger = logging.getLogger(__name__)
 
@@ -120,31 +141,47 @@ def obtener_responsable_ensayo(ensayo):
 @login_required
 @permiso_requerido('calendario.ver')
 def calendario_dashboard(request):
-    categorias = CalendarioCategoria.objects.filter(activo=True).order_by('nombre')
-    trabajadores = TrabajadorProfile.objects.all().order_by('user__username')
-    # Sin ensayos.ver_todos (técnico) no se listan razones sociales en los filtros.
-    clientes = Cliente.objects.all().order_by('razon_social') if ve_todos_los_ensayos(request.user) else Cliente.objects.none()
-    proyectos = Proyecto.objects.all().order_by('-fecha_inicio')
-
-    resumen = {
-        'total_actividades': CalendarioActividad.objects.filter(es_visible=True).count(),
-        'programadas': CalendarioActividad.objects.filter(es_visible=True, estado='PROGRAMADA').count(),
-        'en_curso': CalendarioActividad.objects.filter(es_visible=True, estado='EN_CURSO').count(),
-        'completadas': CalendarioActividad.objects.filter(es_visible=True, estado='COMPLETADA').count(),
-        'vencidas': sum(1 for a in CalendarioActividad.objects.filter(es_visible=True) if a.esta_vencida),
-        'automaticas': CalendarioActividad.objects.filter(es_visible=True, es_automatica=True).count(),
-        'manuales': CalendarioActividad.objects.filter(es_visible=True, es_automatica=False).count(),
-    }
+    user = request.user
+    ve_todos = ve_todos_los_ensayos(user)
+    calendarios = [
+        {
+            'id': c.id,
+            'nombre': c.nombre,
+            'color': c.color if COLOR_HEX.match(c.color or '') else '#2563eb',
+            'tipo': c.tipo,
+            'miembros': c.num_miembros,
+            'puede_crear': puede_crear_en(user, c),
+        }
+        for c in calendarios_visibles(user).annotate(num_miembros=Count('miembros'))
+    ]
+    trabajadores = [
+        {'id': t.id, 'nombre': t.nombre_completo or t.user.get_username(), 'yo': t.user_id == user.id}
+        for t in TrabajadorProfile.objects.select_related('user').filter(user__is_active=True)
+        .order_by('nombre_completo')
+    ]
+    # Sin ensayos.ver_todos (técnico) no se listan razones sociales ni correos.
+    clientes = list(
+        Cliente.objects.order_by('razon_social').values('id', 'razon_social', 'correo_contacto')
+    ) if ve_todos else []
+    proyectos = list(
+        Proyecto.objects.order_by('-fecha_inicio').values('id', 'codigo_proyecto', 'nombre_proyecto')[:300]
+    )
 
     context = {
-        'categorias': categorias,
-        'trabajadores': trabajadores,
-        'clientes': clientes,
-        'proyectos': proyectos,
-        'resumen': resumen,
-        'clases_actividad': CalendarioActividad.CLASE_ACTIVIDAD,
-        'estados_actividad': CalendarioActividad.ESTADO_ACTIVIDAD,
-        'prioridades_actividad': CalendarioActividad.PRIORIDAD,
+        'datos_calendario': {
+            'calendarios': calendarios,
+            'trabajadores': trabajadores,
+            'clientes': clientes,
+            'proyectos': proyectos,
+            'clases': CalendarioActividad.CLASE_ACTIVIDAD,
+            'estados': CalendarioActividad.ESTADO_ACTIVIDAD,
+            'prioridades': CalendarioActividad.PRIORIDAD,
+            've_todos': ve_todos,
+            'puede_crear': trabajador_tiene_permiso(user, 'calendario.crear'),
+            'puede_editar': trabajador_tiene_permiso(user, 'calendario.editar'),
+            'puede_eliminar': trabajador_tiene_permiso(user, 'calendario.eliminar'),
+            'color_ensayos': COLOR_ENSAYOS,
+        },
     }
 
     return render(request, 'actividades/calendario.html', context)
@@ -176,7 +213,7 @@ def calendario_eventos_json(request):
         if proyecto_obj and proyecto_obj.cotizacion_id:
             cotizacion_id_proyecto = proyecto_obj.cotizacion_id
 
-    actividades = CalendarioActividad.objects.filter(
+    actividades = actividades_visibles(request.user).filter(
         es_visible=True
     ).select_related(
         'categoria',
@@ -208,6 +245,7 @@ def calendario_eventos_json(request):
         actividades = actividades.filter(proyecto_id=proyecto_id)
 
     actividades = actividades.distinct().order_by('fecha_inicio')
+    puede_editar = trabajador_tiene_permiso(request.user, 'calendario.editar')
 
     eventos = []
 
@@ -221,24 +259,27 @@ def calendario_eventos_json(request):
             for p in actividad.participantes.all()
         ]
 
-        cliente_nombre = ''
+        cliente_nombre = _cliente_visible(request.user, actividad, ve_todos)
 
-        if actividad.cliente:
-            cliente_nombre = nombre_cliente_visible(request.user, actividad.cliente, ve_todos)
-        elif ve_todos:
-            cliente_nombre = actividad.cliente_nombre_manual or ''
-
+        color = actividad.color_visual if COLOR_HEX.match(actividad.color_visual or '') else '#334155'
         eventos.append({
             'id': f'actividad-{actividad.id}',
             'title': actividad.titulo,
             'start': actividad.fecha_inicio.isoformat(),
             'end': actividad.fecha_fin.isoformat(),
             'allDay': actividad.todo_el_dia,
-            'backgroundColor': actividad.color_visual,
-            'borderColor': actividad.color_visual,
+            'backgroundColor': color,
+            'borderColor': color,
             'textColor': '#ffffff',
+            'editable': bool(puede_editar and actividad.permite_edicion_manual
+                             and puede_crear_en(request.user, actividad.categoria)),
             'extendedProps': {
                 'tipo': 'actividad',
+                'actividad_id': actividad.id,
+                'calendario_id': actividad.categoria_id or 0,
+                'color': color,
+                'participo': any(p.trabajador.user_id == request.user.id for p in actividad.participantes.all()),
+                'mio': actividad.creado_por_id == request.user.id,
                 'clase': actividad.clase,
                 'estado': actividad.estado,
                 'prioridad': actividad.prioridad,
@@ -340,16 +381,22 @@ def calendario_eventos_json(request):
         if len(titulo_evento) > 60:
             titulo_evento = titulo_evento[:57] + '...'
 
+        # Van en la fila «todo el día»: no tienen hora y en la grilla tapaban
+        # las reuniones de las 8:00.
         eventos.append({
             'id': f'ensayo-detalle-{detalle.id}',
             'title': titulo_evento,
-            'start': f'{fecha_registro.isoformat()}T08:00:00',
-            'allDay': False,
-            'backgroundColor': color,
-            'borderColor': color,
-            'textColor': '#1e293b',
+            'start': fecha_registro.isoformat(),
+            'allDay': True,
+            'editable': False,
+            'backgroundColor': COLOR_ENSAYOS,
+            'borderColor': COLOR_ENSAYOS,
+            'textColor': '#ffffff',
             'extendedProps': {
                 'tipo': 'ensayo',
+                'calendario_id': CALENDARIO_ENSAYOS,
+                'color': COLOR_ENSAYOS,
+                'color_estado': color,
                 'clase': 'ENSAYO',
                 'estado': estado_val.upper(),
                 'descripcion': detalle.descripcion_ensayo or servicio_nombre,
@@ -379,8 +426,10 @@ def calendario_eventos_json(request):
 @permiso_requerido('calendario.ver')
 @require_GET
 def calendario_actividad_detalle_json(request, pk):
+    ve_todos = ve_todos_los_ensayos(request.user)
     actividad = get_object_or_404(
-        CalendarioActividad.objects.select_related(
+        actividades_visibles(request.user).select_related(
+            'creado_por',
             'categoria',
             'cliente',
             'proyecto',
@@ -419,11 +468,30 @@ def calendario_actividad_detalle_json(request, pk):
         'solicitud_ensayo_id': actividad.solicitud_ensayo_id,
         'informe_final_id': actividad.informe_final_id,
         'categoria_id': actividad.categoria_id,
+        'calendario_nombre': actividad.categoria.nombre if actividad.categoria else '',
         'color_visual': actividad.color_visual,
+        'cliente_nombre': _cliente_visible(request.user, actividad, ve_todos),
+        'cliente_tiene_correo': bool(actividad.cliente and actividad.cliente.correo_contacto and ve_todos),
+        'aviso_cliente_enviado_en': (
+            actividad.aviso_cliente_enviado_en.isoformat() if actividad.aviso_cliente_enviado_en else ''
+        ),
+        'proyecto_nombre': (
+            f'{actividad.proyecto.codigo_proyecto} · {actividad.proyecto.nombre_proyecto}' if actividad.proyecto else ''
+        ),
+        'creado_por': (actividad.creado_por.get_full_name() or actividad.creado_por.get_username()),
+        'puede_editar': bool(
+            trabajador_tiene_permiso(request.user, 'calendario.editar')
+            and puede_crear_en(request.user, actividad.categoria)
+            and (actividad.permite_edicion_manual or not actividad.es_automatica)
+        ),
+        'puede_eliminar': bool(
+            trabajador_tiene_permiso(request.user, 'calendario.eliminar')
+            and puede_crear_en(request.user, actividad.categoria)
+        ),
         'participantes': [
             {
                 'trabajador_id': p.trabajador_id,
-                'nombre': str(p.trabajador),
+                'nombre': p.trabajador.nombre_completo or str(p.trabajador),
                 'rol': p.rol,
                 'confirmado': p.confirmado,
                 'comentario': p.comentario or '',
@@ -475,7 +543,13 @@ def calendario_actividad_guardar_json(request):
                 return JsonResponse({'success': False, 'error': 'ID de actividad inválido.'}, status=400)
 
         if actividad_id:
-            actividad = get_object_or_404(CalendarioActividad, pk=actividad_id)
+            actividad = get_object_or_404(actividades_visibles(request.user), pk=actividad_id)
+
+            if not puede_crear_en(request.user, actividad.categoria):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'No puedes editar eventos de ese calendario.'
+                }, status=403)
 
             if actividad.es_automatica and not actividad.permite_edicion_manual:
                 return JsonResponse({
@@ -521,11 +595,33 @@ def calendario_actividad_guardar_json(request):
         proyecto_id = payload.get('proyecto_id') or None
         clase = payload.get('clase') or 'OTRO'
 
-        if not cliente_id and not cliente_nombre_manual:
+        # El cliente es opcional: sin cliente es una actividad interna.
+        cliente = None
+        if cliente_id:
+            if not ve_todos_los_ensayos(request.user):
+                return JsonResponse({'success': False, 'error': 'No puedes vincular clientes.'}, status=403)
+            cliente = Cliente.objects.filter(pk=cliente_id).first()
+            if cliente is None:
+                return JsonResponse({'success': False, 'error': 'El cliente no existe.'}, status=400)
+
+        avisar_cliente = bool(payload.get('avisar_cliente'))
+        if avisar_cliente and (cliente is None or not cliente.correo_contacto):
             return JsonResponse({
                 'success': False,
-                'error': 'Debes seleccionar un cliente o ingresar un nombre de cliente.'
+                'error': 'Para enviar el aviso, elige un cliente con correo registrado.'
             }, status=400)
+
+        calendario = None
+        calendario_id = payload.get('categoria_id') or None
+        if calendario_id:
+            calendario = calendarios_visibles(request.user).filter(pk=calendario_id).first()
+            if calendario is None:
+                return JsonResponse({'success': False, 'error': 'Calendario no válido.'}, status=400)
+        if not puede_crear_en(request.user, calendario):
+            return JsonResponse({
+                'success': False,
+                'error': 'No puedes crear eventos en ese calendario.'
+            }, status=403)
 
         if len(cliente_nombre_manual) > 255:
             return JsonResponse({
@@ -579,9 +675,9 @@ def calendario_actividad_guardar_json(request):
         actividad.observaciones = payload.get('observaciones') or ''
         actividad.actualizado_por = request.user
 
-        actividad.categoria_id = payload.get('categoria_id') or None
-        actividad.cliente_id = cliente_id
-        actividad.cliente_nombre_manual = '' if cliente_id else cliente_nombre_manual
+        actividad.categoria = calendario
+        actividad.cliente = cliente
+        actividad.cliente_nombre_manual = '' if cliente else (cliente_nombre_manual or ACTIVIDAD_INTERNA)
         actividad.proyecto_id = proyecto_id
 
         # Todo o nada: si falla un participante o recordatorio no queda
@@ -634,11 +730,15 @@ def calendario_actividad_guardar_json(request):
             if recordatorios_bulk:
                 CalendarioRecordatorio.objects.bulk_create(recordatorios_bulk)
 
+            if avisar_cliente:
+                transaction.on_commit(lambda: enviar_aviso_cliente.delay(actividad.id))
+
         logger.info(f"Actividad guardada: {titulo} (ID: {actividad.id}) por usuario {request.user.username}")
 
         return JsonResponse({
             'success': True,
             'id': actividad.id,
+            'aviso_cliente': avisar_cliente,
             'message': 'Actividad guardada correctamente.'
         })
 
@@ -646,6 +746,8 @@ def calendario_actividad_guardar_json(request):
         logger.warning(f"Error de validación en calendario_actividad_guardar_json por usuario {request.user.username}: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
+    except Http404:
+        raise
     except Exception as e:
         logger.error(f"Error interno en calendario_actividad_guardar_json por usuario {request.user.username}: {str(e)}")
         return JsonResponse({'success': False, 'error': 'Error interno del servidor.'}, status=500)
@@ -665,7 +767,10 @@ def calendario_actividad_eliminar_json(request, pk):
         except (ValueError, TypeError):
             return JsonResponse({'success': False, 'error': 'ID de actividad inválido.'}, status=400)
 
-        actividad = get_object_or_404(CalendarioActividad, pk=pk)
+        actividad = get_object_or_404(actividades_visibles(request.user), pk=pk)
+
+        if not puede_crear_en(request.user, actividad.categoria):
+            return JsonResponse({'success': False, 'error': 'No puedes eliminar eventos de ese calendario.'}, status=403)
 
         if actividad.es_automatica and not actividad.permite_edicion_manual:
             return JsonResponse({
@@ -680,75 +785,87 @@ def calendario_actividad_eliminar_json(request, pk):
 
         return JsonResponse({'success': True, 'message': 'Actividad eliminada correctamente.'})
 
+    except Http404:
+        raise
     except Exception as e:
         logger.error(f"Error al eliminar actividad {pk} por usuario {request.user.username}: {str(e)}")
         return JsonResponse({'success': False, 'error': 'Error interno del servidor.'}, status=500)
 
 
 @login_required
-@permiso_requerido('calendario.crear')
+@permiso_requerido('calendario.ver')
 @require_POST
 def calendario_categoria_crear_json(request):
+    """Crea un calendario. Uno personal lo crea cualquiera (solo para sí);
+    uno de equipo pide calendario.crear. Si se eligen miembros, quien lo crea
+    queda como miembro; sin miembros lo ven todos."""
     try:
-        nombre = (request.POST.get('nombre') or '').strip()
-        color = (request.POST.get('color') or '#2563eb').strip()
-        icono = (request.POST.get('icono') or '').strip()
+        payload = json.loads(request.body.decode('utf-8') or '{}')
+        nombre = (payload.get('nombre') or '').strip()
+        color = (payload.get('color') or '#2563eb').strip()
+        tipo = payload.get('tipo') or CalendarioCategoria.TIPO_PERSONAL
 
+        if tipo not in dict(CalendarioCategoria.TIPOS):
+            return JsonResponse({'success': False, 'error': 'Tipo de calendario no válido.'}, status=400)
         if not nombre or len(nombre) < 2 or len(nombre) > 100:
-            return JsonResponse({
-                'success': False,
-                'error': 'El nombre debe tener entre 2 y 100 caracteres.'
-            }, status=400)
+            return JsonResponse({'success': False, 'error': 'El nombre debe tener entre 2 y 100 caracteres.'}, status=400)
+        if re.search(r'[<>]', nombre):
+            return JsonResponse({'success': False, 'error': 'Caracteres no permitidos en el nombre.'}, status=400)
+        if not COLOR_HEX.match(color):
+            return JsonResponse({'success': False, 'error': 'Color no válido.'}, status=400)
 
-        if len(color) > 20:
-            return JsonResponse({
-                'success': False,
-                'error': 'El color no puede exceder 20 caracteres.'
-            }, status=400)
+        personal = tipo == CalendarioCategoria.TIPO_PERSONAL
+        if not personal and not trabajador_tiene_permiso(request.user, 'calendario.crear'):
+            return JsonResponse({'success': False, 'error': 'No puedes crear calendarios de equipo.'}, status=403)
 
-        if len(icono) > 50:
-            return JsonResponse({
-                'success': False,
-                'error': 'El icono no puede exceder 50 caracteres.'
-            }, status=400)
+        repetido = CalendarioCategoria.objects.filter(tipo=tipo, nombre__iexact=nombre)
+        if personal:
+            repetido = repetido.filter(propietario=request.user)
+        if repetido.exists():
+            return JsonResponse({'success': False, 'error': 'Ya existe un calendario con ese nombre.'}, status=400)
 
-        if re.search(r'[<>]', nombre) or re.search(r'[<>]', color) or re.search(r'[<>]', icono):
-            logger.warning(f"Intento de XSS en calendario_categoria_crear_json por usuario {request.user.username}")
-            return JsonResponse({
-                'success': False,
-                'error': 'Caracteres no permitidos detectados.'
-            }, status=400)
+        miembros = []
+        if not personal:
+            ids = {int(i) for i in (payload.get('miembros') or []) if str(i).isdigit()}
+            crean = {int(i) for i in (payload.get('miembros_crean') or []) if str(i).isdigit()}
+            perfiles = TrabajadorProfile.objects.filter(pk__in=ids | crean).values_list('id', 'user_id')
+            miembros = [(user_id, pid in crean) for pid, user_id in perfiles if user_id != request.user.id]
 
-        if CalendarioCategoria.objects.filter(nombre__iexact=nombre).exists():
-            return JsonResponse({
-                'success': False,
-                'error': 'Ya existe una categoría con ese nombre.'
-            }, status=400)
+        with transaction.atomic():
+            calendario = CalendarioCategoria.objects.create(
+                nombre=nombre,
+                color=color,
+                tipo=tipo,
+                propietario=request.user if personal else None,
+                activo=True,
+            )
+            if miembros:
+                CalendarioMiembro.objects.bulk_create(
+                    [CalendarioMiembro(calendario=calendario, user=request.user, puede_crear=True)]
+                    + [CalendarioMiembro(calendario=calendario, user_id=u, puede_crear=c) for u, c in miembros]
+                )
 
-        categoria = CalendarioCategoria.objects.create(
-            nombre=nombre,
-            color=color or '#2563eb',
-            icono=icono or None,
-            activo=True
-        )
-
-        logger.info(f"Categoría creada: {nombre} por usuario {request.user.username}")
+        logger.info("Calendario %s creado (%s) por %s", calendario.pk, tipo, request.user.username)
 
         return JsonResponse({
             'success': True,
-            'id': categoria.id,
-            'nombre': categoria.nombre,
-            'color': categoria.color,
-            'icono': categoria.icono or '',
-            'message': 'Categoría creada correctamente.'
+            'calendario': {
+                'id': calendario.id,
+                'nombre': calendario.nombre,
+                'color': calendario.color,
+                'tipo': calendario.tipo,
+                'miembros': len(miembros) + 1 if miembros else 0,
+                'puede_crear': True,
+            },
         })
 
+    except (ValueError, TypeError):
+        return JsonResponse({'success': False, 'error': 'Datos no válidos.'}, status=400)
+    except Http404:
+        raise
     except Exception as e:
-        logger.error(f"Error al crear categoría por usuario {request.user.username}: {str(e)}")
-        return JsonResponse({
-            'success': False,
-            'error': 'Error interno del servidor.'
-        }, status=500)
+        logger.error(f"Error al crear calendario por usuario {request.user.username}: {str(e)}")
+        return JsonResponse({'success': False, 'error': 'Error interno del servidor.'}, status=500)
 
 
 @login_required
@@ -768,7 +885,10 @@ def calendario_actividad_reprogramar_json(request, pk):
                 'error': 'ID de actividad inválido.'
             }, status=400)
 
-        actividad = get_object_or_404(CalendarioActividad, pk=pk)
+        actividad = get_object_or_404(actividades_visibles(request.user), pk=pk)
+
+        if not puede_crear_en(request.user, actividad.categoria):
+            return JsonResponse({'success': False, 'error': 'No puedes mover eventos de ese calendario.'}, status=403)
 
         if actividad.es_automatica and not actividad.permite_edicion_manual:
             return JsonResponse({
@@ -781,13 +901,15 @@ def calendario_actividad_reprogramar_json(request, pk):
         fecha_inicio = parse_datetime(payload.get('fecha_inicio') or '')
         fecha_fin = parse_datetime(payload.get('fecha_fin') or '')
 
-        if not fecha_inicio or not fecha_fin:
+        if not fecha_inicio or not fecha_fin or fecha_fin < fecha_inicio:
             return JsonResponse({
                 'success': False,
                 'error': 'Fechas inválidas.'
             }, status=400)
 
         actividad.fecha_inicio = fecha_inicio
+        if 'todo_el_dia' in payload:
+            actividad.todo_el_dia = bool(payload.get('todo_el_dia'))
         actividad.fecha_fin = fecha_fin
         actividad.actualizado_por = request.user
         actividad.save()
@@ -799,6 +921,8 @@ def calendario_actividad_reprogramar_json(request, pk):
             'message': 'Actividad reprogramada correctamente.'
         })
 
+    except Http404:
+        raise
     except Exception as e:
         logger.error(f"Error al reprogramar actividad {pk} por usuario {request.user.username}: {str(e)}")
         return JsonResponse({
@@ -811,7 +935,7 @@ def calendario_actividad_reprogramar_json(request, pk):
 @permiso_requerido('gantt.ver')
 def gantt_dashboard(request):
     proyectos = Proyecto.objects.all().order_by('-fecha_inicio')
-    categorias = CalendarioCategoria.objects.filter(activo=True).order_by('nombre')
+    categorias = calendarios_visibles(request.user)
     trabajadores = TrabajadorProfile.objects.select_related('user').all().order_by('user__username')
 
     context = {
@@ -847,7 +971,7 @@ def gantt_actividades_json(request):
         if proyecto_obj and proyecto_obj.cotizacion_id:
             cotizacion_id_proyecto = proyecto_obj.cotizacion_id
 
-    actividades = CalendarioActividad.objects.filter(
+    actividades = actividades_visibles(request.user).filter(
         es_visible=True,
         fecha_fin__gte=hace_1_ano,
         fecha_inicio__lte=hasta_1_ano,
@@ -908,102 +1032,19 @@ def gantt_actividades_json(request):
             'cliente': nombre_cliente_visible(request.user, actividad.cliente, ve_todos),
             'descripcion': actividad.descripcion or '',
             'tipo': 'actividad',
+            'calendario_id': actividad.categoria_id,
+            'calendario': actividad.categoria.nombre if actividad.categoria_id else 'Sin calendario',
+            'calendario_color': (actividad.categoria.color if actividad.categoria_id else '') or actividad.color_visual or '#2563eb',
         })
 
     if incluir_ensayos:
-        detalles_ensayo = DetalleSolicitudEnsayo.objects.filter(
-            solicitud__fecha_solicitud__gte=hace_1_ano.date(),
-            solicitud__fecha_solicitud__lte=hasta_1_ano.date(),
-        ).select_related(
-            'solicitud',
-            'solicitud__cotizacion',
-            'solicitud__cotizacion__cliente',
-            'muestra',
-            'servicio_cotizado',
-            'servicio_cotizado__servicio',
-            'tecnico_asignado',
-        ).order_by('solicitud__fecha_solicitud', 'id')
-
-        if cotizacion_id_proyecto:
-            detalles_ensayo = detalles_ensayo.filter(solicitud__cotizacion_id=cotizacion_id_proyecto)
-
-        if estado:
-            estado_lower = estado.lower()
-
-            if estado_lower in ['pendiente', 'proceso', 'finalizado']:
-                detalles_ensayo = detalles_ensayo.filter(solicitud__estado=estado_lower)
-
-            elif estado.upper() in ['PROGRAMADA', 'EN_CURSO', 'COMPLETADA', 'CANCELADA', 'REPROGRAMADA', 'VENCIDA']:
-                detalles_ensayo = detalles_ensayo.none()
-
-        if responsable_id:
-            detalles_ensayo = detalles_ensayo.filter(tecnico_asignado_id=responsable_id)
-
-        if not ve_todos:
-            detalles_ensayo = detalles_ensayo.filter(tecnico_asignado__user=request.user)
-
-        colores_ensayos = {
-            'pendiente': '#94a3b8',
-            'proceso': '#f59e0b',
-            'finalizado': '#10b981',
-        }
-
-        for detalle in detalles_ensayo:
-            solicitud = detalle.solicitud
-            inicio_date = solicitud.fecha_solicitud if solicitud and solicitud.fecha_solicitud else hoy
-            fin_date = detalle.fecha_entrega_programada or inicio_date
-            inicio_date, fin_date = normalizar_rango_fechas(inicio_date, fin_date)
-
-            metricas = calcular_metricas_tiempo(inicio_date, fin_date, hoy=hoy)
-
-            estado_val = (solicitud.estado or 'pendiente').lower()
-            color = colores_ensayos.get(estado_val, '#94a3b8')
-
-            cliente_nombre = ''
-
-            if solicitud and solicitud.cotizacion and solicitud.cotizacion.cliente:
-                cliente_nombre = nombre_cliente_visible(request.user, solicitud.cotizacion.cliente, ve_todos)
-
-            muestra_codigo = detalle.muestra.codigo_laboratorio if detalle.muestra else 'Sin muestra'
-
-            if detalle.servicio_cotizado and detalle.servicio_cotizado.servicio:
-                servicio_nombre = detalle.servicio_cotizado.servicio.nombre
-            else:
-                servicio_nombre = detalle.descripcion_ensayo or 'Ensayo'
-
-            responsable_nombre = detalle.tecnico_asignado.nombre_completo if detalle.tecnico_asignado else 'Sin asignar'
-
-            codigo_solicitud = solicitud.codigo_solicitud if solicitud else f'DET-{detalle.id}'
-            nombre_barra = f'{codigo_solicitud} | {muestra_codigo} | {servicio_nombre}'
-
-            data.append({
-                'id': f'ensayo-detalle-{detalle.id}',
-                'db_id': detalle.id,
-                'solicitud_id': solicitud.id if solicitud else None,
-                'name': nombre_barra[:140],
-                'start': inicio_date.strftime('%Y-%m-%d'),
-                'end': fin_date.strftime('%Y-%m-%d'),
-                'progress': metricas['progreso_temporal'],
-                'progreso_temporal': metricas['progreso_temporal'],
-                'duracion_total_dias': metricas['duracion_total_dias'],
-                'dias_transcurridos': metricas['dias_transcurridos'],
-                'dias_restantes': metricas['dias_restantes'],
-                'esta_vencido': metricas['esta_vencido'] and estado_val != 'finalizado',
-                'responsable': responsable_nombre,
-                'responsable_id': detalle.tecnico_asignado_id,
-                'responsable_rol': 'TÉCNICO',
-                'custom_class': f'estado-{estado_val}',
-                'color': color,
-                'estado': estado_val.upper(),
-                'clase': 'ENSAYO',
-                'proyecto': proyecto_obj.nombre_proyecto if proyecto_obj else '',
-                'cliente': cliente_nombre,
-                'descripcion': detalle.descripcion_ensayo or servicio_nombre,
-                'tipo': 'ensayo',
-                'muestra': muestra_codigo,
-                'servicio': servicio_nombre,
-                'codigo_solicitud': codigo_solicitud,
-            })
+        # HU-LIMS-22: estado y avance real por línea (actividades/gantt_ensayos.py).
+        data.extend(lineas_de_ensayo(
+            request.user, ve_todos, hoy,
+            desde=hace_1_ano.date(), hasta=hasta_1_ano.date(),
+            cotizacion_id=cotizacion_id_proyecto,
+            responsable_id=responsable_id,
+        ))
 
     data.sort(key=lambda x: (x['start'], x['name']))
 

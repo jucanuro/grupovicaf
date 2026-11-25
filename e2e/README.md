@@ -16,6 +16,8 @@ en cada PR contra `dev` y `main`, y un PR con una prueba en rojo no se integra.
 | `cotizacion-modal.spec.js` | Formulario de cotización: pasos en pills, estado vacío, agregar y editar el detalle en el modal, asistente completo, celular | REQ-LIMS-53 a 61 |
 | `analisis.spec.js` | Análisis: menú de conjuntos, arrastrar o tocar campos a Filas/Columnas/Valores/Filtros, números en S/, gráficos, Excel, vistas guardadas y permisos | REQ-LIMS-27 a 43 |
 | `web-movil.spec.js` | Web en el celular: Sistema Interno en hero y menú, hero sin capa encima, aviso de bienvenida (1.ª visita, 10 s) | REQ-WEB-74 a 79 |
+| `calendario.spec.js` | Calendario: quién ve qué (equipo, personal, participantes; usuario `e2e.agenda`), solo lectura, bloques lado a lado en la semana, creación rápida arrastrando, formulario en dos paneles con cliente opcional y aviso por correo, calendario personal nuevo | REQ-LIMS-63, 64, 66 a 71 |
+| `gantt.spec.js` | Gantt de ensayos (usuario `e2e.gantt`): agrupado por solicitud con la atrasada primero y «+4 d», cifra de atrasados que filtra, ficha con «Abrir resultados», el técnico `e2e.tecnico.c` solo ve sus líneas, tarjetas en 390 px | REQ-LIMS-74 a 84 |
 
 ## Correr en local (sin Docker)
 

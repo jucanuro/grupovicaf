@@ -377,3 +377,28 @@ class ReglaBloqueo(models.Model):
 
     def __str__(self):
         return f'{self.get_tipo_display()}: {self.valor}'
+
+
+class ReglaPermitido(models.Model):
+    """Remitente o dominio de confianza: su correo entrante no se manda a «No deseado» por puntaje ni por encabezados (un bloqueo expreso sí gana)."""
+    CORREO, DOMINIO = 'correo', 'dominio'
+    TIPOS = [(CORREO, 'Dirección exacta'), (DOMINIO, 'Dominio completo')]
+
+    tipo = models.CharField(max_length=8, choices=TIPOS, default=DOMINIO)
+    valor = models.CharField(max_length=254, help_text='Dirección (x@y.com) o dominio (y.com), sin espacios.')
+    activa = models.BooleanField(default=True)
+    nota = models.CharField(max_length=200, blank=True)
+    creada_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['valor']
+        verbose_name = 'remitente de confianza'
+        verbose_name_plural = 'remitentes de confianza'
+        constraints = [models.UniqueConstraint(fields=['tipo', 'valor'], name='correo_regla_permitido_unica')]
+
+    def save(self, *args, **kwargs):
+        self.valor = (self.valor or '').strip().lower().lstrip('@')
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.get_tipo_display()}: {self.valor}'

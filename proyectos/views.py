@@ -66,7 +66,7 @@ def get_date_or_none(date_string):
 @login_required
 @permiso_requerido('proyectos.ver')
 def lista_proyectos_pendientes(request):
-    """Panel de proyectos (HU-LIMS-19) con pestañas por etapa y filtro por fecha (HU-LIMS-22)."""
+    """Panel de proyectos (HU-LIMS-19) con pestañas por etapa y filtro por fecha (HU-LIMS-25)."""
     proyectos_qs = Proyecto.objects.select_related('cliente', 'cotizacion').filter(
         ~Q(estado__in=['FINALIZADO', 'CANCELADO'])
     )

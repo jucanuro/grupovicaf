@@ -1,4 +1,4 @@
-"""Programa de ensayos del día (HU-LIMS-21, REQ-LIMS-62 a 71).
+"""Programa de ensayos del día (HU-LIMS-24, REQ-LIMS-87 a 96).
 
 El supervisor de ensayos no entrega «una solicitud por recepción»: entrega al
 personal una hoja **por cliente y por día** con todas las probetas que toca
@@ -135,7 +135,7 @@ def lineas_del_dia(user, fecha, hoy):
 
 
 def agrupar_por_cliente(lineas, ve_nombre):
-    """Una «solicitud del día» por cliente (REQ-LIMS-63), en orden de llegada del código.
+    """Una «solicitud del día» por cliente (REQ-LIMS-88), en orden de llegada del código.
 
     El técnico nunca ve el nombre del cliente: se muestra su código confidencial.
     """

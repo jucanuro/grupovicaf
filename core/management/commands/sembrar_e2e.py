@@ -4,6 +4,7 @@ Idempotente: se puede correr las veces que haga falta sobre la misma base y
 deja siempre el mismo estado. Todo lo que crea lleva el marcador E2E:
 
     Usuarios          e2e.jefe (panel de proyectos: todas las etapas), e2e.comercial (crear y editar cotizaciones), e2e.coordinador (con correo.ver y correo.administrar), e2e.tecnico.a, e2e.tecnico.b,
+                      e2e.agenda (calendario completo y clientes: HU-LIMS-21),
                       e2e.recepcion (muestras, calendario, cotizaciones y proyectos: campana,
                       menú lateral, «Nueva recepción» y guardar actividades)
     Roles             'E2E Coordinador', 'E2E Técnico'
@@ -35,7 +36,7 @@ Uso:
 """
 import os
 import uuid
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 from django.conf import settings
@@ -52,6 +53,7 @@ from proyectos.models import (
     MuestraDetalle,
     Proyecto,
     RecepcionMuestra,
+    ResultadoEnsayo,
     SolicitudEnsayo,
     TipoMuestra,
 )
@@ -77,6 +79,14 @@ PERMISOS_JEFE = (
 )
 # Formulario de cotización (asistente de 4 pasos con modal del detalle).
 PERMISOS_COMERCIAL = ('cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.editar', 'clientes.ver')
+# Calendario rediseñado (HU-LIMS-21): ve clientes, crea, edita y elimina.
+PERMISOS_AGENDA = (
+    'calendario.ver', 'calendario.crear', 'calendario.editar', 'calendario.eliminar',
+    'ensayos.ver_todos', 'clientes.ver',
+)
+# Gantt de ensayos (HU-LIMS-22): ve todos los ensayos y el Gantt.
+PERMISOS_GANTT = ('gantt.ver', 'ensayos.ver', 'ensayos.ver_todos', 'calendario.ver')
+CLIENTE_AGENDA = {'ruc': '20999999995', 'razon_social': 'Minera Agenda E2E SAC', 'correo': 'agenda@e2e.invalid'}
 PERMISOS_RECEPCION = (
     'muestras.ver', 'muestras.crear', 'calendario.ver', 'calendario.crear', 'calendario.editar',
     'cotizaciones.ver', 'proyectos.ver',
@@ -100,6 +110,8 @@ class Command(BaseCommand):
             self._datos_dashboard(coordinador, tecnico_a)
             self._datos_analisis()
             self._proyecto_avance(coordinador)
+            self._calendario(tecnico_a)
+            self._gantt_ensayos(coordinador, password)
 
         self.stdout.write(self.style.SUCCESS('Datos E2E listos.'))
 
@@ -142,7 +154,60 @@ class Command(BaseCommand):
         self._trabajador('e2e.recepcion', self._rol('E2E Recepción', PERMISOS_RECEPCION), 'Recepción E2E', password)
         self._trabajador('e2e.jefe', self._rol('E2E Jefe de laboratorio', PERMISOS_JEFE), 'Jefe E2E', password)
         self._trabajador('e2e.comercial', self._rol('E2E Comercial', PERMISOS_COMERCIAL), 'Comercial E2E', password)
+        self._trabajador('e2e.agenda', self._rol('E2E Agenda', PERMISOS_AGENDA), 'Agenda E2E', password)
         return coordinador, tecnico_a
+
+    def _calendario(self, tecnico_a):
+        """Calendarios y actividades de la semana actual para HU-LIMS-21.
+
+        - «Supervisión E2E» (equipo con miembros: e2e.agenda crea, e2e.recepcion ve).
+        - «Laboratorio E2E» (equipo sin miembros: lo ven todos).
+        - «Casa E2E» (personal de e2e.agenda).
+        """
+        from actividades.models import CalendarioActividad, CalendarioCategoria, CalendarioMiembro, CalendarioParticipante
+
+        agenda = User.objects.get(username='e2e.agenda')
+        recepcion = User.objects.get(username='e2e.recepcion')
+        # El evento privado lo crea otra persona: e2e.agenda no debe verlo.
+        coordinador = User.objects.get(username='e2e.coordinador')
+        Cliente.objects.update_or_create(
+            ruc=CLIENTE_AGENDA['ruc'],
+            defaults={'razon_social': CLIENTE_AGENDA['razon_social'], 'correo_contacto': CLIENTE_AGENDA['correo']},
+        )
+        supervision, _ = CalendarioCategoria.objects.update_or_create(
+            nombre='Supervisión E2E', tipo='EQUIPO', defaults={'color': '#7c3aed', 'activo': True},
+        )
+        CalendarioMiembro.objects.update_or_create(calendario=supervision, user=agenda, defaults={'puede_crear': True})
+        CalendarioMiembro.objects.update_or_create(calendario=supervision, user=recepcion, defaults={'puede_crear': False})
+        laboratorio, _ = CalendarioCategoria.objects.update_or_create(
+            nombre='Laboratorio E2E', tipo='EQUIPO', defaults={'color': '#0891b2', 'activo': True},
+        )
+        casa, _ = CalendarioCategoria.objects.update_or_create(
+            nombre='Casa E2E', tipo='PERSONAL', propietario=agenda, defaults={'color': '#ea580c', 'activo': True},
+        )
+
+        lunes = timezone.localdate() - timedelta(days=timezone.localdate().weekday())
+        def momento(dia, hora, minuto=0):
+            return timezone.make_aware(datetime.combine(lunes + timedelta(days=dia), time(hora, minuto)))
+
+        eventos = [
+            ('Revisión E2E de informes', supervision, 1, (10, 0), (11, 0), None),
+            ('Coordinación E2E privada', laboratorio, 2, (9, 0), (10, 0), tecnico_a),
+            ('Asunto personal E2E', casa, 3, (18, 0), (19, 0), None),
+            ('Triaxial E2E largo', laboratorio, 0, (8, 0), (13, 0), None),
+            ('Seguimiento E2E corto', laboratorio, 0, (8, 30), (9, 0), None),
+        ]
+        CalendarioActividad.objects.filter(titulo__in=[e[0] for e in eventos]).delete()
+        # Lo que crean las pruebas E2E en corridas anteriores.
+        CalendarioActividad.objects.filter(titulo__contains=' E2E ', creado_por__in=(agenda, recepcion)).delete()
+        for titulo, calendario, dia, ini, fin, participante in eventos:
+            actividad = CalendarioActividad.objects.create(
+                titulo=titulo, categoria=calendario, clase='REUNION', estado='PROGRAMADA', prioridad='MEDIA',
+                fecha_inicio=momento(dia, *ini), fecha_fin=momento(dia, *fin),
+                creado_por=coordinador if participante else agenda,
+            )
+            if participante:
+                CalendarioParticipante.objects.create(actividad=actividad, trabajador=participante, rol='RESPONSABLE')
 
     def _catalogo_web(self):
         categoria, _ = CategoriaServicio.objects.get_or_create(nombre='E2E Mecánica de Suelos')
@@ -381,6 +446,95 @@ class Command(BaseCommand):
                 'fecha_entrega_programada': date(2099, 1, 1),
             },
         )
+
+    def _gantt_ensayos(self, coordinador, password):
+        """Solicitudes con líneas en cada estado, fechadas respecto de hoy (e2e/gantt.spec.js).
+
+        SOL-E2E-G01: dos líneas terminadas. SOL-E2E-G02: una en registro atrasada
+        4 días, una terminada y una devuelta. SOL-E2E-G03: dos sin empezar.
+        """
+        hoy = timezone.localdate()
+        self._trabajador('e2e.gantt', self._rol('E2E Gantt', PERMISOS_GANTT), 'Jefa Gantt E2E', password)
+        # REQ-LIMS-82: el técnico entra al Gantt y ve solo sus líneas.
+        rol_tecnico = self._rol('E2E Técnico Gantt', (*PERMISOS_TECNICO, 'gantt.ver'))
+        daniela = self._trabajador('e2e.tecnico.c', rol_tecnico, 'Daniela Torres E2E', password)
+        carlos = self._trabajador('e2e.tecnico.d', rol_tecnico, 'Carlos Mendoza E2E', password)
+        cliente = Cliente.objects.get(ruc='20999999991')
+        cotizacion, _ = Cotizacion.objects.update_or_create(
+            numero_oferta='COT-E2E-GANTT',
+            defaults={
+                'cliente': cliente, 'estado': 'Aceptada', 'fecha_generacion': hoy - timedelta(days=25),
+                'asunto_servicio': 'Ensayos de suelos Gantt E2E', 'persona_contacto': 'Ana E2E',
+                'correo_contacto': 'ana@e2e.invalid', 'telefono_contacto': '999999991',
+            },
+        )
+        grupo, _ = CotizacionGrupo.objects.get_or_create(cotizacion=cotizacion, nombre_grupo='Suelos')
+        detalle_cot, _ = CotizacionDetalle.objects.update_or_create(
+            grupo=grupo, servicio=Servicio.objects.get(codigo_facturacion='E2E-001'),
+            defaults={'descripcion_especifica': 'Ensayo de suelos', 'precio_unitario': Decimal('50.00'), 'cantidad': 7},
+        )
+        tipo_muestra = TipoMuestra.objects.get(nombre='Suelo E2E')
+        terminado, aprobado = ResultadoEnsayo.ESTADO_TERMINADO, ResultadoEnsayo.ESTADO_APROBADO
+        borrador = ResultadoEnsayo.ESTADO_BORRADOR
+        # (solicitud, días desde hoy de la solicitud, [(muestra, ensayo, técnico, entrega, estado, devuelto)])
+        plan = (
+            ('SOL-E2E-G01', -20, [
+                ('Gantt 1', 'Contenido de humedad', daniela, -12, terminado, False),
+                ('Gantt 2', 'Límites de Atterberg', daniela, -10, aprobado, False),
+            ]),
+            ('SOL-E2E-G02', -18, [
+                ('Gantt 3', 'Análisis granulométrico', carlos, -4, borrador, False),
+                ('Gantt 4', 'Contenido de humedad', daniela, -9, terminado, False),
+                ('Gantt 5', 'Proctor modificado', carlos, 3, borrador, True),
+            ]),
+            ('SOL-E2E-G03', -7, [
+                ('Gantt 6', 'CBR', carlos, 5, None, False),
+                ('Gantt 7', 'Corte directo', daniela, 12, None, False),
+            ]),
+        )
+        for codigo, desfase, lineas in plan:
+            # Cada solicitud tiene su propia recepción (relación uno a uno).
+            recepcion = RecepcionMuestra.objects.filter(solicitud_ensayo__codigo_solicitud=codigo).first()
+            if recepcion is None:
+                recepcion = RecepcionMuestra.objects.create(
+                    cotizacion=cotizacion, procedencia='Cajamarca', responsable_cliente='Ana E2E',
+                    telefono='999999991', responsable_recepcion=coordinador.user,
+                )
+            solicitud, _ = SolicitudEnsayo.objects.update_or_create(
+                codigo_solicitud=codigo,
+                defaults={
+                    'recepcion': recepcion, 'cotizacion': cotizacion,
+                    'estado': 'finalizado' if all(l[4] in (terminado, aprobado) for l in lineas) else 'proceso',
+                    'fecha_solicitud': hoy + timedelta(days=desfase),
+                    'fecha_entrega_programada': hoy + timedelta(days=max(l[3] for l in lineas)),
+                    'elaborado_por': coordinador,
+                },
+            )
+            for descripcion, ensayo, tecnico, entrega, estado, devuelto in lineas:
+                muestra, _ = MuestraDetalle.objects.get_or_create(
+                    recepcion=recepcion, descripcion=descripcion,
+                    defaults={'tipo_muestra': tipo_muestra, 'masa_aprox': Decimal('5.00')},
+                )
+                detalle, _ = DetalleSolicitudEnsayo.objects.update_or_create(
+                    solicitud=solicitud, muestra=muestra,
+                    defaults={
+                        'servicio_cotizado': detalle_cot, 'descripcion_ensayo': ensayo, 'norma': 'MTC E 1XX',
+                        'tecnico_asignado': tecnico, 'fecha_entrega_programada': hoy + timedelta(days=entrega),
+                    },
+                )
+                if estado is None:
+                    ResultadoEnsayo.objects.filter(detalle=detalle).delete()
+                    continue
+                ResultadoEnsayo.objects.update_or_create(
+                    detalle=detalle,
+                    defaults={
+                        'plantilla': ResultadoEnsayo.PLANTILLA_GENERAL, 'estado': estado,
+                        'fecha_ensayo': hoy - timedelta(days=3) if estado != borrador else hoy,
+                        'resumen': 'Resultado E2E' if estado != borrador or not devuelto else '',
+                        'observacion_revision': 'Revisar la hoja de cálculo' if devuelto else '',
+                        'tecnico': tecnico,
+                    },
+                )
 
     def _datos_analisis(self):
         """Datos de la tabla dinámica (e2e/analisis.spec.js), en febrero de 2001

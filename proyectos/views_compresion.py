@@ -188,7 +188,7 @@ def registrar_ensayo_compresion(request, detalle_id):
     if desde_solicitud:
         url += '?desde=solicitud'
     elif desde == 'programa':
-        # Desde la hoja del programa del día (HU-LIMS-21): al terminar vuelve a ella.
+        # Desde la hoja del programa del día (HU-LIMS-24): al terminar vuelve a ella.
         fecha_programa = programa.leer_fecha(request.GET.get('fecha'), None)
         cliente_programa = request.GET.get('cliente') or ''
         if fecha_programa and cliente_programa.isdigit():
@@ -1024,7 +1024,7 @@ def redirigir_compresion(request, resto):
 
 
 # ---------------------------------------------------------------------------
-# Programa de ensayos del día (HU-LIMS-21): una hoja por cliente y por día.
+# Programa de ensayos del día (HU-LIMS-24): una hoja por cliente y por día.
 # ---------------------------------------------------------------------------
 
 def _hoja_cliente(request, fecha, cliente_id):
@@ -1039,7 +1039,7 @@ def _hoja_cliente(request, fecha, cliente_id):
 @login_required
 @permiso_requerido('ensayos.ver')
 def programa_dia(request):
-    """Programa del día: por cliente, las probetas que tocan romper (REQ-LIMS-62 a 65)."""
+    """Programa del día: por cliente, las probetas que tocan romper (REQ-LIMS-87 a 65)."""
     hoy = timezone.localdate()
     fecha = programa.leer_fecha(request.GET.get('fecha'), hoy)
     ve_todos = ve_todos_los_ensayos(request.user)
@@ -1068,7 +1068,7 @@ def programa_dia(request):
 @login_required
 @permiso_requerido('ensayos.ver')
 def programa_cliente(request, fecha, cliente_id):
-    """La «solicitud del día» de un cliente: lista para imprimir y para trabajar (REQ-LIMS-66 a 70)."""
+    """La «solicitud del día» de un cliente: lista para imprimir y para trabajar (REQ-LIMS-91 a 70)."""
     fecha = programa.leer_fecha(fecha, None)
     if fecha is None:
         raise Http404("Fecha no válida.")

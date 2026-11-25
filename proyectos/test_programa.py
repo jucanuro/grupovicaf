@@ -1,5 +1,5 @@
-"""Programa de ensayos del día (HU-LIMS-21, REQ-LIMS-62 a 71) y pestañas del
-panel de proyectos (HU-LIMS-22, REQ-LIMS-72 a 77)."""
+"""Programa de ensayos del día (HU-LIMS-24, REQ-LIMS-87 a 96) y pestañas del
+panel de proyectos (HU-LIMS-25, REQ-LIMS-97 a 102)."""
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -72,7 +72,7 @@ class FechaPrevistaTests(ProgramaBase):
 class ProgramaDiaTests(ProgramaBase):
 
     def test_junta_probetas_de_varias_solicitudes_y_edades_en_una_hoja_por_cliente(self):
-        """REQ-LIMS-62/63: la de 28 días y la de 7 días de otra recepción van juntas."""
+        """REQ-LIMS-87/63: la de 28 días y la de 7 días de otra recepción van juntas."""
         otra = self.segunda_recepcion(7, self.ayer - timedelta(days=7))
         self.client.force_login(self.user_sup)
         r = self.client.get(reverse('proyectos:programa_dia'), {'fecha': self.ayer.isoformat()})
@@ -85,14 +85,14 @@ class ProgramaDiaTests(ProgramaBase):
         self.assertContains(r, 'Constructora Secreta SAC')
 
     def test_solo_compresion(self):
-        """REQ-LIMS-62: el Proctor no entra al programa de rotura."""
+        """REQ-LIMS-87: el Proctor no entra al programa de rotura."""
         self.client.force_login(self.user_sup)
         r = self.client.get(reverse('proyectos:programa_dia'), {'fecha': self.ayer.isoformat()})
         pks = {d.pk for g in r.context['grupos'] for d in g['lineas']}
         self.assertNotIn(self.proctor.pk, pks)
 
     def test_el_tecnico_ve_lo_suyo_y_el_codigo_del_cliente_no_su_nombre(self):
-        """REQ-LIMS-64."""
+        """REQ-LIMS-89."""
         self.client.force_login(self.user_tec)
         r = self.client.get(reverse('proyectos:programa_dia'), {'fecha': self.ayer.isoformat()})
         pks = {d.pk for g in r.context['grupos'] for d in g['lineas']}
@@ -101,7 +101,7 @@ class ProgramaDiaTests(ProgramaBase):
         self.assertNotContains(r, 'Constructora Secreta')
 
     def test_hoy_muestra_las_atrasadas(self):
-        """RN-13 / REQ-LIMS-65."""
+        """RN-13 / REQ-LIMS-90."""
         self.client.force_login(self.user_sup)
         r = self.client.get(reverse('proyectos:programa_dia'))
         self.assertEqual(r.context['atrasadas'], 2)
@@ -141,7 +141,7 @@ class HojaClienteTests(ProgramaBase):
         return reverse('proyectos:programa_cliente', args=[(fecha or self.ayer).isoformat(), self.cliente.pk])
 
     def test_hoja_lista_datos_del_cliente_y_enlaza_el_registro_con_regreso(self):
-        """REQ-LIMS-66/68."""
+        """REQ-LIMS-91/68."""
         self.client.force_login(self.user_sup)
         r = self.client.get(self.url())
         self.assertEqual(r.status_code, 200)
@@ -152,7 +152,7 @@ class HojaClienteTests(ProgramaBase):
         self.assertContains(r, f'{self.url_registro(self.mia)}?desde=programa&amp;fecha={self.ayer.isoformat()}')
 
     def test_el_registro_vuelve_a_la_hoja(self):
-        """REQ-LIMS-68."""
+        """REQ-LIMS-93."""
         self.client.force_login(self.user_tec)
         r = self.client.get(self.url_registro(self.mia),
                             {'desde': 'programa', 'fecha': self.ayer.isoformat(), 'cliente': self.cliente.pk})
@@ -170,7 +170,7 @@ class HojaClienteTests(ProgramaBase):
         self.assertContains(r, 'data-atrasada')
 
     def test_medir_todas_de_varias_solicitudes_con_trazabilidad(self):
-        """REQ-LIMS-67/69: un solo formulario guarda las medidas de dos solicitudes."""
+        """REQ-LIMS-92/69: un solo formulario guarda las medidas de dos solicitudes."""
         otra = self.segunda_recepcion(7, self.ayer - timedelta(days=7))
         self.client.force_login(self.user_sup)
         url = reverse('proyectos:programa_medidas', args=[self.ayer.isoformat(), self.cliente.pk])
@@ -208,7 +208,7 @@ class HojaClienteTests(ProgramaBase):
 class PestanasPanelTests(AvanceMixin, TestCase):
 
     def test_cada_proyecto_en_una_pestana_y_filtra(self):
-        """REQ-LIMS-72/73."""
+        """REQ-LIMS-97/73."""
         por_registrar = self._proyecto(3)
         en_ensayo = self._proyecto(2)
         rec, muestras = self._recepcion(en_ensayo, 2)
@@ -233,7 +233,7 @@ class PestanasPanelTests(AvanceMixin, TestCase):
         self.assertEqual([p.pk for p in r.context['proyectos_pendientes']], [por_registrar.pk])
 
     def test_filtro_por_fecha_de_inicio(self):
-        """REQ-LIMS-74/75."""
+        """REQ-LIMS-99/75."""
         viejo = self._proyecto(1)
         viejo.fecha_inicio = date.today() - timedelta(days=60)
         viejo.save(update_fields=['fecha_inicio'])

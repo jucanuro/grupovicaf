@@ -13,12 +13,12 @@
     'use strict';
 
     var M = window.AnalisisMotor;
-    // Paleta categórica validada (specs/VCF-LIMS/design.md, skill dataviz), orden fijo.
-    var SERIES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6', '#e34948'];
-    var GRIS_OTROS = '#8a8984';
-    // Modo oscuro (static/js/tema.js): bordes, rejilla y leyenda sobre la superficie oscura.
-    function oscuro() { return document.documentElement.classList.contains('dark'); }
-    function colorSuperficie() { return oscuro() ? '#111a2b' : '#fff'; }
+    // Paleta categórica validada en claro y oscuro, orden fijo: tema común
+    // static/js/graficos_tema.js (REQ-LIMS-85).
+    var G = window.VicafGraficos;
+    var SERIES = G.paleta().series;   // se relee en cada dibujo (claro u oscuro)
+    var GRIS_OTROS = G.paleta().otros;
+    function colorSuperficie() { return G.paleta().superficie; }
     var MAX_CATEGORIAS = 20;   // CA-07.3
     var MAX_PORCIONES = 7;
     var MAX_VALORES = 4;
@@ -418,6 +418,8 @@
     }
 
     function pintarGrafico(r) {
+        SERIES = G.paleta().series;
+        GRIS_OTROS = G.paleta().otros;
         var d = estado.disp;
         var v = d.valores[0];
         var aditivo = M.esAditivo(v[1]);
@@ -503,11 +505,16 @@
         });
         var horizontal = !lineas && !porTiempo;
         var entero = v[1] === 'conteo' || (aditivo && tipoDe(v[0]) === 'cantidad');
-        var ejeValor = {
-            stacked: apilar, beginAtZero: true, grid: { color: oscuro() ? '#243146' : '#eef2f6' },
-            ticks: { color: oscuro() ? '#94a3b8' : undefined, precision: entero ? 0 : undefined, callback: function (x) { return fmt(v, x, true); } }
-        };
-        var ejeCategoria = { stacked: apilar, grid: { display: false }, ticks: { color: oscuro() ? '#94a3b8' : undefined, autoSkip: !horizontal } };
+        var base = G.ejes({ apilado: apilar, decimales: !entero });
+        var ejeValor = base.y;
+        ejeValor.ticks.callback = function (x) { return fmt(v, x, true); };
+        var ejeCategoria = base.x;
+        ejeCategoria.ticks.autoSkip = !horizontal;
+        if (horizontal) {
+            // En barras horizontales la rejilla va en vertical y el borde en el eje de categorías.
+            ejeValor.border = { display: false };
+            ejeCategoria.border = { color: G.paleta().eje };
+        }
         if (horizontal) {
             var alto = 56 + etiquetas.length * (apilar || series.length === 1 ? 30 : 14 * series.length + 10);
             contenedor.querySelector('.an-grafico-lienzo').style.height = Math.max(240, Math.min(760, alto)) + 'px';
@@ -527,8 +534,8 @@
         var base = {
             responsive: true, maintainAspectRatio: false, animation: false,
             plugins: {
-                legend: { labels: { boxWidth: 12, boxHeight: 12, color: oscuro() ? '#cbd5e1' : '#334155' } },
-                tooltip: {
+                legend: { labels: { color: G.paleta().textoFuerte } },
+                tooltip: G.ficha({
                     callbacks: {
                         label: function (ctx) {
                             var x = dona ? ctx.parsed : (ctx.chart.options.indexAxis === 'y' ? ctx.parsed.x : ctx.parsed.y);
@@ -540,7 +547,7 @@
                             return texto;
                         }
                     }
-                }
+                })
             }
         };
         Object.keys(extra).forEach(function (k) {

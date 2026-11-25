@@ -558,6 +558,11 @@ a.adjunto:hover { border-color: var(--acento); background: var(--acento-suave); 
 .adjunto svg { width: 16px; height: 16px; flex: none; color: var(--tinta-3); }
 .adjunto__nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 240px; color: inherit; text-decoration: none; }
 .adjunto__peso { color: var(--tinta-3); font-size: 11.5px; }
+.adjunto-fila { display: inline-flex; align-items: stretch; gap: 4px; }
+.adjunto--info { cursor: default; }
+.adjunto__accion { display: inline-flex; align-items: center; gap: 4px; padding: 0 10px; border: 1px solid var(--linea); border-radius: 6px; font-size: 12.5px; font-weight: 600; color: var(--acento); text-decoration: none; background: var(--blanco); }
+.adjunto__accion svg { width: 14px; height: 14px; }
+.adjunto__accion:hover { border-color: var(--acento); background: var(--acento-suave); }
 
 .hilo__lado { display: grid; gap: 10px; position: sticky; top: 0; }
 .tarjeta-lado { padding: 12px 14px; background: var(--blanco); border: 1px solid var(--linea); border-radius: 8px; }

@@ -154,6 +154,26 @@ class ComercialTests(DatosDashboardMixin, TestCase):
         self.assertEqual((septiembre['aceptadas'], septiembre['en_gestion'], septiembre['perdidas']), (1, 1, 0))
         self.assertEqual((octubre['aceptadas'], octubre['en_gestion'], octubre['perdidas']), (0, 1, 2))
 
+    def test_minigraficos_por_mes_del_periodo(self):
+        """REQ-LIMS-86: cotizaciones y tasa de aceptación tienen un punto por mes."""
+        self._cot('Aceptada', date(2026, 9, 2))
+        self._cot('Rechazada', date(2026, 9, 3))
+        self._cot('Anulada', date(2026, 10, 2))  # no cuenta para la tasa (RN-03)
+        self._cot('Aceptada', date(2026, 10, 3))
+
+        comercial = self._dashboard()['comercial']
+
+        self.assertEqual(comercial['emitidas_por_mes'], [0, 0, 0, 2, 2, 0])
+        self.assertEqual(comercial['tasa_por_mes'], [None, None, None, 50, 100, None])
+        self.assertEqual(len(comercial['sparkline']['puntos'].split()), 6)
+        self.assertEqual(len(comercial['sparkline_tasa']['puntos'].split()), 2)  # solo meses con decididas
+
+    def test_periodo_de_un_mes_no_tiene_minigrafico(self):
+        self._cot('Aceptada', date(2026, 11, 2))
+        comercial = self._dashboard({'periodo': 'mes'})['comercial']
+        self.assertIsNone(comercial['sparkline'])
+        self.assertIsNone(comercial['sparkline_tasa'])
+
     def test_diferencia_contra_el_periodo_anterior(self):
         for _ in range(3):
             self._cot('Pendiente', date(2026, 11, 2))
@@ -284,6 +304,7 @@ class VistaDashboardTests(DatosDashboardMixin, TestCase):
             self.assertIn(kpi, html)
         self.assertNotIn('del objetivo', html)
         self.assertIn('vendor/chartjs/chart.umd.js', html)
+        self.assertIn('js/graficos_tema.js', html)  # REQ-LIMS-85
         self.assertNotIn('cdn.jsdelivr.net/npm/chart.js', html)
         self.assertNotIn('@phosphor-icons', html)
         self.assertIn('id="dashboard-datos"', html)
@@ -304,4 +325,7 @@ class VistaDashboardTests(DatosDashboardMixin, TestCase):
 
         informes = self._dashboard()['informes']
 
-        self.assertEqual(informes, {'por_enviar': 1, 'emitidos_periodo': 1})
+        self.assertEqual((informes['por_enviar'], informes['emitidos_periodo']), (1, 1))
+        # REQ-LIMS-86: un punto por mes del periodo (jun a nov), octubre con el informe.
+        self.assertEqual(informes['emitidos_por_mes'], [0, 0, 0, 0, 1, 0])
+        self.assertTrue(informes['sparkline']['puntos'])
