@@ -76,7 +76,7 @@
             f.sel = (g.sel || []).filter(function (id) { return muestraPorId(id); });
             f.tecnico = g.tecnico || ''; f.fecha = g.fecha || '';
         });
-        if (e.incidencias && e.incidencias.length) { incidencias = e.incidencias; }
+        if (e.incidencias && e.incidencias.length) { incidencias = e.incidencias; incAbierta = -1; }
         pintarFilas(); pintarIncidencias(); resumen();
     }
 
@@ -366,8 +366,11 @@
     function pintarPrevias() {
         var c = $('se-inc-previas'); c.textContent = '';
         previas.forEach(function (i) {
-            var d = el('div', 'rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs');
-            d.appendChild(el('p', 'font-bold text-slate-700 whitespace-pre-line', i.detalle));
+            var d = el('button', 'block w-full text-left rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs');
+            d.type = 'button';
+            var pd = el('p', 'font-bold text-slate-700 whitespace-pre-line line-clamp-2', i.detalle);
+            d.addEventListener('click', function () { pd.classList.toggle('line-clamp-2'); });
+            d.appendChild(pd);
             d.appendChild(el('p', 'text-[11px] text-slate-500 mt-0.5', [i.fecha, i.cliente && ('Cliente: ' + i.cliente), i.responsable && ('Lab: ' + i.responsable), i.autorizada ? 'Autorizada' : 'Sin autorizar'].filter(Boolean).join(' · ')));
             c.appendChild(d);
         });
@@ -382,29 +385,58 @@
         var w = el('div', ''); w.appendChild(el('span', 'se-label', etiqueta)); w.appendChild(nodo); return w;
     }
 
+    var incAbierta = -1;     // índice de la incidencia desplegada (una a la vez)
+
+    function resumenFecha(v) {
+        if (!v) return '';
+        var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}:\d{2})/.exec(v);
+        return m ? m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] : v;
+    }
+
     function pintarIncidencias() {
         var c = $('se-inc-lista'); c.textContent = '';
         incidencias.forEach(function (inc, idx) {
-            var caja = el('div', 'rounded-xl border border-slate-200 p-3 space-y-2');
-            var ta = el('textarea', 'se-campo'); ta.rows = 3; ta.placeholder = 'Detalle de la incidencia…'; ta.value = inc.detalle || '';
-            ta.addEventListener('input', function () { inc.detalle = ta.value; cambio(); });
-            var fe = el('input', 'se-campo'); fe.type = 'datetime-local'; fe.value = inc.fecha || ahoraLocal();
-            inc.fecha = fe.value;
-            fe.addEventListener('change', function () { inc.fecha = fe.value; cambio(); });
-            var cl = el('input', 'se-campo'); cl.placeholder = 'Representante del cliente'; cl.value = inc.cliente || '';
-            cl.addEventListener('input', function () { inc.cliente = cl.value; cambio(); });
-            var rs = el('select', 'se-campo'); opcionesTecnico(rs, inc.responsable, '— Responsable lab (JL/SL) —');
-            rs.addEventListener('change', function () { inc.responsable = rs.value; cambio(); });
-            var pie = el('div', 'flex items-center justify-between');
-            var au = el('label', 'flex items-center gap-2 text-[11px] font-black uppercase text-slate-600');
-            var ck = document.createElement('input'); ck.type = 'checkbox'; ck.checked = !!inc.autorizada;
-            ck.addEventListener('change', function () { inc.autorizada = ck.checked; cambio(); });
-            au.appendChild(ck); au.appendChild(document.createTextNode('Autorizar'));
-            var q = el('button', 'p-1.5 text-slate-400 hover:text-rose-600'); q.type = 'button'; q.setAttribute('aria-label', 'Quitar incidencia');
-            var ic = document.createElement('i'); ic.setAttribute('data-lucide', 'trash-2'); ic.className = 'w-4 h-4'; q.appendChild(ic);
-            q.addEventListener('click', function () { incidencias.splice(idx, 1); pintarIncidencias(); cambio(); });
-            pie.appendChild(au); pie.appendChild(q);
-            [ta, campoInc('Fecha y hora', fe), campoInc('Cliente', cl), campoInc('Responsable', rs), pie].forEach(function (n) { caja.appendChild(n); });
+            var abierta = idx === incAbierta;
+            var caja = el('div', 'rounded-xl border ' + (abierta ? 'border-blue-300 shadow-sm' : 'border-slate-200') + ' bg-white');
+            var cab = el('button', 'w-full flex items-start gap-2 px-3 py-2.5 text-left');
+            cab.type = 'button'; cab.setAttribute('aria-expanded', abierta ? 'true' : 'false');
+            cab.appendChild(el('span', 'text-[10px] font-mono text-slate-400 pt-0.5', String(previas.length + idx + 1).padStart(2, '0')));
+            var cuerpoCab = el('span', 'flex-1 min-w-0');
+            var titulo = (inc.detalle || '').trim() || 'Incidencia sin detalle';
+            var tituloEl = el('span', 'block text-xs font-bold text-slate-800 ' + (abierta ? 'whitespace-pre-line' : 'truncate'), titulo);
+            cuerpoCab.appendChild(tituloEl);
+            if (!abierta) cuerpoCab.appendChild(el('span', 'block text-[11px] text-slate-500 truncate',
+                [resumenFecha(inc.fecha), inc.cliente && ('Cliente: ' + inc.cliente), inc.autorizada ? 'Autorizada' : ''].filter(Boolean).join(' · ')));
+            cab.appendChild(cuerpoCab);
+            var fl = document.createElement('i'); fl.setAttribute('data-lucide', abierta ? 'chevron-up' : 'chevron-down'); fl.className = 'w-4 h-4 text-slate-400 shrink-0 mt-0.5';
+            cab.appendChild(fl);
+            cab.addEventListener('click', function () { incAbierta = abierta ? -1 : idx; pintarIncidencias(); });
+            caja.appendChild(cab);
+
+            if (abierta) {
+                var cuerpo = el('div', 'px-3 pb-3 space-y-2 border-t border-slate-100 pt-3');
+                var ta = el('textarea', 'se-campo'); ta.rows = 3; ta.placeholder = 'Detalle de la incidencia…'; ta.value = inc.detalle || '';
+                ta.addEventListener('input', function () { inc.detalle = ta.value; tituloEl.textContent = ta.value.trim() || 'Incidencia sin detalle'; cambio(); });
+                var fe = el('input', 'se-campo'); fe.type = 'datetime-local'; fe.value = inc.fecha || ahoraLocal();
+                inc.fecha = fe.value;
+                fe.addEventListener('change', function () { inc.fecha = fe.value; cambio(); });
+                var cl = el('input', 'se-campo'); cl.placeholder = 'Representante del cliente'; cl.value = inc.cliente || '';
+                cl.addEventListener('input', function () { inc.cliente = cl.value; cambio(); });
+                var rs = el('select', 'se-campo'); opcionesTecnico(rs, inc.responsable, '— Responsable lab (JL/SL) —');
+                rs.addEventListener('change', function () { inc.responsable = rs.value; cambio(); });
+                var pie = el('div', 'flex items-center justify-between');
+                var au = el('label', 'flex items-center gap-2 text-[11px] font-black uppercase text-slate-600');
+                var ck = document.createElement('input'); ck.type = 'checkbox'; ck.checked = !!inc.autorizada;
+                ck.addEventListener('change', function () { inc.autorizada = ck.checked; cambio(); });
+                au.appendChild(ck); au.appendChild(document.createTextNode('Autorizar'));
+                var q = el('button', 'p-1.5 text-slate-400 hover:text-rose-600'); q.type = 'button'; q.setAttribute('aria-label', 'Quitar incidencia');
+                var ic = document.createElement('i'); ic.setAttribute('data-lucide', 'trash-2'); ic.className = 'w-4 h-4'; q.appendChild(ic);
+                q.addEventListener('click', function () { incidencias.splice(idx, 1); incAbierta = -1; pintarIncidencias(); cambio(); });
+                pie.appendChild(au); pie.appendChild(q);
+                [ta, campoInc('Fecha y hora', fe), campoInc('Cliente', cl), campoInc('Responsable', rs), pie].forEach(function (n) { cuerpo.appendChild(n); });
+                caja.appendChild(cuerpo);
+                setTimeout(function () { if (!inc.detalle) ta.focus(); }, 0);
+            }
             c.appendChild(caja);
         });
         vacioIncidencias();
@@ -413,8 +445,9 @@
 
     $('se-inc-agregar').addEventListener('click', function () {
         incidencias.push({ detalle: '', fecha: ahoraLocal(), cliente: '', responsable: '', autorizada: false });
+        incAbierta = incidencias.length - 1;      // la nueva se abre y las demás se pliegan
         pintarIncidencias(); cambio();
-        var t = $('se-inc-lista').querySelector('textarea:last-of-type'); if (t) t.focus();
+        var lista = $('se-inc-lista'); if (lista.parentNode) lista.parentNode.scrollTop = lista.parentNode.scrollHeight;
     });
 
     /* ---------- Cabecera: plazo → entrega, cotización ---------- */
