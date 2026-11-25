@@ -35,6 +35,28 @@
     .camara-disparo { width: 68px; height: 68px; border-radius: 999px; border: 4px solid #fff; background: transparent; padding: 4px; }
     .camara-disparo span { display: block; width: 100%; height: 100%; border-radius: 999px; background: #fff; transition: transform .1s; }
     .camara-disparo:active span { transform: scale(.85); }
+    /* Pantalla única de registro (HU-LIMS-36): en PC formulario y fotos lado a lado; en celular y tablet, una a la vez. */
+    .reg-switch { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; position: sticky; top: .5rem; z-index: 30; }
+    .reg-switch button { display: flex; align-items: center; justify-content: center; gap: .4rem; padding: .8rem .5rem; border-radius: .9rem;
+                         font-weight: 800; font-size: .85rem; white-space: nowrap; background: #fff; border: 2px solid #e2e8f0; color: #334155; box-shadow: 0 4px 10px -6px rgba(15,23,42,.4); }
+    .reg-switch button[aria-selected="true"] { background: #2563eb; border-color: #2563eb; color: #fff; }
+    .reg-switch .reg-cuenta { font-size: .75rem; background: rgba(15,23,42,.12); border-radius: 999px; padding: .05rem .5rem; }
+    .reg-switch button[aria-selected="true"] .reg-cuenta { background: rgba(255,255,255,.25); }
+    @media (min-width: 1024px) {
+        .reg-cuerpo { display: grid; grid-template-columns: minmax(0, 1fr) 27rem; gap: 1rem; align-items: start; }
+        #panel-fotos { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; }
+        .reg-switch, .solo-movil { display: none !important; }
+    }
+    @media (max-width: 1023px) {
+        .reg-panel { display: none; }
+        .reg-panel[data-activo] { display: block; }
+    }
+    @media (max-width: 1023px) {
+        .reg-solo-lectura.reg-switch { display: none; }
+        .reg-solo-lectura .reg-panel { display: block; margin-bottom: 1rem; }
+    }
+    @keyframes reg-pulso { 0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,.55); } 50% { box-shadow: 0 0 0 10px rgba(37,99,235,0); } }
+    .reg-pulso { animation: reg-pulso 1.6s infinite; }
     /* Galería del ensayo general */
     .galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: .6rem; }
     .galeria__item { position: relative; aspect-ratio: 4 / 3; border-radius: .8rem; overflow: hidden; background: #f1f5f9; border: 2px solid #16a34a; }
@@ -54,7 +76,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 pt-5 pb-4 space-y-4"
+<div class="max-w-6xl mx-auto px-4 pt-5 pb-4 space-y-4"
      data-registro-compresion
      data-subir-url="{% url 'proyectos:subir_foto_compresion' detalle.pk 'TIPO' %}"
      data-lado-maximo="{{ lado_maximo }}">
@@ -120,15 +142,22 @@
     </section>
     {% endif %}
 
+    <div class="reg-switch {% if solo_lectura %}reg-solo-lectura{% endif %}" role="tablist" aria-label="Qué registrar">
+        <button type="button" role="tab" data-ir-panel="fotos"><i data-lucide="camera" class="w-5 h-5"></i> Fotos <span class="reg-cuenta" data-fotos-cuenta-switch>0/6</span></button>
+        <button type="button" role="tab" data-ir-panel="formulario"><i data-lucide="clipboard-pen" class="w-5 h-5"></i> Llenar formulario</button>
+    </div>
+    <div class="reg-cuerpo {% if solo_lectura %}reg-solo-lectura{% endif %}">
+    <div class="reg-panel space-y-4" id="panel-formulario" data-panel="formulario" data-activo>
     <form method="post" id="form-registro" class="space-y-4" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
         {% if not es_compresion %}
         <div class="v-tarjeta" data-datos-generales>
             <div class="v-tarjeta__cab">
                 <span class="v-paso">1</span>
-                <div><h2>Resultados del ensayo</h2><p>Escribe el resumen que irá al informe y adjunta la hoja de resultados (Excel, PDF o foto del formato).</p></div>
+                <div><h2>Resultados del ensayo</h2><p>Registra aquí los datos del formato: de aquí salen al informe. No hace falta subir hojas ni imágenes.</p></div>
             </div>
             <div class="v-tarjeta__cuerpo space-y-3">
+            {% if instrucciones_formulario %}<p class="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 whitespace-pre-line">{{ instrucciones_formulario }}</p>{% endif %}
             <label class="v-campo block">
                 <span class="v-etiqueta">Fecha de ensayo</span>
                 <input type="date" name="fecha_ensayo" id="fecha_ensayo"
@@ -138,36 +167,24 @@
                        {% if solo_lectura %}disabled{% endif %}
                        class="w-full">
             </label>
+            {% if campos_formulario %}
+                {% regroup campos_formulario by grupo as grupos_campos %}
+                {% for g in grupos_campos %}
+                <div data-grupo-campos>
+                    {% if g.grouper %}<h3 class="text-sm font-bold text-slate-700 mb-2 mt-1">{{ g.grouper }}</h3>{% endif %}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {% for c in g.list %}{% include "proyectos/_campo_formulario.html" %}{% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
             <label class="v-campo block">
                 <span class="v-etiqueta">Resumen de resultados</span>
                 <textarea name="resumen" id="resumen" rows="5" maxlength="5000" {% if solo_lectura %}disabled{% endif %}
                           placeholder="Valores obtenidos, unidades y cualquier dato que deba ir en el informe."
                           class="w-full">{{ ensayo.resumen|default:'' }}</textarea>
             </label>
-            <div data-hoja-bloque>
-                <span class="v-etiqueta">Hoja de resultados</span>
-                <p class="text-[12px] text-slate-500 mb-2">Es el respaldo de los datos del ensayo: el Excel o PDF con los cálculos, o una foto del formato en papel ya llenado.</p>
-                {% if ensayo.hoja_calculo %}
-                <a href="{% url 'proyectos:hoja_resultado' detalle.pk %}" class="v-btn v-btn--secundario v-btn--sm mb-2" data-hoja-actual>
-                    <i data-lucide="file-check-2"></i> Ver la hoja guardada
-                </a>
-                {% endif %}
-                {% if not solo_lectura %}
-                <div class="grid grid-cols-2 gap-2">
-                    <label class="v-btn v-btn--primario hoja-boton" for="hoja_foto" data-hoja-foto-boton>
-                        <i data-lucide="camera"></i> Foto del formato
-                    </label>
-                    <label class="v-btn v-btn--secundario hoja-boton" for="hoja_calculo" data-hoja-archivo-boton>
-                        <i data-lucide="paperclip"></i> Excel o PDF
-                    </label>
-                </div>
-                <input type="file" name="hoja_foto" id="hoja_foto" accept="image/*" capture="environment" class="sr-only">
-                <input type="file" name="hoja_calculo" id="hoja_calculo" accept=".xlsx,.xls,.ods,.csv,.pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,image/*"
-                       data-hay-hoja="{% if ensayo.hoja_calculo %}1{% endif %}" class="sr-only">
-                <p class="text-[12px] font-semibold text-emerald-700 mt-2 hidden" data-hoja-elegida></p>
-                <p class="text-[11px] text-slate-500 mt-1">Excel, ODS, CSV, PDF o foto, hasta 15 MB.{% if ensayo.hoja_calculo %} Si eliges otra, reemplaza a la guardada.{% endif %}</p>
-                {% endif %}
-            </div>
+            {% endif %}
             <label class="v-campo block">
                 <span class="v-etiqueta">Observaciones</span>
                 <textarea name="observaciones" rows="2" {% if solo_lectura %}disabled{% endif %}
@@ -260,23 +277,10 @@
             </div>
         </div>
 
-        <div class="v-tarjeta" data-paso-antes>
-            <div class="v-tarjeta__cab">
-                <span class="v-paso">3</span>
-                <div><h2>Antes del ensayo · 2 fotos</h2><p>Con la probeta ya colocada en la prensa: una sola y otra con la pizarra de identificación.</p></div>
-            </div>
-            <div class="v-tarjeta__cuerpo">
-            <div class="grid grid-cols-2 gap-3">
-                {% include "proyectos/_slot_foto.html" with s=foto.antes ancho=False %}
-                {% include "proyectos/_slot_foto.html" with s=foto.antes_pizarra ancho=False %}
-            </div>
-            </div>
-        </div>
-
         <div class="v-tarjeta" data-paso-carga>
             <div class="v-tarjeta__cab">
-                <span class="v-paso">4</span>
-                <div><h2>Durante la carga · 2 fotos</h2><p>Escribe la carga máxima; toma la foto de la probeta durante la carga y del display <b>antes</b> de retirarla.</p></div>
+                <span class="v-paso">3</span>
+                <div><h2>Carga de rotura</h2><p>Escribe la carga máxima. Las fotos durante la carga (probeta y display) van en el panel de fotos.</p></div>
             </div>
             <div class="v-tarjeta__cuerpo space-y-3">
             {% for m in medidas %}{% if m.campo == 'carga_kn' %}
@@ -310,17 +314,13 @@
             </dl>
             {% if solo_lectura and ensayo.edad_dias is not None %}<p class="text-xs text-slate-300 mt-2">Edad al ensayo: {{ ensayo.edad_dias }} días.</p>{% endif %}
         </div>
-            <div class="grid grid-cols-2 gap-3">
-                {% include "proyectos/_slot_foto.html" with s=foto.durante ancho=False %}
-                {% include "proyectos/_slot_foto.html" with s=foto.carga ancho=True %}
-            </div>
             </div>
         </div>
 
         <div class="v-tarjeta" data-paso-rotura>
             <div class="v-tarjeta__cab">
-                <span class="v-paso">5</span>
-                <div><h2>Después del ensayo · 2 fotos</h2><p>Tipo de falla y las 2 fotos de la probeta fallada.</p></div>
+                <span class="v-paso">4</span>
+                <div><h2>Probeta rota</h2><p>Tipo de falla, defectos y video. Las 2 fotos de después van en el panel de fotos.</p></div>
             </div>
             <div class="v-tarjeta__cuerpo space-y-3">
                 <label class="v-campo block">
@@ -331,10 +331,6 @@
                         {% for n in fracturas %}<option value="{{ n }}" {% if ensayo.tipo_fractura == n %}selected{% endif %}>Tipo {{ n }}</option>{% endfor %}
                     </select>
                 </label>
-            <div class="grid grid-cols-2 gap-3">
-                {% include "proyectos/_slot_foto.html" with s=foto.despues ancho=False %}
-                {% include "proyectos/_slot_foto.html" with s=foto.despues_pizarra ancho=False %}
-            </div>
             <label class="inline-flex items-center gap-2 text-sm">
                 <input type="checkbox" name="video_grabado" value="1" {% if ensayo.video_grabado %}checked{% endif %} {% if solo_lectura %}disabled{% endif %}>
                 Se grabó video del ensayo
@@ -346,46 +342,6 @@
             </label>
             </div>
         </div>
-        {% endif %}
-
-        {% if not es_compresion %}
-        <div class="v-tarjeta">
-            <div class="v-tarjeta__cab">
-                <span class="v-paso">2</span>
-                <div><h2>Registro fotográfico</h2><p>Toma o adjunta las fotos que necesites (mínimo {{ min_fotos }}, hasta {{ max_fotos }}). Se van agregando aquí.</p></div>
-            </div>
-            <div class="v-tarjeta__cuerpo space-y-3" data-galeria data-min="{{ min_fotos }}" data-max="{{ max_fotos }}">
-                <div class="galeria" data-galeria-lista>
-                    {% for f in galeria %}
-                    <figure class="galeria__item" data-foto="{{ f.pk }}" data-estado="ok">
-                        <img src="{% url 'proyectos:foto_compresion' f.pk %}" alt="Foto {{ forloop.counter }} del ensayo" width="{{ f.ancho }}" height="{{ f.alto }}" loading="lazy">
-                        <span class="galeria__num">{{ forloop.counter }}</span>
-                        {% if not solo_lectura %}<button type="button" class="galeria__borrar" data-borrar="{% url 'proyectos:borrar_foto_compresion' f.pk %}" aria-label="Quitar foto {{ forloop.counter }}" title="Quitar"><i data-lucide="x" class="w-4 h-4"></i></button>{% endif %}
-                    </figure>
-                    {% endfor %}
-                </div>
-                {% if not solo_lectura %}
-                <div class="galeria-zona" data-galeria-zona>
-                    <p class="text-sm font-semibold text-slate-600" data-galeria-vacio>{% if galeria %}Agrega más fotos{% else %}Aún no hay fotos{% endif %}</p>
-                    <p class="text-xs text-slate-400 mt-0.5 v-solo-pc">También puedes arrastrarlas aquí.</p>
-                    <div class="mt-3 flex flex-wrap justify-center gap-2">
-                        <label class="v-btn v-btn--primario v-btn--foto" data-camara-boton>
-                            <i data-lucide="camera"></i> Tomar foto
-                            <input type="file" accept="image/*" capture="environment" class="sr-only" data-galeria-camara>
-                        </label>
-                        <label class="v-btn v-btn--secundario v-btn--foto">
-                            <i data-lucide="images"></i> Adjuntar fotos
-                            <input type="file" accept="image/*" multiple class="sr-only" data-galeria-archivos>
-                        </label>
-                    </div>
-                    <p class="text-[11px] text-red-600 mt-2 hidden" data-galeria-error role="alert"></p>
-                </div>
-                {% elif not galeria %}
-                <p class="text-sm text-slate-500">Sin fotos.</p>
-                {% endif %}
-            </div>
-        </div>
-
         {% endif %}
 
         {% if cambios %}
@@ -419,6 +375,54 @@
             {% endif %}
         </div>
     </form>
+    </div>
+    <aside class="reg-panel" id="panel-fotos" data-panel="fotos" aria-label="Fotos del ensayo">
+        <section class="v-tarjeta" data-fotos-ensayo>
+            <div class="v-tarjeta__cab">
+                <span class="v-paso"><i data-lucide="camera" class="w-4 h-4"></i></span>
+                <div><h2>Fotos del ensayo · <span data-fotos-contador>0</span> de 6</h2><p>Primero las de <b>antes</b>, luego <b>durante</b> y al final las de <b>después</b>. En celular y tablet se toman con la cámara.</p></div>
+            </div>
+            <div class="v-tarjeta__cuerpo space-y-5">
+                <div data-grupo-fotos="antes">
+                    <h3 class="text-sm font-bold text-slate-800 mb-2">1 · Antes del ensayo <span class="text-xs font-semibold text-slate-500" data-grupo-cuenta></span></h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        {% include "proyectos/_slot_foto.html" with s=foto.antes ancho=False %}
+                        {% include "proyectos/_slot_foto.html" with s=foto.antes_pizarra ancho=False %}
+                    </div>
+                </div>
+                <div data-grupo-fotos="durante">
+                    <h3 class="text-sm font-bold text-slate-800 mb-2">2 · Durante el ensayo <span class="text-xs font-semibold text-slate-500" data-grupo-cuenta></span></h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        {% include "proyectos/_slot_foto.html" with s=foto.durante ancho=False %}
+                        {% include "proyectos/_slot_foto.html" with s=foto.carga ancho=True %}
+                    </div>
+                </div>
+                <div data-grupo-fotos="despues">
+                    <h3 class="text-sm font-bold text-slate-800 mb-2">3 · Después del ensayo <span class="text-xs font-semibold text-slate-500" data-grupo-cuenta></span></h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        {% include "proyectos/_slot_foto.html" with s=foto.despues ancho=False %}
+                        {% include "proyectos/_slot_foto.html" with s=foto.despues_pizarra ancho=False %}
+                    </div>
+                </div>
+                {% if galeria %}
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800 mb-2">Fotos anteriores del ensayo</h3>
+                    <div class="galeria">
+                        {% for f in galeria %}
+                        <figure class="galeria__item" data-estado="ok"><img src="{% url 'proyectos:foto_compresion' f.pk %}" alt="Foto {{ forloop.counter }}" width="{{ f.ancho }}" height="{{ f.alto }}" loading="lazy"><span class="galeria__num">{{ forloop.counter }}</span></figure>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                {% if not solo_lectura %}
+                <button type="button" class="v-btn v-btn--primario v-btn--block solo-movil" data-ir-formulario>
+                    <i data-lucide="clipboard-pen"></i> Llenar formulario
+                </button>
+                {% endif %}
+            </div>
+        </section>
+    </aside>
+    </div>
 </div>
 
 {% if not solo_lectura %}
@@ -459,9 +463,6 @@
     const textoFaltan = document.querySelector('[data-faltan]');
     const fractura = document.getElementById('tipo_fractura');
     const resumen = document.getElementById('resumen');
-    const hoja = document.getElementById('hoja_calculo');
-    const hojaFoto = document.getElementById('hoja_foto');
-    const hojaElegida = document.querySelector('[data-hoja-elegida]');
     const etiquetas = {};
     document.querySelectorAll('[data-slot]').forEach(function (s) {
         etiquetas[s.dataset.slot] = s.querySelector('p').textContent.replace(/^\d+\.\s*/, '').trim();
@@ -488,10 +489,14 @@
         const textoOtros = document.querySelector('[name="defectos"]');
         if (otros && otros.checked && textoOtros && !textoOtros.value.trim()) faltan.push('detalle del defecto «Otros»');
         if (resumen && !resumen.value.trim()) faltan.push('resumen de resultados');
-        if (hoja && !hoja.dataset.hayHoja && !(hoja.files && hoja.files.length) && !(hojaFoto && hojaFoto.files && hojaFoto.files.length)) faltan.push('hoja de resultados (archivo o foto del formato)');
-        document.querySelectorAll('[data-slot]').forEach(function (s) {
-            if (s.querySelector('[data-marco]').dataset.estado !== 'ok') faltan.push(etiquetas[s.dataset.slot]);
+        document.querySelectorAll('[data-dato][data-requerido]').forEach(function (i) {
+            if (!i.value.trim()) faltan.push(i.dataset.etiqueta);
         });
+        let fotosFaltan = 0;
+        document.querySelectorAll('[data-slot]').forEach(function (s) {
+            if (s.querySelector('[data-marco]').dataset.estado !== 'ok') fotosFaltan += 1;
+        });
+        if (fotosFaltan) faltan.push(fotosFaltan === 6 ? 'las 6 fotos' : fotosFaltan + (fotosFaltan === 1 ? ' foto' : ' fotos'));
         const galeria = document.querySelector('[data-galeria]');
         if (galeria) {
             const listas = galeria.querySelectorAll('.galeria__item[data-estado="ok"]').length;
@@ -502,16 +507,6 @@
         btnTerminar.disabled = faltan.length > 0;
         textoFaltan.textContent = faltan.length ? 'Falta: ' + faltan.join(' · ') : 'Todo listo para terminar.';
     }
-
-    function mostrarHoja() {
-        if (!hojaElegida) return;
-        const f = (hoja && hoja.files[0]) || (hojaFoto && hojaFoto.files[0]);
-        hojaElegida.textContent = f ? 'Listo para guardar: ' + f.name : '';
-        hojaElegida.classList.toggle('hidden', !f);
-        actualizarTerminar();
-    }
-    if (hoja) hoja.addEventListener('change', function () { if (hojaFoto) hojaFoto.value = ''; mostrarHoja(); });
-    if (hojaFoto) hojaFoto.addEventListener('change', function () { if (hoja) hoja.value = ''; mostrarHoja(); });
 
     function cerrarModal() {
         if (cropper) { cropper.destroy(); cropper = null; }
@@ -803,7 +798,6 @@
     fecha.addEventListener('input', actualizarTerminar);
 
     if (resumen) resumen.addEventListener('input', actualizarTerminar);
-    if (hoja) hoja.addEventListener('change', actualizarTerminar);
 
     const cajaMedidas = document.querySelector('[data-medidas]');
     function recalcular() {
@@ -856,6 +850,56 @@
     window.addEventListener('beforeunload', function (ev) {
         if (document.querySelector('[data-marco][data-estado="subiendo"]')) { ev.preventDefault(); ev.returnValue = ''; }
     });
+    document.querySelectorAll('[data-dato]').forEach(function (i) {
+        i.addEventListener('input', actualizarTerminar);
+        i.addEventListener('change', actualizarTerminar);
+    });
+
+    // Fotos y formulario (HU-LIMS-36): contadores por grupo y cambio de panel en celular y tablet.
+    const panelFotos = document.getElementById('panel-fotos');
+    const esPc = window.matchMedia('(min-width: 1024px)');
+    let fotosCompletasAntes = null;
+    function contarFotos() {
+        let total = 0;
+        document.querySelectorAll('[data-grupo-fotos]').forEach(function (g) {
+            const marcos = g.querySelectorAll('[data-marco]');
+            const hechas = g.querySelectorAll('[data-marco][data-estado="ok"]').length;
+            total += hechas;
+            const cuenta = g.querySelector('[data-grupo-cuenta]');
+            if (cuenta) cuenta.textContent = '· ' + hechas + ' de ' + marcos.length;
+        });
+        document.querySelectorAll('[data-fotos-contador]').forEach(function (e) { e.textContent = total; });
+        document.querySelectorAll('[data-fotos-cuenta-switch]').forEach(function (e) { e.textContent = total + '/6'; });
+        const completas = total >= 6;
+        document.querySelectorAll('[data-ir-formulario]').forEach(function (b) { b.classList.toggle('reg-pulso', completas); });
+        const aviso = document.querySelector('[data-ir-panel="formulario"]');
+        if (aviso) aviso.classList.toggle('reg-pulso', completas && !esPc.matches);
+        fotosCompletasAntes = completas;
+        return total;
+    }
+    function mostrarPanel(nombre) {
+        document.querySelectorAll('[data-panel]').forEach(function (p) {
+            if (p.dataset.panel === nombre) p.setAttribute('data-activo', ''); else p.removeAttribute('data-activo');
+        });
+        document.querySelectorAll('[data-ir-panel]').forEach(function (b) {
+            b.setAttribute('aria-selected', b.dataset.irPanel === nombre ? 'true' : 'false');
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    document.querySelectorAll('[data-ir-panel]').forEach(function (b) {
+        b.addEventListener('click', function () { mostrarPanel(b.dataset.irPanel); });
+    });
+    document.querySelectorAll('[data-ir-formulario]').forEach(function (b) {
+        b.addEventListener('click', function () { mostrarPanel('formulario'); });
+    });
+    if (panelFotos) {
+        new MutationObserver(function () { contarFotos(); actualizarTerminar(); })
+            .observe(panelFotos, { attributes: true, attributeFilter: ['data-estado'], subtree: true });
+    }
+    // En celular y tablet se empieza por las fotos; si ya están las 6, por el formulario.
+    mostrarPanel(contarFotos() >= 6 ? 'formulario' : 'fotos');
+    window.scrollTo(0, 0);
+
     // Guardado automático (HU-LIMS-26): lo escrito se manda al servidor al salir de cada campo.
     if (window.AutoGuardado) {
         AutoGuardado.iniciar({

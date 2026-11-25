@@ -169,8 +169,8 @@ class ListaYAccesoTests(CompresionBase):
         r = self.client.get(self.url_registro(self.proctor))
         self.assertContains(r, 'data-datos-generales')
         self.assertNotContains(r, 'name="tipo_fractura"')
-        # Una foto de compresión no vale para la plantilla general.
-        self.assertEqual(self.subir(self.proctor, 'carga', jpeg(180, 70)).status_code, 404)
+        # Todo ensayo lleva las mismas 6 fotos, también el general.
+        self.assertEqual(self.subir(self.proctor, 'carga', jpeg(180, 70)).status_code, 200)
 
     def test_las_rutas_viejas_de_compresion_redirigen(self):
         self.client.force_login(self.user_tec)
@@ -278,7 +278,7 @@ class TerminarTests(CompresionBase):
         )
         self.client.force_login(self.user_tec)
         html = self.client.get(self.url_registro(self.mia)).content.decode()
-        for titulo in ('Antes del ensayo · 2 fotos', 'Durante la carga · 2 fotos', 'Después del ensayo · 2 fotos'):
+        for titulo in ('1 · Antes del ensayo', '2 · Durante el ensayo', '3 · Después del ensayo'):
             self.assertIn(titulo, html)
         self.assertEqual(FotoEnsayo.PROPORCIONES['durante'], (4, 7))
 

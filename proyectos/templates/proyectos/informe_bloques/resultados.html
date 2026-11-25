@@ -35,7 +35,12 @@
   <tr><td>Norma</td><td>{{ d.norma }}{% if d.metodo %} · {{ d.metodo }}{% endif %}</td></tr>
   <tr><td>Fecha de ensayo</td><td>{{ e.fecha_ensayo|date:"d/m/Y"|default:"-" }}</td></tr>
 </table>
-{% if e %}<p class="resumen">{{ e.resumen|default:"Sin resumen." }}</p>{% else %}<p class="bloque--vacio">Sin resultados registrados.</p>{% endif %}
+{% if e and e.filas_formulario %}
+<table class="kv" data-datos-formulario>
+  {% for grupo, etiqueta, texto in e.filas_formulario %}<tr><td>{{ etiqueta }}</td><td>{{ texto|default:"-" }}</td></tr>{% endfor %}
+</table>
+{% if e.resumen %}<p class="resumen">{{ e.resumen }}</p>{% endif %}
+{% elif e %}<p class="resumen">{{ e.resumen|default:"Sin resumen." }}</p>{% else %}<p class="bloque--vacio">Sin resultados registrados.</p>{% endif %}
 {% endif %}
 {% if e.observaciones %}<p><b>Observaciones del ensayo:</b> {{ e.observaciones }}</p>{% endif %}
 </div>

@@ -24,7 +24,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
 from django.http import FileResponse, Http404, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -39,11 +39,11 @@ from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso
 
 from .calculos_compresion import DatosInsuficientes
 from .forms_compresion import AbrirSesionForm, CerrarSesionForm, DatosClienteProbetaForm, DatosProbetaForm, EquipoForm
-from . import programa, trazabilidad
+from . import formularios_ensayo, programa, trazabilidad
 from .fotos import FotoInvalida, procesar_foto
 from .models import (
     DetalleSolicitudEnsayo, ResultadoEnsayo, Equipo, FotoEnsayo, InformeFinal, MuestraDetalle,
-    RecepcionMuestra, SesionEnsayo, SolicitudEnsayo,
+    PlantillaFormulario, RecepcionMuestra, SesionEnsayo, SolicitudEnsayo,
 )
 
 logger = logging.getLogger(__name__)
@@ -226,9 +226,7 @@ def registrar_ensayo_compresion(request, detalle_id):
             return redirect(url)
 
         if ensayo is None:
-            ensayo = ResultadoEnsayo.objects.create(
-                detalle=detalle, plantilla=ResultadoEnsayo.plantilla_para(detalle),
-            )
+            ensayo = ResultadoEnsayo.crear_para(detalle)
             detalle.solicitud.sincronizar_estado()
 
         if ensayo.es_compresion and 'muestra-fc_diseno' in request.POST:
@@ -284,8 +282,9 @@ def registrar_ensayo_compresion(request, detalle_id):
     plantilla = ensayo.plantilla if ensayo else ResultadoEnsayo.plantilla_para(detalle)
     es_compresion_plantilla = plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION
     fotos = {f.tipo: f for f in ensayo.fotos.all()} if ensayo else {}
-    # Compresión: 5 recuadros fijos con recorte. General: galería libre.
-    galeria = list(ensayo.fotos.order_by('pk')) if ensayo and not es_compresion_plantilla else []
+    # Todo ensayo lleva 6 recuadros fijos con recorte: 2 antes, 2 durante y 2 después.
+    # La galería libre solo se muestra (sin editar) si el ensayo ya tenía fotos así.
+    galeria = list(ensayo.fotos.filter(tipo=FotoEnsayo.TIPO_GENERAL).order_by('pk')) if ensayo else []
     slots = [
         {
             'tipo': codigo,
@@ -296,9 +295,8 @@ def registrar_ensayo_compresion(request, detalle_id):
             'foto': fotos.get(codigo),
         }
         for codigo, etiqueta in FotoEnsayo.tipos_de(plantilla)
-    ] if es_compresion_plantilla else []
-    orden = FotoEnsayo.ORDEN_TOMA if plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION else [x['tipo'] for x in slots]
-    slots.sort(key=lambda x: orden.index(x['tipo']))
+    ]
+    slots.sort(key=lambda x: FotoEnsayo.ORDEN_TOMA.index(x['tipo']))
     for n, slot in enumerate(slots, 1):
         slot['numero'] = n
     sesion = SesionEnsayo.abierta_de(ejecutor)
@@ -309,7 +307,15 @@ def registrar_ensayo_compresion(request, detalle_id):
         except DatosInsuficientes as exc:
             error_calculo = str(exc)
     muestra = detalle.muestra
+    esquema = (ensayo.esquema if ensayo is not None else None) or {}
+    if ensayo is None and not es_compresion_plantilla:
+        formulario = PlantillaFormulario.para_detalle(detalle)
+        esquema = formulario.como_esquema() if formulario else {}
+    datos_guardados = (ensayo.datos if ensayo is not None else None) or {}
+    campos_formulario = [dict(c, valor=datos_guardados.get(c['clave'], '')) for c in esquema.get('campos', [])]
     return render(request, 'proyectos/compresion_registro.html', {
+        'campos_formulario': campos_formulario,
+        'instrucciones_formulario': esquema.get('instrucciones', ''),
         'detalle': detalle,
         'ensayo': ensayo,
         'plantilla': plantilla,
@@ -722,8 +728,53 @@ def _aplicar_datos_generales(request, detalle, ensayo, omitidos=None):
     ensayo.fecha_ensayo = fecha
     ensayo.resumen = (request.POST.get('resumen') or '').strip()[:5000]
     ensayo.observaciones = (request.POST.get('observaciones') or '').strip()
+    error_datos = _aplicar_campos_formulario(request, ensayo, omitidos)
+    if error_datos:
+        return error_datos
     ensayo.save()
     trazabilidad.anotar_cambios(ensayo, ensayo, antes, trazabilidad.CAMPOS_RESULTADO, request.user)
+    return None
+
+
+def _aplicar_campos_formulario(request, ensayo, omitidos=None):
+    """Guarda los campos del formulario del servicio (HU-LIMS-36) y anota cada corrección.
+
+    Con ``omitidos`` (guardado automático) un valor inválido se salta y se avisa; si no,
+    se devuelve el error. Un campo que no llega en el envío no se toca.
+    """
+    campos = (ensayo.esquema or {}).get('campos', [])
+    if not campos:
+        return None
+    nuevos, cambios = dict(ensayo.datos or {}), []
+    for campo in campos:
+        nombre = 'dato_' + campo['clave']
+        if nombre not in request.POST:
+            continue
+        valor, error = formularios_ensayo.leer_valor(campo, request.POST.get(nombre))
+        if error:
+            if omitidos is None:
+                return error
+            omitidos.append(error)
+            continue
+        anterior = nuevos.get(campo['clave'])
+        if (valor or '') != (anterior or ''):
+            if anterior not in (None, ''):
+                cambios.append((campo, anterior, valor))
+            if valor is None:
+                nuevos.pop(campo['clave'], None)
+            else:
+                nuevos[campo['clave']] = valor
+    ensayo.datos = nuevos
+    if cambios:
+        from .models import CambioResultado
+        usuario = request.user if getattr(request.user, 'is_authenticated', False) else None
+        CambioResultado.objects.bulk_create([
+            CambioResultado(
+                resultado=ensayo, campo=('dato:' + c['clave'])[:40], etiqueta=c['etiqueta'][:80],
+                anterior=formularios_ensayo.mostrar(c, ant)[:255], nuevo=formularios_ensayo.mostrar(c, val)[:255],
+                usuario=usuario,
+            ) for c, ant, val in cambios
+        ])
     return None
 
 
@@ -850,7 +901,7 @@ def _autoguardar(request, detalle, ensayo):
     omitidos = []
     with transaction.atomic():
         if ensayo is None:
-            ensayo = ResultadoEnsayo.objects.create(detalle=detalle, plantilla=ResultadoEnsayo.plantilla_para(detalle))
+            ensayo = ResultadoEnsayo.crear_para(detalle)
             detalle.solicitud.sincronizar_estado()
         if ensayo.es_compresion:
             if 'muestra-fc_diseno' in request.POST:
@@ -894,7 +945,10 @@ def subir_foto_compresion(request, detalle_id, tipo):
 
     with transaction.atomic():
         if ensayo is None:
-            ensayo, _ = ResultadoEnsayo.objects.get_or_create(detalle=detalle, defaults={'plantilla': plantilla})
+            try:
+                ensayo = ResultadoEnsayo.objects.filter(detalle=detalle).first() or ResultadoEnsayo.crear_para(detalle)
+            except IntegrityError:
+                ensayo = ResultadoEnsayo.objects.get(detalle=detalle)
         if tipo == FotoEnsayo.TIPO_GENERAL:
             # Galería: cada foto se agrega, hasta el máximo.
             ResultadoEnsayo.objects.select_for_update().filter(pk=ensayo.pk).first()
@@ -945,8 +999,8 @@ def borrar_foto_compresion(request, foto_id):
     ensayo = foto.ensayo
     if ensayo.terminado:
         return JsonResponse({'ok': False, 'error': 'El ensayo ya está terminado.'}, status=409)
-    if ensayo.es_compresion:
-        return JsonResponse({'ok': False, 'error': 'Las fotos de compresión se reemplazan, no se borran.'}, status=400)
+    if foto.tipo != FotoEnsayo.TIPO_GENERAL:
+        return JsonResponse({'ok': False, 'error': 'Las 6 fotos del ensayo se reemplazan, no se borran.'}, status=400)
     nombre = foto.imagen.name
     etiqueta = foto.get_tipo_display()
     foto.delete()

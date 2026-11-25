@@ -222,7 +222,7 @@ class FlujoResultadosTests(CompresionBase):
         self.url_revision = reverse('proyectos:revision_compresion', args=[self.solicitud.pk])
 
     def subir_fotos_generales(self, detalle):
-        for tipo in FotoEnsayo.TIPOS_GENERAL:
+        for tipo in FotoEnsayo.TIPOS_COMPRESION:
             ancho, alto = FotoEnsayo.PROPORCIONES[tipo]
             self.assertEqual(self.subir(detalle, tipo, jpeg(ancho * 100, alto * 100)).status_code, 200)
 
@@ -232,18 +232,18 @@ class FlujoResultadosTests(CompresionBase):
         datos = {
             'accion': 'terminar', 'fecha_ensayo': (date.today() - timedelta(days=1)).isoformat(),
             'resumen': 'Máxima densidad seca 1,95 g/cm³; humedad óptima 12,4 %.',
-            'hoja_calculo': hoja(),
         }
         datos.update(extra)
         return self.client.post(self.url_registro(detalle), datos)
 
-    def test_plantilla_general_pide_resumen_hoja_y_fotos(self):
+    def test_plantilla_general_pide_resumen_y_las_seis_fotos(self):
         self.client.force_login(self.user_tec)
         r = self.client.post(self.url_registro(self.proctor), {
             'accion': 'terminar', 'fecha_ensayo': (date.today() - timedelta(days=1)).isoformat(),
         }, follow=True)
         self.assertContains(r, 'el resumen de resultados')
-        self.assertContains(r, 'la hoja de resultados')
+        self.assertContains(r, 'la foto «Antes del ensayo»')
+        self.assertNotContains(r, 'hoja de resultados')
         e = ResultadoEnsayo.objects.get(detalle=self.proctor)
         self.assertEqual(e.plantilla, ResultadoEnsayo.PLANTILLA_GENERAL)
         self.assertFalse(e.terminado)
@@ -265,24 +265,17 @@ class FlujoResultadosTests(CompresionBase):
         self.assertContains(r, 'Excel, ODS, CSV, PDF o una foto')
         self.assertFalse(ResultadoEnsayo.objects.get(detalle=self.proctor).hoja_calculo)
 
-    def test_la_foto_del_formato_en_papel_vale_como_hoja(self):
-        self.client.force_login(self.user_tec)
-        self.client.post(self.url_registro(self.proctor), {
-            'accion': 'guardar', 'hoja_foto': hoja('IMG_8151.HEIC'),
-        }, follow=True)
-        e = ResultadoEnsayo.objects.get(detalle=self.proctor)
-        self.assertTrue(e.hoja_calculo)
-        self.assertTrue(e.hoja_calculo.name.lower().endswith('.heic'))
-
-    def test_la_pantalla_ofrece_fotografiar_el_formato(self):
+    def test_la_pantalla_ya_no_pide_hojas_y_trae_el_panel_de_fotos(self):
         self.client.force_login(self.user_tec)
         r = self.client.get(self.url_registro(self.proctor))
-        self.assertContains(r, 'name="hoja_foto"')
-        self.assertContains(r, 'capture="environment"')
-        self.assertContains(r, 'Hoja de resultados')
+        self.assertNotContains(r, 'name="hoja_foto"')
+        self.assertNotContains(r, 'name="hoja_calculo"')
+        self.assertContains(r, 'data-fotos-ensayo')
+        self.assertContains(r, 'data-ir-formulario')
+        self.assertContains(r, 'Llenar formulario')
 
     def test_hoja_solo_para_quien_ve_la_linea(self):
-        self.terminar_general(self.proctor, self.user_tec)
+        self.terminar_general(self.proctor, self.user_tec, hoja_calculo=hoja())
         url = reverse('proyectos:hoja_resultado', args=[self.proctor.pk])
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)

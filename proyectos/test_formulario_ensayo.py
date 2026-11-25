@@ -1,0 +1,142 @@
+"""Formulario de resultados configurable por servicio (HU-LIMS-36, REQ-LIMS-163 a 170)."""
+from datetime import date, timedelta
+
+from django.core.exceptions import ValidationError
+from django.test import SimpleTestCase
+from django.urls import reverse
+
+from proyectos import formularios_ensayo as fe
+from proyectos.models import CambioResultado, FotoEnsayo, PlantillaFormulario, ResultadoEnsayo
+from proyectos.test_compresion import CompresionBase, jpeg
+
+CAMPOS = [
+    {'clave': 'humedad', 'etiqueta': 'Contenido de humedad', 'tipo': 'numero', 'unidad': '%', 'requerido': True, 'grupo': 'Resultados'},
+    {'clave': 'masa_seca', 'etiqueta': 'Masa seca', 'tipo': 'numero', 'unidad': 'g', 'grupo': 'Resultados'},
+    {'clave': 'secado', 'etiqueta': 'Secado a masa constante', 'tipo': 'cumple', 'requerido': True, 'grupo': 'Verificaciones'},
+]
+
+
+class ReglasDeCamposTests(SimpleTestCase):
+    def test_valida_la_lista_de_campos(self):
+        self.assertEqual(fe.validar_campos(CAMPOS), [])
+        self.assertTrue(fe.validar_campos([{'clave': 'Mal Clave', 'etiqueta': 'x', 'tipo': 'numero'}]))
+        self.assertTrue(fe.validar_campos([{'clave': 'a', 'etiqueta': 'x', 'tipo': 'raro'}]))
+        self.assertTrue(fe.validar_campos([{'clave': 'a', 'etiqueta': 'x', 'tipo': 'seleccion'}]))
+        self.assertTrue(fe.validar_campos(CAMPOS + [CAMPOS[0]]))
+
+    def test_lee_y_muestra_cada_tipo(self):
+        num = {'etiqueta': 'N', 'tipo': 'numero', 'unidad': '%'}
+        self.assertEqual(fe.leer_valor(num, '12,50'), ('12.5', None))
+        self.assertIsNotNone(fe.leer_valor(num, 'abc')[1])
+        self.assertEqual(fe.leer_valor(num, ''), (None, None))
+        self.assertEqual(fe.mostrar(num, '12.5'), '12.5 %')
+        cump = {'etiqueta': 'C', 'tipo': 'cumple'}
+        self.assertEqual(fe.mostrar(cump, 'no_cumple'), 'No cumple')
+        self.assertIsNotNone(fe.leer_valor(cump, 'quizas')[1])
+        fecha = {'etiqueta': 'F', 'tipo': 'fecha'}
+        self.assertIsNotNone(fe.leer_valor(fecha, '2999-01-01')[1])
+        sel = {'etiqueta': 'S', 'tipo': 'seleccion', 'opciones': ['A', 'B']}
+        self.assertEqual(fe.leer_valor(sel, 'A'), ('A', None))
+        self.assertIsNotNone(fe.leer_valor(sel, 'Z')[1])
+
+    def test_faltantes_son_solo_los_obligatorios(self):
+        esquema = {'campos': fe.normalizar_campos(CAMPOS)}
+        self.assertEqual(fe.faltantes(esquema, {}), ['Contenido de humedad', 'Secado a masa constante'])
+        self.assertEqual(fe.faltantes(esquema, {'humedad': '8', 'secado': 'cumple'}), [])
+
+
+class FormularioPorServicioTests(CompresionBase):
+    def setUp(self):
+        super().setUp()
+        self.plantilla = PlantillaFormulario.objects.create(
+            nombre='Humedad', campos=CAMPOS, instrucciones='Pesa dos veces.',
+        )
+        self.plantilla.servicios.add(self.proctor.servicio_cotizado.servicio)
+        self.client.force_login(self.user_tec)
+
+    def guardar(self, **datos):
+        base = {'accion': 'guardar', 'fecha_ensayo': (date.today() - timedelta(days=1)).isoformat()}
+        base.update(datos)
+        return self.client.post(self.url_registro(self.proctor), base)
+
+    def subir_seis(self):
+        for tipo in FotoEnsayo.TIPOS_COMPRESION:
+            ancho, alto = FotoEnsayo.PROPORCIONES[tipo]
+            self.subir(self.proctor, tipo, jpeg(ancho * 100, alto * 100))
+
+    def test_la_pantalla_dibuja_los_campos_del_servicio_y_agrupa(self):
+        html = self.client.get(self.url_registro(self.proctor)).content.decode()
+        for marca in ('name="dato_humedad"', 'name="dato_masa_seca"', 'name="dato_secado"', 'Resultados', 'Verificaciones',
+                      'Pesa dos veces.', 'data-requerido'):
+            self.assertIn(marca, html)
+        self.assertNotIn('name="resumen"', html)
+
+    def test_guarda_los_datos_y_el_ensayo_recuerda_su_esquema(self):
+        self.guardar(dato_humedad='12,5', dato_secado='cumple')
+        e = ResultadoEnsayo.objects.get(detalle=self.proctor)
+        self.assertEqual(e.datos, {'humedad': '12.5', 'secado': 'cumple'})
+        self.assertEqual([c['clave'] for c in e.esquema['campos']], ['humedad', 'masa_seca', 'secado'])
+        # Si la plantilla cambia después, el ensayo ya creado conserva su formulario.
+        self.plantilla.campos = CAMPOS[:1]
+        self.plantilla.save()
+        e.refresh_from_db()
+        self.assertEqual(len(e.esquema['campos']), 3)
+
+    def test_no_termina_sin_obligatorios_ni_fotos(self):
+        self.guardar(dato_humedad='12', accion='terminar')
+        e = ResultadoEnsayo.objects.get(detalle=self.proctor)
+        faltan = e.faltantes_para_terminar()
+        self.assertIn('«Secado a masa constante»', faltan)
+        self.assertNotIn('«Contenido de humedad»', faltan)
+        self.assertTrue(any('Antes del ensayo' in f for f in faltan))
+        self.assertFalse(e.terminado)
+
+    def test_termina_con_todo_y_sin_resumen_ni_hoja(self):
+        self.subir_seis()
+        self.guardar(dato_humedad='12', dato_secado='cumple', accion='terminar')
+        e = ResultadoEnsayo.objects.get(detalle=self.proctor)
+        self.assertTrue(e.terminado)
+        self.assertEqual(e.resumen, '')
+        self.assertFalse(e.hoja_calculo)
+
+    def test_un_valor_invalido_se_rechaza_con_mensaje(self):
+        r = self.guardar(dato_humedad='mucha', follow=True) if False else self.client.post(
+            self.url_registro(self.proctor),
+            {'accion': 'guardar', 'fecha_ensayo': (date.today() - timedelta(days=1)).isoformat(), 'dato_humedad': 'mucha'},
+            follow=True,
+        )
+        self.assertContains(r, 'debe ser un número')
+
+    def test_corregir_un_dato_guarda_valor_anterior_quien_y_cuando(self):
+        self.guardar(dato_humedad='12')
+        self.guardar(dato_humedad='13')
+        c = CambioResultado.objects.get(resultado__detalle=self.proctor, campo='dato:humedad')
+        self.assertEqual((c.etiqueta, c.anterior, c.nuevo, c.usuario), ('Contenido de humedad', '12 %', '13 %', self.user_tec))
+        self.assertIsNotNone(c.registrado_en)
+
+    def test_el_autoguardado_tambien_guarda_los_campos(self):
+        self.client.post(self.url_registro(self.proctor), {'accion': 'autoguardar', 'dato_humedad': '9,1'})
+        self.assertEqual(ResultadoEnsayo.objects.get(detalle=self.proctor).datos, {'humedad': '9.1'})
+
+    def test_las_fotos_antes_de_llenar_el_formulario_crean_el_ensayo_con_su_esquema(self):
+        self.subir(self.proctor, 'antes', jpeg(400, 700))
+        e = ResultadoEnsayo.objects.get(detalle=self.proctor)
+        self.assertEqual(len(e.esquema['campos']), 3)
+
+    def test_la_revision_y_el_informe_leen_lo_registrado(self):
+        self.guardar(dato_humedad='12', dato_secado='cumple')
+        e = ResultadoEnsayo.objects.get(detalle=self.proctor)
+        self.assertIn(('Resultados', 'Contenido de humedad', '12 %'), e.filas_formulario)
+        self.assertIn(('Verificaciones', 'Secado a masa constante', 'Cumple'), e.filas_formulario)
+
+    def test_sin_plantilla_usa_el_formulario_basico_con_resumen(self):
+        self.plantilla.activo = False
+        self.plantilla.save()
+        html = self.client.get(self.url_registro(self.proctor)).content.decode()
+        self.assertIn('name="resumen"', html)
+        self.assertNotIn('name="dato_humedad"', html)
+
+    def test_la_plantilla_rechaza_campos_mal_definidos(self):
+        p = PlantillaFormulario(nombre='Mala', campos=[{'clave': 'X Y', 'etiqueta': 'a', 'tipo': 'numero'}])
+        with self.assertRaises(ValidationError):
+            p.full_clean()

@@ -428,6 +428,24 @@ HU-LIMS-35. Los campos de la hoja ya estaban cubiertos (REQ-LIMS-11 a 19 y 103 a
 | REQ-LIMS-161 | HU-LIMS-35 | CUANDO un dato ya guardado cambie, EL SISTEMA DEBE conservar el valor anterior y el nuevo con quién lo cambió y cuándo, y mostrarlo al técnico en el registro y al supervisor en la revisión (ya implementado en REQ-LIMS-103 a 110; se verifica de nuevo). | sí | [Validado con usuario] |
 | REQ-LIMS-162 | HU-LIMS-35 | [Supuesto: pendiente] La edad del testigo en horas y la foto aparte de defectos del testigo (FOR-009) se agregan cuando el Gerente confirme que se usan. | no verificable hasta decidir | [Supuesto] |
 
+## 2r. Registro único de resultados para todos los ensayos (v19)
+
+Pedido del Gerente (2026-11-25): compresión es solo un ejemplo; el formulario de resultados es uno solo para todos los
+ensayos de cada muestra (marco del FOR-009), en PC, tablet y celular, con 6 fotos por ensayo y sin subir hojas ni imágenes de
+resultados. HU-LIMS-36. El bloque «Resultados de ensayo» lo define cada servicio (compresión usa el del FOR-009;
+los demás, los campos de su formato en papel [Supuesto: pendiente de recibir cada formato]).
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-163 | HU-LIMS-36 | EL SISTEMA DEBE registrar los resultados de todo ensayo en una sola pantalla, abierta con el botón «Registrar» de su línea en la lista de ensayos de la solicitud. | sí | [Validado con usuario] |
+| REQ-LIMS-164 | HU-LIMS-36 | EL SISTEMA DEBE pedir 6 fotos por ensayo de cada muestra, también en los generales: 2 antes, 2 durante y 2 después, y no dejar terminar sin ellas. La galería libre se retira (se muestra solo si ya tenía fotos). | sí | [Validado con usuario] |
+| REQ-LIMS-165 | HU-LIMS-36 | DONDE la pantalla sea de celular o tablet, EL SISTEMA DEBE mostrar las fotos guiadas en orden antes → durante → después y un botón «Llenar formulario» siempre visible que lleva al formulario, y viceversa; DONDE sea PC, EL SISTEMA DEBE mostrar formulario y fotos lado a lado. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-166 | HU-LIMS-36 | EL SISTEMA DEBE permitir definir por servicio el formulario de resultados (campos de tipo número, texto, fecha, sí/no, cumple/no cumple y selección; unidad, obligatorio, grupo y ayuda) sin programar, desde el administrador. | sí | [Propuesto] |
+| REQ-LIMS-167 | HU-LIMS-36 | EL SISTEMA DEBE copiar el formulario del servicio al crear el resultado, de modo que cambiar la plantilla después no altere ensayos ya registrados. | sí | [Propuesto] |
+| REQ-LIMS-168 | HU-LIMS-36 | EL SISTEMA DEBE exigir para terminar la fecha, los campos obligatorios del formulario (o el resumen si el servicio no tiene formulario) y las 6 fotos; ya no se pide hoja de cálculo ni imagen de resultados. | sí | [Validado con usuario] |
+| REQ-LIMS-169 | HU-LIMS-36 | CUANDO se corrija un campo del formulario ya guardado, EL SISTEMA DEBE guardar el valor anterior y el nuevo, quién lo cambió y cuándo, y mostrarlo en el registro y en la revisión. | sí | [Validado con usuario] |
+| REQ-LIMS-170 | HU-LIMS-36 | EL SISTEMA DEBE mostrar lo registrado en el formulario en la revisión del supervisor y en el bloque de resultados del informe. | sí | [Propuesto] |
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -459,6 +477,7 @@ HU-LIMS-35. Los campos de la hoja ya estaban cubiertos (REQ-LIMS-11 a 19 y 103 a
 | HU-LIMS-33 | PDF de la solicitud FOR-089, resultados y lista | REQ-LIMS-150 a 154 |
 | HU-LIMS-34 | Hoja de resultados de los ensayos generales | REQ-LIMS-155 a 158 |
 | HU-LIMS-35 | Registro de compresión alineado al FOR-009 | REQ-LIMS-159 a 162 |
+| HU-LIMS-36 | Registro único de resultados para todos los ensayos | REQ-LIMS-163 a 170 |
 
 ## 4. Preguntas abiertas
 
@@ -491,3 +510,4 @@ HU-LIMS-35. Los campos de la hoja ya estaban cubiertos (REQ-LIMS-11 a 19 y 103 a
 | v16 | 2026-11-25 | Claude (DLF) | PDF de la solicitud FOR-089, pasos de resultados a la izquierda, lista por prioridad: REQ-LIMS-150 a 154 (HU-LIMS-33) |
 | v17 | 2026-11-25 | Claude (DLF) | Hoja de resultados del ensayo general: foto del formato, botones para celular, fecha de hoy: REQ-LIMS-155 a 158 (HU-LIMS-34) |
 | v18 | 2026-11-25 | Claude (DLF) | Registro de compresión alineado al FOR-009: 6 fotos y f'c en MPa: REQ-LIMS-159 a 162 (HU-LIMS-35) |
+| v19 | 2026-11-25 | Claude (DLF) | Registro único para todos los ensayos, 6 fotos y formulario por servicio: REQ-LIMS-163 a 170 (HU-LIMS-36) |

@@ -171,6 +171,16 @@ muestra/ensayo, reporte de incidencias de la solicitud, modo de supervisión, t�
 principal por estado (`accion-estado--iniciar` / `--registrar`). En `/proyectos/resultados/solicitud/<id>/`
 los pasos van en columna izquierda (`.rs-pasos`) y el contenido en `.rs-principal`.
 
+**Registro único de resultados (HU-LIMS-36).** Todo ensayo se registra en `compresion_registro.html`
+(`/proyectos/resultados/<detalle>/`): 6 fotos fijas (2 antes, 2 durante, 2 después; `FotoEnsayo.TIPOS_COMPRESION`) en un
+panel propio y el formulario en otro (PC: lado a lado; celular y tablet: pestañas «Fotos» y «Llenar formulario»). La
+compresión conserva su bloque de medidas (FOR-009, sesión y equipos). Los demás servicios usan el formulario que se define
+en el administrador (`PlantillaFormulario`: lista JSON de campos, `servicios` que la usan; ayuda en la pantalla del
+admin); `ResultadoEnsayo.crear_para(detalle)` copia esa lista a `esquema` y lo registrado va en `datos`
+(`proyectos/formularios_ensayo.py` valida, lee y muestra cada tipo). Cada corrección de un campo queda en `CambioResultado`
+(`campo='dato:<clave>'`). Sin plantilla se usa el formulario básico (resumen). Ya no se sube hoja de cálculo; el
+campo `hoja_calculo` y su descarga solo sirven a ensayos viejos.
+
 **Panel de pantalla (HU-LIMS-29).** El «panel» (título, búsqueda, filtros y acciones)
 de las 25 pantallas con `data-command-header` va siempre visible arriba: no hay
 botón «Panel» ni X. El CSS está al final del `<style>` de `base_vicafpro.html`; una

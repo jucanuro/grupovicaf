@@ -18,6 +18,7 @@ from django.core.validators import MinValueValidator
 from clientes.models import Cliente
 from trabajadores.models import TrabajadorProfile 
 from core.models import siguiente_correlativo
+from . import formularios_ensayo
 from servicios.models import Cotizacion, CotizacionDetalle, Servicio, CategoriaServicio, Subcategoria
 import os
 import datetime
@@ -728,6 +729,54 @@ class SesionEnsayo(models.Model):
         return cls.objects.filter(tecnico=perfil, cerrada_en__isnull=True).first()
 
 
+class PlantillaFormulario(models.Model):
+    """Formulario de resultados de uno o varios servicios (HU-LIMS-36).
+
+    Reproduce los campos del formato en papel del ensayo. Los ensayos sin
+    plantilla usan el formulario general (resumen y las 6 fotos).
+    """
+    nombre = models.CharField(max_length=150, verbose_name="Nombre del formulario")
+    servicios = models.ManyToManyField(
+        'servicios.Servicio', blank=True, related_name='plantillas_formulario',
+        verbose_name="Servicios que lo usan",
+    )
+    campos = models.JSONField(
+        default=list, blank=True,
+        help_text=("Lista de campos. Cada uno: clave, etiqueta, tipo "
+                   "(numero, texto, texto_largo, fecha, si_no, cumple, seleccion), unidad, requerido, grupo, ayuda, opciones."),
+    )
+    instrucciones = models.TextField(blank=True, default='', verbose_name="Instrucciones para el técnico")
+    activo = models.BooleanField(default=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Formulario de resultados"
+        verbose_name_plural = "Formularios de resultados"
+        ordering = ['nombre']
+
+    def __str__(self):
+        return self.nombre
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        errores = formularios_ensayo.validar_campos(self.campos)
+        if errores:
+            raise ValidationError({'campos': errores})
+
+    def como_esquema(self):
+        return {
+            'nombre': self.nombre, 'campos': formularios_ensayo.normalizar_campos(self.campos),
+            'instrucciones': self.instrucciones,
+        }
+
+    @classmethod
+    def para_detalle(cls, detalle):
+        servicio = getattr(detalle.servicio_cotizado, 'servicio', None)
+        if servicio is None:
+            return None
+        return cls.objects.filter(activo=True, servicios=servicio).order_by('pk').first()
+
+
 class ResultadoEnsayo(models.Model):
     """Resultado de una línea de la solicitud (muestra × ensayo).
 
@@ -761,6 +810,10 @@ class ResultadoEnsayo(models.Model):
     plantilla = models.CharField(max_length=20, choices=PLANTILLAS, default=PLANTILLA_GENERAL)
     estado = models.CharField(max_length=20, choices=ESTADOS, default=ESTADO_BORRADOR)
     resumen = models.TextField(blank=True, default='', verbose_name="Resumen de resultados")
+    # Formulario configurable por servicio (HU-LIMS-36): el esquema se copia de la
+    # plantilla al crear el resultado y `datos` guarda lo que escribió el técnico.
+    esquema = models.JSONField(default=dict, blank=True, verbose_name="Formulario del ensayo")
+    datos = models.JSONField(default=dict, blank=True, verbose_name="Datos del formulario")
     hoja_calculo = models.FileField(
         storage=_almacen_fotos_ensayo, upload_to=ruta_hoja_ensayo, blank=True,
         verbose_name="Hoja de cálculo",
@@ -855,6 +908,21 @@ class ResultadoEnsayo(models.Model):
         return self.plantilla == self.PLANTILLA_COMPRESION
 
     @property
+    def filas_formulario(self):
+        """[(grupo, etiqueta, texto)] de lo registrado en el formulario del servicio (revisión e informe)."""
+        return formularios_ensayo.filas(self.esquema or {}, self.datos or {})
+
+    @classmethod
+    def crear_para(cls, detalle, **extra):
+        """Crea el resultado de una línea con la plantilla y el formulario de su servicio."""
+        plantilla = extra.pop('plantilla', None) or cls.plantilla_para(detalle)
+        esquema = {}
+        if plantilla == cls.PLANTILLA_GENERAL:
+            formulario = PlantillaFormulario.para_detalle(detalle)
+            esquema = formulario.como_esquema() if formulario else {}
+        return cls.objects.create(detalle=detalle, plantilla=plantilla, esquema=esquema, **extra)
+
+    @property
     def tipos_foto(self):
         return FotoEnsayo.tipos_de(self.plantilla)
 
@@ -923,9 +991,12 @@ class ResultadoEnsayo(models.Model):
         mientras haya menos de las fotos mínimas.
         """
         cargados = list(self.fotos.values_list('tipo', flat=True))
-        if not self.es_compresion:
-            return [] if len(cargados) >= FotoEnsayo.MIN_FOTOS_GENERAL else [FotoEnsayo.TIPO_GENERAL]
         return [codigo for codigo, _ in self.tipos_foto if codigo not in cargados]
+
+    def _fotos_que_faltan(self):
+        """Frases de las fotos pendientes: 6 por ensayo (2 antes, 2 durante la carga, 2 después)."""
+        etiquetas = dict(FotoEnsayo.TIPOS)
+        return [f"la foto «{etiquetas[t]}»" for t in self.tipos_faltantes()]
 
     def faltantes_para_terminar(self):
         """Lista legible de lo que falta para poder terminar (vacía = listo)."""
@@ -934,12 +1005,12 @@ class ResultadoEnsayo(models.Model):
         if not self.es_compresion:
             if not self.fecha_ensayo:
                 faltan.append("la fecha de ensayo")
-            if not self.resumen.strip():
+            campos = (self.esquema or {}).get('campos', [])
+            if campos:
+                faltan.extend(f"«{e}»" for e in formularios_ensayo.faltantes(self.esquema, self.datos))
+            elif not self.resumen.strip():
                 faltan.append("el resumen de resultados")
-            if not self.hoja_calculo:
-                faltan.append("la hoja de resultados (Excel, PDF o foto del formato)")
-            if self.tipos_faltantes():
-                faltan.append("al menos una foto del ensayo")
+            faltan.extend(self._fotos_que_faltan())
             return faltan
         muestra = self.detalle.muestra
         if not muestra.fecha_fabricacion or not muestra.fc_diseno:
@@ -996,12 +1067,12 @@ class FotoEnsayo(models.Model):
     TIPO_DESPUES = 'despues'
     TIPO_DESPUES_PIZARRA = 'despues_pizarra'
     TIPOS = [
-        (TIPO_CARGA, 'Display con la carga máxima'),
-        (TIPO_DURANTE, 'Probeta durante la carga'),
-        (TIPO_ANTES, 'Probeta antes del ensayo'),
-        (TIPO_ANTES_PIZARRA, 'Probeta antes del ensayo, con pizarra'),
-        (TIPO_DESPUES, 'Probeta fallada'),
-        (TIPO_DESPUES_PIZARRA, 'Probeta fallada, con pizarra'),
+        (TIPO_CARGA, 'Durante el ensayo: lectura del equipo'),
+        (TIPO_DURANTE, 'Durante el ensayo'),
+        (TIPO_ANTES, 'Antes del ensayo'),
+        (TIPO_ANTES_PIZARRA, 'Antes del ensayo, con pizarra'),
+        (TIPO_DESPUES, 'Después del ensayo'),
+        (TIPO_DESPUES_PIZARRA, 'Después del ensayo, con pizarra'),
         ('general_muestra', 'Muestra o montaje del ensayo'),
         ('general_resultado', 'Resultado o lectura del equipo'),
         ('general', 'Foto del ensayo'),
@@ -1063,16 +1134,15 @@ class FotoEnsayo(models.Model):
     @classmethod
     def tipos_de(cls, plantilla):
         """(código, etiqueta) de las fotos que pide la plantilla, en orden."""
-        codigos = cls.TIPOS_COMPRESION if plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION else cls.TIPOS_GALERIA
+        # Todo ensayo lleva las mismas 6 fotos (HU-LIMS-36); la galería libre solo queda para fotos ya subidas.
+        codigos = cls.TIPOS_COMPRESION
         etiquetas = dict(cls.TIPOS)
         return [(c, etiquetas[c]) for c in codigos]
 
     @classmethod
     def total_requerido(cls, plantilla):
         """Cuántas fotos pide la plantilla para terminar."""
-        if plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION:
-            return len(cls.TIPOS_COMPRESION)
-        return cls.MIN_FOTOS_GENERAL
+        return len(cls.TIPOS_COMPRESION)
 
     @classmethod
     def proporcion(cls, tipo):

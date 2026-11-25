@@ -1,0 +1,30 @@
+{# Un campo del formulario del servicio; variables: c (campo con su valor), solo_lectura, hoy. #}
+<label class="v-campo block {% if c.tipo == 'texto_largo' %}sm:col-span-2{% endif %}">
+    <span class="v-etiqueta">{{ c.etiqueta }}{% if c.unidad %} <span class="text-slate-400 font-normal">({{ c.unidad }})</span>{% endif %}{% if c.requerido %} <span class="text-red-500">*</span>{% endif %}</span>
+    {% if c.tipo == 'numero' %}
+    <input type="text" inputmode="decimal" name="dato_{{ c.clave }}" value="{{ c.valor }}" autocomplete="off"
+           data-dato data-etiqueta="{{ c.etiqueta }}" {% if c.requerido %}data-requerido{% endif %} {% if solo_lectura %}disabled{% endif %} class="w-full font-mono">
+    {% elif c.tipo == 'texto' %}
+    <input type="text" maxlength="255" name="dato_{{ c.clave }}" value="{{ c.valor }}" autocomplete="off"
+           data-dato data-etiqueta="{{ c.etiqueta }}" {% if c.requerido %}data-requerido{% endif %} {% if solo_lectura %}disabled{% endif %} class="w-full">
+    {% elif c.tipo == 'texto_largo' %}
+    <textarea name="dato_{{ c.clave }}" rows="3" maxlength="5000" data-dato data-etiqueta="{{ c.etiqueta }}"
+              {% if c.requerido %}data-requerido{% endif %} {% if solo_lectura %}disabled{% endif %} class="w-full">{{ c.valor }}</textarea>
+    {% elif c.tipo == 'fecha' %}
+    <input type="date" name="dato_{{ c.clave }}" value="{{ c.valor }}" max="{{ hoy|date:'Y-m-d' }}"
+           data-dato data-etiqueta="{{ c.etiqueta }}" {% if c.requerido %}data-requerido{% endif %} {% if solo_lectura %}disabled{% endif %} class="w-full">
+    {% else %}
+    <select name="dato_{{ c.clave }}" data-dato data-etiqueta="{{ c.etiqueta }}" {% if c.requerido %}data-requerido{% endif %}
+            {% if solo_lectura %}disabled{% endif %} class="w-full">
+        <option value="">Elige…</option>
+        {% if c.tipo == 'si_no' %}
+        <option value="si" {% if c.valor == 'si' %}selected{% endif %}>Sí</option>
+        <option value="no" {% if c.valor == 'no' %}selected{% endif %}>No</option>
+        {% elif c.tipo == 'cumple' %}
+        <option value="cumple" {% if c.valor == 'cumple' %}selected{% endif %}>Cumple</option>
+        <option value="no_cumple" {% if c.valor == 'no_cumple' %}selected{% endif %}>No cumple</option>
+        {% else %}{% for o in c.opciones %}<option value="{{ o }}" {% if c.valor == o %}selected{% endif %}>{{ o }}</option>{% endfor %}{% endif %}
+    </select>
+    {% endif %}
+    {% if c.ayuda %}<span class="block text-[11px] text-slate-500 mt-0.5">{{ c.ayuda }}</span>{% endif %}
+</label>
