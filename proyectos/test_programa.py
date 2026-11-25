@@ -13,6 +13,7 @@ from proyectos.models import (
 )
 from proyectos.test_avance import AvanceMixin
 from proyectos.test_compresion import CompresionBase
+from trabajadores.testing import crear_trabajador, rol_con_permisos
 
 
 class ProgramaBase(CompresionBase):
@@ -254,3 +255,30 @@ class PestanasPanelTests(AvanceMixin, TestCase):
         f = filtro_fechas_panel({'desde': '2026-11-30', 'hasta': '2026-11-01'}, hoy)
         self.assertEqual((f['desde'], f['hasta']), (date(2026, 11, 1), date(2026, 11, 30)))
         self.assertEqual(filtro_fechas_panel({'periodo': 'raro'}, hoy)['periodo'], '')
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab')
+class SolicitudVariasProbetasTests(AvanceMixin, TestCase):
+    """Bug hallado en la prueba de punta a punta: con el mismo ensayo (compresión)
+    para varias probetas, la solicitud guardaba solo la primera línea."""
+
+    def test_una_linea_por_probeta_con_el_mismo_ensayo(self):
+        proyecto = self._proyecto(3)
+        _, muestras = self._recepcion(proyecto, 3)
+        user, perfil = crear_trabajador('jefe.sol', rol_con_permisos('Jefe sol', 'ensayos.crear', 'ensayos.editar'))
+        self.perfil = perfil
+        self.client.force_login(user)
+        hoy = date.today().isoformat()
+        datos = {
+            'cotizacion': proyecto.cot_.pk, 'fecha_solicitud': hoy, 'fecha_entrega_programada': hoy,
+            'muestra_id[]': [m.pk for m in muestras],
+            'servicio_id[]': [proyecto.cot_.detalle_.pk] * 3,
+            'norma[]': ['ASTM C39'] * 3, 'metodo[]': [''] * 3,
+            'tecnico_id[]': [self.perfil.pk] * 3, 'entrega_detalle[]': [hoy] * 3,
+        }
+        self.client.post(reverse('proyectos:crear_solicitud'), datos)
+        solicitud = SolicitudEnsayo.objects.get(cotizacion=proyecto.cot_)
+        self.assertEqual(solicitud.detalles.count(), 3)
+        # Volver a guardar (las filas existentes llegan como ocultas) no duplica.
+        self.client.post(reverse('proyectos:editar_solicitud', args=[solicitud.pk]), datos)
+        self.assertEqual(solicitud.detalles.count(), 3)

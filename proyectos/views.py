@@ -731,8 +731,10 @@ def gestionar_solicitud_ensayo(request, pk=None):
                     ).values_list('id', flat=True)
                 )
 
-                servicios_ya_guardados = set(
-                    solicitud.detalles.values_list('servicio_cotizado_id', flat=True)
+                # Una línea por muestra y ensayo: 10 probetas con el mismo ensayo
+                # (compresión) son 10 líneas, no una.
+                lineas_ya_guardadas = set(
+                    solicitud.detalles.values_list('muestra_id', 'servicio_cotizado_id')
                 )
 
                 ensayos_list = []
@@ -769,7 +771,7 @@ def gestionar_solicitud_ensayo(request, pk=None):
                         omitidas += 1
                         continue
 
-                    if s_id_int in servicios_ya_guardados:
+                    if (m_id_int, s_id_int) in lineas_ya_guardadas:
                         continue
 
                     cot_det = serv_map.get(s_id)
@@ -800,7 +802,7 @@ def gestionar_solicitud_ensayo(request, pk=None):
                         )
                     )
 
-                    servicios_ya_guardados.add(s_id_int)
+                    lineas_ya_guardadas.add((m_id_int, s_id_int))
 
                 if ensayos_list:
                     DetalleSolicitudEnsayo.objects.bulk_create(ensayos_list)
