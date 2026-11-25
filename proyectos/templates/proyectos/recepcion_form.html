@@ -447,11 +447,13 @@
             </div>
             <div>
                 <label for="rm-descripcion" class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Descripción</label>
-                <input id="rm-descripcion" type="text" maxlength="255" placeholder="Ej.: Calicata C-01, 1.50 m" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800">
+                <textarea id="rm-descripcion" rows="3" maxlength="255" placeholder="Ej.: Calicata C-01, 1.50 m de profundidad"
+                          class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800 placeholder:text-slate-300 placeholder:font-normal resize-y"></textarea>
             </div>
             <div>
                 <label for="rm-observaciones" class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Observaciones</label>
-                <input id="rm-observaciones" type="text" placeholder="Opcional" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800">
+                <textarea id="rm-observaciones" rows="2" placeholder="Opcional"
+                          class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800 placeholder:text-slate-300 placeholder:font-normal resize-y"></textarea>
             </div>
             <p id="rm-error" class="hidden text-xs font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2" role="alert"></p>
             <div class="flex gap-2">
@@ -460,7 +462,7 @@
                 </button>
                 <button type="button" id="rm-cancelar-edicion" class="hidden px-4 rounded-xl border border-slate-200 text-xs font-black text-slate-600 bg-white">Cancelar</button>
             </div>
-            <p class="text-[11px] text-slate-400 font-semibold">Pulsa <kbd class="px-1 bg-slate-100 rounded">Enter</kbd> para agregar. El tipo, la unidad y la cantidad se conservan para la siguiente.</p>
+            <p class="text-[11px] text-slate-400 font-semibold">Pulsa <kbd class="px-1 bg-slate-100 rounded">Enter</kbd> para agregar (<kbd class="px-1 bg-slate-100 rounded">Shift</kbd>+Enter salta de línea). El tipo, la unidad y la cantidad se conservan para la siguiente.</p>
         </div>
         <div class="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col min-h-[200px] lg:min-h-0">
             <div class="px-4 py-3 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500">En esta recepción</div>
@@ -678,7 +680,7 @@
         }
     });
 </script>
-<script src="{% static 'js/recepcion_muestras.js' %}?v=20261125e"></script>
+<script src="{% static 'js/recepcion_muestras.js' %}?v=20261125f"></script>
 <script>
     // Borrador local (HU-LIMS-27): las filas de muestras se arman en el mostrador, con el cliente delante.
     if (window.BorradorLocal) {

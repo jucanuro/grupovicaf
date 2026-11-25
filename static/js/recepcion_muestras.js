@@ -337,7 +337,7 @@
         error('');
         var d = {
             tipo: tipo, cantidad: String(cantidad), unidad: $('rm-unidad').value, masa: masa,
-            descripcion: $('rm-descripcion').value.trim(), observaciones: $('rm-observaciones').value.trim(),
+            descripcion: $('rm-descripcion').value.trim().replace(/\s*\n\s*/g, ' · '), observaciones: $('rm-observaciones').value.trim(),
         };
         if (enEdicion) {
             llenarFila(enEdicion, d, false);
@@ -390,7 +390,7 @@
     $('rm-agregar').addEventListener('click', agregar);
     $('rm-cancelar-edicion').addEventListener('click', cancelarEdicion);
     modal.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.type !== 'hidden') { e.preventDefault(); agregar(); }
+        if (e.key === 'Enter' && !e.shiftKey && ((e.target.tagName === 'INPUT' && e.target.type !== 'hidden') || e.target.tagName === 'TEXTAREA')) { e.preventDefault(); agregar(); }
         if (e.key === 'Escape' && !document.getElementById('tipoMuestraModal').classList.contains('flex')) { cerrar(); }
     });
 
