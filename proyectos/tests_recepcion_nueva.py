@@ -202,3 +202,28 @@ class CodigoLaboratorioVistaPreviaTest(TestCase):
         self.assertEqual(ok.json()['siguiente'], 1)
         largo = self.client.post(url, {'nombre': 'Algo', 'sigla': 'ABCDEFG'})
         self.assertEqual(largo.status_code, 400)
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab')
+class SiglaDeTipoRepetidaTest(TestCase):
+    """«Carbón» con la sigla CA (de «Calicatas») no debe caer en silencio en otro tipo."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from proyectos.models import TipoMuestra
+        TipoMuestra.objects.create(nombre='Calicatas', sigla='CA')
+        cls.usuario, _ = crear_trabajador('recep5', rol_con_permisos('Recepción', 'muestras.ver', 'muestras.crear'))
+
+    def test_sigla_ya_usada_por_otro_nombre_da_error_claro(self):
+        from proyectos.models import TipoMuestra
+        self.client.force_login(self.usuario)
+        resp = self.client.post(reverse('proyectos:crear_tipo_muestra_ajax'), {'nombre': 'Carbón', 'sigla': 'ca'})
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn('Calicatas', resp.json()['message'])
+        self.assertEqual(TipoMuestra.objects.count(), 1)
+
+    def test_mismo_nombre_y_sigla_reutiliza_el_existente(self):
+        self.client.force_login(self.usuario)
+        resp = self.client.post(reverse('proyectos:crear_tipo_muestra_ajax'), {'nombre': 'calicatas', 'sigla': 'CA'})
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.json()['nuevo'])

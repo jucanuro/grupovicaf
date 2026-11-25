@@ -139,6 +139,12 @@ def crear_tipo_muestra_ajax(request):
             defaults={'nombre': nombre}
         )
 
+        if not created and tipo.nombre.strip().lower() != nombre.lower():
+            return JsonResponse({
+                'status': 'error',
+                'message': f'La sigla «{sigla}» ya la usa «{tipo.nombre}». Elige otra sigla para «{nombre}».',
+            }, status=400)
+
         if created:
             logger.info(f"Tipo de muestra creado exitosamente: {nombre} ({sigla}) por usuario {request.user.username}")
         else:
