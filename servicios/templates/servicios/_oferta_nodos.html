@@ -1,0 +1,2 @@
+{# Condiciones de una sección: viñetas y, para los grupos, su título en negrita (oferta_pdf.py). #}
+{% for n in nodos %}{% if n.grupo %}<p class="grupo n{{ nivel }}">{{ n.texto }}</p>{% include "servicios/_oferta_nodos.html" with nodos=n.hijos nivel=nivel|add:1 %}{% else %}<ul class="vinetas"><li>{{ n.texto }}</li></ul>{% if n.hijos %}{% include "servicios/_oferta_nodos.html" with nodos=n.hijos nivel=nivel|add:1 %}{% endif %}{% endif %}{% endfor %}

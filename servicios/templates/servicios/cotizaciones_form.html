@@ -2,6 +2,17 @@
 {% load static %}
 
 {% block extra_css %}
+<style>
+    /* Textos de condiciones del Word FOR-001: lo que va entre llaves dobles se ve resaltado (cotizacion-config.js). */
+    .cond-resaltado { position: relative; }
+    .cond-fondo, .cond-texto { margin: 0; border: 0; width: 100%; white-space: pre-wrap; word-wrap: break-word;
+                               overflow-wrap: break-word; font: inherit; letter-spacing: inherit; }
+    .cond-fondo { position: absolute; inset: 0; color: transparent; pointer-events: none; overflow: hidden; }
+    .cond-texto { position: relative; display: block; background: transparent; resize: none; outline: none; color: #334155; }
+    .cond-chico .cond-fondo, .cond-chico .cond-texto { font-size: 12px; line-height: 1.55; font-weight: 600; padding: 2px 0; }
+    .cond-grande .cond-fondo, .cond-grande .cond-texto { font-size: 13px; line-height: 1.6; font-weight: 500; padding: 12px 16px; }
+    .cond-mark { background: #fde047; color: transparent; border-radius: 3px; box-shadow: 0 0 0 1px #facc15; }
+</style>
     <link rel="stylesheet" href="{% static 'css/cotizacion-config.css' %}?v=20261122d">
     <style>
         /* Pasos del asistente en forma de "pills" (mismo estilo en los 4 pasos). */
@@ -1127,5 +1138,5 @@
 
 <script src="{% static 'js/cotizacion-partial.js' %}"></script>
 <script src="{% static 'js/acordeon_cotizacion.js' %}"></script>
-<script src="{% static 'js/cotizacion-config.js' %}?v=20261122d"></script>
+<script src="{% static 'js/cotizacion-config.js' %}?v=20261125b"></script>
 {% endblock %}

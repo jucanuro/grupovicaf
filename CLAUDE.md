@@ -182,6 +182,18 @@ el PDF antiguo (`informe_compresion_pdf.html`, `generar_informe_compresion`)
 solo queda para regenerar informes emitidos antes del editor. Excel con openpyxl (`informes.exportar`); envío al cliente con
 `enviar_informe_cliente`.
 
+**Oferta técnico-económica (FOR-001 v7).** El PDF de la cotización
+(`servicios/oferta_pdf.py` + `templates/servicios/oferta_pdf.html`, WeasyPrint)
+copia el Word oficial: marco gris con cuadro naranja, cabecera con logo y
+contactos (`static/img/oferta/`), código del formato girado con «Página X de Y»,
+tabla de ítems con categorías A/B y subcategorías a/b, notas numeradas,
+secciones 2… con grupos, contactos, datos de pago y firmas. Los textos de
+condiciones salen del Word a `servicios/seeds/condiciones.py`
+(`python cargar_condiciones.py --apply [--solo-word]`): lo resaltado en el Word
+que es un dato a completar va entre llaves dobles (amarillo en el formulario, sin
+llaves en el PDF); los párrafos resaltados completos son alternativas sin marcar.
+Si cambia la versión del Word, actualizar `FORMATO` en `oferta_pdf.py` y el seed.
+
 ### Capa web (pública) — prefijo `web_` obligatorio
 
 | App | Responsabilidad |

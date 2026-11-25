@@ -1087,115 +1087,25 @@ def reemplazar_tokens_condicion(texto, cotizacion):
 @login_required
 @permiso_requerido('cotizaciones.ver')
 def generar_pdf_cotizacion(request, pk):
+    """PDF de la oferta con el diseño del Word VCF-LAB-FOR-001 v7 (servicios/oferta_pdf.py)."""
+    from .oferta_pdf import generar_pdf
+
     cotizacion = get_object_or_404(
         Cotizacion.objects.prefetch_related(
             'grupos__detalles_items__servicio__norma',
-            'condiciones_secciones__items__children'
-        ).select_related(
-            'cliente',
-            'trabajador_responsable',
-            'servicio_general'
-        ),
-        pk=pk
+            'condiciones_secciones__items__children',
+        ).select_related('cliente', 'trabajador_responsable', 'servicio_general'),
+        pk=pk,
     )
-
-    jefe_laboratorio = cotizacion.trabajador_responsable
-    if not jefe_laboratorio:
-        try:
-            jefe_laboratorio = TrabajadorProfile.objects.select_related('user').get(user__username='raquel')
-        except (TrabajadorProfile.DoesNotExist, TrabajadorProfile.MultipleObjectsReturned):
-            jefe_laboratorio = None
-
-    tasa_igv_decimal = cotizacion.tasa_igv if cotizacion.tasa_igv is not None else Decimal('0.18')
-    subtotal = cotizacion.subtotal if cotizacion.subtotal is not None else Decimal('0.00')
-    igv_amount = cotizacion.impuesto_igv if cotizacion.impuesto_igv is not None else (subtotal * tasa_igv_decimal)
-    monto_total = cotizacion.monto_total if cotizacion.monto_total is not None else (subtotal + igv_amount)
-    igv_porcentaje = int(tasa_igv_decimal * 100)
-
-    grupos_qs = cotizacion.grupos.all().order_by('orden', 'id')
-    grupos_visibles = [g for g in grupos_qs if g.nombre_grupo != "ENSAYOS DE LABORATORIO"]
-
-    if not grupos_visibles:
-        grupos_visibles = list(grupos_qs)
-
-    def serializar_items_pdf(items_queryset):
-        items_pdf = []
-
-        for item in items_queryset.order_by('orden', 'id'):
-            if item.seleccionado and (item.texto_final or '').strip():
-                items_pdf.append({
-                    'texto': reemplazar_tokens_condicion(
-                        item.texto_final.strip(),
-                        cotizacion
-                    )
-                })
-
-            children = item.children.all().order_by('orden', 'id')
-            for child in children:
-                if child.seleccionado and (child.texto_final or '').strip():
-                    items_pdf.append({
-                        'texto': reemplazar_tokens_condicion(
-                            child.texto_final.strip(),
-                            cotizacion
-                        )
-                    })
-
-        return items_pdf
-
-    secciones_condiciones_pdf = []
-
-    if cotizacion.condiciones_secciones.exists():
-        for seccion in cotizacion.condiciones_secciones.all().order_by('orden', 'id'):
-            root_items = seccion.items.filter(parent__isnull=True)
-            items_pdf = serializar_items_pdf(root_items)
-
-            if items_pdf:
-                secciones_condiciones_pdf.append({
-                    'codigo': seccion.codigo,
-                    'titulo': seccion.titulo,
-                    'items': items_pdf
-                })
-
-    firma_aprobacion = None
-    if jefe_laboratorio:
-        posibles_campos = ['firma', 'firma_digital', 'imagen_firma']
-        for campo in posibles_campos:
-            archivo = getattr(jefe_laboratorio, campo, None)
-            if archivo:
-                try:
-                    firma_aprobacion = request.build_absolute_uri(archivo.url)
-                    break
-                except Exception:
-                    firma_aprobacion = None
-
-    context = {
-        'cotizacion': cotizacion,
-        'grupos': grupos_visibles,
-        'subtotal_final': subtotal,
-        'igv_monto_final': igv_amount,
-        'monto_total_final': monto_total,
-        'igv_porcentaje': igv_porcentaje,
-        'jefe_laboratorio': jefe_laboratorio,
-        'secciones_condiciones_pdf': secciones_condiciones_pdf,
-        'firma_aprobacion': firma_aprobacion,
-    }
-
-    template = get_template('servicios/cotizacion_pdf.html')
-    html = template.render(context)
-
-    response = HttpResponse(content_type='application/pdf')
-    nombre_archivo = f"{cotizacion.numero_oferta}.pdf" if cotizacion.numero_oferta else f"Cotizacion_{pk}.pdf"
-    response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
-
-    pisa_status = pisa.CreatePDF(
-        html,
-        dest=response,
-        link_callback=link_callback
-    )
-
-    if pisa_status.err:
+    try:
+        contenido = generar_pdf(cotizacion, lambda texto: reemplazar_tokens_condicion(texto, cotizacion))
+    except Exception:
+        logger.exception("No se pudo generar el PDF de la cotización %s", pk)
         return HttpResponse('Tuvimos errores al generar el PDF.', status=500)
 
+    response = HttpResponse(contenido, content_type='application/pdf')
+    nombre_archivo = f"{cotizacion.numero_oferta}.pdf" if cotizacion.numero_oferta else f"Cotizacion_{pk}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
     return response
 
 def _marcar_cotizacion(request, pk, estado, texto):

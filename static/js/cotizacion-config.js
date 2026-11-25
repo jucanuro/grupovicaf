@@ -1120,8 +1120,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         textarea.style.height = 'auto';
 
-        const minHeight = 52;
-        const maxHeight = 180;
+        // Con resaltado no hay tope: el fondo amarillo no se desplaza con el texto.
+        const conFondo = textarea.classList.contains('cond-texto');
+        const minHeight = conFondo ? 24 : 52;
+        const maxHeight = conFondo ? 2000 : 180;
         const nextHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight);
 
         textarea.style.height = `${nextHeight}px`;
@@ -1132,6 +1134,78 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.condicion-textarea').forEach(textarea => {
             autoResizeCondicionTextarea(textarea);
         });
+    }
+
+
+    // --- Textos del Word FOR-001: lo que va entre {{ }} se pinta en amarillo ---
+    // (como el resaltado del Word: es un dato que hay que completar). El PDF lo
+    // imprime sin las llaves. Técnica: un fondo con el mismo texto y <mark>
+    // detrás de un textarea transparente.
+    function fondoResaltado(texto) {
+        return escapeTextarea(texto || '')
+            .replace(/\{\{([\s\S]*?)\}\}/g, '<mark class="cond-mark">{{$1}}</mark>') + '\n';
+    }
+
+    function tienePendientes(texto) {
+        return /\{\{[\s\S]*?\}\}/.test(texto || '');
+    }
+
+    window.actualizarFondoCondicion = function (textarea) {
+        const fondo = textarea.parentElement.querySelector('.cond-fondo');
+        if (fondo) fondo.innerHTML = fondoResaltado(textarea.value);
+        const aviso = textarea.closest('[data-cond-item]')?.querySelector('[data-cond-pendiente]');
+        if (aviso) aviso.classList.toggle('hidden', !tienePendientes(textarea.value));
+    };
+
+    function textareaCondicion(item, path, readonly, clases) {
+        return `
+            <div class="cond-resaltado ${clases || ''}">
+                <div class="cond-fondo" aria-hidden="true">${fondoResaltado(item.texto_final || '')}</div>
+                <textarea
+                    class="cond-texto condicion-textarea"
+                    data-path="${path}"
+                    rows="1"
+                    ${readonly ? 'readonly' : ''}
+                    oninput="editarTextoCondicion('${path}', this.value); actualizarFondoCondicion(this); autoResizeCondicionTextarea(this);"
+                >${escapeTextarea(item.texto_final || '')}</textarea>
+            </div>`;
+    }
+
+    function renderItemEditor(item, path, nivel) {
+        const children = item.children || [];
+        const checked = item.seleccionado ? 'checked' : '';
+        const puede = window.CondicionesCotizacionState.puedeEditar;
+        const sangria = nivel ? 'ml-6' : '';
+        if (item.tipo_nodo === 'grupo') {
+            const marcados = countSelectedItems(children);
+            return `
+                <div class="${sangria} mt-4 mb-2" data-cond-item>
+                    <label class="flex items-center gap-3 cursor-pointer rounded-xl bg-slate-100 px-4 py-2.5">
+                        <input type="checkbox" ${checked} ${(!puede || item.es_obligatorio) ? 'disabled' : ''}
+                            onchange="toggleItemCondicion('${path}', this.checked)"
+                            class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                        <span class="text-[11px] font-black text-slate-700 uppercase tracking-wider flex-1">${escapeHtml(item.texto_final || item.titulo || '')}</span>
+                        <span class="text-[10px] font-bold text-slate-500">${marcados}/${countAllRenderableItems(children)}</span>
+                    </label>
+                    <div class="space-y-3 mt-3 pl-3 border-l-2 border-slate-200">
+                        ${children.map((c, i) => renderItemEditor(c, `${path}-${i}`, nivel + 1)).join('')}
+                    </div>
+                </div>`;
+        }
+        const pendiente = tienePendientes(item.texto_final);
+        return `
+            <div class="${sangria} p-4 rounded-xl border ${item.seleccionado ? 'border-emerald-300 bg-emerald-50/60' : 'border-slate-200 bg-white'}" data-cond-item>
+                <div class="flex items-start gap-3">
+                    <input type="checkbox" ${checked} ${(!puede || item.es_obligatorio) ? 'disabled' : ''}
+                        onchange="toggleItemCondicion('${path}', this.checked)"
+                        class="mt-1 w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                    <div class="flex-1 min-w-0">
+                        ${item.titulo ? `<div class="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">${escapeHtml(item.titulo)}</div>` : ''}
+                        ${textareaCondicion(item, path, !puede || !item.editable_en_cotizacion, 'cond-chico')}
+                        <p class="${pendiente ? '' : 'hidden'} mt-1 text-[10px] font-bold text-amber-700" data-cond-pendiente>Lo resaltado en amarillo es un dato a completar; en el PDF sale sin las llaves.</p>
+                    </div>
+                </div>
+            </div>`;
     }
 
     function renderCondicionItem(item, path) {
@@ -1168,14 +1242,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                             </div>
 
-                            <div class="rounded-2xl border border-slate-200 bg-white overflow-hidden focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all">
-                                <textarea
-                                    class="condicion-textarea w-full px-4 py-3 bg-transparent border-none text-[13px] leading-6 font-medium text-slate-700 outline-none resize-none"
-                                    data-path="${path}"
-                                    rows="1"
-                                    ${(!window.CondicionesCotizacionState.puedeEditar || !item.editable_en_cotizacion) ? 'readonly' : ''}
-                                    oninput="editarTextoCondicion('${path}', this.value); autoResizeCondicionTextarea(this);"
-                                >${escapeTextarea(item.texto_final || '')}</textarea>
+                            <div class="rounded-2xl border border-slate-200 bg-white overflow-hidden focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all" data-cond-item>
+                                ${textareaCondicion(item, path, !window.CondicionesCotizacionState.puedeEditar || !item.editable_en_cotizacion, 'cond-grande')}
                             </div>
                         </div>
                     </div>
@@ -1678,28 +1746,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 </span>
             </div>
 
-            ${(sec.items || []).map((item, idx) => {
-                const path = `${currentSectionIndex}-${idx}`;
-                const checked = item.seleccionado ? 'checked' : '';
-
-                return `
-                    <div class="p-4 rounded-xl border ${item.seleccionado ? 'border-emerald-300 bg-emerald-50/60' : 'border-slate-200 bg-white'}">
-                        <label class="flex items-start gap-3 cursor-pointer">
-                            <input type="checkbox"
-                                ${checked}
-                                onchange="toggleItemCondicion('${path}', this.checked)"
-                                class="mt-1 w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
-
-                            <textarea
-                                class="w-full text-xs border-0 focus:ring-0 resize-none bg-transparent font-semibold text-slate-700"
-                                rows="2"
-                                oninput="editarTextoCondicion('${path}', this.value)"
-                            >${escapeTextarea(item.texto_final || '')}</textarea>
-                        </label>
-                    </div>
-                `;
-            }).join('')}
+            ${(sec.items || []).map((item, idx) => renderItemEditor(item, `${currentSectionIndex}-${idx}`, 0)).join('')}
         `;
+        body.querySelectorAll('textarea.cond-texto').forEach(autoResizeCondicionTextarea);
     }
 
     window.renderTable();

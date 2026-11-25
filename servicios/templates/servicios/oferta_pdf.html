@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+{% comment %}
+Oferta técnico-económica con el diseño del Word VCF-LAB-FOR-001 v7 (servicios/oferta_pdf.py).
+Medidas tomadas del Word: A4, márgenes 3,75 / 1,5 / 2 / 2,54 cm, Helvetica 9 pt,
+azul #253776, gris #F2F2F2, naranja #F6A31C.
+{% endcomment %}
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Oferta {{ cotizacion.numero_oferta }}</title>
+<style>
+    @page {
+        size: A4;
+        margin: 3.75cm 1.5cm 2.2cm 2.54cm;
+        /* Marco del Word: fondo gris, hoja blanca y cuadro naranja abajo a la derecha. */
+        background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='210mm' height='297mm' viewBox='0 0 2100 2970'><rect x='158' y='70' width='1919' height='2689' fill='%23F2F2F2'/><rect x='190' y='281' width='1854' height='2591' fill='%23FFFFFF'/><rect x='2008' y='2658' width='69' height='69' fill='%23F6A31C'/></svg>") no-repeat;
+        background-size: 210mm 297mm;
+        /* El fondo se posiciona desde el área de contenido: se corre lo que miden los márgenes. */
+        background-position: -2.54cm -3.75cm;
+        @left-top { content: element(lateral); width: 2.54cm; vertical-align: top; }
+        @bottom-right { content: "Página " counter(page) " de " counter(pages); font: 9pt Helvetica, Arial, sans-serif; color: #000; vertical-align: top; padding-top: 0.55cm; }
+    }
+    * { box-sizing: border-box; }
+    body { font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #000; margin: 0; line-height: 1.18; }
+    p { margin: 0; }
+
+    /* Código del formato girado en el margen izquierdo (se repite en cada hoja). */
+    .lateral { position: running(lateral); }
+    .lateral div { width: 12.1cm; height: 0.6cm; position: relative; top: -2.9cm; left: 1.2cm; transform-origin: 0 0;
+                   transform: rotate(90deg); white-space: nowrap; font-size: 7.5pt; line-height: 0.6cm; color: #000; }
+    .lateral b { font-weight: bold; }
+    .lateral .pagina::after { content: counter(page) " de " counter(pages); }
+
+    /* Cabecera fija: logo a la izquierda, contactos a la derecha (Word: «Picture 17», «Grupo 7»). */
+    .cabecera { position: fixed; top: -2.62cm; left: -0.30cm; width: 18.2cm; height: 2cm; }
+    .cabecera .logo { position: absolute; left: 0; top: 0.02cm; width: 3.89cm; height: 1.62cm; }
+    .contactos { position: absolute; left: 13.47cm; top: -0.12cm; color: #253776; font-size: 8pt; line-height: 0.47cm; }
+    .contactos img { width: 0.36cm; height: 0.36cm; vertical-align: -0.08cm; margin-right: 0.18cm; }
+
+    /* Encabezado de la oferta (tabla del Word) */
+    .encabezado { width: 100%; border-collapse: collapse; margin: 0.15cm 0 0.35cm 0; }
+    .encabezado td { padding: 0; vertical-align: middle; }
+    .numero { border-collapse: collapse; width: 9.2cm; }
+    .numero td { height: 0.95cm; padding: 0 0.25cm; font-size: 10pt; }
+    .numero tr:first-child td { border-bottom: 0.5pt solid #d9d9d9; }
+    .numero .etq { width: 2.9cm; font-weight: bold; color: #253776; font-size: 11pt; border-right: 0.5pt solid #d9d9d9; }
+    .numero .val { color: #7F7F7F; font-weight: bold; font-size: 11pt; }
+    .numero .fecha { color: #000; font-weight: normal; font-size: 10.5pt; }
+    .titulo { text-align: center; color: #253776; font-weight: bold; font-size: 14pt; text-decoration: underline; line-height: 1.15; }
+
+    /* Bandas de sección */
+    h2 { background: #F2F2F2; color: #253776; font-size: 9pt; font-weight: bold; margin: 0.32cm 0 0.12cm 0; padding: 0.1cm 0.2cm;
+         text-transform: uppercase; page-break-after: avoid; }
+    h2 .n { display: inline-block; width: 0.62cm; }
+    .primera h2 { margin-top: 0; }
+
+    /* Datos del cliente */
+    .cliente { border-collapse: collapse; margin: 0.1cm 0 0.3cm 0.75cm; width: 15.7cm; font-size: 10pt; }
+    .cliente td { padding: 0.07cm 0.2cm; border-bottom: 0.5pt solid #E7E6E6; vertical-align: top; }
+    .cliente .etq { width: 2.35cm; font-weight: bold; padding-right: 0.25cm; }
+    .cliente .sinlinea td { border-bottom: 0; }
+    .saludo { font-size: 10.5pt; margin: 0 0 0.3cm 0.4cm; line-height: 1.25; }
+
+    /* Tabla de ítems */
+    table.items { width: 100%; border-collapse: collapse; font-size: 7.5pt; margin-bottom: 0.35cm; }
+    .items th { background: #253776; color: #fff; font-weight: bold; padding: 0.12cm 0.1cm; border: 0.5pt solid #000; text-align: center; }
+    .items td { border: 0.5pt solid #000; padding: 0.05cm 0.1cm; vertical-align: middle; }
+    .items .cat td { background: #F2F2F2; font-weight: bold; }
+    .items .sub td { font-weight: bold; }
+    .items .c { text-align: center; }
+    .items .r { text-align: right; white-space: nowrap; }
+    .items .nw { white-space: nowrap; }
+    .items .extra { display: block; }
+    .items .total td { font-weight: bold; }
+    .items tr { page-break-inside: avoid; }
+
+    /* Notas y listas */
+    .notas-titulo { font-size: 9.5pt; margin: 0.25cm 0 0.15cm 0; }
+    ol.notas { margin: 0 0 0 0; padding-left: 0.62cm; }
+    ol.notas li { padding-left: 0.12cm; margin-bottom: 0.02cm; text-align: justify; }
+    ul.vinetas { margin: 0; padding-left: 0.62cm; list-style: none; }
+    ul.vinetas > li { position: relative; padding-left: 0.1cm; text-align: justify; margin-bottom: 0.03cm; }
+    ul.vinetas > li::before { content: "•"; position: absolute; left: -0.42cm; }
+    .grupo { font-weight: bold; margin: 0.25cm 0 0.04cm 0.72cm; page-break-after: avoid; }
+    .grupo.n1 { margin-left: 0.72cm; }
+    .enlace { color: #0563C1; }
+    .seccion { page-break-inside: auto; }
+
+    /* Contactos */
+    table.contactos-lab { width: 16.5cm; margin: 0.2cm 0 0.3cm 0.62cm; border-collapse: collapse; font-size: 8.5pt; }
+    .contactos-lab th { background: #F2F2F2; font-weight: bold; border: 0.5pt solid #000; padding: 0.22cm; text-align: center; }
+    .contactos-lab td { border: 0.5pt solid #000; padding: 0.25cm 0.1cm; text-align: center; line-height: 1.6; vertical-align: top; }
+    .contactos-lab img { width: 0.3cm; height: 0.3cm; vertical-align: -0.06cm; margin-right: 0.12cm; }
+    .contactos-lab .tel { margin-top: 0.3cm; }
+
+    /* Datos de pago */
+    table.datos { margin: 0.1cm 0 0.4cm 0.2cm; border-collapse: collapse; font-size: 9pt; }
+    .datos td { padding: 0 0.1cm; }
+    .datos .v { padding-left: 0; }
+    .datos .l { width: 4.7cm; padding-left: 0.05cm; }
+    .datos .dp { width: 0.45cm; padding-left: 0.05cm; }
+    .datos .dos { width: 1.55cm; }
+
+    /* Firmas */
+    .atte { margin: 0.25cm 0 0 0.62cm; }
+    table.firmas { width: 15.6cm; margin: 0.3cm 0 0 0.5cm; border-collapse: collapse; page-break-inside: avoid; font-size: 8pt; }
+    .firmas td { vertical-align: bottom; padding: 0; }
+    .firmas td.izq { width: 8.6cm; }
+    .firmas .espacio { height: 1.9cm; position: relative; }
+    .firmas .firma-img { position: absolute; left: 3.3cm; bottom: -0.35cm; width: 2.6cm; }
+    .firmas .linea { border-top: 0.5pt solid #000; width: 7.6cm; }
+    .firmas .izq { text-align: center; }
+    .firmas .izq .linea { margin: 0 auto; }
+    .firmas .der .linea { width: 6.3cm; }
+    .firmas .der { padding-left: 0.9cm; }
+    .firmas .acepto { text-align: center; width: 6.3cm; }
+</style>
+</head>
+<body>
+
+<div class="lateral"><div><b>Código:</b> {{ formato.codigo }} &nbsp;|&nbsp; <b>Fecha:</b> {{ formato.fecha }} &nbsp;|&nbsp; <b>Versión:</b> {{ formato.version }} &nbsp;|&nbsp; <b>Aprobación:</b> {{ formato.aprobacion }} &nbsp;|&nbsp; Página <span class="pagina"></span></div></div>
+
+<div class="cabecera">
+    {% if img.logo %}<img class="logo" src="{{ img.logo }}" alt="Grupo VICAF SAC">{% endif %}
+    <div class="contactos">
+        <div><img src="{{ img.telefono }}" alt="">{{ cabecera.telefono }}</div>
+        <div><img src="{{ img.correo }}" alt="">{{ cabecera.correo }}</div>
+        <div><img src="{{ img.linkedin }}" alt="">{{ cabecera.linkedin }}</div>
+        <div><img src="{{ img.web }}" alt="">{{ cabecera.web }}</div>
+    </div>
+</div>
+
+<table class="encabezado">
+    <tr>
+        <td style="width: 9.6cm">
+            <table class="numero">
+                <tr><td class="etq">OFERTA No.</td><td class="val">{{ cotizacion.numero_oferta|default:"VCF-OTE-AÑO-XXX" }}</td></tr>
+                <tr><td class="etq">Fecha:</td><td class="val fecha">{{ cotizacion.fecha_generacion|date:"d \d\e F \d\e Y" }}</td></tr>
+            </table>
+        </td>
+        <td class="titulo">OFERTA TÉCNICA-<br>ECONÓMICA<br>LABORATORIO</td>
+    </tr>
+</table>
+
+<div class="primera">
+<h2><span class="n">1.</span>OFERTA ECONÓMICA</h2>
+<table class="cliente">
+    <tr><td class="etq">Señor(es):</td><td colspan="2">{{ cliente.razon_social|default:"-" }}</td></tr>
+    <tr><td class="etq">DNI/RUC:</td><td colspan="2">{{ cliente.ruc|default:"-" }}</td></tr>
+    <tr><td class="etq">Servicio:</td><td colspan="2">{{ cotizacion.asunto_servicio|default:"-" }}</td></tr>
+    <tr><td class="etq">Atención:</td><td colspan="2">{{ cotizacion.persona_contacto|default:"-" }}</td></tr>
+    <tr><td class="etq"></td><td style="width: 8.6cm">Correo Electrónico: {{ cotizacion.correo_contacto|default:"-" }}</td><td>Teléfono: {{ cotizacion.telefono_contacto|default:"-" }}</td></tr>
+</table>
+</div>
+
+<p class="saludo">Estimado cliente, mediante la presente se remite nuestra oferta económica por el servicio solicitado:</p>
+
+<table class="items">
+    <thead>
+        <tr>
+            <th style="width: 1.15cm">Ítem</th>
+            <th>Descripción</th>
+            <th style="width: 3.6cm">Norma de ensayo</th>
+            <th style="width: 1.3cm">Und.</th>
+            <th style="width: 1.45cm">Cantidad</th>
+            <th style="width: 1.9cm">P. Unitario</th>
+            <th style="width: 1.9cm">P. Parcial</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for f in filas %}
+            {% if f.tipo == 'categoria' %}
+            <tr class="cat"><td class="c">{{ f.codigo }}</td><td colspan="6">{{ f.texto }}</td></tr>
+            {% elif f.tipo == 'subcategoria' %}
+            <tr class="sub"><td class="c">{{ f.codigo }}</td><td>{{ f.texto }}</td><td></td><td></td><td></td><td></td><td></td></tr>
+            {% else %}
+            <tr>
+                <td class="c">{{ f.codigo }}</td>
+                <td>{{ f.texto }}{% if f.extra %}<span class="extra">{{ f.extra }}</span>{% endif %}</td>
+                <td class="c">{{ f.norma }}</td>
+                <td class="c">{{ f.unidad }}</td>
+                <td class="c">{{ f.cantidad }}</td>
+                <td class="r">{{ f.unitario }}</td>
+                <td class="r">{{ f.parcial }}</td>
+            </tr>
+            {% endif %}
+        {% endfor %}
+        <tr class="total"><td colspan="6">COSTO DIRECTO SIN IGV</td><td class="r">{{ subtotal }}</td></tr>
+        <tr class="total"><td colspan="6">I.G.V ({{ igv_porcentaje }}%)</td><td class="r">{{ igv }}</td></tr>
+        <tr class="total"><td colspan="6">COSTO TOTAL</td><td class="r">{{ total }}</td></tr>
+    </tbody>
+</table>
+
+{% if notas %}
+<p class="notas-titulo">NOTAS:</p>
+<ol class="notas">
+    {% for n in notas %}{% if not n.grupo %}<li>{{ n.texto }}</li>{% endif %}{% endfor %}
+</ol>
+{% endif %}
+
+{% for s in secciones %}
+<div class="seccion">
+    <h2><span class="n">{{ s.numero }}.</span>{{ s.titulo }}</h2>
+    {% include "servicios/_oferta_nodos.html" with nodos=s.nodos nivel=0 %}
+</div>
+{% endfor %}
+
+<h2><span class="n">{{ n_contactos }}.</span>CONTACTOS AUTORIZADOS DEL LABORATORIO</h2>
+<ul class="vinetas"><li>Todas las coordinaciones referidas al servicio serán válidas solo si se realizan con los contactos autorizados:</li></ul>
+<table class="contactos-lab">
+    <tr><th colspan="2">COORDINACIONES TÉCNICAS</th><th>PAGOS Y FACTURACIÓN</th></tr>
+    <tr>
+        {% for c in contactos.tecnicos %}
+        <td>{{ c.nombre }}<br>{{ c.cargo }}<div class="tel"><img src="{{ img.telefono }}" alt="">{{ c.telefono }}</div><img src="{{ img.correo }}" alt="">{{ c.correo }}</td>
+        {% endfor %}
+        {% with c=contactos.pagos %}
+        <td>{{ c.nombre }}<br>{{ c.cargo }}<div class="tel"><img src="{{ img.telefono }}" alt="">{{ c.telefono }}</div><img src="{{ img.correo }}" alt="">{{ c.correo }}</td>
+        {% endwith %}
+    </tr>
+</table>
+
+<h2><span class="n">{{ n_datos }}.</span>DATOS PARA CONTRATO - ORDEN DE SERVICIO - PAGOS</h2>
+<table class="datos">
+    {% for etiqueta, valor in datos_pago %}
+    <tr><td class="dp">•</td><td class="l">{{ etiqueta }}</td><td class="dos">:</td><td class="v">{{ valor }}</td></tr>
+    {% endfor %}
+</table>
+
+<p class="atte">Atentamente,</p>
+<table class="firmas">
+    <tr>
+        <td class="izq">
+            <div class="espacio">{% if img.firma %}<img class="firma-img" src="{{ img.firma }}" alt="Firma">{% endif %}</div>
+            <div class="linea"></div>
+            <b>{{ firmante.nombre }}</b><br>{{ firmante.cargo }}<br>{{ firmante.empresa }}<br>Aprobó
+        </td>
+        <td class="der">
+            <div class="espacio"></div>
+            <div class="linea"></div>
+            <b>Representante:</b><br>Empresa:<br>Cargo:<div class="acepto">Aceptó</div>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>
