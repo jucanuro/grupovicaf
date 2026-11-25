@@ -157,7 +157,7 @@ class FormularioCompletoParaTodosTests(CompresionBase):
     def test_un_ensayo_general_muestra_todas_las_secciones_del_for_009(self):
         html = self.client.get(self.url_registro(self.proctor)).content.decode()
         for marca in ('data-datos-cliente', 'data-medidas', 'data-paso-carga', 'name="carga_kn"', 'name="tipo_fractura"',
-                      'name="tipos_defecto"', 'name="verif_planitud"', 'data-datos-probeta', 'data-datos-generales'):
+                      'name="tipos_defecto"', 'name="verif_planitud"', 'data-sesion-card', 'data-datos-generales'):
             self.assertIn(marca, html)
 
     def test_en_un_ensayo_general_nada_del_for_009_es_obligatorio(self):
@@ -196,3 +196,59 @@ class FormularioCompletoParaTodosTests(CompresionBase):
                       'class="grupo-fotos"', 'data-asist-webcam'):
             self.assertIn(marca, html)
         self.assertEqual(html.count('class="grupo-fotos"'), 3)
+
+
+class RegistroPantallaCompletaTests(CompresionBase):
+    """HU-LIMS-38: pantalla completa, sesión dentro del registro, requisitos y fotos sin botones por recuadro."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user_tec)
+
+    def test_la_pantalla_es_completa_con_requisitos_y_la_sesion_integrada(self):
+        html = self.client.get(self.url_registro(self.mia)).content.decode()
+        for marca in ('rs-completo', 'data-requisitos', 'data-sesion-card', 'data-abrir-sesion', 'id="form-sesion"',
+                      'name="temperatura_inicial"', 'name="comp_', 'Para terminar este ensayo necesitas'):
+            self.assertIn(marca, html)
+
+    def test_los_recuadros_ya_no_tienen_botones_de_camara_ni_galeria(self):
+        html = self.client.get(self.url_registro(self.mia)).content.decode()
+        self.assertEqual(html.count('data-entrada'), 0)
+        self.assertEqual(html.count('Repetir esta foto'), 6)
+        self.assertNotIn('Galería</label>', html.replace('\n', ''))
+
+    def datos_sesion(self):
+        from proyectos.models import Equipo, SesionEnsayo
+        datos = {'fecha': date.today().isoformat(), 'temperatura_inicial': '19.0', 'humedad_inicial': '66', 'neopreno_usos': '59-60'}
+        for campo, tipo in SesionEnsayo.EQUIPOS + SesionEnsayo.ACCESORIOS:
+            equipo = Equipo.disponibles(tipo, date.today()).first()
+            datos[campo] = equipo.pk if equipo else ''
+        for clave, _, _, esperado in SesionEnsayo.COMPROBACION:
+            datos['comp_' + clave] = '1' if esperado else '0'
+        return datos
+
+    def test_abre_la_sesion_sin_salir_del_registro(self):
+        from proyectos.models import SesionEnsayo
+        r = self.client.post(reverse('proyectos:abrir_sesion_ensayo'), self.datos_sesion(), HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertTrue(r.json()['ok'])
+        self.assertIn('Sesión del', r.json()['resumen'])
+        self.assertEqual(SesionEnsayo.objects.count(), 1)
+        html = self.client.get(self.url_registro(self.mia)).content.decode()
+        self.assertNotIn('name="temperatura_inicial"', html)
+        self.assertIn('Sesión abierta: este ensayo la usa al terminar', html)
+
+    def test_una_sesion_invalida_devuelve_los_errores_en_json(self):
+        from proyectos.models import SesionEnsayo
+        datos = self.datos_sesion()
+        datos['temperatura_inicial'] = '99'
+        r = self.client.post(reverse('proyectos:abrir_sesion_ensayo'), datos, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(r.status_code, 400)
+        self.assertFalse(r.json()['ok'])
+        self.assertTrue(r.json()['errores'])
+        self.assertEqual(SesionEnsayo.objects.count(), 0)
+
+    def test_no_abre_una_segunda_sesion(self):
+        self.client.post(reverse('proyectos:abrir_sesion_ensayo'), self.datos_sesion(), HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        r = self.client.post(reverse('proyectos:abrir_sesion_ensayo'), self.datos_sesion(), HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(r.status_code, 409)

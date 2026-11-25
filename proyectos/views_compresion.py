@@ -307,7 +307,23 @@ def registrar_ensayo_compresion(request, detalle_id):
         esquema = formulario.como_esquema() if formulario else {}
     datos_guardados = (ensayo.datos if ensayo is not None else None) or {}
     campos_formulario = [dict(c, valor=datos_guardados.get(c['clave'], '')) for c in esquema.get('campos', [])]
+    form_sesion, campos_equipo, campos_comprobacion, faltan_tipos = None, [], [], []
+    if sesion is None and ejecutor is not None and (ensayo is None or not ensayo.terminado):
+        form_sesion = AbrirSesionForm(initial={'fecha': timezone.localdate()})
+        for campo in form_sesion.fields.values():
+            campo.widget.attrs['form'] = 'form-sesion'
+        campos_equipo = [form_sesion[c] for c, _ in SesionEnsayo.EQUIPOS + SesionEnsayo.ACCESORIOS] + [form_sesion['neopreno_usos']]
+        campos_comprobacion = form_sesion.campos_comprobacion()
+        faltan_tipos = [
+            etiqueta for campo, tipo in SesionEnsayo.EQUIPOS + SesionEnsayo.ACCESORIOS
+            for codigo, etiqueta in Equipo.TIPOS
+            if codigo == tipo and not form_sesion.fields[campo].queryset.exists()
+        ]
+    url_sesion = reverse('proyectos:abrir_sesion_ensayo') + (f'?tecnico={a_nombre_de.pk}' if a_nombre_de else '')
     return render(request, 'proyectos/compresion_registro.html', {
+        'form_sesion': form_sesion, 'campos_equipo': campos_equipo, 'campos_comprobacion': campos_comprobacion,
+        'faltan_tipos_sesion': faltan_tipos, 'url_sesion_ajax': url_sesion,
+        'sesion_resumen': _resumen_sesion(sesion) if sesion else (_resumen_sesion(ensayo.sesion) if ensayo is not None and ensayo.sesion else ''),
         'campos_formulario': campos_formulario,
         'instrucciones_formulario': esquema.get('instrucciones', ''),
         'detalle': detalle,
@@ -1048,6 +1064,12 @@ def foto_compresion(request, foto_id):
 
 # --- Sesión de ensayo (HU-LIMS-12/13) -------------------------------------
 
+def _resumen_sesion(sesion):
+    """Texto corto de la sesión abierta, para mostrarlo en el registro sin recargar."""
+    return (f"Sesión del {sesion.fecha:%d/%m/%Y} · {sesion.temperatura_inicial:.1f} °C · "
+            f"{sesion.humedad_inicial:.0f} % HR al inicio.")
+
+
 @login_required
 @permiso_requerido(PERMISO_REGISTRAR)
 def abrir_sesion_ensayo(request):
@@ -1058,7 +1080,10 @@ def abrir_sesion_ensayo(request):
         messages.error(request, "Tu usuario no tiene ficha de trabajador; pide que la creen para abrir sesiones.")
         return redirect('proyectos:mis_ensayos_compresion')
     a_nombre_de = perfil if perfil != propio else None
+    ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     if SesionEnsayo.abierta_de(perfil):
+        if ajax:
+            return JsonResponse({'ok': False, 'errores': ['Ya hay una sesión abierta; recarga la pantalla.']}, status=409)
         if a_nombre_de:
             messages.error(request, f"{perfil.nombre_completo} ya tiene una sesión abierta; ciérrala antes de abrir otra.")
         else:
@@ -1066,11 +1091,16 @@ def abrir_sesion_ensayo(request):
         return redirect(volver)
 
     form = AbrirSesionForm(request.POST or None, initial={'fecha': timezone.localdate()})
+    if ajax and request.method == 'POST' and not form.is_valid():
+        errores = [f"{form.fields[c].label if c in form.fields else ''}: {e}".strip(': ') for c, lista in form.errors.items() for e in lista]
+        return JsonResponse({'ok': False, 'errores': errores, 'campos': list(form.errors.keys())}, status=400)
     if request.method == 'POST' and form.is_valid():
         sesion = form.save(commit=False)
         sesion.tecnico = perfil
         sesion.registrada_por = propio if a_nombre_de else None
         sesion.save()
+        if ajax:
+            return JsonResponse({'ok': True, 'resumen': _resumen_sesion(sesion)})
         quien = f" de {perfil.nombre_completo}" if a_nombre_de else ""
         messages.success(request, f"Sesión{quien} abierta. Ya se pueden terminar probetas con fecha "
                                   f"{sesion.fecha:%d/%m/%Y}.")

@@ -1,0 +1,60 @@
+{# Condiciones ambientales, equipos y comprobación dentro del mismo formulario (HU-LIMS-38). #}
+{% if sesion_resumen or form_sesion %}
+<details class="v-tarjeta rg-ancho" data-sesion-card {% if es_compresion and not sesion_resumen %}open{% endif %}>
+    <summary class="v-tarjeta__cab" style="cursor:pointer; list-style:none">
+        <span class="v-paso"><i data-lucide="flask-conical" class="w-4 h-4"></i></span>
+        <div>
+            <h2>Condiciones y equipos{% if not es_compresion %} <span class="font-normal text-slate-500">(opcional en este ensayo)</span>{% endif %}</h2>
+            <p data-sesion-resumen>{% if sesion_resumen %}{{ sesion_resumen }} <b class="text-green-700">Sesión abierta: este ensayo la usa al terminar.</b>{% elif es_compresion %}{% if a_nombre_de %}{{ a_nombre_de.nombre_completo }} no tiene sesión abierta. Ábrela aquí con los datos de su formato.{% else %}No tienes sesión abierta. Ábrela aquí: se abre una vez al día y vale para todas las probetas que termines.{% endif %}{% else %}Si usaste equipos o condiciones del formato, ábrela aquí; si no, déjala así.{% endif %}</p>
+        </div>
+        <i data-lucide="chevron-down" class="w-4 h-4 ml-auto text-slate-400 flex-shrink-0"></i>
+    </summary>
+    {% if form_sesion %}
+    <div class="v-tarjeta__cuerpo" data-sesion-formulario>
+        {% if faltan_tipos_sesion %}
+        <div class="v-aviso v-aviso--ambar mb-3" role="note">
+            <i data-lucide="triangle-alert"></i>
+            <span>No hay equipo vigente de: {{ faltan_tipos_sesion|join:", " }}. Avisa al supervisor.</span>
+        </div>
+        {% endif %}
+        <div class="rg-sesion-grid">
+            <div>
+                <h3 class="text-sm font-bold text-slate-700 mb-2">Condiciones iniciales</h3>
+                <div class="grid grid-cols-1 gap-3">
+                    <label><span class="v-etiqueta">Fecha de ensayo</span><span class="v-campo block">{{ form_sesion.fecha }}</span></label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label><span class="v-etiqueta">Temperatura</span><span class="v-campo block" data-unidad="°C">{{ form_sesion.temperatura_inicial }}</span></label>
+                        <label><span class="v-etiqueta">Humedad relativa</span><span class="v-campo block" data-unidad="%">{{ form_sesion.humedad_inicial }}</span></label>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <h3 class="text-sm font-bold text-slate-700 mb-2">Equipos empleados</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {% for campo in campos_equipo %}
+                    <label><span class="v-etiqueta">{{ campo.label }}</span><span class="v-campo block">{{ campo }}</span></label>
+                    {% endfor %}
+                </div>
+            </div>
+            <div data-comprobacion>
+                <h3 class="text-sm font-bold text-slate-700 mb-2">Comprobación funcional</h3>
+                <div class="divide-y divide-slate-100">
+                    {% for campo in campos_comprobacion %}
+                    {% ifchanged campo.field.equipo %}<p class="pt-2 pb-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">{{ campo.field.equipo }}</p>{% endifchanged %}
+                    <div class="py-1.5 flex items-center justify-between gap-3 text-sm">
+                        <span>{{ campo.label }}</span>
+                        <span class="flex gap-3 flex-shrink-0">{% for opcion in campo %}<label class="v-opcion">{{ opcion.tag }} {{ opcion.choice_label }}</label>{% endfor %}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <p class="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2 mt-3 hidden" data-sesion-error role="alert"></p>
+        <div class="mt-3 flex items-center justify-between gap-3">
+            <p class="text-[11px] text-slate-500">Al cerrar la sesión registrarás la temperatura y la humedad finales.</p>
+            <button type="button" class="v-btn v-btn--primario" data-abrir-sesion><i data-lucide="play"></i> Abrir sesión</button>
+        </div>
+    </div>
+    {% endif %}
+</details>
+{% endif %}

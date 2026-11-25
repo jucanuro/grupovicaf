@@ -35,6 +35,24 @@
     .camara-disparo { width: 68px; height: 68px; border-radius: 999px; border: 4px solid #fff; background: transparent; padding: 4px; }
     .camara-disparo span { display: block; width: 100%; height: 100%; border-radius: 999px; background: #fff; transition: transform .1s; }
     .camara-disparo:active span { transform: scale(.85); }
+    /* Pantalla completa en columnas (HU-LIMS-38) */
+    .rg-completo { background: #f1f5f9; }
+    .rg-cuerpo { max-width: none; margin: 0; padding: 1rem 1.25rem 2rem; display: flex; flex-direction: column; gap: .9rem; }
+    .rg-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(21rem, 1fr)); gap: .9rem; align-items: start; }
+    .rg-form > .rg-ancho, .rg-form > .v-barra { grid-column: 1 / -1; }
+    .rg-completo .v-barra { bottom: 0; margin: .5rem 0 0; }
+    .rg-sesion-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1.2rem; align-items: start; }
+    .rg-requisitos { background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; padding: .7rem .9rem; }
+    .rg-requisitos__titulo { font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #64748b; margin-bottom: .4rem; }
+    .rg-requisitos__lista { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0; padding: 0; list-style: none; }
+    .rg-req { display: inline-flex; align-items: center; gap: .35rem; font-size: .8rem; font-weight: 700; padding: .3rem .7rem; border-radius: 999px;
+              background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+    .rg-req[data-ok] { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+    .rg-completo .reg-cuerpo { gap: .9rem; }
+    @media (min-width: 1280px) {
+        .rg-completo .reg-cuerpo { grid-template-columns: minmax(0, 1fr) 26rem; }
+    }
+    @media (max-width: 1023px) { .rg-cuerpo { padding: .75rem .75rem 1.5rem; } }
     /* Pantalla única de registro (HU-LIMS-36): en PC formulario y fotos lado a lado; en celular y tablet, una a la vez. */
     .reg-switch { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; position: sticky; top: .5rem; z-index: 30; }
     .reg-switch button { display: flex; align-items: center; justify-content: center; gap: .4rem; padding: .8rem .5rem; border-radius: .9rem;
@@ -92,43 +110,32 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 pt-5 pb-4 space-y-4"
-     data-registro-compresion
+<div class="rs-completo rg-completo" data-registro-compresion role="dialog" aria-modal="true" aria-labelledby="rg-titulo"
      data-es-compresion="{% if es_compresion %}1{% else %}0{% endif %}"
+     data-sesion="{% if sesion or sesion_ensayo %}1{% else %}0{% endif %}"
+     data-solo-lectura="{% if solo_lectura %}1{% else %}0{% endif %}"
      data-subir-url="{% url 'proyectos:subir_foto_compresion' detalle.pk 'TIPO' %}"
+     data-sesion-url="{{ url_sesion_ajax }}"
      data-lado-maximo="{{ lado_maximo }}">
 
-    <a href="{{ url_salida }}" class="v-volver">
-        <i data-lucide="arrow-left"></i> {{ salida_texto }}
-    </a>
-
-    <div class="v-tarjeta p-4">
-        <div class="flex items-start justify-between gap-3">
-            <div class="flex items-start gap-3 min-w-0">
-            <div class="v-cabecera__icono v-solo-pc"><i data-lucide="{% if es_compresion %}cylinder{% else %}clipboard-list{% endif %}"></i></div>
-            <div class="min-w-0">
-                <p class="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">{% if es_compresion %}Probeta{% else %}Muestra{% endif %}</p>
-                <h1 class="font-mono text-xl font-bold text-slate-900 break-all">{{ detalle.muestra.codigo_laboratorio }}</h1>
-                <p class="text-xs text-slate-500 mt-1">{{ detalle.descripcion_ensayo }} · {{ detalle.norma }}</p>
-                <p class="text-xs text-slate-500">Solicitud {{ detalle.solicitud.codigo_solicitud }} · entrega {{ detalle.fecha_entrega_programada|date:"d/m/Y" }}</p>
-            </div>
-            </div>
-            {% if solo_lectura %}
-                <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-green-100 text-green-700 flex-shrink-0">{{ ensayo.get_estado_display }}</span>
-            {% else %}
-                <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-700 flex-shrink-0">En registro</span>
-            {% endif %}
+    <header class="rs-barra">
+        <div class="min-w-0">
+            <h1 id="rg-titulo" class="font-mono">{{ detalle.muestra.codigo_laboratorio }}
+                {% if solo_lectura %}<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 align-middle ml-1 font-sans">{{ ensayo.get_estado_display }}</span>
+                {% else %}<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 align-middle ml-1 font-sans">En registro</span>{% endif %}
+            </h1>
+            <p>{{ detalle.descripcion_ensayo }} · {{ detalle.norma }} · Solicitud {{ detalle.solicitud.codigo_solicitud }} · entrega {{ detalle.fecha_entrega_programada|date:"d/m/Y" }}</p>
         </div>
-        {% if solo_lectura and ensayo.tecnico %}
-        <p class="text-xs text-slate-600 mt-2">Ejecutado por {{ ensayo.tecnico.nombre_completo }} · {{ ensayo.terminado_en|date:"d/m/Y H:i" }}{% if ensayo.registrado_por %} · pasado al sistema por {{ ensayo.registrado_por.nombre_completo }}{% endif %}</p>
-        {% endif %}
-    </div>
+        <a href="{{ url_salida }}" class="rs-cerrar" aria-label="Cerrar y volver: {{ salida_texto }}" title="{{ salida_texto }}" data-cerrar>
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </a>
+    </header>
 
+    <div class="rg-cuerpo">
+    {% if solo_lectura and ensayo.tecnico %}
+    <p class="text-xs text-slate-600">Ejecutado por {{ ensayo.tecnico.nombre_completo }} · {{ ensayo.terminado_en|date:"d/m/Y H:i" }}{% if ensayo.registrado_por %} · pasado al sistema por {{ ensayo.registrado_por.nombre_completo }}{% endif %}</p>
+    {% endif %}
 
-    <div class="reg-switch {% if solo_lectura %}reg-solo-lectura{% endif %}" role="tablist" aria-label="Qué registrar">
-        <button type="button" role="tab" data-ir-panel="fotos"><i data-lucide="camera" class="w-5 h-5"></i> Fotos <span class="reg-cuenta" data-fotos-cuenta-switch>0/6</span></button>
-        <button type="button" role="tab" data-ir-panel="formulario"><i data-lucide="clipboard-pen" class="w-5 h-5"></i> Llenar formulario</button>
-    </div>
     {% if ensayo.observacion_revision and not solo_lectura %}
     <div class="rounded-xl px-4 py-3 text-sm bg-amber-50 text-amber-900 border border-amber-200" role="alert" data-observacion-revision>
         <p class="font-bold">El revisor devolvió este ensayo</p>
@@ -142,33 +149,30 @@
         {% endfor %}
     {% endif %}
 
-
-    <div class="reg-cuerpo {% if solo_lectura %}reg-solo-lectura{% endif %}">
-    <div class="reg-panel space-y-4" id="panel-formulario" data-panel="formulario" data-activo>
     {% if a_nombre_de and not solo_lectura %}
     <div class="rounded-xl px-4 py-3 text-sm bg-blue-50 text-blue-900 border border-blue-200" role="note" data-a-nombre-de>
         <p class="font-bold">Registras a nombre de {{ a_nombre_de.nombre_completo }}</p>
-        <p class="mt-0.5">Copia los datos de su formato en papel. El ensayo queda como ejecutado por {{ a_nombre_de.nombre_completo }} y registrado por ti. Las fotos las puede subir el técnico desde su celular o tú aquí.</p>
+        <p class="mt-0.5 hidden sm:block">Copia los datos de su formato en papel. El ensayo queda como ejecutado por {{ a_nombre_de.nombre_completo }} y registrado por ti.</p>
     </div>
     {% endif %}
-    <section class="v-tarjeta p-4" data-datos-probeta>
-        <h2 class="font-bold text-slate-800 text-sm">Sesión de ensayo{% if not es_compresion %} <span class="font-normal text-slate-500">(condiciones y equipos · opcional en este ensayo)</span>{% endif %}</h2>
-        <div class="mt-1 text-xs" data-sesion-registro>
-            {% if sesion_ensayo %}
-                <p class="text-slate-600">Sesión del {{ sesion_ensayo.fecha|date:"d/m/Y" }} · {{ sesion_ensayo.temperatura_inicial|floatformat:1 }} °C / {{ sesion_ensayo.humedad_inicial|floatformat:0 }} % HR al inicio.</p>
-            {% elif sesion %}
-                <p class="text-green-700 font-semibold">Sesión abierta del {{ sesion.fecha|date:"d/m/Y" }}: al terminar, esta probeta toma sus condiciones y equipos.</p>
-            {% elif not solo_lectura %}
-                {% if es_compresion %}
-                <p class="text-amber-700 font-semibold">{% if a_nombre_de %}{{ a_nombre_de.nombre_completo }} no tiene sesión abierta. Puedes guardar datos, pero para terminar <a class="underline" href="{{ url_abrir_sesion }}">abre su sesión con los datos del formato</a>.{% else %}No tienes sesión abierta. Puedes guardar datos, pero para terminar <a class="underline" href="{{ url_abrir_sesion }}">abre una sesión</a>.{% endif %}</p>
-                {% else %}
-                <p class="text-slate-600">Sin sesión abierta. Si este ensayo usó equipos o condiciones ambientales del formato, <a class="underline text-blue-700" href="{{ url_abrir_sesion }}">abre una sesión</a> y se tomarán al terminar; si no, déjalo así.</p>
-                {% endif %}
-            {% endif %}
-        </div>
+
+    {% if not solo_lectura %}
+    <section class="rg-requisitos" data-requisitos aria-label="Qué necesitas para terminar">
+        <p class="rg-requisitos__titulo">Para terminar este ensayo necesitas</p>
+        <ul class="rg-requisitos__lista" data-requisitos-lista></ul>
     </section>
-    <form method="post" id="form-registro" class="space-y-4" enctype="multipart/form-data" novalidate>
+    {% endif %}
+
+    <div class="reg-switch {% if solo_lectura %}reg-solo-lectura{% endif %}" role="tablist" aria-label="Qué registrar">
+        <button type="button" role="tab" data-ir-panel="fotos"><i data-lucide="camera" class="w-5 h-5"></i> Fotos <span class="reg-cuenta" data-fotos-cuenta-switch>0/6</span></button>
+        <button type="button" role="tab" data-ir-panel="formulario"><i data-lucide="clipboard-pen" class="w-5 h-5"></i> Llenar formulario</button>
+    </div>
+
+    <div class="reg-cuerpo {% if solo_lectura %}reg-solo-lectura{% endif %}">
+    <div class="reg-panel" id="panel-formulario" data-panel="formulario" data-activo>
+    <form method="post" id="form-registro" class="rg-form" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
+        {% include "proyectos/_sesion_en_registro.html" %}
         <div class="v-tarjeta" data-datos-cliente>
             <div class="v-tarjeta__cab">
                 <span class="v-paso">1</span>
@@ -380,6 +384,7 @@
             {% endif %}
         </div>
     </form>
+    <form id="form-sesion" method="post" action="{{ url_sesion_ajax }}" hidden>{% csrf_token %}</form>
     </div>
     <aside class="reg-panel" id="panel-fotos" data-panel="fotos" aria-label="Fotos del ensayo">
         <section class="v-tarjeta" data-fotos-ensayo>
@@ -451,6 +456,7 @@
         </section>
     </aside>
     </div>
+    </div>
 </div>
 
 {% if not solo_lectura %}
@@ -482,6 +488,9 @@
     const raiz = document.querySelector('[data-registro-compresion]');
     const urlSubir = raiz.dataset.subirUrl;
     const esCompresion = raiz.dataset.esCompresion === '1';
+    const urlSesion = raiz.dataset.sesionUrl;
+    let sesionAbierta = raiz.dataset.sesion === '1';
+    document.body.classList.add('rs-abierto');
     const ladoMaximo = parseInt(raiz.dataset.ladoMaximo, 10) || 1600;
     const csrf = document.querySelector('#form-registro [name=csrfmiddlewaretoken]').value;
     const modal = document.getElementById('recorte-modal');
@@ -501,11 +510,42 @@
     let slotActual = null;
     let urlObjeto = null;
 
+    function pintarRequisitos(fotosFaltan) {
+        const lista = document.querySelector('[data-requisitos-lista]');
+        if (!lista) return;
+        const reqs = [{ t: 'Fecha de ensayo', ok: !!fecha.value }];
+        if (esCompresion) {
+            const medidas = Array.from(document.querySelectorAll('[data-medida]'));
+            const llenas = medidas.filter(function (i) { return i.value.trim(); }).length;
+            const verifOk = ['verif_perpendicularidad', 'verif_planitud'].every(function (n) {
+                return !document.querySelectorAll('[name="' + n + '"]').length || document.querySelector('[name="' + n + '"]:checked');
+            });
+            reqs.push({ t: 'Sesión: condiciones y equipos', ok: sesionAbierta });
+            reqs.push({ t: 'Medidas y carga (' + llenas + '/' + medidas.length + ')', ok: llenas === medidas.length });
+            reqs.push({ t: 'Fractura y verificaciones', ok: !!(fractura && fractura.value) && !!verifOk });
+        }
+        const obligatorios = Array.from(document.querySelectorAll('[data-dato][data-requerido]'));
+        if (obligatorios.length) {
+            const hechos = obligatorios.filter(function (i) { return i.value.trim(); }).length;
+            reqs.push({ t: 'Datos del servicio (' + hechos + '/' + obligatorios.length + ')', ok: hechos === obligatorios.length });
+        }
+        reqs.push({ t: 'Fotos (' + (6 - fotosFaltan) + '/6)', ok: fotosFaltan === 0 });
+        lista.textContent = '';
+        reqs.forEach(function (r) {
+            const li = document.createElement('li');
+            li.className = 'rg-req';
+            if (r.ok) li.setAttribute('data-ok', '');
+            li.textContent = (r.ok ? '✓ ' : '○ ') + r.t;
+            lista.appendChild(li);
+        });
+    }
+
     function actualizarTerminar() {
         const faltan = [];
         if (!fecha.value) faltan.push('fecha de ensayo');
         // Medidas, fractura y verificaciones solo son obligatorias en compresión (FOR-009 completo:
         // en los demás ensayos se llena lo que corresponda y el resto queda vacío).
+        if (esCompresion && !sesionAbierta) faltan.push('la sesión (condiciones y equipos)');
         if (esCompresion) {
             document.querySelectorAll('[data-medida]').forEach(function (i) {
                 if (!i.value.trim()) faltan.push(i.closest('label').querySelector('span').textContent.trim());
@@ -536,6 +576,7 @@
             if (listas < minimo) faltan.push(minimo === 1 ? 'al menos una foto' : 'al menos ' + minimo + ' fotos');
             if (galeria.querySelector('.galeria__item[data-estado="subiendo"]')) faltan.push('esperar a que terminen de subir las fotos');
         }
+        pintarRequisitos(fotosFaltan);
         btnTerminar.disabled = faltan.length > 0;
         textoFaltan.textContent = faltan.length ? 'Falta: ' + faltan.join(' · ') : 'Todo listo para terminar.';
     }
@@ -625,188 +666,6 @@
         }).catch(function () {
             mostrarError(slot, 'Se cortó la conexión. Tus datos siguen aquí: pulsa «Reintentar envío».', true);
         });
-    }
-
-    document.querySelectorAll('[data-entrada]').forEach(function (entrada) {
-        entrada.addEventListener('change', function () {
-            const archivo = entrada.files && entrada.files[0];
-            entrada.value = '';
-            if (!archivo) return;
-            if (!archivo.type.startsWith('image/')) { mostrarError(entrada.closest('[data-slot]'), 'Elige una imagen.', false); return; }
-            abrirRecorte(entrada.closest('[data-slot]'), archivo);
-        });
-    });
-
-    // «Cámara» de cada recuadro: en la PC abre la cámara en la página (el
-    // atributo capture no hace nada ahí); en el celular, la cámara nativa.
-    document.querySelectorAll('[data-slot] input[capture]').forEach(function (entrada) {
-        const boton = entrada.closest('label');
-        boton.addEventListener('click', function (e) {
-            if (!(window.CamaraFoto && CamaraFoto.preferida())) return;
-            e.preventDefault();
-            const slot = entrada.closest('[data-slot]');
-            CamaraFoto.abrir({
-                titulo: etiquetas[slot.dataset.slot],
-                alTomar: function (blob) { abrirRecorte(slot, blob); },
-                alFallar: function (mensaje) { mostrarError(slot, mensaje + ' Usa «Galería» para elegir el archivo.', false); },
-            });
-        });
-    });
-
-    // --- Galería del ensayo general: varias fotos, se agregan una tras otra ---
-    const galeria = document.querySelector('[data-galeria]');
-    if (galeria && galeria.querySelector('[data-galeria-zona]')) {
-        const lista = galeria.querySelector('[data-galeria-lista]');
-        const zona = galeria.querySelector('[data-galeria-zona]');
-        const error = galeria.querySelector('[data-galeria-error]');
-        const maximo = parseInt(galeria.dataset.max, 10) || 12;
-        const cola = [];
-        let subiendo = false;
-
-        function avisar(texto) {
-            error.textContent = texto || '';
-            error.classList.toggle('hidden', !texto);
-        }
-        function renumerar() {
-            lista.querySelectorAll('.galeria__item').forEach(function (item, i) {
-                const n = item.querySelector('.galeria__num');
-                if (n) n.textContent = i + 1;
-            });
-            const hay = lista.querySelector('.galeria__item');
-            galeria.querySelector('[data-galeria-vacio]').textContent = hay ? 'Agrega más fotos' : 'Aún no hay fotos';
-            actualizarTerminar();
-        }
-        function ocupadas() { return lista.querySelectorAll('.galeria__item').length; }
-
-        // Reduce en el navegador (lado mayor 1600 px) para que suba rápido.
-        function reducir(archivo) {
-            return new Promise(function (ok) {
-                const url = URL.createObjectURL(archivo);
-                const im = new Image();
-                im.onload = function () {
-                    const escala = Math.min(1, ladoMaximo / Math.max(im.naturalWidth, im.naturalHeight));
-                    const c = document.createElement('canvas');
-                    c.width = Math.round(im.naturalWidth * escala);
-                    c.height = Math.round(im.naturalHeight * escala);
-                    c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-                    URL.revokeObjectURL(url);
-                    c.toBlob(function (b) { ok(b || archivo); }, 'image/jpeg', 0.88);
-                };
-                im.onerror = function () { URL.revokeObjectURL(url); ok(archivo); };
-                im.src = url;
-            });
-        }
-
-        function agregar(archivo) {
-            if (!archivo || !(archivo.type || '').startsWith('image/')) { avisar('Solo se aceptan imágenes.'); return; }
-            if (ocupadas() >= maximo) { avisar('Se admiten hasta ' + maximo + ' fotos.'); return; }
-            const item = document.createElement('figure');
-            item.className = 'galeria__item';
-            item.dataset.estado = 'subiendo';
-            const vista = document.createElement('img');
-            vista.alt = 'Foto subiendo';
-            vista.src = URL.createObjectURL(archivo);
-            item.appendChild(vista);
-            const num = document.createElement('span');
-            num.className = 'galeria__num';
-            item.appendChild(num);
-            const cargando = document.createElement('div');
-            cargando.className = 'foto-cargando';
-            cargando.textContent = 'Subiendo…';
-            item.appendChild(cargando);
-            lista.appendChild(item);
-            renumerar();
-            cola.push({ item: item, archivo: archivo });
-            siguiente();
-        }
-
-        function siguiente() {
-            if (subiendo || !cola.length) return;
-            subiendo = true;
-            const tarea = cola.shift();
-            reducir(tarea.archivo).then(function (blob) {
-                const datos = new FormData();
-                datos.append('foto', blob, 'foto.jpg');
-                return fetch(urlSubir.replace('TIPO', 'general'), {
-                    method: 'POST', body: datos, headers: { 'X-CSRFToken': csrf }, credentials: 'same-origin',
-                }).then(function (r) {
-                    return r.json().catch(function () { return { ok: false, error: 'Respuesta inesperada del servidor (' + r.status + ').' }; });
-                });
-            }).then(function (res) {
-                if (!res.ok) throw new Error(res.error || 'No se pudo guardar la foto.');
-                tarea.item.dataset.estado = 'ok';
-                tarea.item.dataset.foto = res.id;
-                const img = tarea.item.querySelector('img');
-                URL.revokeObjectURL(img.src);
-                img.src = res.url;
-                img.alt = 'Foto del ensayo';
-                const quitar = document.createElement('button');
-                quitar.type = 'button';
-                quitar.className = 'galeria__borrar';
-                quitar.dataset.borrar = res.borrar;
-                quitar.setAttribute('aria-label', 'Quitar foto');
-                quitar.title = 'Quitar';
-                quitar.innerHTML = '<i data-lucide="x" class="w-4 h-4"></i>';
-                tarea.item.appendChild(quitar);
-                if (window.lucide) lucide.createIcons();
-                avisar('');
-            }).catch(function (err) {
-                tarea.item.remove();
-                avisar((err && err.message && err.message !== 'Failed to fetch') ? err.message
-                    : 'Se cortó la conexión y una foto no se guardó. Vuelve a agregarla.');
-            }).then(function () {
-                subiendo = false;
-                renumerar();
-                siguiente();
-            });
-        }
-
-        galeria.querySelector('[data-galeria-archivos]').addEventListener('change', function (e) {
-            Array.prototype.forEach.call(e.target.files || [], agregar);
-            e.target.value = '';
-        });
-        const camara = galeria.querySelector('[data-galeria-camara]');
-        camara.addEventListener('change', function (e) {
-            Array.prototype.forEach.call(e.target.files || [], agregar);
-            e.target.value = '';
-        });
-        galeria.querySelector('[data-camara-boton]').addEventListener('click', function (e) {
-            if (!(window.CamaraFoto && CamaraFoto.preferida())) return;
-            e.preventDefault();
-            CamaraFoto.abrir({
-                varias: true,
-                titulo: 'Fotos del ensayo · se agregan al tomarlas',
-                alTomar: function (blob) { agregar(new File([blob], 'camara.jpg', { type: 'image/jpeg' })); },
-                alFallar: function (mensaje) { avisar(mensaje + ' Usa «Adjuntar fotos».'); },
-            });
-        });
-        lista.addEventListener('click', function (e) {
-            const boton = e.target.closest('[data-borrar]');
-            if (!boton || !confirm('¿Quitar esta foto? Quedará registrado en la trazabilidad.')) return;
-            const item = boton.closest('.galeria__item');
-            item.dataset.estado = 'subiendo';
-            fetch(boton.dataset.borrar, { method: 'POST', headers: { 'X-CSRFToken': csrf }, credentials: 'same-origin' })
-                .then(function (r) { return r.json(); })
-                .then(function (res) {
-                    if (!res.ok) throw new Error(res.error);
-                    item.remove();
-                    renumerar();
-                })
-                .catch(function (err) {
-                    item.dataset.estado = 'ok';
-                    avisar((err && err.message) || 'No se pudo quitar la foto.');
-                });
-        });
-        ['dragenter', 'dragover'].forEach(function (ev) {
-            zona.addEventListener(ev, function (e) { e.preventDefault(); zona.classList.add('arrastrando'); });
-        });
-        ['dragleave', 'drop'].forEach(function (ev) {
-            zona.addEventListener(ev, function (e) { e.preventDefault(); zona.classList.remove('arrastrando'); });
-        });
-        zona.addEventListener('drop', function (e) {
-            Array.prototype.forEach.call((e.dataTransfer && e.dataTransfer.files) || [], agregar);
-        });
-        renumerar();
     }
 
     document.querySelectorAll('[data-reintentar]').forEach(function (b) {
@@ -910,6 +769,8 @@
             g.querySelectorAll('[data-slot]').forEach(function (sl, i) {
                 const img = sl.querySelector('[data-marco] img');
                 const ok = sl.querySelector('[data-marco]').dataset.estado === 'ok';
+                const rep = sl.querySelector('[data-repetir]');
+                if (rep) rep.classList.toggle('hidden', !ok);
                 if (minis[i]) {
                     if (ok && img) { minis[i].style.backgroundImage = 'url("' + img.src + '")'; minis[i].setAttribute('data-ok', ''); }
                     else { minis[i].style.backgroundImage = ''; minis[i].removeAttribute('data-ok'); }
@@ -924,6 +785,34 @@
         fotosCompletasAntes = completas;
         return total;
     }
+    // Abrir la sesión sin salir del registro (HU-LIMS-38).
+    const botonSesion = document.querySelector('[data-abrir-sesion]');
+    if (botonSesion) {
+        botonSesion.addEventListener('click', function () {
+            const formSesion = document.getElementById('form-sesion');
+            const caja = document.querySelector('[data-sesion-error]');
+            caja.classList.add('hidden');
+            botonSesion.disabled = true;
+            fetch(urlSesion, {
+                method: 'POST', body: new FormData(formSesion), credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrf },
+            }).then(function (r) { return r.json().catch(function () { return { ok: false, errores: ['Respuesta inesperada (' + r.status + ').'] }; }); })
+              .then(function (res) {
+                  botonSesion.disabled = false;
+                  if (!res.ok) { caja.textContent = (res.errores || ['No se pudo abrir la sesión.']).join(' · '); caja.classList.remove('hidden'); return; }
+                  sesionAbierta = true;
+                  const tarjeta = document.querySelector('[data-sesion-card]');
+                  tarjeta.querySelector('[data-sesion-resumen]').innerHTML = '';
+                  tarjeta.querySelector('[data-sesion-resumen]').textContent = res.resumen + ' Sesión abierta: este ensayo la usa al terminar.';
+                  const cuerpo = tarjeta.querySelector('[data-sesion-formulario]');
+                  if (cuerpo) cuerpo.remove();
+                  tarjeta.removeAttribute('open');
+                  actualizarTerminar();
+              })
+              .catch(function () { botonSesion.disabled = false; caja.textContent = 'Sin conexión: intenta de nuevo.'; caja.classList.remove('hidden'); });
+        });
+    }
+
     // Asistente de fotos (HU-LIMS-37): una sola cámara o adjuntador; el sistema sabe cuál foto sigue.
     const asist = document.querySelector('[data-asistente]');
     const tactil = window.matchMedia('(pointer: coarse)').matches && !window.matchMedia('(pointer: fine)').matches;
@@ -931,7 +820,9 @@
     const cola = [];
     function slotsEnOrden() { return Array.from(document.querySelectorAll('[data-slot]')); }
     function estadoSlot(s) { return s.querySelector('[data-marco]').dataset.estado; }
+    let slotForzado = null;
     function siguienteSlot() {
+        if (slotForzado) return slotForzado;
         return slotsEnOrden().find(function (s) { const e = estadoSlot(s); return e !== 'ok' && e !== 'subiendo'; }) || null;
     }
     function actualizarAsistente() {
@@ -978,8 +869,16 @@
         if (!cola.length || modal.classList.contains('abierto')) return;
         const slot = siguienteSlot();
         if (!slot) { cola.length = 0; return; }
+        slotForzado = null;
         abrirRecorte(slot, cola.shift());
     }
+    document.querySelectorAll('[data-repetir]').forEach(function (b) {
+        b.addEventListener('click', function () {
+            slotForzado = b.closest('[data-slot]');
+            const entrada = asist && (tactil ? asist.querySelector('[data-asist-camara]') : asist.querySelector('[data-asist-archivos]'));
+            if (entrada) entrada.click();
+        });
+    });
     if (asist) {
         ['[data-asist-camara]', '[data-asist-archivos]'].forEach(function (sel) {
             const entrada = asist.querySelector(sel);
@@ -998,7 +897,8 @@
                 alFallar: function (mensaje) { mostrarError(sig, mensaje, false); },
             });
         });
-        modal.querySelector('[data-cancelar]').addEventListener('click', function () { cola.length = 0; });
+        modal.querySelector('[data-cancelar]').addEventListener('click', function () { cola.length = 0; slotForzado = null; });
+        asist.querySelectorAll('label').forEach(function (l) { l.addEventListener('click', function () { slotForzado = null; }); });
     }
 
     function mostrarPanel(nombre) {

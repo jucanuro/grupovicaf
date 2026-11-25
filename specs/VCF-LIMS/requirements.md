@@ -460,6 +460,21 @@ foto sigue, sin perder la secuencia al ir y venir entre datos y fotos, y ocupand
 | REQ-LIMS-174 | HU-LIMS-37 | EL SISTEMA DEBE mostrar las fotos en tres grupos plegables (antes, durante y después) con su cuenta y miniaturas, y retomar la secuencia donde quedó al volver de llenar el formulario. | sí (navegador) | [Validado con usuario] |
 | REQ-LIMS-175 | HU-LIMS-37 | EL SISTEMA DEBE guardar a medida que se llena (guardado automático) y no perder lo escrito al cambiar entre «Fotos» y «Llenar formulario». | sí | [Validado con usuario] |
 
+## 2t. Registro en pantalla completa con la sesión integrada (v21)
+
+Pedido del Gerente (2026-11-25): la sesión de ensayo (condiciones ambientales, equipos y comprobación) forma parte del mismo
+formulario FOR-009 y no debe ser otra pantalla; el registro debe ocupar toda la pantalla en columnas para no hacer scroll
+largo; las fotos no llevan botones por recuadro (llegan como requisitos) y el sistema dice antes de empezar qué hace falta.
+HU-LIMS-38. La sesión sigue siendo necesaria en compresión (trazabilidad de equipos, ISO 17025) y opcional en los demás ensayos.
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-176 | HU-LIMS-38 | EL SISTEMA DEBE mostrar el registro del ensayo a pantalla completa, con el formulario en varias columnas, las fotos en un panel lateral y una barra superior con la muestra, el ensayo y el cierre. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-177 | HU-LIMS-38 | MIENTRAS no haya una sesión abierta, EL SISTEMA DEBE mostrar dentro del registro las condiciones iniciales, los equipos y la comprobación funcional, y abrir la sesión sin salir de la pantalla (SI hay errores, ENTONCES EL SISTEMA DEBE mostrarlos sin perder lo escrito). | sí | [Validado con usuario] |
+| REQ-LIMS-178 | HU-LIMS-38 | DONDE el ensayo sea de compresión, EL SISTEMA DEBE exigir la sesión abierta para terminar; DONDE no lo sea, EL SISTEMA DEBE dejarla opcional. | sí | [Propuesto] |
+| REQ-LIMS-179 | HU-LIMS-38 | EL SISTEMA DEBE mostrar al empezar y mientras se llena una lista de requisitos para terminar (fecha, sesión, medidas, fractura y verificaciones, datos del servicio y fotos, con su avance) que cambia de estado al cumplirse. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-180 | HU-LIMS-38 | EL SISTEMA DEBE quitar los botones de cámara y galería de cada recuadro de foto; para cambiar una foto ya subida, EL SISTEMA DEBE ofrecer «Repetir esta foto», que usa el mismo control guiado. | sí | [Validado con usuario] |
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -493,6 +508,7 @@ foto sigue, sin perder la secuencia al ir y venir entre datos y fotos, y ocupand
 | HU-LIMS-35 | Registro de compresión alineado al FOR-009 | REQ-LIMS-159 a 162 |
 | HU-LIMS-36 | Registro único de resultados para todos los ensayos | REQ-LIMS-163 a 170 |
 | HU-LIMS-37 | Formulario completo y fotos guiadas para cualquier dispositivo | REQ-LIMS-171 a 175 |
+| HU-LIMS-38 | Registro en pantalla completa con la sesión integrada | REQ-LIMS-176 a 180 |
 
 ## 4. Preguntas abiertas
 
@@ -527,3 +543,4 @@ foto sigue, sin perder la secuencia al ir y venir entre datos y fotos, y ocupand
 | v18 | 2026-11-25 | Claude (DLF) | Registro de compresión alineado al FOR-009: 6 fotos y f'c en MPa: REQ-LIMS-159 a 162 (HU-LIMS-35) |
 | v19 | 2026-11-25 | Claude (DLF) | Registro único para todos los ensayos, 6 fotos y formulario por servicio: REQ-LIMS-163 a 170 (HU-LIMS-36) |
 | v20 | 2026-11-25 | Claude (DLF) | Formulario FOR-009 completo para todos y asistente de fotos: REQ-LIMS-171 a 175 (HU-LIMS-37) |
+| v21 | 2026-11-25 | Claude (DLF) | Registro en pantalla completa con la sesión integrada y requisitos: REQ-LIMS-176 a 180 (HU-LIMS-38) |

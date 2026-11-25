@@ -49,6 +49,7 @@
 | T90 | Compresión alineada al FOR-009: foto «durante la carga» (6 fotos en 3 grupos), f'c en kg/cm² o MPa con conversión | 159-161 | `proyectos/test_compresion.py` | [x] |
 | T91 | Registro único: 6 fotos para todos, pantalla con panel de fotos y formulario (PC a dos columnas, celular por pasos), formulario por servicio (`PlantillaFormulario`, `formularios_ensayo.py`), revisión e informe leen los datos | 163-170 | `proyectos/test_formulario_ensayo.py`, `test_galeria_fotos.py` + navegador | [x] |
 | T92 | FOR-009 completo para todos los ensayos (`_aplicar_todo`), asistente de fotos con cámara/adjuntador único y grupos plegables | 171-175 | `proyectos/test_formulario_ensayo.py` + navegador PC y móvil | [x] |
+| T93 | Registro a pantalla completa en columnas, sesión de ensayo integrada (apertura por AJAX), requisitos para terminar y fotos sin botones por recuadro | 176-180 | `proyectos/test_formulario_ensayo.py` + navegador | [x] |
 
 ## Historial
 
@@ -76,3 +77,4 @@
 | v19 | 2026-11-25 | Claude (DLF) | T90: compresión alineada al FOR-009 |
 | v20 | 2026-11-25 | Claude (DLF) | T91: registro único de resultados para todos los ensayos |
 | v21 | 2026-11-25 | Claude (DLF) | T92: FOR-009 completo y asistente de fotos |
+| v22 | 2026-11-25 | Claude (DLF) | T93: registro a pantalla completa con la sesión integrada |

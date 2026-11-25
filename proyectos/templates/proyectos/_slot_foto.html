@@ -14,16 +14,7 @@
     </div>
     <p class="text-[11px] text-red-600 mt-1 hidden" data-error></p>
     {% if not solo_lectura %}
-    <div class="mt-1.5 grid grid-cols-2 gap-1.5">
-        <label class="v-btn v-btn--primario v-btn--sm v-btn--foto">
-            <i data-lucide="camera"></i> Cámara
-            <input type="file" accept="image/*" capture="environment" class="sr-only" data-entrada>
-        </label>
-        <label class="v-btn v-btn--secundario v-btn--sm v-btn--foto">
-            <i data-lucide="images"></i> Galería
-            <input type="file" accept="image/*" class="sr-only" data-entrada>
-        </label>
-    </div>
     <button type="button" class="hidden mt-1.5 v-btn v-btn--peligro v-btn--sm v-btn--block" data-reintentar>Reintentar envío</button>
+    <button type="button" class="mt-1.5 text-xs font-bold text-blue-700 underline {% if not s.foto %}hidden{% endif %}" data-repetir>Repetir esta foto</button>
     {% endif %}
 </div>
