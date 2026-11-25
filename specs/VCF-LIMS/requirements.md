@@ -446,6 +446,20 @@ los demás, los campos de su formato en papel [Supuesto: pendiente de recibir ca
 | REQ-LIMS-169 | HU-LIMS-36 | CUANDO se corrija un campo del formulario ya guardado, EL SISTEMA DEBE guardar el valor anterior y el nuevo, quién lo cambió y cuándo, y mostrarlo en el registro y en la revisión. | sí | [Validado con usuario] |
 | REQ-LIMS-170 | HU-LIMS-36 | EL SISTEMA DEBE mostrar lo registrado en el formulario en la revisión del supervisor y en el bloque de resultados del informe. | sí | [Propuesto] |
 
+## 2s. Formulario completo y fotos guiadas para cualquier dispositivo (v20)
+
+Pedido del Gerente (2026-11-25): el formulario debe ser completo (FOR-009) para todos los ensayos, y llenarse o marcarse
+según corresponda (lo que no aplica queda vacío); las fotos deben subirse con una sola cámara o adjuntador que indique cuál
+foto sigue, sin perder la secuencia al ir y venir entre datos y fotos, y ocupando poco espacio. HU-LIMS-37.
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-171 | HU-LIMS-37 | EL SISTEMA DEBE mostrar en todo ensayo el formulario completo del FOR-009 (datos del cliente, sesión, medidas, verificaciones, defectos, carga, fractura, video y observaciones) y guardarlo, más los campos propios del servicio. | sí | [Validado con usuario] |
+| REQ-LIMS-172 | HU-LIMS-37 | DONDE el ensayo no sea de compresión, EL SISTEMA DEBE dejar opcional todo el FOR-009 y exigir para terminar solo la fecha, las 6 fotos y los campos que el servicio marque como obligatorios. | sí | [Propuesto] |
+| REQ-LIMS-173 | HU-LIMS-37 | EL SISTEMA DEBE ofrecer un solo control de fotos que indique cuál sigue («Toma/Carga la foto: Antes del ensayo · foto 1 de 6»): «Tomar foto» con la cámara y «Elegir de la galería» en celular y tablet; «Cargar fotos» (varias a la vez, en orden) y la cámara del equipo en PC. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-174 | HU-LIMS-37 | EL SISTEMA DEBE mostrar las fotos en tres grupos plegables (antes, durante y después) con su cuenta y miniaturas, y retomar la secuencia donde quedó al volver de llenar el formulario. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-175 | HU-LIMS-37 | EL SISTEMA DEBE guardar a medida que se llena (guardado automático) y no perder lo escrito al cambiar entre «Fotos» y «Llenar formulario». | sí | [Validado con usuario] |
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -478,6 +492,7 @@ los demás, los campos de su formato en papel [Supuesto: pendiente de recibir ca
 | HU-LIMS-34 | Hoja de resultados de los ensayos generales | REQ-LIMS-155 a 158 |
 | HU-LIMS-35 | Registro de compresión alineado al FOR-009 | REQ-LIMS-159 a 162 |
 | HU-LIMS-36 | Registro único de resultados para todos los ensayos | REQ-LIMS-163 a 170 |
+| HU-LIMS-37 | Formulario completo y fotos guiadas para cualquier dispositivo | REQ-LIMS-171 a 175 |
 
 ## 4. Preguntas abiertas
 
@@ -511,3 +526,4 @@ los demás, los campos de su formato en papel [Supuesto: pendiente de recibir ca
 | v17 | 2026-11-25 | Claude (DLF) | Hoja de resultados del ensayo general: foto del formato, botones para celular, fecha de hoy: REQ-LIMS-155 a 158 (HU-LIMS-34) |
 | v18 | 2026-11-25 | Claude (DLF) | Registro de compresión alineado al FOR-009: 6 fotos y f'c en MPa: REQ-LIMS-159 a 162 (HU-LIMS-35) |
 | v19 | 2026-11-25 | Claude (DLF) | Registro único para todos los ensayos, 6 fotos y formulario por servicio: REQ-LIMS-163 a 170 (HU-LIMS-36) |
+| v20 | 2026-11-25 | Claude (DLF) | Formulario FOR-009 completo para todos y asistente de fotos: REQ-LIMS-171 a 175 (HU-LIMS-37) |

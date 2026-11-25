@@ -168,7 +168,10 @@ class ListaYAccesoTests(CompresionBase):
         self.assertContains(r, 'name="tipo_fractura"')
         r = self.client.get(self.url_registro(self.proctor))
         self.assertContains(r, 'data-datos-generales')
-        self.assertNotContains(r, 'name="tipo_fractura"')
+        # El formulario FOR-009 es completo también aquí (se llena lo que corresponda).
+        self.assertContains(r, 'name="tipo_fractura"')
+        self.assertContains(r, 'name="masa_g"')
+        self.assertNotContains(self.client.get(self.url_registro(self.mia)), 'data-datos-generales')
         # Todo ensayo lleva las mismas 6 fotos, también el general.
         self.assertEqual(self.subir(self.proctor, 'carga', jpeg(180, 70)).status_code, 200)
 
@@ -278,7 +281,7 @@ class TerminarTests(CompresionBase):
         )
         self.client.force_login(self.user_tec)
         html = self.client.get(self.url_registro(self.mia)).content.decode()
-        for titulo in ('1 · Antes del ensayo', '2 · Durante el ensayo', '3 · Después del ensayo'):
+        for titulo in ('1 · Antes', '2 · Durante', '3 · Después'):
             self.assertIn(titulo, html)
         self.assertEqual(FotoEnsayo.PROPORCIONES['durante'], (4, 7))
 

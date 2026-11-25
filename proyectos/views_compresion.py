@@ -229,13 +229,7 @@ def registrar_ensayo_compresion(request, detalle_id):
             ensayo = ResultadoEnsayo.crear_para(detalle)
             detalle.solicitud.sincronizar_estado()
 
-        if ensayo.es_compresion and 'muestra-fc_diseno' in request.POST:
-            error = _aplicar_datos_cliente(request, detalle, ensayo)
-            if error:
-                messages.error(request, error)
-                return redirect(url)
-        aplicar = _aplicar_datos if ensayo.es_compresion else _aplicar_datos_generales
-        error = aplicar(request, detalle, ensayo)
+        error = _aplicar_todo(request, detalle, ensayo)
         if error:
             messages.error(request, error)
             return redirect(url)
@@ -726,7 +720,8 @@ def _aplicar_datos_generales(request, detalle, ensayo, omitidos=None):
             except OSError:
                 logger.warning("No se pudo borrar la hoja reemplazada %s", anterior)
     ensayo.fecha_ensayo = fecha
-    ensayo.resumen = (request.POST.get('resumen') or '').strip()[:5000]
+    if 'resumen' in request.POST:
+        ensayo.resumen = (request.POST.get('resumen') or '').strip()[:5000]
     ensayo.observaciones = (request.POST.get('observaciones') or '').strip()
     error_datos = _aplicar_campos_formulario(request, ensayo, omitidos)
     if error_datos:
@@ -889,6 +884,29 @@ def _aplicar_datos(request, detalle, ensayo, omitidos=None):
     return None
 
 
+def _aplicar_todo(request, detalle, ensayo, omitidos=None):
+    """Guarda todo el formulario del ensayo (FOR-009 completo, HU-LIMS-36).
+
+    El formulario es el mismo para todos los servicios: datos del cliente, fecha, medidas,
+    fractura, defectos, verificaciones y observaciones se guardan siempre. En los
+    que no son compresión nada de eso es obligatorio (se deja vacío lo que no aplica); además se
+    guardan los campos propios del servicio o el resumen. Devuelve un error o None
+    (en modo tolerante, con ``omitidos``, los errores se anotan y se sigue).
+    """
+    if 'muestra-fc_diseno' in request.POST:
+        error = _aplicar_datos_cliente(request, detalle, ensayo)
+        if error:
+            if omitidos is None:
+                return error
+            omitidos.append(error)
+    error = _aplicar_datos(request, detalle, ensayo, omitidos=omitidos)
+    if error:
+        return error
+    if not ensayo.es_compresion:
+        return _aplicar_datos_generales(request, detalle, ensayo, omitidos=omitidos)
+    return None
+
+
 def _autoguardar(request, detalle, ensayo):
     """Guarda en silencio lo que el técnico ya escribió (HU-LIMS-26, REQ-LIMS-103 a 106).
 
@@ -903,14 +921,7 @@ def _autoguardar(request, detalle, ensayo):
         if ensayo is None:
             ensayo = ResultadoEnsayo.crear_para(detalle)
             detalle.solicitud.sincronizar_estado()
-        if ensayo.es_compresion:
-            if 'muestra-fc_diseno' in request.POST:
-                error = _aplicar_datos_cliente(request, detalle, ensayo)
-                if error:
-                    omitidos.append(error)
-            _aplicar_datos(request, detalle, ensayo, omitidos=omitidos)
-        else:
-            _aplicar_datos_generales(request, detalle, ensayo, omitidos=omitidos)
+        _aplicar_todo(request, detalle, ensayo, omitidos=omitidos)
     return JsonResponse({
         'ok': True,
         'hora': timezone.localtime().strftime('%H:%M'),

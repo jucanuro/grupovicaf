@@ -1005,11 +1005,8 @@ class ResultadoEnsayo(models.Model):
         if not self.es_compresion:
             if not self.fecha_ensayo:
                 faltan.append("la fecha de ensayo")
-            campos = (self.esquema or {}).get('campos', [])
-            if campos:
-                faltan.extend(f"«{e}»" for e in formularios_ensayo.faltantes(self.esquema, self.datos))
-            elif not self.resumen.strip():
-                faltan.append("el resumen de resultados")
+            # Formulario FOR-009 completo: solo se exige lo que el servicio defina como obligatorio.
+            faltan.extend(f"«{e}»" for e in formularios_ensayo.faltantes(self.esquema or {}, self.datos or {}))
             faltan.extend(self._fotos_que_faltan())
             return faltan
         muestra = self.detalle.muestra

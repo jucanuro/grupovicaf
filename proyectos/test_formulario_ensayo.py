@@ -140,3 +140,59 @@ class FormularioPorServicioTests(CompresionBase):
         p = PlantillaFormulario(nombre='Mala', campos=[{'clave': 'X Y', 'etiqueta': 'a', 'tipo': 'numero'}])
         with self.assertRaises(ValidationError):
             p.full_clean()
+
+
+class FormularioCompletoParaTodosTests(CompresionBase):
+    """HU-LIMS-37: el FOR-009 completo sirve a todo ensayo; en los que no son compresión se llena lo que corresponda."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user_tec)
+
+    def subir_seis(self, detalle):
+        for tipo in FotoEnsayo.TIPOS_COMPRESION:
+            ancho, alto = FotoEnsayo.PROPORCIONES[tipo]
+            self.subir(detalle, tipo, jpeg(ancho * 100, alto * 100))
+
+    def test_un_ensayo_general_muestra_todas_las_secciones_del_for_009(self):
+        html = self.client.get(self.url_registro(self.proctor)).content.decode()
+        for marca in ('data-datos-cliente', 'data-medidas', 'data-paso-carga', 'name="carga_kn"', 'name="tipo_fractura"',
+                      'name="tipos_defecto"', 'name="verif_planitud"', 'data-datos-probeta', 'data-datos-generales'):
+            self.assertIn(marca, html)
+
+    def test_en_un_ensayo_general_nada_del_for_009_es_obligatorio(self):
+        self.client.post(self.url_registro(self.proctor), {
+            'accion': 'guardar', 'fecha_ensayo': (date.today() - timedelta(days=1)).isoformat(), 'masa_g': '1500',
+        })
+        e = ResultadoEnsayo.objects.get(detalle=self.proctor)
+        faltan = e.faltantes_para_terminar()
+        self.assertTrue(all('foto' in f for f in faltan), faltan)
+        self.assertEqual(str(e.masa_g), '1500.0')
+
+    def test_termina_solo_con_fecha_y_las_seis_fotos(self):
+        self.subir_seis(self.proctor)
+        r = self.client.post(self.url_registro(self.proctor), {
+            'accion': 'terminar', 'fecha_ensayo': (date.today() - timedelta(days=1)).isoformat(),
+        })
+        self.assertTrue(ResultadoEnsayo.objects.get(detalle=self.proctor).terminado, r.status_code)
+
+    def test_la_compresion_sigue_exigiendo_sus_medidas(self):
+        self.subir_seis(self.mia)
+        self.client.post(self.url_registro(self.mia), {
+            'accion': 'terminar', 'fecha_ensayo': (date.today() - timedelta(days=1)).isoformat(),
+        })
+        self.assertFalse(ResultadoEnsayo.objects.get(detalle=self.mia).terminado)
+
+    def test_el_autoguardado_guarda_medidas_de_un_ensayo_general(self):
+        self.client.post(self.url_registro(self.proctor), {
+            'accion': 'autoguardar', 'masa_g': '2000', 'tipo_fractura': '3', 'tipos_defecto': ['a', 'b'],
+        })
+        e = ResultadoEnsayo.objects.get(detalle=self.proctor)
+        self.assertEqual((str(e.masa_g), e.tipo_fractura, e.tipos_defecto), ('2000.0', 3, 'a,b'))
+
+    def test_el_panel_de_fotos_trae_el_asistente_y_grupos_plegables(self):
+        html = self.client.get(self.url_registro(self.proctor)).content.decode()
+        for marca in ('data-asistente', 'data-asist-camara', 'capture="environment"', 'data-asist-archivos',
+                      'class="grupo-fotos"', 'data-asist-webcam'):
+            self.assertIn(marca, html)
+        self.assertEqual(html.count('class="grupo-fotos"'), 3)

@@ -55,6 +55,22 @@
         .reg-solo-lectura.reg-switch { display: none; }
         .reg-solo-lectura .reg-panel { display: block; margin-bottom: 1rem; }
     }
+    /* Asistente de fotos: una sola cámara o adjuntador que sabe cuál foto sigue (HU-LIMS-37). */
+    .asistente { border: 2px solid #bfdbfe; background: #eff6ff; border-radius: 1rem; padding: .9rem; }
+    .asistente[data-listo] { border-color: #bbf7d0; background: #f0fdf4; }
+    .asistente__titulo { font-size: 1.05rem; font-weight: 800; color: #0f172a; line-height: 1.25; }
+    .asistente__sub { font-size: .8rem; color: #475569; margin-top: .15rem; }
+    .asistente__botones { display: grid; gap: .5rem; margin-top: .7rem; }
+    .asistente .v-btn--grande { padding: 1rem 1.2rem; font-size: 1.05rem; justify-content: center; }
+    .grupo-fotos { border: 1px solid #e2e8f0; border-radius: 1rem; background: #fff; }
+    .grupo-fotos > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: .6rem; padding: .75rem .9rem; font-weight: 800; font-size: .9rem; color: #0f172a; }
+    .grupo-fotos > summary::-webkit-details-marker { display: none; }
+    .grupo-fotos > summary .chev { margin-left: auto; transition: transform .15s; color: #64748b; }
+    .grupo-fotos[open] > summary .chev { transform: rotate(180deg); }
+    .grupo-fotos .miniaturas { display: flex; gap: .3rem; }
+    .grupo-fotos .miniaturas span { width: 1.6rem; height: 1.6rem; border-radius: .4rem; background: #e2e8f0; border: 2px solid #cbd5e1; display: block; background-size: cover; background-position: center; }
+    .grupo-fotos .miniaturas span[data-ok] { border-color: #16a34a; }
+    .grupo-fotos__cuerpo { padding: 0 .9rem .9rem; }
     @keyframes reg-pulso { 0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,.55); } 50% { box-shadow: 0 0 0 10px rgba(37,99,235,0); } }
     .reg-pulso { animation: reg-pulso 1.6s infinite; }
     /* Galería del ensayo general */
@@ -78,6 +94,7 @@
 {% block content %}
 <div class="max-w-6xl mx-auto px-4 pt-5 pb-4 space-y-4"
      data-registro-compresion
+     data-es-compresion="{% if es_compresion %}1{% else %}0{% endif %}"
      data-subir-url="{% url 'proyectos:subir_foto_compresion' detalle.pk 'TIPO' %}"
      data-lado-maximo="{{ lado_maximo }}">
 
@@ -107,13 +124,11 @@
         {% endif %}
     </div>
 
-    {% if a_nombre_de and not solo_lectura %}
-    <div class="rounded-xl px-4 py-3 text-sm bg-blue-50 text-blue-900 border border-blue-200" role="note" data-a-nombre-de>
-        <p class="font-bold">Registras a nombre de {{ a_nombre_de.nombre_completo }}</p>
-        <p class="mt-0.5">Copia los datos de su formato en papel. El ensayo queda como ejecutado por {{ a_nombre_de.nombre_completo }} y registrado por ti. Las fotos las puede subir el técnico desde su celular o tú aquí.</p>
-    </div>
-    {% endif %}
 
+    <div class="reg-switch {% if solo_lectura %}reg-solo-lectura{% endif %}" role="tablist" aria-label="Qué registrar">
+        <button type="button" role="tab" data-ir-panel="fotos"><i data-lucide="camera" class="w-5 h-5"></i> Fotos <span class="reg-cuenta" data-fotos-cuenta-switch>0/6</span></button>
+        <button type="button" role="tab" data-ir-panel="formulario"><i data-lucide="clipboard-pen" class="w-5 h-5"></i> Llenar formulario</button>
+    </div>
     {% if ensayo.observacion_revision and not solo_lectura %}
     <div class="rounded-xl px-4 py-3 text-sm bg-amber-50 text-amber-900 border border-amber-200" role="alert" data-observacion-revision>
         <p class="font-bold">El revisor devolvió este ensayo</p>
@@ -127,72 +142,33 @@
         {% endfor %}
     {% endif %}
 
-    {% if es_compresion %}
+
+    <div class="reg-cuerpo {% if solo_lectura %}reg-solo-lectura{% endif %}">
+    <div class="reg-panel space-y-4" id="panel-formulario" data-panel="formulario" data-activo>
+    {% if a_nombre_de and not solo_lectura %}
+    <div class="rounded-xl px-4 py-3 text-sm bg-blue-50 text-blue-900 border border-blue-200" role="note" data-a-nombre-de>
+        <p class="font-bold">Registras a nombre de {{ a_nombre_de.nombre_completo }}</p>
+        <p class="mt-0.5">Copia los datos de su formato en papel. El ensayo queda como ejecutado por {{ a_nombre_de.nombre_completo }} y registrado por ti. Las fotos las puede subir el técnico desde su celular o tú aquí.</p>
+    </div>
+    {% endif %}
     <section class="v-tarjeta p-4" data-datos-probeta>
-        <h2 class="font-bold text-slate-800 text-sm">Sesión de ensayo</h2>
+        <h2 class="font-bold text-slate-800 text-sm">Sesión de ensayo{% if not es_compresion %} <span class="font-normal text-slate-500">(condiciones y equipos · opcional en este ensayo)</span>{% endif %}</h2>
         <div class="mt-1 text-xs" data-sesion-registro>
             {% if sesion_ensayo %}
                 <p class="text-slate-600">Sesión del {{ sesion_ensayo.fecha|date:"d/m/Y" }} · {{ sesion_ensayo.temperatura_inicial|floatformat:1 }} °C / {{ sesion_ensayo.humedad_inicial|floatformat:0 }} % HR al inicio.</p>
             {% elif sesion %}
                 <p class="text-green-700 font-semibold">Sesión abierta del {{ sesion.fecha|date:"d/m/Y" }}: al terminar, esta probeta toma sus condiciones y equipos.</p>
             {% elif not solo_lectura %}
+                {% if es_compresion %}
                 <p class="text-amber-700 font-semibold">{% if a_nombre_de %}{{ a_nombre_de.nombre_completo }} no tiene sesión abierta. Puedes guardar datos, pero para terminar <a class="underline" href="{{ url_abrir_sesion }}">abre su sesión con los datos del formato</a>.{% else %}No tienes sesión abierta. Puedes guardar datos, pero para terminar <a class="underline" href="{{ url_abrir_sesion }}">abre una sesión</a>.{% endif %}</p>
+                {% else %}
+                <p class="text-slate-600">Sin sesión abierta. Si este ensayo usó equipos o condiciones ambientales del formato, <a class="underline text-blue-700" href="{{ url_abrir_sesion }}">abre una sesión</a> y se tomarán al terminar; si no, déjalo así.</p>
+                {% endif %}
             {% endif %}
         </div>
     </section>
-    {% endif %}
-
-    <div class="reg-switch {% if solo_lectura %}reg-solo-lectura{% endif %}" role="tablist" aria-label="Qué registrar">
-        <button type="button" role="tab" data-ir-panel="fotos"><i data-lucide="camera" class="w-5 h-5"></i> Fotos <span class="reg-cuenta" data-fotos-cuenta-switch>0/6</span></button>
-        <button type="button" role="tab" data-ir-panel="formulario"><i data-lucide="clipboard-pen" class="w-5 h-5"></i> Llenar formulario</button>
-    </div>
-    <div class="reg-cuerpo {% if solo_lectura %}reg-solo-lectura{% endif %}">
-    <div class="reg-panel space-y-4" id="panel-formulario" data-panel="formulario" data-activo>
     <form method="post" id="form-registro" class="space-y-4" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
-        {% if not es_compresion %}
-        <div class="v-tarjeta" data-datos-generales>
-            <div class="v-tarjeta__cab">
-                <span class="v-paso">1</span>
-                <div><h2>Resultados del ensayo</h2><p>Registra aquí los datos del formato: de aquí salen al informe. No hace falta subir hojas ni imágenes.</p></div>
-            </div>
-            <div class="v-tarjeta__cuerpo space-y-3">
-            {% if instrucciones_formulario %}<p class="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 whitespace-pre-line">{{ instrucciones_formulario }}</p>{% endif %}
-            <label class="v-campo block">
-                <span class="v-etiqueta">Fecha de ensayo</span>
-                <input type="date" name="fecha_ensayo" id="fecha_ensayo"
-                       value="{% if ensayo.fecha_ensayo %}{{ ensayo.fecha_ensayo|date:'Y-m-d' }}{% elif not solo_lectura %}{{ hoy|date:'Y-m-d' }}{% endif %}"
-                       {% if fecha_minima %}min="{{ fecha_minima|date:'Y-m-d' }}"{% endif %}
-                       max="{{ hoy|date:'Y-m-d' }}"
-                       {% if solo_lectura %}disabled{% endif %}
-                       class="w-full">
-            </label>
-            {% if campos_formulario %}
-                {% regroup campos_formulario by grupo as grupos_campos %}
-                {% for g in grupos_campos %}
-                <div data-grupo-campos>
-                    {% if g.grouper %}<h3 class="text-sm font-bold text-slate-700 mb-2 mt-1">{{ g.grouper }}</h3>{% endif %}
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {% for c in g.list %}{% include "proyectos/_campo_formulario.html" %}{% endfor %}
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-            <label class="v-campo block">
-                <span class="v-etiqueta">Resumen de resultados</span>
-                <textarea name="resumen" id="resumen" rows="5" maxlength="5000" {% if solo_lectura %}disabled{% endif %}
-                          placeholder="Valores obtenidos, unidades y cualquier dato que deba ir en el informe."
-                          class="w-full">{{ ensayo.resumen|default:'' }}</textarea>
-            </label>
-            {% endif %}
-            <label class="v-campo block">
-                <span class="v-etiqueta">Observaciones</span>
-                <textarea name="observaciones" rows="2" {% if solo_lectura %}disabled{% endif %}
-                          class="w-full">{{ ensayo.observaciones|default:'' }}</textarea>
-            </label>
-            </div>
-        </div>
-        {% else %}
         <div class="v-tarjeta" data-datos-cliente>
             <div class="v-tarjeta__cab">
                 <span class="v-paso">1</span>
@@ -229,7 +205,7 @@
             <label class="v-campo block">
                 <span class="v-etiqueta">Fecha de ensayo</span>
                 <input type="date" name="fecha_ensayo" id="fecha_ensayo"
-                       value="{% if ensayo.fecha_ensayo %}{{ ensayo.fecha_ensayo|date:'Y-m-d' }}{% elif sesion %}{{ sesion.fecha|date:'Y-m-d' }}{% endif %}"
+                       value="{% if ensayo.fecha_ensayo %}{{ ensayo.fecha_ensayo|date:'Y-m-d' }}{% elif sesion %}{{ sesion.fecha|date:'Y-m-d' }}{% elif not es_compresion and not solo_lectura %}{{ hoy|date:'Y-m-d' }}{% endif %}"
                        {% if fecha_minima %}min="{{ fecha_minima|date:'Y-m-d' }}"{% endif %}
                        max="{{ hoy|date:'Y-m-d' }}"
                        {% if solo_lectura %}disabled{% endif %}
@@ -291,7 +267,7 @@
                            class="w-full font-mono">
                 </label>
             {% endif %}{% endfor %}
-        <div class="bg-slate-900 text-white rounded-2xl p-4 shadow-sm" data-resultados data-preliminar>
+        <div class="bg-slate-900 text-white rounded-2xl p-4 shadow-sm {% if not es_compresion %}hidden{% endif %}" data-resultados data-preliminar>
             <div class="flex items-center justify-between gap-2">
                 <h2 class="font-bold">Resultado preliminar</h2>
                 <span class="text-[11px] text-slate-300" data-origen>{% if solo_lectura %}Guardados al terminar{% else %}Se recalculan mientras escribes{% endif %}</span>
@@ -342,6 +318,35 @@
             </label>
             </div>
         </div>
+
+        {% if not es_compresion %}
+        <div class="v-tarjeta" data-datos-generales>
+            <div class="v-tarjeta__cab">
+                <span class="v-paso">5</span>
+                <div><h2>Resultados del servicio</h2><p>{% if campos_formulario %}Los datos propios de este ensayo.{% else %}Las notas que irán al informe. Llena lo que corresponda; lo que no aplique déjalo vacío.{% endif %}</p></div>
+            </div>
+            <div class="v-tarjeta__cuerpo space-y-3">
+            {% if instrucciones_formulario %}<p class="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 whitespace-pre-line">{{ instrucciones_formulario }}</p>{% endif %}
+            {% if campos_formulario %}
+                {% regroup campos_formulario by grupo as grupos_campos %}
+                {% for g in grupos_campos %}
+                <div data-grupo-campos>
+                    {% if g.grouper %}<h3 class="text-sm font-bold text-slate-700 mb-2 mt-1">{{ g.grouper }}</h3>{% endif %}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {% for c in g.list %}{% include "proyectos/_campo_formulario.html" %}{% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <label class="v-campo block">
+                <span class="v-etiqueta">Resumen o notas de resultados</span>
+                <textarea name="resumen" id="resumen" rows="4" maxlength="5000" {% if solo_lectura %}disabled{% endif %}
+                          placeholder="Valores obtenidos, unidades y cualquier dato que deba ir en el informe."
+                          class="w-full">{{ ensayo.resumen|default:'' }}</textarea>
+            </label>
+            {% endif %}
+            </div>
+        </div>
         {% endif %}
 
         {% if cambios %}
@@ -380,30 +385,53 @@
         <section class="v-tarjeta" data-fotos-ensayo>
             <div class="v-tarjeta__cab">
                 <span class="v-paso"><i data-lucide="camera" class="w-4 h-4"></i></span>
-                <div><h2>Fotos del ensayo · <span data-fotos-contador>0</span> de 6</h2><p>Primero las de <b>antes</b>, luego <b>durante</b> y al final las de <b>después</b>. En celular y tablet se toman con la cámara.</p></div>
+                <div><h2>Fotos del ensayo · <span data-fotos-contador>0</span> de 6</h2><p>Un solo botón: el sistema te dice cuál foto sigue (antes, durante y después).</p></div>
             </div>
-            <div class="v-tarjeta__cuerpo space-y-5">
-                <div data-grupo-fotos="antes">
-                    <h3 class="text-sm font-bold text-slate-800 mb-2">1 · Antes del ensayo <span class="text-xs font-semibold text-slate-500" data-grupo-cuenta></span></h3>
-                    <div class="grid grid-cols-2 gap-3">
+            <div class="v-tarjeta__cuerpo space-y-3">
+                {% if not solo_lectura %}
+                <div class="asistente" data-asistente>
+                    <p class="asistente__titulo" data-asist-titulo>Toma la foto: Antes del ensayo</p>
+                    <p class="asistente__sub" data-asist-sub>Foto 1 de 6</p>
+                    <div class="asistente__botones">
+                        <label class="v-btn v-btn--primario v-btn--grande" data-asist-principal>
+                            <i data-lucide="camera"></i> <span data-asist-texto>Tomar foto</span>
+                            <input type="file" accept="image/*" capture="environment" class="sr-only" data-asist-camara>
+                        </label>
+                        <label class="v-btn v-btn--secundario" data-asist-secundario>
+                            <i data-lucide="images"></i> <span data-asist-texto2>Elegir de la galería</span>
+                            <input type="file" accept="image/*" multiple class="sr-only" data-asist-archivos>
+                        </label>
+                        <button type="button" class="v-btn v-btn--secundario hidden" data-asist-webcam><i data-lucide="video"></i> Usar la cámara del equipo</button>
+                    </div>
+                </div>
+                {% endif %}
+                <details class="grupo-fotos" data-grupo-fotos="antes">
+                    <summary><span>1 · Antes</span> <span class="text-xs font-semibold text-slate-500" data-grupo-cuenta></span>
+                        <span class="miniaturas" data-miniaturas><span></span><span></span></span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 chev"></i></summary>
+                    <div class="grupo-fotos__cuerpo grid grid-cols-2 gap-3">
                         {% include "proyectos/_slot_foto.html" with s=foto.antes ancho=False %}
                         {% include "proyectos/_slot_foto.html" with s=foto.antes_pizarra ancho=False %}
                     </div>
-                </div>
-                <div data-grupo-fotos="durante">
-                    <h3 class="text-sm font-bold text-slate-800 mb-2">2 · Durante el ensayo <span class="text-xs font-semibold text-slate-500" data-grupo-cuenta></span></h3>
-                    <div class="grid grid-cols-2 gap-3">
+                </details>
+                <details class="grupo-fotos" data-grupo-fotos="durante">
+                    <summary><span>2 · Durante</span> <span class="text-xs font-semibold text-slate-500" data-grupo-cuenta></span>
+                        <span class="miniaturas" data-miniaturas><span></span><span></span></span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 chev"></i></summary>
+                    <div class="grupo-fotos__cuerpo grid grid-cols-2 gap-3">
                         {% include "proyectos/_slot_foto.html" with s=foto.durante ancho=False %}
                         {% include "proyectos/_slot_foto.html" with s=foto.carga ancho=True %}
                     </div>
-                </div>
-                <div data-grupo-fotos="despues">
-                    <h3 class="text-sm font-bold text-slate-800 mb-2">3 · Después del ensayo <span class="text-xs font-semibold text-slate-500" data-grupo-cuenta></span></h3>
-                    <div class="grid grid-cols-2 gap-3">
+                </details>
+                <details class="grupo-fotos" data-grupo-fotos="despues">
+                    <summary><span>3 · Después</span> <span class="text-xs font-semibold text-slate-500" data-grupo-cuenta></span>
+                        <span class="miniaturas" data-miniaturas><span></span><span></span></span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 chev"></i></summary>
+                    <div class="grupo-fotos__cuerpo grid grid-cols-2 gap-3">
                         {% include "proyectos/_slot_foto.html" with s=foto.despues ancho=False %}
                         {% include "proyectos/_slot_foto.html" with s=foto.despues_pizarra ancho=False %}
                     </div>
-                </div>
+                </details>
                 {% if galeria %}
                 <div>
                     <h3 class="text-sm font-bold text-slate-800 mb-2">Fotos anteriores del ensayo</h3>
@@ -445,7 +473,7 @@
 {% block extra_scripts %}
 {% if not solo_lectura %}
 <script src="{% static 'vendor/cropperjs-1.6.2/cropper.min.js' %}"></script>
-{% if es_compresion %}<script src="{% static 'js/compresion_calculos.js' %}"></script>{% endif %}
+<script src="{% static 'js/compresion_calculos.js' %}"></script>
 <script src="{% static 'js/centrado_foto.js' %}"></script>
 <script src="{% static 'js/camara_foto.js' %}"></script>
 <script src="{% static 'js/autoguardado.js' %}"></script>
@@ -453,6 +481,7 @@
 (function () {
     const raiz = document.querySelector('[data-registro-compresion]');
     const urlSubir = raiz.dataset.subirUrl;
+    const esCompresion = raiz.dataset.esCompresion === '1';
     const ladoMaximo = parseInt(raiz.dataset.ladoMaximo, 10) || 1600;
     const csrf = document.querySelector('#form-registro [name=csrfmiddlewaretoken]').value;
     const modal = document.getElementById('recorte-modal');
@@ -475,20 +504,23 @@
     function actualizarTerminar() {
         const faltan = [];
         if (!fecha.value) faltan.push('fecha de ensayo');
-        document.querySelectorAll('[data-medida]').forEach(function (i) {
-            if (!i.value.trim()) faltan.push(i.closest('label').querySelector('span').textContent.trim());
-        });
-        if (fractura && !fractura.value) faltan.push('tipo de fractura');
-        ['verif_perpendicularidad', 'verif_planitud'].forEach(function (n) {
-            const radios = document.querySelectorAll('[name="' + n + '"]');
-            if (radios.length && !document.querySelector('[name="' + n + '"]:checked')) {
-                faltan.push(n === 'verif_planitud' ? 'verificación de planitud' : 'verificación de perpendicularidad');
-            }
-        });
+        // Medidas, fractura y verificaciones solo son obligatorias en compresión (FOR-009 completo:
+        // en los demás ensayos se llena lo que corresponda y el resto queda vacío).
+        if (esCompresion) {
+            document.querySelectorAll('[data-medida]').forEach(function (i) {
+                if (!i.value.trim()) faltan.push(i.closest('label').querySelector('span').textContent.trim());
+            });
+            if (fractura && !fractura.value) faltan.push('tipo de fractura');
+            ['verif_perpendicularidad', 'verif_planitud'].forEach(function (n) {
+                const radios = document.querySelectorAll('[name="' + n + '"]');
+                if (radios.length && !document.querySelector('[name="' + n + '"]:checked')) {
+                    faltan.push(n === 'verif_planitud' ? 'verificación de planitud' : 'verificación de perpendicularidad');
+                }
+            });
+        }
         const otros = document.querySelector('[name="tipos_defecto"][value="e"]');
         const textoOtros = document.querySelector('[name="defectos"]');
         if (otros && otros.checked && textoOtros && !textoOtros.value.trim()) faltan.push('detalle del defecto «Otros»');
-        if (resumen && !resumen.value.trim()) faltan.push('resumen de resultados');
         document.querySelectorAll('[data-dato][data-requerido]').forEach(function (i) {
             if (!i.value.trim()) faltan.push(i.dataset.etiqueta);
         });
@@ -513,6 +545,7 @@
         if (urlObjeto) { URL.revokeObjectURL(urlObjeto); urlObjeto = null; }
         modal.classList.remove('abierto');
         document.body.style.overflow = '';
+        setTimeout(function () { procesarCola(); }, 60);
     }
 
     function abrirRecorte(slot, archivo) {
@@ -551,6 +584,8 @@
     function mostrarError(slot, mensaje, conReintento) {
         const marco = slot.querySelector('[data-marco]');
         marco.dataset.estado = marco.querySelector('img') && marco.dataset.ok === '1' ? 'ok' : 'error';
+        const grupoDet = slot.closest('details');
+        if (grupoDet) grupoDet.setAttribute('open', '');
         const error = slot.querySelector('[data-error]');
         error.textContent = mensaje;
         error.classList.remove('hidden');
@@ -866,10 +901,22 @@
             const hechas = g.querySelectorAll('[data-marco][data-estado="ok"]').length;
             total += hechas;
             const cuenta = g.querySelector('[data-grupo-cuenta]');
-            if (cuenta) cuenta.textContent = '· ' + hechas + ' de ' + marcos.length;
+            if (cuenta) cuenta.textContent = hechas + '/' + marcos.length;
         });
         document.querySelectorAll('[data-fotos-contador]').forEach(function (e) { e.textContent = total; });
         document.querySelectorAll('[data-fotos-cuenta-switch]').forEach(function (e) { e.textContent = total + '/6'; });
+        document.querySelectorAll('[data-grupo-fotos]').forEach(function (g) {
+            const minis = g.querySelectorAll('[data-miniaturas] span');
+            g.querySelectorAll('[data-slot]').forEach(function (sl, i) {
+                const img = sl.querySelector('[data-marco] img');
+                const ok = sl.querySelector('[data-marco]').dataset.estado === 'ok';
+                if (minis[i]) {
+                    if (ok && img) { minis[i].style.backgroundImage = 'url("' + img.src + '")'; minis[i].setAttribute('data-ok', ''); }
+                    else { minis[i].style.backgroundImage = ''; minis[i].removeAttribute('data-ok'); }
+                }
+            });
+        });
+        actualizarAsistente();
         const completas = total >= 6;
         document.querySelectorAll('[data-ir-formulario]').forEach(function (b) { b.classList.toggle('reg-pulso', completas); });
         const aviso = document.querySelector('[data-ir-panel="formulario"]');
@@ -877,6 +924,83 @@
         fotosCompletasAntes = completas;
         return total;
     }
+    // Asistente de fotos (HU-LIMS-37): una sola cámara o adjuntador; el sistema sabe cuál foto sigue.
+    const asist = document.querySelector('[data-asistente]');
+    const tactil = window.matchMedia('(pointer: coarse)').matches && !window.matchMedia('(pointer: fine)').matches;
+    const NOMBRES_GRUPO = { antes: 'Antes del ensayo', durante: 'Durante el ensayo', despues: 'Después del ensayo' };
+    const cola = [];
+    function slotsEnOrden() { return Array.from(document.querySelectorAll('[data-slot]')); }
+    function estadoSlot(s) { return s.querySelector('[data-marco]').dataset.estado; }
+    function siguienteSlot() {
+        return slotsEnOrden().find(function (s) { const e = estadoSlot(s); return e !== 'ok' && e !== 'subiendo'; }) || null;
+    }
+    function actualizarAsistente() {
+        if (!asist) return;
+        const sig = siguienteSlot();
+        const hechas = slotsEnOrden().filter(function (s) { return estadoSlot(s) === 'ok'; }).length;
+        const titulo = asist.querySelector('[data-asist-titulo]');
+        const sub = asist.querySelector('[data-asist-sub]');
+        const botones = asist.querySelector('.asistente__botones');
+        if (!sig) {
+            asist.setAttribute('data-listo', '');
+            titulo.textContent = 'Las 6 fotos están listas';
+            sub.textContent = 'Ahora llena el formulario. Puedes cambiar cualquier foto desde su grupo.';
+            botones.classList.add('hidden');
+            return;
+        }
+        asist.removeAttribute('data-listo');
+        botones.classList.remove('hidden');
+        const grupo = sig.closest('[data-grupo-fotos]');
+        const n = Array.from(grupo.querySelectorAll('[data-slot]')).indexOf(sig) + 1;
+        titulo.textContent = (tactil ? 'Toma' : 'Carga') + ' la foto: ' + etiquetas[sig.dataset.slot];
+        sub.textContent = 'Foto ' + (hechas + 1) + ' de 6 · ' + NOMBRES_GRUPO[grupo.dataset.grupoFotos] + ' (' + n + ' de 2)';
+        const principal = asist.querySelector('[data-asist-principal]');
+        const secundario = asist.querySelector('[data-asist-secundario]');
+        const webcam = asist.querySelector('[data-asist-webcam]');
+        if (tactil) {
+            principal.classList.remove('hidden');
+            asist.querySelector('[data-asist-texto2]').textContent = 'Elegir de la galería';
+        } else {
+            // PC: se cargan archivos (varios a la vez, en orden); si hay cámara en el equipo, también.
+            principal.classList.add('hidden');
+            secundario.classList.remove('v-btn--secundario'); secundario.classList.add('v-btn--primario', 'v-btn--grande');
+            asist.querySelector('[data-asist-texto2]').textContent = 'Cargar foto' + (6 - hechas > 1 ? 's' : '');
+            webcam.classList.toggle('hidden', !(window.CamaraFoto && CamaraFoto.disponible()));
+        }
+    }
+    function encolar(archivos) {
+        archivos.forEach(function (f) {
+            if (f && f.type && f.type.startsWith('image/')) cola.push(f);
+        });
+        procesarCola();
+    }
+    function procesarCola() {
+        if (!cola.length || modal.classList.contains('abierto')) return;
+        const slot = siguienteSlot();
+        if (!slot) { cola.length = 0; return; }
+        abrirRecorte(slot, cola.shift());
+    }
+    if (asist) {
+        ['[data-asist-camara]', '[data-asist-archivos]'].forEach(function (sel) {
+            const entrada = asist.querySelector(sel);
+            entrada.addEventListener('change', function () {
+                const archivos = Array.from(entrada.files || []);
+                entrada.value = '';
+                encolar(archivos);
+            });
+        });
+        asist.querySelector('[data-asist-webcam]').addEventListener('click', function () {
+            const sig = siguienteSlot();
+            if (!sig || !window.CamaraFoto) return;
+            CamaraFoto.abrir({
+                varias: false, titulo: etiquetas[sig.dataset.slot],
+                alTomar: function (blob) { encolar([new File([blob], 'foto.jpg', { type: 'image/jpeg' })]); },
+                alFallar: function (mensaje) { mostrarError(sig, mensaje, false); },
+            });
+        });
+        modal.querySelector('[data-cancelar]').addEventListener('click', function () { cola.length = 0; });
+    }
+
     function mostrarPanel(nombre) {
         document.querySelectorAll('[data-panel]').forEach(function (p) {
             if (p.dataset.panel === nombre) p.setAttribute('data-activo', ''); else p.removeAttribute('data-activo');

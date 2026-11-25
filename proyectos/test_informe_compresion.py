@@ -241,7 +241,6 @@ class FlujoResultadosTests(CompresionBase):
         r = self.client.post(self.url_registro(self.proctor), {
             'accion': 'terminar', 'fecha_ensayo': (date.today() - timedelta(days=1)).isoformat(),
         }, follow=True)
-        self.assertContains(r, 'el resumen de resultados')
         self.assertContains(r, 'la foto «Antes del ensayo»')
         self.assertNotContains(r, 'hoja de resultados')
         e = ResultadoEnsayo.objects.get(detalle=self.proctor)
