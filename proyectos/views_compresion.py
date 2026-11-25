@@ -1055,6 +1055,10 @@ def programa_cliente(request, fecha, cliente_id):
             'form_cerrar': CerrarSesionForm(instance=abierta) if abierta else None,
         })
     pendientes = [d for d in lineas if d.estado != programa.ESTADO_TERMINADA]
+    informes = dict(InformeFinal.objects.filter(solicitud__in=grupo['solicitudes'])
+                    .values_list('solicitud_id', 'codigo_informe'))
+    for s in grupo['solicitudes']:
+        s.informe_codigo = informes.get(s.pk)
     return render(request, 'proyectos/programa_cliente.html', {
         'fecha': fecha,
         'hoy': timezone.localdate(),

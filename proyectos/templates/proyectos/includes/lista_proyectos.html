@@ -6,6 +6,7 @@ pantalla filtrada al proyecto) y la acción más urgente.
 {% endcomment %}
 
 {# Pestañas por etapa y filtro por fecha (HU-LIMS-22). Viven dentro del contenedor para que la búsqueda en vivo también actualice los números. #}
+<style>[data-panel-filtros] [hidden] { display: none !important; }</style>
 <div class="mb-4 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3" data-panel-filtros>
     <nav class="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1" aria-label="Proyectos por etapa" data-pestanas>
         {% for p in pestanas %}
@@ -188,4 +189,11 @@ pantalla filtrada al proyecto) y la acción más urgente.
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
+    (function () {
+        // En el celular las pestañas se desplazan: deja visible la activa.
+        var activa = document.querySelector('[data-pestanas] [aria-current="page"]');
+        if (activa && activa.parentNode.scrollWidth > activa.parentNode.clientWidth) {
+            activa.parentNode.scrollLeft = activa.offsetLeft - 16;
+        }
+    })();
 </script>

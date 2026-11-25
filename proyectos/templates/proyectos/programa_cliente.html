@@ -16,7 +16,9 @@
     .pc-paso span { font-size: 11px; color: #64748b; }
     .pc-solo-impresion { display: none; }
     @media (max-width: 768px) {
-        .pc-pasos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .pc-pasos { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .3rem; }
+        .pc-paso { padding: .45rem .5rem; }
+        .pc-paso span { display: none; }
         .pc-tabla thead { display: none; }
         .pc-tabla, .pc-tabla tbody, .pc-tabla tr, .pc-tabla td { display: block; width: 100%; }
         .pc-tabla tr { border-bottom: 1px solid #e2e8f0; padding: .4rem 0; }
@@ -160,9 +162,9 @@
             <ul class="space-y-1">
                 {% for s in grupo.solicitudes %}
                 <li class="flex items-center justify-between gap-2 text-sm">
-                    <span><b>{{ s.codigo_solicitud }}</b> · {{ s.get_estado_display|capfirst }}</span>
+                    <span><b>{{ s.codigo_solicitud }}</b> · {% if s.informe_codigo %}Informe {{ s.informe_codigo }}{% else %}{{ s.get_estado_display|capfirst }}{% endif %}</span>
                     {% if s.estado == 'finalizado' and puede_aprobar %}
-                    <a href="{% url 'proyectos:revision_compresion' s.pk %}" class="v-btn v-btn--exito v-btn--sm"><i data-lucide="clipboard-check"></i> Revisar</a>
+                    <a href="{% url 'proyectos:revision_compresion' s.pk %}" class="v-btn v-btn--exito v-btn--sm"><i data-lucide="{% if s.informe_codigo %}file-check-2{% else %}clipboard-check{% endif %}"></i> {% if s.informe_codigo %}Ver informe{% else %}Revisar{% endif %}</a>
                     {% else %}
                     <a href="{% url 'proyectos:resultados_solicitud' s.pk %}" class="v-btn v-btn--secundario v-btn--sm">Ver solicitud</a>
                     {% endif %}
