@@ -135,7 +135,7 @@
                 <div class="rs-linea__info">
                     <p class="rs-codigo">{{ d.muestra.codigo_laboratorio }}</p>
                     <p class="rs-sub">{{ d.descripcion_ensayo }}{% if d.norma %} · {{ d.norma }}{% endif %}</p>
-                    <p class="rs-sub">Técnico: {{ d.tecnico_asignado.nombre_completo|default:"sin asignar" }} · Fotos {{ d.n_fotos }} de {{ d.total_fotos }}</p>
+                    <p class="rs-sub">Técnico: {{ d.tecnico_asignado.nombre_completo|default:"sin asignar" }} · {% if d.plantilla == 'compresion' %}Fotos {{ d.n_fotos }} de {{ d.total_fotos }}{% else %}{{ d.n_fotos }} foto{{ d.n_fotos|pluralize }}{% endif %}</p>
                 </div>
                 <div class="rs-acciones">
                     <span class="rs-chip rs-chip--{{ d.estado_color }}" data-estado-linea>{{ d.estado_texto }}</span>

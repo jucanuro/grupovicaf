@@ -18,6 +18,38 @@
     #recorte-modal.abierto { display: flex; }
     #recorte-area { flex: 1; min-height: 0; }
     #recorte-area img { display: block; max-width: 100%; }
+    /* Cámara en la página (static/js/camara_foto.js) */
+    .camara-modal { position: fixed; inset: 0; z-index: 10000; background: #020617; display: none; flex-direction: column; }
+    .camara-modal.abierto { display: flex; }
+    .camara-barra { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .75rem 1rem; color: #fff; }
+    .camara-titulo { font-size: 14px; font-weight: 700; }
+    .camara-contador { font-size: 12px; font-weight: 700; background: #16a34a; color: #fff; padding: .2rem .6rem; border-radius: 999px; }
+    .camara-vista { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+    .camara-vista video { max-width: 100%; max-height: 100%; background: #000; }
+    .camara-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+    .camara-flash.activo { animation: camara-flash .35s ease-out; }
+    @keyframes camara-flash { from { opacity: .8; } to { opacity: 0; } }
+    .camara-aviso { position: absolute; color: #e2e8f0; font-size: 14px; font-weight: 600; }
+    .camara-acciones { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1rem; padding: 1rem; }
+    .camara-acciones > :first-child { justify-self: start; } .camara-acciones > :last-child { justify-self: end; }
+    .camara-disparo { width: 68px; height: 68px; border-radius: 999px; border: 4px solid #fff; background: transparent; padding: 4px; }
+    .camara-disparo span { display: block; width: 100%; height: 100%; border-radius: 999px; background: #fff; transition: transform .1s; }
+    .camara-disparo:active span { transform: scale(.85); }
+    /* Galería del ensayo general */
+    .galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: .6rem; }
+    .galeria__item { position: relative; aspect-ratio: 4 / 3; border-radius: .8rem; overflow: hidden; background: #f1f5f9; border: 2px solid #16a34a; }
+    .galeria__item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .galeria__item[data-estado="subiendo"] { border-color: #cbd5e1; }
+    .galeria__item[data-estado="error"] { border-color: #dc2626; }
+    .galeria__item .foto-cargando { display: none; }
+    .galeria__item[data-estado="subiendo"] .foto-cargando { display: flex; }
+    .galeria__borrar { position: absolute; top: .3rem; right: .3rem; width: 1.9rem; height: 1.9rem; border-radius: 999px;
+                       background: rgba(15,23,42,.75); color: #fff; display: flex; align-items: center; justify-content: center; }
+    .galeria__borrar:hover { background: #dc2626; }
+    .galeria__num { position: absolute; left: .35rem; bottom: .3rem; font-size: 11px; font-weight: 800; color: #fff;
+                    background: rgba(15,23,42,.65); padding: .05rem .4rem; border-radius: .4rem; }
+    .galeria-zona { border: 2px dashed #cbd5e1; border-radius: 1rem; padding: 1.1rem; text-align: center; background: #f8fafc; transition: border-color .15s, background .15s; }
+    .galeria-zona.arrastrando { border-color: #2563eb; background: #eff6ff; }
 </style>
 {% endblock %}
 
@@ -308,13 +340,37 @@
         <div class="v-tarjeta">
             <div class="v-tarjeta__cab">
                 <span class="v-paso">2</span>
-                <div><h2>Registro fotográfico</h2><p>Las {{ slots|length }} fotos son obligatorias. El marco se centra solo sobre la muestra o el display; la proporción es fija.</p></div>
+                <div><h2>Registro fotográfico</h2><p>Toma o adjunta las fotos que necesites (mínimo {{ min_fotos }}, hasta {{ max_fotos }}). Se van agregando aquí.</p></div>
             </div>
-            <div class="v-tarjeta__cuerpo">
-
-            <div class="grid grid-cols-2 gap-3">
-                {% for s in slots %}{% include "proyectos/_slot_foto.html" with s=s ancho=False %}{% endfor %}
-            </div>
+            <div class="v-tarjeta__cuerpo space-y-3" data-galeria data-min="{{ min_fotos }}" data-max="{{ max_fotos }}">
+                <div class="galeria" data-galeria-lista>
+                    {% for f in galeria %}
+                    <figure class="galeria__item" data-foto="{{ f.pk }}" data-estado="ok">
+                        <img src="{% url 'proyectos:foto_compresion' f.pk %}" alt="Foto {{ forloop.counter }} del ensayo" width="{{ f.ancho }}" height="{{ f.alto }}" loading="lazy">
+                        <span class="galeria__num">{{ forloop.counter }}</span>
+                        {% if not solo_lectura %}<button type="button" class="galeria__borrar" data-borrar="{% url 'proyectos:borrar_foto_compresion' f.pk %}" aria-label="Quitar foto {{ forloop.counter }}" title="Quitar"><i data-lucide="x" class="w-4 h-4"></i></button>{% endif %}
+                    </figure>
+                    {% endfor %}
+                </div>
+                {% if not solo_lectura %}
+                <div class="galeria-zona" data-galeria-zona>
+                    <p class="text-sm font-semibold text-slate-600" data-galeria-vacio>{% if galeria %}Agrega más fotos{% else %}Aún no hay fotos{% endif %}</p>
+                    <p class="text-xs text-slate-400 mt-0.5 v-solo-pc">También puedes arrastrarlas aquí.</p>
+                    <div class="mt-3 flex flex-wrap justify-center gap-2">
+                        <label class="v-btn v-btn--primario v-btn--foto" data-camara-boton>
+                            <i data-lucide="camera"></i> Tomar foto
+                            <input type="file" accept="image/*" capture="environment" class="sr-only" data-galeria-camara>
+                        </label>
+                        <label class="v-btn v-btn--secundario v-btn--foto">
+                            <i data-lucide="images"></i> Adjuntar fotos
+                            <input type="file" accept="image/*" multiple class="sr-only" data-galeria-archivos>
+                        </label>
+                    </div>
+                    <p class="text-[11px] text-red-600 mt-2 hidden" data-galeria-error role="alert"></p>
+                </div>
+                {% elif not galeria %}
+                <p class="text-sm text-slate-500">Sin fotos.</p>
+                {% endif %}
             </div>
         </div>
 
@@ -374,6 +430,7 @@
 <script src="{% static 'vendor/cropperjs-1.6.2/cropper.min.js' %}"></script>
 {% if es_compresion %}<script src="{% static 'js/compresion_calculos.js' %}"></script>{% endif %}
 <script src="{% static 'js/centrado_foto.js' %}"></script>
+<script src="{% static 'js/camara_foto.js' %}"></script>
 <script>
 (function () {
     const raiz = document.querySelector('[data-registro-compresion]');
@@ -419,6 +476,13 @@
         document.querySelectorAll('[data-slot]').forEach(function (s) {
             if (s.querySelector('[data-marco]').dataset.estado !== 'ok') faltan.push(etiquetas[s.dataset.slot]);
         });
+        const galeria = document.querySelector('[data-galeria]');
+        if (galeria) {
+            const listas = galeria.querySelectorAll('.galeria__item[data-estado="ok"]').length;
+            const minimo = parseInt(galeria.dataset.min, 10) || 1;
+            if (listas < minimo) faltan.push(minimo === 1 ? 'al menos una foto' : 'al menos ' + minimo + ' fotos');
+            if (galeria.querySelector('.galeria__item[data-estado="subiendo"]')) faltan.push('esperar a que terminen de subir las fotos');
+        }
         btnTerminar.disabled = faltan.length > 0;
         textoFaltan.textContent = faltan.length ? 'Falta: ' + faltan.join(' · ') : 'Todo listo para terminar.';
     }
@@ -516,6 +580,178 @@
             abrirRecorte(entrada.closest('[data-slot]'), archivo);
         });
     });
+
+    // «Cámara» de cada recuadro: en la PC abre la cámara en la página (el
+    // atributo capture no hace nada ahí); en el celular, la cámara nativa.
+    document.querySelectorAll('[data-slot] input[capture]').forEach(function (entrada) {
+        const boton = entrada.closest('label');
+        boton.addEventListener('click', function (e) {
+            if (!(window.CamaraFoto && CamaraFoto.preferida())) return;
+            e.preventDefault();
+            const slot = entrada.closest('[data-slot]');
+            CamaraFoto.abrir({
+                titulo: etiquetas[slot.dataset.slot],
+                alTomar: function (blob) { abrirRecorte(slot, blob); },
+                alFallar: function (mensaje) { mostrarError(slot, mensaje + ' Usa «Galería» para elegir el archivo.', false); },
+            });
+        });
+    });
+
+    // --- Galería del ensayo general: varias fotos, se agregan una tras otra ---
+    const galeria = document.querySelector('[data-galeria]');
+    if (galeria && galeria.querySelector('[data-galeria-zona]')) {
+        const lista = galeria.querySelector('[data-galeria-lista]');
+        const zona = galeria.querySelector('[data-galeria-zona]');
+        const error = galeria.querySelector('[data-galeria-error]');
+        const maximo = parseInt(galeria.dataset.max, 10) || 12;
+        const cola = [];
+        let subiendo = false;
+
+        function avisar(texto) {
+            error.textContent = texto || '';
+            error.classList.toggle('hidden', !texto);
+        }
+        function renumerar() {
+            lista.querySelectorAll('.galeria__item').forEach(function (item, i) {
+                const n = item.querySelector('.galeria__num');
+                if (n) n.textContent = i + 1;
+            });
+            const hay = lista.querySelector('.galeria__item');
+            galeria.querySelector('[data-galeria-vacio]').textContent = hay ? 'Agrega más fotos' : 'Aún no hay fotos';
+            actualizarTerminar();
+        }
+        function ocupadas() { return lista.querySelectorAll('.galeria__item').length; }
+
+        // Reduce en el navegador (lado mayor 1600 px) para que suba rápido.
+        function reducir(archivo) {
+            return new Promise(function (ok) {
+                const url = URL.createObjectURL(archivo);
+                const im = new Image();
+                im.onload = function () {
+                    const escala = Math.min(1, ladoMaximo / Math.max(im.naturalWidth, im.naturalHeight));
+                    const c = document.createElement('canvas');
+                    c.width = Math.round(im.naturalWidth * escala);
+                    c.height = Math.round(im.naturalHeight * escala);
+                    c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+                    URL.revokeObjectURL(url);
+                    c.toBlob(function (b) { ok(b || archivo); }, 'image/jpeg', 0.88);
+                };
+                im.onerror = function () { URL.revokeObjectURL(url); ok(archivo); };
+                im.src = url;
+            });
+        }
+
+        function agregar(archivo) {
+            if (!archivo || !(archivo.type || '').startsWith('image/')) { avisar('Solo se aceptan imágenes.'); return; }
+            if (ocupadas() >= maximo) { avisar('Se admiten hasta ' + maximo + ' fotos.'); return; }
+            const item = document.createElement('figure');
+            item.className = 'galeria__item';
+            item.dataset.estado = 'subiendo';
+            const vista = document.createElement('img');
+            vista.alt = 'Foto subiendo';
+            vista.src = URL.createObjectURL(archivo);
+            item.appendChild(vista);
+            const num = document.createElement('span');
+            num.className = 'galeria__num';
+            item.appendChild(num);
+            const cargando = document.createElement('div');
+            cargando.className = 'foto-cargando';
+            cargando.textContent = 'Subiendo…';
+            item.appendChild(cargando);
+            lista.appendChild(item);
+            renumerar();
+            cola.push({ item: item, archivo: archivo });
+            siguiente();
+        }
+
+        function siguiente() {
+            if (subiendo || !cola.length) return;
+            subiendo = true;
+            const tarea = cola.shift();
+            reducir(tarea.archivo).then(function (blob) {
+                const datos = new FormData();
+                datos.append('foto', blob, 'foto.jpg');
+                return fetch(urlSubir.replace('TIPO', 'general'), {
+                    method: 'POST', body: datos, headers: { 'X-CSRFToken': csrf }, credentials: 'same-origin',
+                }).then(function (r) {
+                    return r.json().catch(function () { return { ok: false, error: 'Respuesta inesperada del servidor (' + r.status + ').' }; });
+                });
+            }).then(function (res) {
+                if (!res.ok) throw new Error(res.error || 'No se pudo guardar la foto.');
+                tarea.item.dataset.estado = 'ok';
+                tarea.item.dataset.foto = res.id;
+                const img = tarea.item.querySelector('img');
+                URL.revokeObjectURL(img.src);
+                img.src = res.url;
+                img.alt = 'Foto del ensayo';
+                const quitar = document.createElement('button');
+                quitar.type = 'button';
+                quitar.className = 'galeria__borrar';
+                quitar.dataset.borrar = res.borrar;
+                quitar.setAttribute('aria-label', 'Quitar foto');
+                quitar.title = 'Quitar';
+                quitar.innerHTML = '<i data-lucide="x" class="w-4 h-4"></i>';
+                tarea.item.appendChild(quitar);
+                if (window.lucide) lucide.createIcons();
+                avisar('');
+            }).catch(function (err) {
+                tarea.item.remove();
+                avisar((err && err.message && err.message !== 'Failed to fetch') ? err.message
+                    : 'Se cortó la conexión y una foto no se guardó. Vuelve a agregarla.');
+            }).then(function () {
+                subiendo = false;
+                renumerar();
+                siguiente();
+            });
+        }
+
+        galeria.querySelector('[data-galeria-archivos]').addEventListener('change', function (e) {
+            Array.prototype.forEach.call(e.target.files || [], agregar);
+            e.target.value = '';
+        });
+        const camara = galeria.querySelector('[data-galeria-camara]');
+        camara.addEventListener('change', function (e) {
+            Array.prototype.forEach.call(e.target.files || [], agregar);
+            e.target.value = '';
+        });
+        galeria.querySelector('[data-camara-boton]').addEventListener('click', function (e) {
+            if (!(window.CamaraFoto && CamaraFoto.preferida())) return;
+            e.preventDefault();
+            CamaraFoto.abrir({
+                varias: true,
+                titulo: 'Fotos del ensayo · se agregan al tomarlas',
+                alTomar: function (blob) { agregar(new File([blob], 'camara.jpg', { type: 'image/jpeg' })); },
+                alFallar: function (mensaje) { avisar(mensaje + ' Usa «Adjuntar fotos».'); },
+            });
+        });
+        lista.addEventListener('click', function (e) {
+            const boton = e.target.closest('[data-borrar]');
+            if (!boton || !confirm('¿Quitar esta foto? Quedará registrado en la trazabilidad.')) return;
+            const item = boton.closest('.galeria__item');
+            item.dataset.estado = 'subiendo';
+            fetch(boton.dataset.borrar, { method: 'POST', headers: { 'X-CSRFToken': csrf }, credentials: 'same-origin' })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (!res.ok) throw new Error(res.error);
+                    item.remove();
+                    renumerar();
+                })
+                .catch(function (err) {
+                    item.dataset.estado = 'ok';
+                    avisar((err && err.message) || 'No se pudo quitar la foto.');
+                });
+        });
+        ['dragenter', 'dragover'].forEach(function (ev) {
+            zona.addEventListener(ev, function (e) { e.preventDefault(); zona.classList.add('arrastrando'); });
+        });
+        ['dragleave', 'drop'].forEach(function (ev) {
+            zona.addEventListener(ev, function (e) { e.preventDefault(); zona.classList.remove('arrastrando'); });
+        });
+        zona.addEventListener('drop', function (e) {
+            Array.prototype.forEach.call((e.dataTransfer && e.dataTransfer.files) || [], agregar);
+        });
+        renumerar();
+    }
 
     document.querySelectorAll('[data-reintentar]').forEach(function (b) {
         b.addEventListener('click', function () {

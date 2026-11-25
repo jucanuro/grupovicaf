@@ -279,7 +279,7 @@ def datos_informe(solicitud, modo=MODO_WEB, informe=None, firmante=None, lineas=
         fotos = []
         if e is not None:
             orden = {c: i for i, (c, _) in enumerate(FotoEnsayo.tipos_de(e.plantilla))}
-            for f in sorted(e.fotos.all(), key=lambda f: orden.get(f.tipo, 99)):
+            for f in sorted(e.fotos.all(), key=lambda f: (orden.get(f.tipo, 99), f.pk)):
                 src = _uri(f.imagen) if modo == MODO_PDF else reverse('proyectos:foto_compresion', args=[f.pk])
                 fotos.append({'src': src, 'etiqueta': f.get_tipo_display(), 'ancho': f.ancho, 'alto': f.alto})
             if e.fecha_ensayo:

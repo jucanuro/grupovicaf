@@ -93,8 +93,11 @@ y quejas de SES (`procesar_evento_ses`: rebote permanente = «Falló el envío»
 **Resultados de ensayo (fase 1).** Cada línea de la solicitud
 (`DetalleSolicitudEnsayo`) tiene un `ResultadoEnsayo` (antes `EnsayoCompresion`)
 con `plantilla`: «compresion» (ASTM C39 / EC001, lo de abajo) o «general»
-(fecha, resumen, hoja de cálculo privada en `ENSAYOS_FOTOS_DIR` y 2 fotos; no
-pide sesión). Rutas en `/proyectos/resultados/` (las viejas `/compresion/`
+(fecha, resumen, hoja de cálculo privada en `ENSAYOS_FOTOS_DIR` y una galería
+de fotos tipo `general`: mínimo 1, hasta 12, sin recorte, se quitan con
+trazabilidad; no pide sesión). «Tomar foto» abre la cámara en la página en la
+PC (`static/js/camara_foto.js`, getUserMedia; el `capture` del input solo
+sirve en el celular, que sigue usando la cámara nativa). Rutas en `/proyectos/resultados/` (las viejas `/compresion/`
 redirigen con 301). El estado de la `SolicitudEnsayo` lo pone
 `sincronizar_estado()`: en proceso con el primer resultado, finalizado cuando
 todas las líneas terminan; «Finalizar» a mano se bloquea sin todos los

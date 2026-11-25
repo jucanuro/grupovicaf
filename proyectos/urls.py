@@ -39,6 +39,7 @@ urlpatterns = [
     path('resultados/<int:detalle_id>/', views_compresion.registrar_ensayo_compresion, name='registrar_compresion'),
     path('resultados/<int:detalle_id>/foto/<str:tipo>/', views_compresion.subir_foto_compresion, name='subir_foto_compresion'),
     path('resultados/foto/<int:foto_id>/', views_compresion.foto_compresion, name='foto_compresion'),
+    path('resultados/foto/<int:foto_id>/borrar/', views_compresion.borrar_foto_compresion, name='borrar_foto_compresion'),
     path('resultados/sesion/abrir/', views_compresion.abrir_sesion_ensayo, name='abrir_sesion_ensayo'),
     path('resultados/sesion/cerrar/', views_compresion.cerrar_sesion_ensayo, name='cerrar_sesion_ensayo'),
     path('resultados/<int:detalle_id>/hoja/', views_compresion.hoja_resultado, name='hoja_resultado'),

@@ -917,8 +917,14 @@ class ResultadoEnsayo(models.Model):
         self.densidad = int(r.densidad) if r.densidad is not None else None
 
     def tipos_faltantes(self):
-        """Códigos de los tipos de foto que aún no se cargaron, en orden."""
-        cargados = set(self.fotos.values_list('tipo', flat=True))
+        """Códigos de los tipos de foto que aún no se cargaron, en orden.
+
+        En la galería del ensayo general no hay tipos fijos: falta `general`
+        mientras haya menos de las fotos mínimas.
+        """
+        cargados = list(self.fotos.values_list('tipo', flat=True))
+        if not self.es_compresion:
+            return [] if len(cargados) >= FotoEnsayo.MIN_FOTOS_GENERAL else [FotoEnsayo.TIPO_GENERAL]
         return [codigo for codigo, _ in self.tipos_foto if codigo not in cargados]
 
     def faltantes_para_terminar(self):
@@ -932,7 +938,9 @@ class ResultadoEnsayo(models.Model):
                 faltan.append("el resumen de resultados")
             if not self.hoja_calculo:
                 faltan.append("la hoja de cálculo")
-            return faltan + [f"la foto «{etiquetas[t]}»" for t in self.tipos_faltantes()]
+            if self.tipos_faltantes():
+                faltan.append("al menos una foto del ensayo")
+            return faltan
         muestra = self.detalle.muestra
         if not muestra.fecha_fabricacion or not muestra.fc_diseno:
             faltan.append("la fecha de fabricación y el f'c de la probeta (datos FOR-004 de la recepción)")
@@ -994,12 +1002,20 @@ class FotoEnsayo(models.Model):
         (TIPO_DESPUES_PIZARRA, 'Probeta fallada, con pizarra'),
         ('general_muestra', 'Muestra o montaje del ensayo'),
         ('general_resultado', 'Resultado o lectura del equipo'),
+        ('general', 'Foto del ensayo'),
     ]
     TIPOS_COMPRESION = [TIPO_CARGA, TIPO_ANTES, TIPO_ANTES_PIZARRA, TIPO_DESPUES, TIPO_DESPUES_PIZARRA]
     # Orden en que se toman en el laboratorio: en la prensa antes de ensayar,
     # el display con la carga de rotura y recién entonces la probeta rota.
     ORDEN_TOMA = [TIPO_ANTES, TIPO_ANTES_PIZARRA, TIPO_CARGA, TIPO_DESPUES, TIPO_DESPUES_PIZARRA]
+    # Ensayos sin formato propio: galería libre de fotos (`general`), al menos
+    # MIN_FOTOS_GENERAL y como mucho MAX_FOTOS_GENERAL. Los dos tipos fijos
+    # anteriores solo quedan para fotos ya subidas.
+    TIPO_GENERAL = 'general'
     TIPOS_GENERAL = ['general_muestra', 'general_resultado']
+    TIPOS_GALERIA = [TIPO_GENERAL, *TIPOS_GENERAL]
+    MIN_FOTOS_GENERAL = 1
+    MAX_FOTOS_GENERAL = 12
     # Proporción ancho:alto de cada recuadro, medida en el informe real
     # VCF-INF-2026-4582 (FOR-039 v17): carga 111,5 x 43,3 pt; probeta 55,6 x 97,6 pt.
     PROPORCIONES = {
@@ -1010,6 +1026,7 @@ class FotoEnsayo(models.Model):
         TIPO_DESPUES_PIZARRA: (4, 7),
         'general_muestra': (4, 3),
         'general_resultado': (4, 3),
+        TIPO_GENERAL: None,  # se guarda con su proporción original
     }
     # Lado mayor de la foto guardada, en px.
     LADO_MAXIMO = 1600
@@ -1031,7 +1048,9 @@ class FotoEnsayo(models.Model):
         verbose_name = "Foto de ensayo"
         verbose_name_plural = "Fotos de ensayo"
         constraints = [
-            models.UniqueConstraint(fields=['ensayo', 'tipo'], name='foto_ensayo_unica_por_tipo'),
+            # Una por tipo, salvo la galería del ensayo general, que admite varias.
+            models.UniqueConstraint(fields=['ensayo', 'tipo'], condition=~models.Q(tipo='general'),
+                                    name='foto_ensayo_unica_por_tipo'),
         ]
 
     def __str__(self):
@@ -1040,13 +1059,24 @@ class FotoEnsayo(models.Model):
     @classmethod
     def tipos_de(cls, plantilla):
         """(código, etiqueta) de las fotos que pide la plantilla, en orden."""
-        codigos = cls.TIPOS_COMPRESION if plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION else cls.TIPOS_GENERAL
+        codigos = cls.TIPOS_COMPRESION if plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION else cls.TIPOS_GALERIA
         etiquetas = dict(cls.TIPOS)
         return [(c, etiquetas[c]) for c in codigos]
 
     @classmethod
+    def total_requerido(cls, plantilla):
+        """Cuántas fotos pide la plantilla para terminar."""
+        if plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION:
+            return len(cls.TIPOS_COMPRESION)
+        return cls.MIN_FOTOS_GENERAL
+
+    @classmethod
     def proporcion(cls, tipo):
-        ancho, alto = cls.PROPORCIONES[tipo]
+        """Ancho/alto del recuadro, o None si la foto conserva la suya."""
+        medida = cls.PROPORCIONES[tipo]
+        if medida is None:
+            return None
+        ancho, alto = medida
         return ancho / alto
 
 

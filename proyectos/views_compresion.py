@@ -159,7 +159,7 @@ def mis_ensayos_compresion(request):
     for d in detalles:
         e = _ensayo_de(d)
         d.plantilla = e.plantilla if e else ResultadoEnsayo.plantilla_para(d)
-        d.total_fotos = len(FotoEnsayo.tipos_de(d.plantilla))
+        d.total_fotos = FotoEnsayo.total_requerido(d.plantilla)
     sesion = SesionEnsayo.abierta_de(_perfil(request.user))
     return render(request, 'proyectos/compresion_lista.html', {
         'detalles': detalles,
@@ -275,7 +275,10 @@ def registrar_ensayo_compresion(request, detalle_id):
         return redirect(url)
 
     plantilla = ensayo.plantilla if ensayo else ResultadoEnsayo.plantilla_para(detalle)
+    es_compresion_plantilla = plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION
     fotos = {f.tipo: f for f in ensayo.fotos.all()} if ensayo else {}
+    # Compresión: 5 recuadros fijos con recorte. General: galería libre.
+    galeria = list(ensayo.fotos.order_by('pk')) if ensayo and not es_compresion_plantilla else []
     slots = [
         {
             'tipo': codigo,
@@ -286,7 +289,7 @@ def registrar_ensayo_compresion(request, detalle_id):
             'foto': fotos.get(codigo),
         }
         for codigo, etiqueta in FotoEnsayo.tipos_de(plantilla)
-    ]
+    ] if es_compresion_plantilla else []
     orden = FotoEnsayo.ORDEN_TOMA if plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION else [x['tipo'] for x in slots]
     slots.sort(key=lambda x: orden.index(x['tipo']))
     for n, slot in enumerate(slots, 1):
@@ -323,6 +326,9 @@ def registrar_ensayo_compresion(request, detalle_id):
         'tipos_defecto': ResultadoEnsayo.TIPOS_DEFECTO,
         'defectos_marcados': ensayo.lista_defectos if ensayo else [],
         'slots': slots,
+        'galeria': galeria,
+        'min_fotos': FotoEnsayo.MIN_FOTOS_GENERAL,
+        'max_fotos': FotoEnsayo.MAX_FOTOS_GENERAL,
         'solo_lectura': bool(ensayo and ensayo.terminado),
         've_todos': ve_todos,
         'fecha_minima': _fecha_minima(detalle),
@@ -375,7 +381,7 @@ def resultados_solicitud(request, solicitud_id):
         e = _ensayo_de(d)
         d.ensayo = e
         d.plantilla = e.plantilla if e else ResultadoEnsayo.plantilla_para(d)
-        d.total_fotos = len(FotoEnsayo.tipos_de(d.plantilla))
+        d.total_fotos = FotoEnsayo.total_requerido(d.plantilla)
         estado = e.estado if e else None
         d.estado_texto, d.estado_color = ESTADOS_LINEA[estado]
         if e and e.observacion_revision and not e.terminado:
@@ -782,6 +788,22 @@ def subir_foto_compresion(request, detalle_id, tipo):
     with transaction.atomic():
         if ensayo is None:
             ensayo, _ = ResultadoEnsayo.objects.get_or_create(detalle=detalle, defaults={'plantilla': plantilla})
+        if tipo == FotoEnsayo.TIPO_GENERAL:
+            # Galería: cada foto se agrega, hasta el máximo.
+            ResultadoEnsayo.objects.select_for_update().filter(pk=ensayo.pk).first()
+            if ensayo.fotos.count() >= FotoEnsayo.MAX_FOTOS_GENERAL:
+                return JsonResponse({'ok': False, 'error': f'Se admiten hasta {FotoEnsayo.MAX_FOTOS_GENERAL} fotos.'},
+                                    status=400)
+            foto = FotoEnsayo(ensayo=ensayo, tipo=tipo, subido_por=request.user)
+            foto.imagen.save('foto.jpg', contenido, save=False)
+            foto.save()
+            return JsonResponse({
+                'ok': True, 'id': foto.pk,
+                'url': reverse('proyectos:foto_compresion', args=[foto.pk]),
+                'borrar': reverse('proyectos:borrar_foto_compresion', args=[foto.pk]),
+                'total': ensayo.fotos.count(),
+                'faltan': ensayo.faltantes_para_terminar(),
+            })
         foto = FotoEnsayo.objects.select_for_update().filter(ensayo=ensayo, tipo=tipo).first()
         anterior = foto.imagen.name if foto and foto.imagen else None
         if foto is None:
@@ -803,6 +825,31 @@ def subir_foto_compresion(request, detalle_id, tipo):
         'url': reverse('proyectos:foto_compresion', args=[foto.pk]) + f'?v={int(foto.subido_en.timestamp())}',
         'faltan': ensayo.faltantes_para_terminar(),
     })
+
+
+@login_required
+@require_POST
+def borrar_foto_compresion(request, foto_id):
+    """Quita una foto de la galería del ensayo general (queda en la trazabilidad)."""
+    if not trabajador_tiene_permiso(request.user, PERMISO_REGISTRAR):
+        return JsonResponse({'ok': False, 'error': 'No tienes permiso para registrar ensayos.'}, status=403)
+    foto = get_object_or_404(FotoEnsayo.objects.select_related('ensayo'), pk=foto_id)
+    _detalle_o_404(request.user, foto.ensayo.detalle_id)
+    ensayo = foto.ensayo
+    if ensayo.terminado:
+        return JsonResponse({'ok': False, 'error': 'El ensayo ya está terminado.'}, status=409)
+    if ensayo.es_compresion:
+        return JsonResponse({'ok': False, 'error': 'Las fotos de compresión se reemplazan, no se borran.'}, status=400)
+    nombre = foto.imagen.name
+    etiqueta = foto.get_tipo_display()
+    foto.delete()
+    trazabilidad.anotar_foto_borrada(ensayo, etiqueta, request.user)
+    try:
+        if nombre:
+            FotoEnsayo._meta.get_field('imagen').storage.delete(nombre)
+    except OSError:
+        logger.warning("No se pudo borrar el archivo de la foto %s", nombre)
+    return JsonResponse({'ok': True, 'total': ensayo.fotos.count(), 'faltan': ensayo.faltantes_para_terminar()})
 
 
 @login_required

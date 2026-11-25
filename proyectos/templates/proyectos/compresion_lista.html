@@ -86,7 +86,7 @@
                 <div class="mt-3 flex items-center justify-between text-xs text-slate-600">
                     <span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Entrega {{ d.fecha_entrega_programada|date:"d/m/Y" }}</span>
                     <span class="flex items-center gap-1 font-semibold {% if d.n_fotos >= d.total_fotos %}text-green-700{% endif %}">
-                        <i data-lucide="image" class="w-3.5 h-3.5"></i> {{ d.n_fotos }}/{{ d.total_fotos }} fotos
+                        <i data-lucide="image" class="w-3.5 h-3.5"></i> {% if d.plantilla == 'compresion' %}{{ d.n_fotos }}/{{ d.total_fotos }} fotos{% else %}{{ d.n_fotos }} foto{{ d.n_fotos|pluralize }}{% endif %}
                     </span>
                 </div>
             </a>

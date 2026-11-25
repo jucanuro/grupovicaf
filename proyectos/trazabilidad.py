@@ -70,5 +70,13 @@ def anotar_foto_reemplazada(resultado, etiqueta_foto, usuario):
     )
 
 
-__all__ = ['CAMPOS_RESULTADO', 'CAMPOS_MUESTRA', 'instantanea', 'anotar_cambios', 'anotar_foto_reemplazada',
+def anotar_foto_borrada(resultado, etiqueta_foto, usuario):
+    CambioResultado.objects.create(
+        resultado=resultado, campo='foto', etiqueta=f"Foto: {etiqueta_foto}"[:80],
+        anterior='foto subida', nuevo='(borrada)',
+        usuario=usuario if getattr(usuario, 'is_authenticated', False) else None,
+    )
+
+
+__all__ = ['CAMPOS_RESULTADO', 'CAMPOS_MUESTRA', 'instantanea', 'anotar_cambios', 'anotar_foto_reemplazada', 'anotar_foto_borrada',
            'texto', 'MuestraDetalle']

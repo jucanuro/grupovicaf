@@ -49,7 +49,8 @@ def procesar_foto(archivo, proporcion, lado_maximo):
     if img.mode != 'RGB':
         img = img.convert('RGB')
 
-    if abs(img.width / img.height - proporcion) / proporcion > TOLERANCIA_PROPORCION:
+    # proporcion=None: la foto conserva la suya (galería del ensayo general).
+    if proporcion and abs(img.width / img.height - proporcion) / proporcion > TOLERANCIA_PROPORCION:
         img = _recortar_al_centro(img, proporcion)
 
     if max(img.size) > lado_maximo:
