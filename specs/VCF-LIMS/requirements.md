@@ -415,6 +415,19 @@ también vale una foto o escaneo del formato en papel ya llenado.
 | REQ-LIMS-157 | HU-LIMS-34 | EL SISTEMA DEBE proponer la fecha de hoy como fecha de ensayo en un ensayo general nuevo y decir con claridad qué falta para terminarlo («hoja de resultados (archivo o foto del formato)»). | sí | [Propuesto] |
 | REQ-LIMS-158 | HU-LIMS-34 | [Supuesto: pendiente de decisión del Gerente] La hoja de resultados es obligatoria para terminar cualquier ensayo general. | no verificable hasta decidir | [Supuesto] |
 
+## 2q. Registro de compresión alineado al FOR-009 (v18)
+
+Pedido del Gerente (2026-11-25), con la foto del FOR-009 v09 llenado a mano: el registro debe guardar todo lo que
+trae la hoja, con 2 fotos antes, 2 durante la carga y 2 después, y dejar trazabilidad de cada corrección.
+HU-LIMS-35. Los campos de la hoja ya estaban cubiertos (REQ-LIMS-11 a 19 y 103 a 110); esta versión agrega lo que faltaba.
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-159 | HU-LIMS-35 | EL SISTEMA DEBE pedir 6 fotos por probeta, agrupadas en 2 antes del ensayo, 2 durante la carga (la probeta y el display con la carga máxima) y 2 después (probeta fallada, sola y con pizarra), y no dejar terminar sin las 6. | sí | [Validado con usuario] |
+| REQ-LIMS-160 | HU-LIMS-35 | CUANDO el técnico escriba el f'c en MPa, EL SISTEMA DEBE convertirlo y guardarlo en kg/cm² (× 10,1972, a 0,01), y usar esa conversión en el cálculo previo del % de f'c. | sí | [Propuesto] |
+| REQ-LIMS-161 | HU-LIMS-35 | CUANDO un dato ya guardado cambie, EL SISTEMA DEBE conservar el valor anterior y el nuevo con quién lo cambió y cuándo, y mostrarlo al técnico en el registro y al supervisor en la revisión (ya implementado en REQ-LIMS-103 a 110; se verifica de nuevo). | sí | [Validado con usuario] |
+| REQ-LIMS-162 | HU-LIMS-35 | [Supuesto: pendiente] La edad del testigo en horas y la foto aparte de defectos del testigo (FOR-009) se agregan cuando el Gerente confirme que se usan. | no verificable hasta decidir | [Supuesto] |
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -445,6 +458,7 @@ también vale una foto o escaneo del formato en papel ya llenado.
 | HU-LIMS-32 | Solicitud de ensayo en una sola pantalla | REQ-LIMS-141 a 149 |
 | HU-LIMS-33 | PDF de la solicitud FOR-089, resultados y lista | REQ-LIMS-150 a 154 |
 | HU-LIMS-34 | Hoja de resultados de los ensayos generales | REQ-LIMS-155 a 158 |
+| HU-LIMS-35 | Registro de compresión alineado al FOR-009 | REQ-LIMS-159 a 162 |
 
 ## 4. Preguntas abiertas
 
@@ -476,3 +490,4 @@ también vale una foto o escaneo del formato en papel ya llenado.
 | v15 | 2026-11-25 | Claude (DLF) | Solicitud de ensayo en una sola pantalla: REQ-LIMS-141 a 149 (HU-LIMS-32) |
 | v16 | 2026-11-25 | Claude (DLF) | PDF de la solicitud FOR-089, pasos de resultados a la izquierda, lista por prioridad: REQ-LIMS-150 a 154 (HU-LIMS-33) |
 | v17 | 2026-11-25 | Claude (DLF) | Hoja de resultados del ensayo general: foto del formato, botones para celular, fecha de hoy: REQ-LIMS-155 a 158 (HU-LIMS-34) |
+| v18 | 2026-11-25 | Claude (DLF) | Registro de compresión alineado al FOR-009: 6 fotos y f'c en MPa: REQ-LIMS-159 a 162 (HU-LIMS-35) |

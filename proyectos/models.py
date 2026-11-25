@@ -990,12 +990,14 @@ class CambioResultado(models.Model):
 
 class FotoEnsayo(models.Model):
     TIPO_CARGA = 'carga'
+    TIPO_DURANTE = 'durante'
     TIPO_ANTES = 'antes'
     TIPO_ANTES_PIZARRA = 'antes_pizarra'
     TIPO_DESPUES = 'despues'
     TIPO_DESPUES_PIZARRA = 'despues_pizarra'
     TIPOS = [
-        (TIPO_CARGA, 'Lectura de carga máxima'),
+        (TIPO_CARGA, 'Display con la carga máxima'),
+        (TIPO_DURANTE, 'Probeta durante la carga'),
         (TIPO_ANTES, 'Probeta antes del ensayo'),
         (TIPO_ANTES_PIZARRA, 'Probeta antes del ensayo, con pizarra'),
         (TIPO_DESPUES, 'Probeta fallada'),
@@ -1004,10 +1006,11 @@ class FotoEnsayo(models.Model):
         ('general_resultado', 'Resultado o lectura del equipo'),
         ('general', 'Foto del ensayo'),
     ]
-    TIPOS_COMPRESION = [TIPO_CARGA, TIPO_ANTES, TIPO_ANTES_PIZARRA, TIPO_DESPUES, TIPO_DESPUES_PIZARRA]
+    # 2 antes + 2 durante la carga + 2 después (FOR-009: evidencia multimedia).
+    TIPOS_COMPRESION = [TIPO_CARGA, TIPO_DURANTE, TIPO_ANTES, TIPO_ANTES_PIZARRA, TIPO_DESPUES, TIPO_DESPUES_PIZARRA]
     # Orden en que se toman en el laboratorio: en la prensa antes de ensayar,
     # el display con la carga de rotura y recién entonces la probeta rota.
-    ORDEN_TOMA = [TIPO_ANTES, TIPO_ANTES_PIZARRA, TIPO_CARGA, TIPO_DESPUES, TIPO_DESPUES_PIZARRA]
+    ORDEN_TOMA = [TIPO_ANTES, TIPO_ANTES_PIZARRA, TIPO_DURANTE, TIPO_CARGA, TIPO_DESPUES, TIPO_DESPUES_PIZARRA]
     # Ensayos sin formato propio: galería libre de fotos (`general`), al menos
     # MIN_FOTOS_GENERAL y como mucho MAX_FOTOS_GENERAL. Los dos tipos fijos
     # anteriores solo quedan para fotos ya subidas.
@@ -1020,6 +1023,7 @@ class FotoEnsayo(models.Model):
     # VCF-INF-2026-4582 (FOR-039 v17): carga 111,5 x 43,3 pt; probeta 55,6 x 97,6 pt.
     PROPORCIONES = {
         TIPO_CARGA: (18, 7),
+        TIPO_DURANTE: (4, 7),
         TIPO_ANTES: (4, 7),
         TIPO_ANTES_PIZARRA: (4, 7),
         TIPO_DESPUES: (4, 7),

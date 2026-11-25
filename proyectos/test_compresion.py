@@ -262,14 +262,45 @@ class TerminarTests(CompresionBase):
         datos.update(medidas)
         return self.client.post(self.url_registro(self.mia), datos)
 
-    def test_no_termina_sin_las_cinco_fotos(self):
+    def test_no_termina_sin_las_seis_fotos(self):
         self.client.force_login(self.user_tec)
         self.subir(self.mia, 'carga', jpeg(1800, 700))
         r = self.terminar()
         self.assertRedirects(r, self.url_registro(self.mia), fetch_redirect_response=False)
         ensayo = ResultadoEnsayo.objects.get(detalle=self.mia)
         self.assertEqual(ensayo.estado, ResultadoEnsayo.ESTADO_BORRADOR)
-        self.assertEqual(len(ensayo.tipos_faltantes()), 4)
+        self.assertEqual(len(ensayo.tipos_faltantes()), 5)
+
+    def test_las_seis_fotos_son_dos_antes_dos_durante_la_carga_y_dos_despues(self):
+        self.assertEqual(
+            FotoEnsayo.ORDEN_TOMA,
+            ['antes', 'antes_pizarra', 'durante', 'carga', 'despues', 'despues_pizarra'],
+        )
+        self.client.force_login(self.user_tec)
+        html = self.client.get(self.url_registro(self.mia)).content.decode()
+        for titulo in ('Antes del ensayo · 2 fotos', 'Durante la carga · 2 fotos', 'Después del ensayo · 2 fotos'):
+            self.assertIn(titulo, html)
+        self.assertEqual(FotoEnsayo.PROPORCIONES['durante'], (4, 7))
+
+    def test_f_c_en_mpa_se_guarda_en_kg_cm2(self):
+        from proyectos.forms_compresion import DatosClienteProbetaForm
+        form = DatosClienteProbetaForm(
+            {'codigo_cliente': 'A-1', 'elemento_estructural': 'Zapata', 'fc_diseno': '21', 'fc_unidad': 'mpa',
+             'fecha_fabricacion': '2026-10-14', 'edad_ensayo_dias': '7'},
+            instance=self.mia.muestra, prefix=None,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(str(form.cleaned_data['fc_diseno']), '214.14')
+
+    def test_f_c_en_kg_cm2_no_se_convierte(self):
+        from proyectos.forms_compresion import DatosClienteProbetaForm
+        form = DatosClienteProbetaForm(
+            {'codigo_cliente': 'A-1', 'elemento_estructural': 'Zapata', 'fc_diseno': '210', 'fc_unidad': 'kgcm2',
+             'fecha_fabricacion': '2026-10-14', 'edad_ensayo_dias': '7'},
+            instance=self.mia.muestra, prefix=None,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data['fc_diseno'], Decimal('210'))
 
     def test_no_termina_sin_fecha_de_ensayo(self):
         self.client.force_login(self.user_tec)
@@ -305,11 +336,11 @@ class TerminarTests(CompresionBase):
         self.client.post(self.url_registro(self.mia), {'accion': 'reabrir'})
         self.assertFalse(ResultadoEnsayo.objects.get(detalle=self.mia).terminado)
 
-    def test_pantalla_de_registro_muestra_los_cinco_recuadros(self):
+    def test_pantalla_de_registro_muestra_los_seis_recuadros(self):
         self.client.force_login(self.user_tec)
         r = self.client.get(self.url_registro(self.mia))
         self.assertEqual(r.status_code, 200)
-        self.assertContains(r, 'data-slot=', count=5)
+        self.assertContains(r, 'data-slot=', count=6)
         self.assertContains(r, 'aspect-ratio: 18 / 7')
         self.assertNotContains(r, 'Constructora Secreta')
 

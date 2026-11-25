@@ -263,7 +263,7 @@
         <div class="v-tarjeta" data-paso-antes>
             <div class="v-tarjeta__cab">
                 <span class="v-paso">3</span>
-                <div><h2>En la prensa, antes de ensayar</h2><p>Toma las 2 fotos con la probeta ya colocada en la prensa.</p></div>
+                <div><h2>Antes del ensayo · 2 fotos</h2><p>Con la probeta ya colocada en la prensa: una sola y otra con la pizarra de identificación.</p></div>
             </div>
             <div class="v-tarjeta__cuerpo">
             <div class="grid grid-cols-2 gap-3">
@@ -276,7 +276,7 @@
         <div class="v-tarjeta" data-paso-carga>
             <div class="v-tarjeta__cab">
                 <span class="v-paso">4</span>
-                <div><h2>Carga de rotura</h2><p>Escribe la carga máxima y fotografía el display <b>antes</b> de retirar la probeta.</p></div>
+                <div><h2>Durante la carga · 2 fotos</h2><p>Escribe la carga máxima; toma la foto de la probeta durante la carga y del display <b>antes</b> de retirarla.</p></div>
             </div>
             <div class="v-tarjeta__cuerpo space-y-3">
             {% for m in medidas %}{% if m.campo == 'carga_kn' %}
@@ -310,14 +310,17 @@
             </dl>
             {% if solo_lectura and ensayo.edad_dias is not None %}<p class="text-xs text-slate-300 mt-2">Edad al ensayo: {{ ensayo.edad_dias }} días.</p>{% endif %}
         </div>
-            {% include "proyectos/_slot_foto.html" with s=foto.carga ancho=True %}
+            <div class="grid grid-cols-2 gap-3">
+                {% include "proyectos/_slot_foto.html" with s=foto.durante ancho=False %}
+                {% include "proyectos/_slot_foto.html" with s=foto.carga ancho=True %}
+            </div>
             </div>
         </div>
 
         <div class="v-tarjeta" data-paso-rotura>
             <div class="v-tarjeta__cab">
                 <span class="v-paso">5</span>
-                <div><h2>Probeta rota</h2><p>Tipo de falla y las 2 fotos de la probeta fallada.</p></div>
+                <div><h2>Después del ensayo · 2 fotos</h2><p>Tipo de falla y las 2 fotos de la probeta fallada.</p></div>
             </div>
             <div class="v-tarjeta__cuerpo space-y-3">
                 <label class="v-campo block">
@@ -806,7 +809,10 @@
     function recalcular() {
         if (!cajaMedidas) return;
         const campoFc = document.querySelector('[name="muestra-fc_diseno"]');
-        const datos = { fc: campoFc && campoFc.value.trim() ? campoFc.value.trim().replace(',', '.') : cajaMedidas.dataset.fc };
+        const unidadFc = document.querySelector('[name="muestra-fc_unidad"]');
+        let fcTexto = campoFc && campoFc.value.trim() ? campoFc.value.trim().replace(',', '.') : cajaMedidas.dataset.fc;
+        if (fcTexto && unidadFc && unidadFc.value === 'mpa' && !isNaN(Number(fcTexto))) fcTexto = String(Number(fcTexto) * 10.1972);
+        const datos = { fc: fcTexto };
         document.querySelectorAll('[data-medida]').forEach(function (i) { datos[i.dataset.medida] = i.value; });
         const r = window.CompresionCalculos.calcular(datos);
         const fmt = function (v, dec) {
@@ -837,6 +843,8 @@
     }
     const entradaFc = document.querySelector('[name="muestra-fc_diseno"]');
     if (entradaFc) entradaFc.addEventListener('input', recalcular);
+    const entradaUnidadFc = document.querySelector('[name="muestra-fc_unidad"]');
+    if (entradaUnidadFc) entradaUnidadFc.addEventListener('change', recalcular);
     document.querySelectorAll('[data-medida]').forEach(function (i) {
         i.addEventListener('input', function () { recalcular(); actualizarTerminar(); });
     });

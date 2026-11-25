@@ -46,6 +46,7 @@
 | T87 | Solicitud de ensayo en una sola pantalla (`ensayos_form.html`, `solicitud_ensayo.js`): una fila por ensayo con varias muestras, acciones masivas, incidencias plegables, borrador | 141-147 | `proyectos/test_programa.py` (SolicitudUnaPantallaTests) + navegador | [x] |
 | T88 | PDF de la solicitud en formato FOR-089 con incidencias (`ensayos_pdf.html`), lista de solicitudes por prioridad con botón de estado, pasos de resultados a la izquierda | 150-154 | `proyectos/test_programa.py` (ListaYPdfSolicitudTests) + imagen del PDF + navegador | [x] |
 | T89 | Hoja de resultados del ensayo general: acepta foto del formato (cámara), botones grandes para celular, fecha de hoy por defecto | 155-157 | `proyectos/test_informe_compresion.py` + navegador móvil | [x] |
+| T90 | Compresión alineada al FOR-009: foto «durante la carga» (6 fotos en 3 grupos), f'c en kg/cm² o MPa con conversión | 159-161 | `proyectos/test_compresion.py` | [x] |
 
 ## Historial
 
@@ -70,3 +71,4 @@
 | v16 | 2026-11-25 | Claude (DLF) | T87: solicitud de ensayo en una sola pantalla |
 | v17 | 2026-11-25 | Claude (DLF) | T88: PDF FOR-089, lista por prioridad y pasos de resultados |
 | v18 | 2026-11-25 | Claude (DLF) | T89: hoja de resultados del ensayo general |
+| v19 | 2026-11-25 | Claude (DLF) | T90: compresión alineada al FOR-009 |

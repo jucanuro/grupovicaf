@@ -15,7 +15,16 @@ def _estilar(form):
         campo.widget.attrs.setdefault('class', CLASE_CAMPO)
 
 
+MPA_A_KGCM2 = Decimal('10.1972')
+
+
 class DatosProbetaForm(forms.ModelForm):
+    # El formato FOR-009 marca f'c en kg/cm² o en MPa: se guarda siempre en kg/cm².
+    fc_unidad = forms.ChoiceField(
+        choices=[('kgcm2', 'kg/cm²'), ('mpa', 'MPa')], initial='kgcm2', required=False,
+        label="Unidad de f'c",
+    )
+
     class Meta:
         model = MuestraDetalle
         fields = [
@@ -35,6 +44,13 @@ class DatosProbetaForm(forms.ModelForm):
         self.fields['fecha_fabricacion'].label = "Fabricación"
         self.fields['edad_ensayo_dias'].label = "Edad (días)"
 
+    def clean(self):
+        datos = super().clean()
+        fc = datos.get('fc_diseno')
+        if fc is not None and datos.get('fc_unidad') == 'mpa':
+            datos['fc_diseno'] = (fc * MPA_A_KGCM2).quantize(Decimal('0.01'))
+        return datos
+
     def clean_fecha_fabricacion(self):
         fecha = self.cleaned_data.get('fecha_fabricacion')
         if fecha and fecha > timezone.localdate():
@@ -46,6 +62,8 @@ class DatosClienteProbetaForm(DatosProbetaForm):
     """Lo que el técnico copia de la solicitud al empezar: los datos que da el cliente."""
     class Meta(DatosProbetaForm.Meta):
         fields = ['codigo_cliente', 'elemento_estructural', 'fc_diseno', 'fecha_fabricacion', 'edad_ensayo_dias']
+
+    field_order = ['codigo_cliente', 'elemento_estructural', 'fc_diseno', 'fc_unidad', 'fecha_fabricacion', 'edad_ensayo_dias']
 
 
 class EquipoForm(forms.ModelForm):

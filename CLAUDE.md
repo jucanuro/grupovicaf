@@ -222,11 +222,11 @@ estado con palabras, páginas y zoom); «Salir» vuelve a la vista con el menú.
 
 **Ensayo de compresión (HU-LIMS-14).** `proyectos/views_compresion.py`:
 el técnico registra en el celular cada probeta de ASTM C39 / EC001 asignada
-(`/proyectos/resultados/`) con 5 fotos obligatorias recortadas con proporción
-fija (Cropper.js 1.6.2 vendorizado; carga 18:7, probeta 4:7, en
-`FotoEnsayo.PROPORCIONES`). Al abrir el recorte, `static/js/centrado_foto.js`
+(`/proyectos/resultados/`) con 6 fotos obligatorias recortadas con proporción
+fija (2 antes, 2 durante la carga —probeta y display— y 2 después; Cropper.js 1.6.2 vendorizado; carga 18:7, probeta 4:7, en
+`FotoEnsayo.PROPORCIONES`). La foto «durante la carga» (`durante`) queda en el registro y la revisión; el informe sigue usando las otras 5. Al abrir el recorte, `static/js/centrado_foto.js`
 coloca el marco sobre la probeta o el display (en el celular, sin librerías;
-si no encuentra nada claro deja el marco centrado). Sin las 5 fotos y la fecha no se puede terminar.
+si no encuentra nada claro deja el marco centrado). Sin las 6 fotos y la fecha no se puede terminar. El f'c se puede escribir en kg/cm² o MPa (`fc_unidad`, FOR-009): se guarda siempre en kg/cm².
 Las fotos van a `ENSAYOS_FOTOS_DIR` (privado, nunca MEDIA_ROOT; en prod debe
 existir, ser escribible por el servicio y entrar en el backup) y se sirven
 por una vista con sesión. Permiso `ensayos.registrar`.
