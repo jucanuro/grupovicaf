@@ -57,7 +57,7 @@ sudo systemctl restart vicafbeat.service
 
 echo "==> healthcheck"
 sleep 2
-FALLÓ=0
+FALLO=0
 for par in "vicaflab:/run/gunicorn/vicaflab.sock" "vicafweb:/run/gunicorn/vicafweb.sock"; do
     nombre="${par%%:*}"
     sock="${par##*:}"
@@ -65,18 +65,18 @@ for par in "vicaflab:/run/gunicorn/vicaflab.sock" "vicafweb:/run/gunicorn/vicafw
         echo "  <- $nombre ($sock) responde"
     else
         echo "  !! $nombre ($sock) no responde"
-        FALLÓ=1
+        FALLO=1
     fi
 done
 
 for servicio in vicaflab vicafweb vicafworker vicafbeat; do
     if ! systemctl is-active --quiet "$servicio"; then
         echo "  !! $servicio no está activo (systemctl status $servicio)"
-        FALLÓ=1
+        FALLO=1
     fi
 done
 
-if [ "$FALLÓ" -ne 0 ]; then
+if [ "$FALLO" -ne 0 ]; then
     echo "==> DEPLOY CON PROBLEMAS — revisa journalctl -u vicaflab -u vicafweb -u vicafworker -u vicafbeat"
     exit 1
 fi
