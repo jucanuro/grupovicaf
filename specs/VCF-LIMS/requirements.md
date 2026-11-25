@@ -331,6 +331,24 @@ pestañas más pequeñas.
 | REQ-LIMS-128 | HU-LIMS-25 | EL SISTEMA DEBE mostrar las tarjetas del panel de proyectos más compactas (hasta 4 por fila en pantalla grande), con botones, círculos de etapa y pestañas más pequeños. | sí (revisión visual) | [Decisión Gerente] |
 
 
+## 2l. Barra del panel con diseño unificado (v13)
+
+Origen: pedido del Gerente del 2026-11-25 sobre el panel ya visible: el buscador y
+los controles no guardaban proporción con los botones y los botones de la derecha
+debían tener un diseño moderno e innovador, igual en todas las pantallas. HU-LIMS-30:
+*como usuario quiero que el panel de cada pantalla se vea ordenado y moderno, para
+encontrar rápido la búsqueda, los filtros y las acciones*. Cambio solo de diseño
+(CSS común en `base_vicafpro.html`, una plantilla por pantalla ajustada donde hacía falta).
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-129 | HU-LIMS-30 | EL SISTEMA DEBE mostrar el panel de cada pantalla como una sola barra con tres zonas: título, controles (búsqueda y filtros) y acciones, separadas por una línea fina. | sí (navegador, 25 pantallas) | [Decisión Gerente] |
+| REQ-LIMS-130 | HU-LIMS-30 | EL SISTEMA DEBE dar a la búsqueda, los selectores, el rango de fechas y los botones del panel la misma altura (2,6 rem) y esquinas redondeadas. | sí (revisión visual) | [Decisión Gerente] |
+| REQ-LIMS-131 | HU-LIMS-30 | EL SISTEMA DEBE mostrar la acción principal de cada pantalla (Nuevo…) con degradado y brillo, y las acciones secundarias (Volver, Web, Dashboard, Filtrar, Limpiar) claras, ambas con el icono en una pastilla, con efecto al pasar el cursor y al enfocar. | sí (revisión visual) | [Decisión Gerente] |
+| REQ-LIMS-132 | HU-LIMS-30 | DONDE se muestren indicadores o varios filtros (informes, cotizaciones, plantillas), EL SISTEMA DEBE ponerlos en una fila propia debajo del título. | sí (revisión visual) | [Propuesto] |
+| REQ-LIMS-133 | HU-LIMS-30 | DONDE la pantalla mida menos de 1100 px, EL SISTEMA DEBE poner las acciones debajo de la barra y, menos de 640 px, a todo el ancho, sin desbordar la página; EL SISTEMA DEBE mantener el mismo diseño en el tema oscuro. | sí (navegador) | [Propuesto] |
+
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -356,6 +374,7 @@ pestañas más pequeñas.
 | HU-LIMS-27 | Borrador local de formularios largos | REQ-LIMS-111 a 117 |
 | HU-LIMS-28 | Plantillas con el diseño de la cotización | REQ-LIMS-118 a 124 |
 | HU-LIMS-29 | Panel de cada pantalla siempre visible | REQ-LIMS-125 a 127 |
+| HU-LIMS-30 | Barra del panel con diseño unificado | REQ-LIMS-129 a 133 |
 
 ## 4. Preguntas abiertas
 
@@ -382,3 +401,4 @@ pestañas más pequeñas.
 | v10 | 2026-11-25 | Claude (DLF) | Borrador local de cotización, recepción, solicitud de ensayo y datos de probetas: REQ-LIMS-111 a 117 (HU-LIMS-27) |
 | v11 | 2026-11-25 | Claude (DLF) | Plantillas de cotización con el diseño de la cotización: REQ-LIMS-118 a 124 (HU-LIMS-28) |
 | v12 | 2026-11-25 | Claude (DLF) | Panel siempre visible en 25 pantallas (REQ-LIMS-125 a 127); panel de proyectos compacto (128) y filtro «Hoy» por movimiento (RN-15, REQ-LIMS-99 y 101 ajustados) |
+| v13 | 2026-11-25 | Claude (DLF) | Barra única del panel con botones modernos: REQ-LIMS-129 a 133 (HU-LIMS-30) |

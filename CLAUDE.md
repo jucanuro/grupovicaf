@@ -146,6 +146,10 @@ de las 25 pantallas con `data-command-header` va siempre visible arriba: no hay
 botón «Panel» ni X. El CSS está al final del `<style>` de `base_vicafpro.html`; una
 pantalla nueva solo copia el bloque `command-header` de otra. El panel de
 proyectos filtra por **movimiento** (`avance.con_movimiento`), «Hoy» por defecto.
+Diseño (HU-LIMS-30): el panel es una sola barra [título | controles | acciones]; la
+acción principal es el botón con degradado y la secundaria lleva
+`command-header__action--secondary`. Para que una fila de controles quede debajo del
+título se le pone la clase `command-header__fila`.
 
 **Plantillas de cotización (HU-LIMS-28).** La plantilla y la cotización son la misma
 pantalla: comparten `static/js/cotizacion-config.js` (la plantilla lo configura
