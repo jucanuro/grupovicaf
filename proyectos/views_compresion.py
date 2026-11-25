@@ -19,7 +19,7 @@ del cliente. Sin todos los datos, las cinco fotos y una sesión abierta del
 mismo día no se puede terminar.
 """
 import logging
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
@@ -39,7 +39,7 @@ from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso
 
 from .calculos_compresion import DatosInsuficientes
 from .forms_compresion import AbrirSesionForm, CerrarSesionForm, DatosClienteProbetaForm, DatosProbetaForm, EquipoForm
-from . import trazabilidad
+from . import programa, trazabilidad
 from .fotos import FotoInvalida, procesar_foto
 from .models import (
     DetalleSolicitudEnsayo, ResultadoEnsayo, Equipo, FotoEnsayo, InformeFinal, MuestraDetalle,
@@ -179,12 +179,24 @@ def registrar_ensayo_compresion(request, detalle_id):
     ve_todos = ve_todos_los_ensayos(request.user)
     ejecutor = _ejecutor(request.user, detalle)
     a_nombre_de = ejecutor if ejecutor is not None and ejecutor != _perfil(request.user) else None
-    desde_solicitud = (request.GET.get('desde') or request.POST.get('desde')) == 'solicitud'
+    desde = request.GET.get('desde') or request.POST.get('desde')
+    desde_solicitud = desde == 'solicitud'
     url = reverse('proyectos:registrar_compresion', args=[detalle.pk])
-    if desde_solicitud:
-        url += '?desde=solicitud'
     url_salida = (reverse('proyectos:resultados_solicitud', args=[detalle.solicitud_id]) if desde_solicitud
                   else reverse('proyectos:mis_ensayos_compresion'))
+    salida_texto = f'Solicitud {detalle.solicitud.codigo_solicitud}' if desde_solicitud else 'Mis ensayos'
+    if desde_solicitud:
+        url += '?desde=solicitud'
+    elif desde == 'programa':
+        # Desde la hoja del programa del día (HU-LIMS-21): al terminar vuelve a ella.
+        fecha_programa = programa.leer_fecha(request.GET.get('fecha'), None)
+        cliente_programa = request.GET.get('cliente') or ''
+        if fecha_programa and cliente_programa.isdigit():
+            url += '?' + urlencode({'desde': 'programa', 'fecha': fecha_programa.isoformat(),
+                                    'cliente': cliente_programa})
+            url_salida = reverse('proyectos:programa_cliente',
+                                 args=[fecha_programa.isoformat(), int(cliente_programa)])
+            salida_texto = f'Programa del {fecha_programa:%d/%m/%Y}'
 
     if request.method == 'POST':
         accion = request.POST.get('accion', 'guardar')
@@ -319,6 +331,7 @@ def registrar_ensayo_compresion(request, detalle_id):
         'a_nombre_de': a_nombre_de,
         'desde_solicitud': desde_solicitud,
         'url_salida': url_salida,
+        'salida_texto': salida_texto,
         'url_abrir_sesion': _url_abrir_sesion(a_nombre_de, url),
     })
 
@@ -457,7 +470,7 @@ def medidas_solicitud(request, solicitud_id):
     pantalla = reverse('proyectos:resultados_solicitud', args=[solicitud.pk])
     ve_todos = ve_todos_los_ensayos(request.user)
     lineas = []
-    for d in solicitud.detalles.select_related('muestra', 'resultado', 'tecnico_asignado',
+    for d in solicitud.detalles.select_related('muestra', 'resultado', 'tecnico_asignado', 'solicitud__recepcion',
                                                'servicio_cotizado__servicio').order_by('muestra__codigo_laboratorio', 'pk'):
         if not (ve_todos or (d.tecnico_asignado and d.tecnico_asignado.user_id == request.user.pk)):
             continue
@@ -470,11 +483,21 @@ def medidas_solicitud(request, solicitud_id):
     if not lineas:
         messages.error(request, "Esta solicitud no tiene probetas de compresión tuyas para medir.")
         return redirect(pantalla)
+    return _medidas_en_lote(request, lineas, pantalla, solicitud.codigo_solicitud)
 
+
+def _medidas_en_lote(request, lineas, pantalla, titulo, fecha_inicial=None):
+    """Formulario «medir y pesar todas»: lo usan la solicitud y el programa del día.
+
+    Cada corrección de un dato ya guardado queda en la trazabilidad y cada
+    solicitud tocada recalcula su estado.
+    """
     etiquetas = {f.name: str(f.verbose_name) for f in ResultadoEnsayo._meta.fields}
     errores = []
     if request.method == 'POST':
-        fecha, error = _leer_fecha(request, lineas[0])
+        # La fecha no puede ser anterior a la recepción más reciente del lote.
+        referencia = max(lineas, key=lambda d: _fecha_minima(d) or date.min)
+        fecha, error = _leer_fecha(request, referencia)
         if error:
             errores.append(error)
         lecturas = {}
@@ -491,6 +514,7 @@ def medidas_solicitud(request, solicitud_id):
             lecturas[d.pk] = valores
         if not errores:
             guardadas = 0
+            solicitudes = {}
             with transaction.atomic():
                 for d in lineas:
                     valores = lecturas.get(d.pk)
@@ -506,8 +530,10 @@ def medidas_solicitud(request, solicitud_id):
                         ensayo.fecha_ensayo = fecha
                     ensayo.save(update_fields=[*CAMPOS_MEDIDAS_LOTE, 'fecha_ensayo', 'actualizado_en'])
                     trazabilidad.anotar_cambios(ensayo, ensayo, antes, trazabilidad.CAMPOS_RESULTADO, request.user)
+                    solicitudes[d.solicitud_id] = d.solicitud
                     guardadas += 1
-                solicitud.sincronizar_estado()
+                for solicitud in solicitudes.values():
+                    solicitud.sincronizar_estado()
             messages.success(request, f"Medidas guardadas de {guardadas} probeta{'s' if guardadas != 1 else ''}. "
                                       "Ahora ensaya cada una en la prensa.")
             return redirect(pantalla)
@@ -526,13 +552,13 @@ def medidas_solicitud(request, solicitud_id):
             ],
         })
     fecha_actual = next((d.ensayo.fecha_ensayo for d in lineas if d.ensayo and d.ensayo.fecha_ensayo), None)
+    fecha_actual = fecha_actual or fecha_inicial or timezone.localdate()
     return render(request, 'proyectos/medidas_solicitud.html', {
-        'solicitud': solicitud,
+        'titulo': titulo,
         'filas': filas,
         'errores': errores,
         'pantalla': pantalla,
-        'fecha': request.POST.get('fecha_ensayo') if request.method == 'POST' else
-                 (fecha_actual.isoformat() if fecha_actual else timezone.localdate().isoformat()),
+        'fecha': request.POST.get('fecha_ensayo') if request.method == 'POST' else fecha_actual.isoformat(),
         'hoy': timezone.localdate(),
     })
 
@@ -948,3 +974,116 @@ def redirigir_compresion(request, resto):
     if request.META.get('QUERY_STRING'):
         destino += '?' + request.META['QUERY_STRING']
     return redirect(destino, permanent=True)
+
+
+# ---------------------------------------------------------------------------
+# Programa de ensayos del día (HU-LIMS-21): una hoja por cliente y por día.
+# ---------------------------------------------------------------------------
+
+def _hoja_cliente(request, fecha, cliente_id):
+    """Las líneas de un cliente en el programa de `fecha` (incluye atrasadas si es hoy)."""
+    hoy = timezone.localdate()
+    del_dia, atrasadas, _ = programa.lineas_del_dia(request.user, fecha, hoy)
+    lineas = [d for d in atrasadas + del_dia if d.solicitud.cotizacion.cliente_id == cliente_id]
+    lineas.sort(key=lambda d: (not d.atrasada, d.muestra.codigo_laboratorio or '', d.pk))
+    return lineas
+
+
+@login_required
+@permiso_requerido('ensayos.ver')
+def programa_dia(request):
+    """Programa del día: por cliente, las probetas que tocan romper (REQ-LIMS-62 a 65)."""
+    hoy = timezone.localdate()
+    fecha = programa.leer_fecha(request.GET.get('fecha'), hoy)
+    ve_todos = ve_todos_los_ensayos(request.user)
+    del_dia, atrasadas, sin_fecha = programa.lineas_del_dia(request.user, fecha, hoy)
+    grupos = programa.agrupar_por_cliente(atrasadas + del_dia, ve_nombre=ve_todos)
+    for g in grupos:
+        g['url'] = reverse('proyectos:programa_cliente', args=[fecha.isoformat(), g['cliente_id']])
+    total = sum(g['total'] for g in grupos)
+    rotas = sum(g['rotas'] for g in grupos)
+    return render(request, 'proyectos/programa_dia.html', {
+        'fecha': fecha,
+        'hoy': hoy,
+        'es_hoy': fecha == hoy,
+        'anterior': (fecha - timedelta(days=1)).isoformat(),
+        'siguiente': (fecha + timedelta(days=1)).isoformat(),
+        'grupos': grupos,
+        'total': total,
+        'rotas': rotas,
+        'atrasadas': len(atrasadas),
+        'sin_fecha': sin_fecha[:50],
+        'sin_fecha_total': len(sin_fecha),
+        've_todos': ve_todos,
+    })
+
+
+@login_required
+@permiso_requerido('ensayos.ver')
+def programa_cliente(request, fecha, cliente_id):
+    """La «solicitud del día» de un cliente: lista para imprimir y para trabajar (REQ-LIMS-66 a 70)."""
+    fecha = programa.leer_fecha(fecha, None)
+    if fecha is None:
+        raise Http404("Fecha no válida.")
+    lineas = _hoja_cliente(request, fecha, cliente_id)
+    if not lineas:
+        messages.info(request, "Ese cliente no tiene probetas tuyas en el programa de ese día.")
+        return redirect(f"{reverse('proyectos:programa_dia')}?fecha={fecha.isoformat()}")
+
+    ve_todos = ve_todos_los_ensayos(request.user)
+    grupo = programa.agrupar_por_cliente(lineas, ve_nombre=ve_todos)[0]
+    volver = reverse('proyectos:programa_cliente', args=[fecha.isoformat(), cliente_id])
+    puede_registrar = trabajador_tiene_permiso(request.user, PERMISO_REGISTRAR)
+    propio = _perfil(request.user)
+    tecnicos = {}
+    for d in lineas:
+        d.url_registro = (reverse('proyectos:registrar_compresion', args=[d.pk]) + '?' +
+                          urlencode({'desde': 'programa', 'fecha': fecha.isoformat(), 'cliente': cliente_id}))
+        if d.estado != programa.ESTADO_TERMINADA:
+            ejecutor = _ejecutor(request.user, d)
+            if ejecutor is not None:
+                tecnicos[ejecutor.pk] = ejecutor
+    sesiones = []
+    for t in tecnicos.values():
+        abierta = SesionEnsayo.abierta_de(t)
+        ajeno = t != propio
+        sesiones.append({
+            'tecnico': t,
+            'ajeno': ajeno,
+            'sesion': abierta,
+            'url_abrir': _url_abrir_sesion(t if ajeno else None, volver),
+            'form_cerrar': CerrarSesionForm(instance=abierta) if abierta else None,
+        })
+    pendientes = [d for d in lineas if d.estado != programa.ESTADO_TERMINADA]
+    return render(request, 'proyectos/programa_cliente.html', {
+        'fecha': fecha,
+        'hoy': timezone.localdate(),
+        'grupo': grupo,
+        'lineas': lineas,
+        'pendientes': len(pendientes),
+        'por_medir': sum(1 for d in lineas if d.estado == programa.ESTADO_POR_MEDIR),
+        've_todos': ve_todos,
+        'puede_registrar': puede_registrar,
+        'puede_aprobar': trabajador_tiene_permiso(request.user, 'informes.aprobar'),
+        'sesiones': sesiones,
+        'volver': volver,
+        'url_programa': f"{reverse('proyectos:programa_dia')}?fecha={fecha.isoformat()}",
+    })
+
+
+@login_required
+@permiso_requerido(PERMISO_REGISTRAR)
+def programa_medidas(request, fecha, cliente_id):
+    """«Medir y pesar todas primero» sobre la hoja del día, aunque vengan de varias solicitudes."""
+    fecha_programa = programa.leer_fecha(fecha, None)
+    if fecha_programa is None:
+        raise Http404("Fecha no válida.")
+    pantalla = reverse('proyectos:programa_cliente', args=[fecha_programa.isoformat(), cliente_id])
+    lineas = [d for d in _hoja_cliente(request, fecha_programa, cliente_id)
+              if d.estado != programa.ESTADO_TERMINADA]
+    if not lineas:
+        messages.error(request, "No quedan probetas por medir en esta hoja.")
+        return redirect(pantalla)
+    hoy = timezone.localdate()
+    return _medidas_en_lote(request, lineas, pantalla, f'Programa del {fecha_programa:%d/%m/%Y}',
+                            fecha_inicial=min(fecha_programa, hoy))

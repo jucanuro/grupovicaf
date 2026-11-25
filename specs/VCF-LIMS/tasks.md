@@ -27,6 +27,8 @@
 | T66 | `cotizaciones_form.html` (pasos en pills, estado vacío, modal del detalle) y `cotizacion-config.js` (abrir/cerrar modal, «Editar» por fila) sin tocar la lógica del detalle | 53-59 | Revisión visual (escritorio y 390 px) | [x] |
 | T67 | `sembrar_e2e` (usuario `e2e.comercial`) + `e2e/cotizacion-modal.spec.js` | 53-59 | `npm run test:e2e` | [x] |
 | T68 | Modal del detalle a pantalla completa: formulario a la izquierda, tabla a la derecha (se mueve al modal), editar sin cerrar, «Guardar detalle» + pruebas | 55-57, 60, 61 | `e2e/cotizacion-modal.spec.js` | [x] |
+| T69 | `proyectos/programa.py` (RN-12, 13), vistas `programa_dia`, `programa_cliente`, `programa_medidas`, medidas en lote compartidas, regreso del registro a la hoja, menús + pruebas | 62-71 | `python manage.py test proyectos.test_programa` | [x] |
+| T70 | Pestañas por etapa y filtro por fecha en `/proyectos/pendientes/` (`avance.py`, RN-14, 15), búsqueda en vivo que conserva filtros + pruebas | 72-77 | `python manage.py test proyectos.test_programa` + revisión visual | [x] |
 
 ## Historial
 
@@ -39,3 +41,4 @@
 | v4 | 2026-11-22 | Claude (DLF) | T64-T65: panel de proyectos con avance por muestra |
 | v5 | 2026-11-22 | Claude (DLF) | T66-T67: formulario de cotización con detalle en modal |
 | v6 | 2026-11-22 | Claude (DLF) | T68: modal del detalle a pantalla completa |
+| v7 | 2026-11-24 | Claude (DLF) | T69-T70: programa de ensayos del día y pestañas del panel |

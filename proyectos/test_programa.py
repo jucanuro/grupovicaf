@@ -1,0 +1,256 @@
+"""Programa de ensayos del día (HU-LIMS-21, REQ-LIMS-62 a 71) y pestañas del
+panel de proyectos (HU-LIMS-22, REQ-LIMS-72 a 77)."""
+from datetime import date, timedelta
+from decimal import Decimal
+
+from django.test import TestCase, override_settings
+from django.urls import reverse
+
+from proyectos import programa
+from proyectos.avance import filtro_fechas_panel
+from proyectos.models import (
+    CambioResultado, DetalleSolicitudEnsayo, MuestraDetalle, RecepcionMuestra, ResultadoEnsayo, SolicitudEnsayo,
+)
+from proyectos.test_avance import AvanceMixin
+from proyectos.test_compresion import CompresionBase
+
+
+class ProgramaBase(CompresionBase):
+    """En CompresionBase las probetas se moldearon hace 29 días con edad 28: tocaban ayer."""
+
+    def setUp(self):
+        super().setUp()
+        self.ayer = date.today() - timedelta(days=1)
+        self.hoy = date.today()
+        self.cliente = self.mia.solicitud.cotizacion.cliente
+        self.cliente.codigo_confidencial = 'CLI-0099'
+        self.cliente.save(update_fields=['codigo_confidencial'])
+
+    def segunda_recepcion(self, edad, moldeo):
+        """Otra recepción (otra solicitud) del mismo cliente, con una probeta de otra edad."""
+        cot = self.mia.solicitud.cotizacion
+        rec = RecepcionMuestra.objects.create(
+            cotizacion=cot, procedencia='Cajamarca', responsable_cliente='Ana', telefono='9',
+            responsable_recepcion=self.user_sup, fecha_recepcion=self.mia.solicitud.recepcion.fecha_recepcion,
+        )
+        sol = SolicitudEnsayo.objects.create(
+            codigo_solicitud='SOL-2026-0002', recepcion=rec, cotizacion=cot,
+            fecha_entrega_programada=self.hoy, elaborado_por=self.tecnico,
+        )
+        muestra = MuestraDetalle.objects.create(
+            recepcion=rec, tipo_muestra=self.mia.muestra.tipo_muestra, descripcion='Probeta',
+            masa_aprox=Decimal('3.9'), fc_diseno=Decimal('210'), fecha_fabricacion=moldeo, edad_ensayo_dias=edad,
+        )
+        return DetalleSolicitudEnsayo.objects.create(
+            solicitud=sol, muestra=muestra, servicio_cotizado=self.mia.servicio_cotizado,
+            descripcion_ensayo='Ensayo', norma='ASTM C39', tecnico_asignado=self.tecnico,
+            fecha_entrega_programada=self.hoy,
+        )
+
+
+class FechaPrevistaTests(ProgramaBase):
+
+    def test_moldeo_mas_edad(self):
+        """RN-12.1."""
+        self.assertEqual(programa.fecha_prevista(self.mia.muestra), self.ayer)
+
+    def test_sin_edad_usa_la_fecha_programada_de_la_recepcion(self):
+        """RN-12.2."""
+        m = self.mia.muestra
+        m.edad_ensayo_dias = None
+        m.recepcion.fecha_ensayo_programado = self.hoy
+        self.assertEqual(programa.fecha_prevista(m), self.hoy)
+
+    def test_sin_datos_no_hay_fecha(self):
+        """RN-12.3."""
+        m = self.mia.muestra
+        m.fecha_fabricacion = None
+        self.assertIsNone(programa.fecha_prevista(m))
+
+
+class ProgramaDiaTests(ProgramaBase):
+
+    def test_junta_probetas_de_varias_solicitudes_y_edades_en_una_hoja_por_cliente(self):
+        """REQ-LIMS-62/63: la de 28 días y la de 7 días de otra recepción van juntas."""
+        otra = self.segunda_recepcion(7, self.ayer - timedelta(days=7))
+        self.client.force_login(self.user_sup)
+        r = self.client.get(reverse('proyectos:programa_dia'), {'fecha': self.ayer.isoformat()})
+        self.assertEqual(r.status_code, 200)
+        grupos = r.context['grupos']
+        self.assertEqual(len(grupos), 1)
+        self.assertEqual({d.pk for d in grupos[0]['lineas']}, {self.mia.pk, self.ajena.pk, otra.pk})
+        self.assertEqual(grupos[0]['edades'], [7, 28])
+        self.assertEqual(len(grupos[0]['solicitudes']), 2)
+        self.assertContains(r, 'Constructora Secreta SAC')
+
+    def test_solo_compresion(self):
+        """REQ-LIMS-62: el Proctor no entra al programa de rotura."""
+        self.client.force_login(self.user_sup)
+        r = self.client.get(reverse('proyectos:programa_dia'), {'fecha': self.ayer.isoformat()})
+        pks = {d.pk for g in r.context['grupos'] for d in g['lineas']}
+        self.assertNotIn(self.proctor.pk, pks)
+
+    def test_el_tecnico_ve_lo_suyo_y_el_codigo_del_cliente_no_su_nombre(self):
+        """REQ-LIMS-64."""
+        self.client.force_login(self.user_tec)
+        r = self.client.get(reverse('proyectos:programa_dia'), {'fecha': self.ayer.isoformat()})
+        pks = {d.pk for g in r.context['grupos'] for d in g['lineas']}
+        self.assertEqual(pks, {self.mia.pk})
+        self.assertContains(r, 'CLI-0099')
+        self.assertNotContains(r, 'Constructora Secreta')
+
+    def test_hoy_muestra_las_atrasadas(self):
+        """RN-13 / REQ-LIMS-65."""
+        self.client.force_login(self.user_sup)
+        r = self.client.get(reverse('proyectos:programa_dia'))
+        self.assertEqual(r.context['atrasadas'], 2)
+        self.assertContains(r, '2 atrasadas')
+
+    def test_otro_dia_sin_probetas(self):
+        self.client.force_login(self.user_sup)
+        r = self.client.get(reverse('proyectos:programa_dia'), {'fecha': (self.hoy + timedelta(days=3)).isoformat()})
+        self.assertContains(r, 'data-programa-vacio')
+
+    def test_sin_fecha_se_avisa(self):
+        MuestraDetalle.objects.filter(pk=self.mia.muestra_id).update(fecha_fabricacion=None)
+        self.client.force_login(self.user_sup)
+        r = self.client.get(reverse('proyectos:programa_dia'))
+        self.assertEqual(r.context['sin_fecha_total'], 1)
+        self.assertContains(r, 'data-sin-fecha')
+
+    def test_terminada_aparece_el_dia_en_que_se_ensayo(self):
+        """RN-12: una terminada sale el día real del ensayo, no el previsto."""
+        ResultadoEnsayo.objects.create(detalle=self.mia, plantilla=ResultadoEnsayo.PLANTILLA_COMPRESION,
+                                       estado=ResultadoEnsayo.ESTADO_TERMINADO, fecha_ensayo=self.hoy)
+        self.client.force_login(self.user_sup)
+        hoy = self.client.get(reverse('proyectos:programa_dia'))
+        ayer = self.client.get(reverse('proyectos:programa_dia'), {'fecha': self.ayer.isoformat()})
+        self.assertIn(self.mia.pk, {d.pk for g in hoy.context['grupos'] for d in g['lineas']})
+        self.assertNotIn(self.mia.pk, {d.pk for g in ayer.context['grupos'] for d in g['lineas']})
+        self.assertEqual(hoy.context['rotas'], 1)
+
+    def test_sin_permiso_no_entra(self):
+        self.client.force_login(self.user_com)
+        self.assertNotEqual(self.client.get(reverse('proyectos:programa_dia')).status_code, 200)
+
+
+class HojaClienteTests(ProgramaBase):
+
+    def url(self, fecha=None):
+        return reverse('proyectos:programa_cliente', args=[(fecha or self.ayer).isoformat(), self.cliente.pk])
+
+    def test_hoja_lista_datos_del_cliente_y_enlaza_el_registro_con_regreso(self):
+        """REQ-LIMS-66/68."""
+        self.client.force_login(self.user_sup)
+        r = self.client.get(self.url())
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, f'data-linea="{self.mia.pk}"')
+        self.assertContains(r, '420 kg/cm²')
+        self.assertContains(r, 'data-imprimir')
+        self.assertContains(r, 'data-medir-todas')
+        self.assertContains(r, f'{self.url_registro(self.mia)}?desde=programa&amp;fecha={self.ayer.isoformat()}')
+
+    def test_el_registro_vuelve_a_la_hoja(self):
+        """REQ-LIMS-68."""
+        self.client.force_login(self.user_tec)
+        r = self.client.get(self.url_registro(self.mia),
+                            {'desde': 'programa', 'fecha': self.ayer.isoformat(), 'cliente': self.cliente.pk})
+        self.assertEqual(r.context['url_salida'], self.url())
+        self.assertContains(r, f'Programa del {self.ayer:%d/%m/%Y}')
+
+    def test_hoja_vacia_vuelve_al_programa(self):
+        self.client.force_login(self.user_sup)
+        r = self.client.get(self.url(self.hoy + timedelta(days=5)))
+        self.assertEqual(r.status_code, 302)
+
+    def test_hoy_incluye_atrasadas_marcadas(self):
+        self.client.force_login(self.user_sup)
+        r = self.client.get(self.url(self.hoy))
+        self.assertContains(r, 'data-atrasada')
+
+    def test_medir_todas_de_varias_solicitudes_con_trazabilidad(self):
+        """REQ-LIMS-67/69: un solo formulario guarda las medidas de dos solicitudes."""
+        otra = self.segunda_recepcion(7, self.ayer - timedelta(days=7))
+        self.client.force_login(self.user_sup)
+        url = reverse('proyectos:programa_medidas', args=[self.ayer.isoformat(), self.cliente.pk])
+        self.assertEqual(self.client.get(url).status_code, 200)
+        datos = {'fecha_ensayo': self.ayer.isoformat()}
+        for d in (self.mia, otra):
+            datos.update({f'masa_g-{d.pk}': '3914', f'd1-{d.pk}': '102.1', f'd2-{d.pk}': '101.8',
+                          f'l1-{d.pk}': '205.3', f'l2-{d.pk}': '205.2', f'l3-{d.pk}': '205.4'})
+        r = self.client.post(url, datos)
+        self.assertRedirects(r, self.url(), fetch_redirect_response=False)
+        for d in (self.mia, otra):
+            e = ResultadoEnsayo.objects.get(detalle=d)
+            self.assertEqual(e.masa_g, Decimal('3914'))
+            self.assertEqual(e.fecha_ensayo, self.ayer)
+            self.assertEqual(d.solicitud.__class__.objects.get(pk=d.solicitud_id).estado, 'proceso')
+        # Una corrección queda en la trazabilidad.
+        datos[f'masa_g-{self.mia.pk}'] = '3920'
+        self.client.post(url, datos)
+        cambio = CambioResultado.objects.filter(resultado__detalle=self.mia, campo='masa_g').last()
+        self.assertIsNotNone(cambio)
+        self.assertIn('3920', cambio.nuevo)
+        # La hoja ya la muestra como medida.
+        r = self.client.get(self.url())
+        self.assertContains(r, 'Medida y pesada')
+
+    def test_el_tecnico_no_mide_lo_ajeno(self):
+        self.client.force_login(self.user_tec)
+        url = reverse('proyectos:programa_medidas', args=[self.ayer.isoformat(), self.cliente.pk])
+        r = self.client.get(url)
+        self.assertContains(r, f'masa_g-{self.mia.pk}')
+        self.assertNotContains(r, f'masa_g-{self.ajena.pk}')
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab')
+class PestanasPanelTests(AvanceMixin, TestCase):
+
+    def test_cada_proyecto_en_una_pestana_y_filtra(self):
+        """REQ-LIMS-72/73."""
+        por_registrar = self._proyecto(3)
+        en_ensayo = self._proyecto(2)
+        rec, muestras = self._recepcion(en_ensayo, 2)
+        self._solicitud(en_ensayo, rec, muestras)
+        completo = self._proyecto(1)
+        rec2, muestras2 = self._recepcion(completo, 1)
+        self._solicitud(completo, rec2, muestras2, estado='finalizado', informe=True)
+
+        self.client.force_login(self.user)
+        url = reverse('proyectos:lista_proyectos_pendientes')
+        r = self.client.get(url)
+        conteo = {p['clave']: p['cantidad'] for p in r.context['pestanas']}
+        self.assertEqual(conteo['todos'], 3)
+        self.assertEqual(conteo['muestras'], 1)
+        self.assertEqual(conteo['ensayo'], 1)
+        self.assertEqual(conteo['completos'], 1)
+        self.assertContains(r, 'data-pestana="informes"')
+
+        r = self.client.get(url, {'tab': 'ensayo'})
+        self.assertEqual([p.pk for p in r.context['proyectos_pendientes']], [en_ensayo.pk])
+        r = self.client.get(url, {'tab': 'muestras'})
+        self.assertEqual([p.pk for p in r.context['proyectos_pendientes']], [por_registrar.pk])
+
+    def test_filtro_por_fecha_de_inicio(self):
+        """REQ-LIMS-74/75."""
+        viejo = self._proyecto(1)
+        viejo.fecha_inicio = date.today() - timedelta(days=60)
+        viejo.save(update_fields=['fecha_inicio'])
+        nuevo = self._proyecto(1)
+        self.client.force_login(self.user)
+        url = reverse('proyectos:lista_proyectos_pendientes')
+        r = self.client.get(url, {'periodo': '30'})
+        self.assertEqual([p.pk for p in r.context['proyectos_pendientes']], [nuevo.pk])
+        r = self.client.get(url, {'desde': (date.today() - timedelta(days=90)).isoformat(),
+                                  'hasta': (date.today() - timedelta(days=30)).isoformat()})
+        self.assertEqual([p.pk for p in r.context['proyectos_pendientes']], [viejo.pk])
+        # Las pestañas conservan el filtro.
+        self.assertIn('periodo=rango', r.context['pestanas'][1]['url'])
+
+    def test_periodos(self):
+        hoy = date(2026, 11, 24)
+        self.assertEqual(filtro_fechas_panel({'periodo': 'mes'}, hoy)['desde'], date(2026, 11, 1))
+        self.assertEqual(filtro_fechas_panel({'periodo': '7'}, hoy)['desde'], date(2026, 11, 18))
+        f = filtro_fechas_panel({'desde': '2026-11-30', 'hasta': '2026-11-01'}, hoy)
+        self.assertEqual((f['desde'], f['hasta']), (date(2026, 11, 1), date(2026, 11, 30)))
+        self.assertEqual(filtro_fechas_panel({'periodo': 'raro'}, hoy)['periodo'], '')

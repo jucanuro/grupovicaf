@@ -1,0 +1,186 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+{% block title %}Hoja del día {{ fecha|date:"d/m/Y" }} · {{ grupo.nombre }} | VICAF LIMS{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/ensayos.css' %}">
+<style>
+    .pc-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .pc-tabla th { text-align: left; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .03em; padding: .55rem .6rem; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+    .pc-tabla td { padding: .6rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    .pc-tabla tr[data-atrasada] td:first-child { box-shadow: inset 3px 0 0 #ef4444; }
+    .pc-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .pc-pasos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; }
+    .pc-paso { border: 1px solid #e2e8f0; border-radius: .9rem; padding: .6rem .7rem; background: #fff; }
+    .pc-paso b { display: block; font-size: 12px; color: #0f172a; }
+    .pc-paso span { font-size: 11px; color: #64748b; }
+    .pc-solo-impresion { display: none; }
+    @media (max-width: 768px) {
+        .pc-pasos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .pc-tabla thead { display: none; }
+        .pc-tabla, .pc-tabla tbody, .pc-tabla tr, .pc-tabla td { display: block; width: 100%; }
+        .pc-tabla tr { border-bottom: 1px solid #e2e8f0; padding: .4rem 0; }
+        .pc-tabla td { border: 0; padding: .15rem .8rem; }
+        .pc-tabla td[data-col]::before { content: attr(data-col) ": "; font-weight: 600; color: #64748b; font-size: 11px; }
+        .pc-tabla td.pc-acciones { padding-top: .4rem; }
+    }
+    @media print {
+        body * { visibility: hidden; }
+        [data-hoja-imprimible], [data-hoja-imprimible] * { visibility: visible; }
+        [data-hoja-imprimible] { position: absolute; inset: 0; padding: 0; }
+        .pc-no-imprimir, .pc-acciones { display: none !important; }
+        .pc-solo-impresion { display: block; }
+        .pc-tabla { font-size: 10px; }
+        .pc-tabla td, .pc-tabla th { padding: .3rem; border: 1px solid #cbd5e1; }
+        @page { size: A4 landscape; margin: 12mm; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rs-completo" data-programa-hoja role="dialog" aria-modal="true" aria-labelledby="pc-titulo">
+    <header class="rs-barra pc-no-imprimir">
+        <div class="min-w-0">
+            <h1 id="pc-titulo">Hoja del día · {{ fecha|date:"d/m/Y" }}</h1>
+            <p>{{ grupo.nombre }} · {{ grupo.total }} probeta{{ grupo.total|pluralize }}</p>
+        </div>
+        <a href="{{ url_programa }}" class="rs-cerrar" aria-label="Cerrar y volver al programa del día" title="Cerrar (Esc)" data-cerrar>
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </a>
+    </header>
+
+    <div class="rs-cuerpo">
+        <ol class="pc-pasos pc-no-imprimir" aria-label="Orden de trabajo">
+            <li class="pc-paso"><b>1 · Ubicar</b><span>Busca cada probeta en las pozas por su código.</span></li>
+            <li class="pc-paso"><b>2 · Medir y pesar</b><span>Datos del cliente, D, L y masa de todas.</span></li>
+            <li class="pc-paso"><b>3 · Romper</b><span>Fotos en prensa → carga → foto de la carga → probeta rota.</span></li>
+            <li class="pc-paso"><b>4 · Revisión</b><span>El supervisor revisa la trazabilidad y emite el informe.</span></li>
+        </ol>
+
+        {% if messages %}
+            {% for message in messages %}
+            <div class="v-aviso pc-no-imprimir {% if message.tags == 'error' %}v-aviso--error{% else %}v-aviso--ok{% endif %}" role="status">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        {% if sesiones and puede_registrar and pendientes %}
+        <section class="v-tarjeta pc-no-imprimir" data-sesiones>
+            <div class="px-4 pt-4 pb-2">
+                <p class="font-bold text-slate-800">Sesión de ensayo</p>
+                <p class="text-xs text-slate-500">Temperatura, humedad, equipos y comprobación del día. Sin sesión abierta no se termina una probeta.</p>
+            </div>
+            {% for s in sesiones %}
+            <div class="rs-sesion" data-sesion-tecnico="{{ s.tecnico.pk }}">
+                <div class="min-w-0">
+                    <p class="text-sm font-bold text-slate-800">{{ s.tecnico.nombre_completo }}{% if not s.ajeno %} (tú){% endif %}</p>
+                    {% if s.sesion %}
+                    <p class="text-xs text-green-700 font-semibold">Abierta · {{ s.sesion.fecha|date:"d/m/Y" }} · {{ s.sesion.temperatura_inicial|floatformat:1 }} °C · {{ s.sesion.humedad_inicial|floatformat:0 }} % HR</p>
+                    {% else %}
+                    <p class="text-xs text-amber-700 font-semibold">Sin sesión abierta</p>
+                    {% endif %}
+                </div>
+                {% if s.sesion %}
+                <details class="flex-shrink-0">
+                    <summary class="cursor-pointer text-sm font-semibold text-slate-700">Cerrar sesión</summary>
+                    <form method="post" action="{% url 'proyectos:cerrar_sesion_ensayo' %}" class="mt-2 space-y-2">
+                        {% csrf_token %}
+                        {% if s.ajeno %}<input type="hidden" name="tecnico" value="{{ s.tecnico.pk }}">{% endif %}
+                        <input type="hidden" name="volver" value="{{ volver }}">
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="block"><span class="v-etiqueta">T final</span><span class="v-campo block" data-unidad="°C">{{ s.form_cerrar.temperatura_final }}</span></label>
+                            <label class="block"><span class="v-etiqueta">HR final</span><span class="v-campo block" data-unidad="%">{{ s.form_cerrar.humedad_final }}</span></label>
+                        </div>
+                        <button type="submit" class="v-btn v-btn--secundario v-btn--sm v-btn--block"><i data-lucide="square"></i> Cerrar</button>
+                    </form>
+                </details>
+                {% else %}
+                <a href="{{ s.url_abrir }}" class="v-btn v-btn--primario v-btn--sm flex-shrink-0"><i data-lucide="play"></i> Abrir sesión</a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <section class="v-tarjeta" data-hoja-imprimible>
+            <div class="px-4 pt-4 pb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                    <div class="pc-solo-impresion">
+                        <p style="font-weight:800;font-size:14px">GRUPO VICAF · Solicitud de ensayo del día</p>
+                        <p style="font-size:11px">{{ grupo.nombre }} · {{ fecha|date:"d/m/Y" }} · Solicitudes: {% for s in grupo.solicitudes %}{{ s.codigo_solicitud }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+                    </div>
+                    <p class="font-bold text-slate-800 pc-no-imprimir">Probetas del día <span class="text-slate-400 font-semibold">({{ grupo.rotas }} de {{ grupo.total }} rotas)</span></p>
+                    <p class="text-xs text-slate-500 pc-no-imprimir">De {{ grupo.solicitudes|length }} solicitud{{ grupo.solicitudes|length|pluralize:"es" }}: {% for s in grupo.solicitudes %}{{ s.codigo_solicitud }}{% if not forloop.last %}, {% endif %}{% endfor %}. Cada probeta sigue yendo al informe de su solicitud.</p>
+                </div>
+                <div class="flex flex-wrap gap-2 pc-no-imprimir">
+                    {% if puede_registrar and pendientes %}
+                    <a href="{% url 'proyectos:programa_medidas' fecha|date:'Y-m-d' grupo.cliente_id %}" class="v-btn v-btn--secundario v-btn--sm" data-medir-todas><i data-lucide="ruler"></i> Medir y pesar todas primero</a>
+                    {% endif %}
+                    <button type="button" class="v-btn v-btn--secundario v-btn--sm" onclick="window.print()" data-imprimir><i data-lucide="printer"></i> Imprimir hoja</button>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+            <table class="pc-tabla">
+                <thead>
+                    <tr>
+                        <th>#</th><th>Código lab.</th><th>ID cliente</th><th>Elemento</th><th>f'c</th>
+                        <th>Moldeo</th><th>Edad</th><th>Solicitud</th><th>Técnico</th><th>Estado</th><th class="pc-acciones"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in lineas %}
+                    <tr data-linea="{{ d.pk }}" data-estado="{{ d.estado }}" {% if d.atrasada %}data-atrasada{% endif %}>
+                        <td class="pc-num text-slate-400">{{ forloop.counter }}</td>
+                        <td class="font-mono font-bold text-slate-900">{{ d.muestra.codigo_laboratorio }}</td>
+                        <td data-col="ID cliente">{{ d.muestra.codigo_cliente|default:"—" }}</td>
+                        <td data-col="Elemento">{{ d.muestra.elemento_estructural|default:"—" }}</td>
+                        <td data-col="f'c" class="pc-num">{% if d.muestra.fc_diseno %}{{ d.muestra.fc_diseno|floatformat:0 }} kg/cm²{% else %}—{% endif %}</td>
+                        <td data-col="Moldeo" class="pc-num">{{ d.muestra.fecha_fabricacion|date:"d/m/Y"|default:"—" }}</td>
+                        <td data-col="Edad" class="pc-num">{% if d.muestra.edad_ensayo_dias is not None %}{{ d.muestra.edad_ensayo_dias }} d{% else %}—{% endif %}{% if d.atrasada %} <span class="rs-chip rs-chip--rojo">Atrasada · {{ d.prevista|date:"d/m" }}</span>{% endif %}</td>
+                        <td data-col="Solicitud">{{ d.solicitud.codigo_solicitud }}</td>
+                        <td data-col="Técnico">{{ d.tecnico_asignado.nombre_completo|default:"sin asignar" }}</td>
+                        <td data-col="Estado"><span class="rs-chip rs-chip--{{ d.estado_color }}">{{ d.estado_texto }}</span></td>
+                        <td class="pc-acciones text-right whitespace-nowrap">
+                            {% if d.estado == 'terminada' %}
+                            <a href="{{ d.url_registro }}" class="v-btn v-btn--secundario v-btn--sm"><i data-lucide="eye"></i> Ver</a>
+                            {% elif puede_registrar %}
+                            <a href="{{ d.url_registro }}" class="v-btn v-btn--primario v-btn--sm" data-romper><i data-lucide="hammer"></i> {% if d.estado == 'por_medir' %}Registrar{% else %}Romper{% endif %}</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </section>
+
+        {% if ve_todos %}
+        <section class="v-tarjeta p-4 pc-no-imprimir" data-revision-solicitudes>
+            <p class="font-bold text-slate-800">Revisión e informe</p>
+            <p class="text-xs text-slate-500 mb-2">El informe sigue siendo por solicitud. Cuando todas sus probetas estén rotas, pasa a revisión.</p>
+            <ul class="space-y-1">
+                {% for s in grupo.solicitudes %}
+                <li class="flex items-center justify-between gap-2 text-sm">
+                    <span><b>{{ s.codigo_solicitud }}</b> · {{ s.get_estado_display|capfirst }}</span>
+                    {% if s.estado == 'finalizado' and puede_aprobar %}
+                    <a href="{% url 'proyectos:revision_compresion' s.pk %}" class="v-btn v-btn--exito v-btn--sm"><i data-lucide="clipboard-check"></i> Revisar</a>
+                    {% else %}
+                    <a href="{% url 'proyectos:resultados_solicitud' s.pk %}" class="v-btn v-btn--secundario v-btn--sm">Ver solicitud</a>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    document.body.classList.add('rs-abierto');
+    const cerrar = document.querySelector('[data-programa-hoja] [data-cerrar]');
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && cerrar) window.location.href = cerrar.href; });
+})();
+</script>
+{% endblock %}

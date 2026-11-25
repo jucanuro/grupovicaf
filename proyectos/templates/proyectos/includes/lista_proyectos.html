@@ -5,6 +5,40 @@ Cada tarjeta: % de avance, etapas con su número de muestras (cada una abre su
 pantalla filtrada al proyecto) y la acción más urgente.
 {% endcomment %}
 
+{# Pestañas por etapa y filtro por fecha (HU-LIMS-22). Viven dentro del contenedor para que la búsqueda en vivo también actualice los números. #}
+<div class="mb-4 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3" data-panel-filtros>
+    <nav class="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1" aria-label="Proyectos por etapa" data-pestanas>
+        {% for p in pestanas %}
+        <a href="{{ p.url }}" data-pestana="{{ p.clave }}" {% if p.activa %}aria-current="page"{% endif %}
+           class="shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-[13px] font-semibold transition-all {% if p.activa %}bg-slate-900 text-white shadow-sm{% else %}bg-white text-slate-600 ring-1 ring-slate-200 hover:ring-slate-300 hover:text-slate-900{% endif %}">
+            <i data-lucide="{{ p.icono }}" class="w-4 h-4"></i>
+            {{ p.etiqueta }}
+            <span class="min-w-[1.4rem] text-center px-1.5 py-0.5 rounded-full text-[11px] tabular-nums {% if p.activa %}bg-white/20 text-white{% else %}bg-slate-100 text-slate-500{% endif %}" data-cantidad-pestana>{{ p.cantidad }}</span>
+        </a>
+        {% endfor %}
+    </nav>
+
+    <form method="get" id="filtros-proyectos" class="flex flex-wrap items-center gap-2" data-filtro-fechas>
+        <input type="hidden" name="tab" value="{{ pestana }}">
+        <label class="inline-flex items-center gap-2 bg-white ring-1 ring-slate-200 rounded-xl px-3 py-1.5 text-[13px] text-slate-600">
+            <i data-lucide="calendar-range" class="w-4 h-4 text-slate-400"></i>
+            <span class="sr-only">Inicio del proyecto</span>
+            <select name="periodo" class="bg-transparent outline-none font-semibold text-slate-700" data-periodo
+                    onchange="this.form.querySelectorAll('[data-rango]').forEach(function (e) { e.hidden = this.value !== 'rango'; }, this); if (this.value !== 'rango') this.form.submit();">
+                {% for op in filtro_fechas.periodos %}<option value="{{ op.clave }}" {% if op.activo %}selected{% endif %}>{{ op.etiqueta }}</option>{% endfor %}
+            </select>
+        </label>
+        <label data-rango {% if filtro_fechas.periodo != 'rango' %}hidden{% endif %} class="inline-flex items-center gap-1 text-[12px] text-slate-500">Desde
+            <input type="date" name="desde" value="{{ filtro_fechas.desde|date:'Y-m-d' }}" class="bg-white ring-1 ring-slate-200 rounded-lg px-2 py-1 text-slate-700">
+        </label>
+        <label data-rango {% if filtro_fechas.periodo != 'rango' %}hidden{% endif %} class="inline-flex items-center gap-1 text-[12px] text-slate-500">Hasta
+            <input type="date" name="hasta" value="{{ filtro_fechas.hasta|date:'Y-m-d' }}" class="bg-white ring-1 ring-slate-200 rounded-lg px-2 py-1 text-slate-700">
+        </label>
+        <button type="submit" data-rango {% if filtro_fechas.periodo != 'rango' %}hidden{% endif %} class="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-[12px] font-semibold">Aplicar</button>
+        {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+    </form>
+</div>
+
 {% if proyectos_pendientes %}
 <div class="space-y-4">
     <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4" id="projects-table">
@@ -112,13 +146,13 @@ pantalla filtrada al proyecto) y la acción más urgente.
 
     <footer class="py-3 px-4 sm:px-6 bg-white border border-slate-200 rounded-2xl flex flex-col sm:flex-row gap-3 sm:gap-0 justify-between items-center">
         <span class="text-[11px] text-slate-500 text-center sm:text-left">
-            {{ proyectos_pendientes.paginator.count|default:0 }} proyecto{{ proyectos_pendientes.paginator.count|pluralize }} en curso
+            {{ proyectos_pendientes.paginator.count|default:0 }} proyecto{{ proyectos_pendientes.paginator.count|pluralize }}{% if pestana != 'todos' %} en esta pestaña{% else %} en curso{% endif %}
         </span>
 
         {% if proyectos_pendientes.has_other_pages %}
         <div class="flex flex-wrap items-center justify-center gap-2">
             {% if proyectos_pendientes.has_previous %}
-            <a href="?page={{ proyectos_pendientes.previous_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}"
+            <a href="?page={{ proyectos_pendientes.previous_page_number }}&{{ paginacion }}"
                class="px-3 py-1.5 text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 text-[11px] font-semibold transition-all">
                 Anterior
             </a>
@@ -129,7 +163,7 @@ pantalla filtrada al proyecto) y la acción más urgente.
             </span>
 
             {% if proyectos_pendientes.has_next %}
-            <a href="?page={{ proyectos_pendientes.next_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}"
+            <a href="?page={{ proyectos_pendientes.next_page_number }}&{{ paginacion }}"
                class="px-3 py-1.5 text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 text-[11px] font-semibold transition-all">
                 Siguiente
             </a>
@@ -145,7 +179,7 @@ pantalla filtrada al proyecto) y la acción más urgente.
         <i data-lucide="search-x" class="w-8 h-8 text-slate-300"></i>
     </div>
     <p class="text-sm font-semibold text-slate-500">
-        No hay proyectos pendientes
+        {% if pestana != 'todos' or filtro_fechas.periodo or query %}Ningún proyecto con estos filtros{% else %}No hay proyectos pendientes{% endif %}
     </p>
 </div>
 {% endif %}

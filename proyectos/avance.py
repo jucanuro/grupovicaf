@@ -186,3 +186,96 @@ def filtrar_por_proyecto(queryset, proyecto, campo_cotizacion='cotizacion_id'):
     if not proyecto.cotizacion_id:
         return queryset.none()
     return queryset.filter(**{campo_cotizacion: proyecto.cotizacion_id})
+
+
+# ---------------------------------------------------------------------------
+# Pestañas y filtro por fecha del panel (HU-LIMS-22, REQ-LIMS-72 a 77).
+# ---------------------------------------------------------------------------
+
+# RN-14: cada proyecto cae en UNA pestaña según su acción más urgente (RN-11),
+# en el orden del flujo. Así ninguna pestaña repite proyectos.
+PESTANAS = (
+    ('todos', 'Todos', 'layout-grid'),
+    ('muestras', 'Muestras', 'flask-conical'),
+    ('ensayo', 'En ensayo', 'hammer'),
+    ('informes', 'Por emitir informe', 'file-pen-line'),
+    ('completos', 'Con informe', 'file-check-2'),
+)
+_PESTANA_POR_ACCION = {
+    'registrar': 'muestras',
+    'solicitud': 'muestras',
+    'ensayo': 'ensayo',
+    'informe': 'informes',
+    'completo': 'completos',
+}
+
+PERIODOS = (
+    ('', 'Todas las fechas'),
+    ('7', 'Últimos 7 días'),
+    ('30', 'Últimos 30 días'),
+    ('90', 'Últimos 3 meses'),
+    ('mes', 'Este mes'),
+    ('anio', 'Este año'),
+    ('rango', 'Elegir fechas…'),
+)
+
+
+def pestana_de(valor):
+    claves = {clave for clave, _, _ in PESTANAS}
+    return valor if valor in claves else 'todos'
+
+
+def pestana_del_proyecto(proyecto):
+    """RN-14. Sin cotización cuenta como «Muestras»: lo primero es vincularla."""
+    av = proyecto.avance
+    if av['sin_cotizacion'] or not av['accion']:
+        return 'muestras'
+    return _PESTANA_POR_ACCION.get(av['accion']['tipo'], 'muestras')
+
+
+def contar_pestanas(proyectos, activa):
+    conteo = {clave: 0 for clave, _, _ in PESTANAS}
+    for p in proyectos:
+        conteo[pestana_del_proyecto(p)] += 1
+    conteo['todos'] = len(proyectos)
+    return [
+        {'clave': clave, 'etiqueta': etiqueta, 'icono': icono, 'cantidad': conteo[clave], 'activa': clave == activa}
+        for clave, etiqueta, icono in PESTANAS
+    ]
+
+
+def _fecha(texto):
+    from datetime import date
+    try:
+        return date.fromisoformat((texto or '').strip())
+    except ValueError:
+        return None
+
+
+def filtro_fechas_panel(params, hoy=None):
+    """RN-15: periodo rápido o rango propio sobre la fecha de inicio del proyecto."""
+    from datetime import timedelta
+    from django.utils import timezone
+
+    hoy = hoy or timezone.localdate()
+    periodo = params.get('periodo', '')
+    if periodo not in {clave for clave, _ in PERIODOS}:
+        periodo = ''
+    desde = hasta = None
+    if periodo in ('7', '30', '90'):
+        desde = hoy - timedelta(days=int(periodo) - 1)
+    elif periodo == 'mes':
+        desde = hoy.replace(day=1)
+    elif periodo == 'anio':
+        desde = hoy.replace(month=1, day=1)
+    elif periodo == 'rango' or (not periodo and (params.get('desde') or params.get('hasta'))):
+        periodo = 'rango'
+        desde, hasta = _fecha(params.get('desde')), _fecha(params.get('hasta'))
+        if desde and hasta and desde > hasta:
+            desde, hasta = hasta, desde
+    return {
+        'periodo': periodo,
+        'desde': desde,
+        'hasta': hasta,
+        'periodos': [{'clave': c, 'etiqueta': e, 'activo': c == periodo} for c, e in PERIODOS],
+    }

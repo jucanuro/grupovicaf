@@ -45,7 +45,11 @@
     function construirUrl(termino, origen) {
       // Si el input vive dentro de un <form> de filtros, arrastramos el resto
       // de sus campos (estado, fechas, ...) para no perderlos al buscar.
-      var form = origen && origen.closest ? origen.closest("form") : null;
+      // data-lista-form="<id>" apunta a un form de filtros que puede vivir
+      // dentro del contenedor (se vuelve a buscar porque se re-renderiza).
+      var idForm = origen && origen.getAttribute ? origen.getAttribute("data-lista-form") : null;
+      var form = idForm ? document.getElementById(idForm)
+        : (origen && origen.closest ? origen.closest("form") : null);
       var params = form ? new URLSearchParams(new FormData(form)) : new URLSearchParams();
       params.set("q", termino);
       params.delete("page");

@@ -1,6 +1,6 @@
 {% extends "base_vicafpro.html" %}
 {% load static %}
-{% block title %}Medir probetas {{ solicitud.codigo_solicitud }} | VICAF LIMS{% endblock %}
+{% block title %}Medir probetas {{ titulo }} | VICAF LIMS{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/ensayos.css' %}">
@@ -17,7 +17,7 @@
 <div class="rs-completo" data-medidas-solicitud role="dialog" aria-modal="true" aria-labelledby="md-titulo">
     <header class="rs-barra">
         <div class="min-w-0">
-            <h1 id="md-titulo">Medir y pesar · {{ solicitud.codigo_solicitud }}</h1>
+            <h1 id="md-titulo">Medir y pesar · {{ titulo }}</h1>
             <p>Todas las probetas de corrido; después cada una pasa a la prensa.</p>
         </div>
         <a href="{{ pantalla }}" class="rs-cerrar" aria-label="Cerrar y volver a los resultados" title="Cerrar (Esc)" data-cerrar>

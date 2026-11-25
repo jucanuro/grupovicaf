@@ -118,6 +118,17 @@ Plazo de entrega (oferta VCF-LAB-FOR-001, `proyectos/plazos.py`): probetas 24 h
 después del ensayo; sábado/domingo → lunes. Se ve en la pantalla de la
 solicitud y en la lista de revisión (vencido en rojo).
 
+**Programa del día (HU-LIMS-21).** El supervisor entrega una hoja por cliente y
+por día, no por recepción: `/proyectos/programa/` (`proyectos/programa.py`,
+vistas en `views_compresion.py`) junta las probetas de compresión cuya fecha
+prevista (moldeo + edad; si no, `RecepcionMuestra.fecha_ensayo_programado`) es
+ese día, aunque vengan de varias solicitudes; hoy suma las atrasadas. La hoja
+del cliente se imprime, tiene «Medir y pesar todas» (mismo lote que la
+solicitud, `_medidas_en_lote`) y cada «Romper» vuelve a la hoja
+(`?desde=programa`). El técnico ve el código confidencial del cliente, no su
+nombre. Cada probeta sigue en su solicitud e informe. El panel de proyectos
+tiene pestañas por etapa (acción más urgente) y filtro por `fecha_inicio`.
+
 **Informe tipo Word (fase 2).** Todo informe, también el de compresión, pasa por el
 editor: al aprobar los resultados se abre `/proyectos/resultados/informe/<id>/editor/`
 (`views_informe_editor.py`, `informe_editor.py`, permiso `informes.aprobar`).

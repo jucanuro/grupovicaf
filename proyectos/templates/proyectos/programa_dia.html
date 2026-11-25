@@ -1,0 +1,94 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+{% block title %}Programa del día {{ fecha|date:"d/m/Y" }} | VICAF LIMS{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/ensayos.css' %}">
+<style>
+    .pd-nav { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    .pd-nav input[type=date] { border: 1px solid #cbd5e1; border-radius: .75rem; padding: .45rem .7rem; font-weight: 600; color: #0f172a; background: #fff; }
+    .pd-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+    .pd-kpi { background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; padding: .8rem 1rem; }
+    .pd-kpi p:first-child { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+    .pd-kpi p:last-child { font-size: 1.6rem; font-weight: 800; color: #0f172a; font-variant-numeric: tabular-nums; }
+    .pd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: 1rem; }
+    .pd-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 1.25rem; padding: 1.1rem; display: flex; flex-direction: column; gap: .8rem; transition: box-shadow .2s, border-color .2s; }
+    .pd-card:hover { border-color: #cbd5e1; box-shadow: 0 12px 28px -14px rgba(15, 23, 42, .25); }
+    .pd-barra { height: .5rem; border-radius: 999px; background: #f1f5f9; overflow: hidden; }
+    .pd-barra span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #10b981, #0ea5e9); }
+    .pd-edad { display: inline-block; font-size: 11px; font-weight: 700; padding: .1rem .45rem; border-radius: 999px; background: #eef2ff; color: #4338ca; margin: 0 .2rem .2rem 0; }
+    @media (max-width: 640px) { .pd-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .4rem; } .pd-kpi { padding: .6rem; } .pd-kpi p:last-child { font-size: 1.25rem; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto p-4 space-y-4" data-programa-dia>
+    <header class="v-tarjeta p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div class="min-w-0">
+            <h1 class="text-xl font-extrabold text-slate-900">Programa de ensayos del día</h1>
+            <p class="text-sm text-slate-500">Una hoja por cliente con todas las probetas que tocan romper, sin importar su edad.</p>
+        </div>
+        <form method="get" class="pd-nav" data-programa-fecha>
+            <a href="?fecha={{ anterior }}" class="v-btn v-btn--secundario v-btn--sm" aria-label="Día anterior"><i data-lucide="chevron-left"></i></a>
+            <input type="date" name="fecha" value="{{ fecha|date:'Y-m-d' }}" aria-label="Fecha del programa" onchange="this.form.submit()">
+            <a href="?fecha={{ siguiente }}" class="v-btn v-btn--secundario v-btn--sm" aria-label="Día siguiente"><i data-lucide="chevron-right"></i></a>
+            {% if not es_hoy %}<a href="?fecha={{ hoy|date:'Y-m-d' }}" class="v-btn v-btn--primario v-btn--sm">Hoy</a>{% endif %}
+        </form>
+    </header>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="v-aviso {% if message.tags == 'error' %}v-aviso--error{% else %}v-aviso--ok{% endif %}" role="status">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <section class="pd-kpis" aria-label="Resumen del día">
+        <div class="pd-kpi"><p>Probetas</p><p data-total>{{ total }}</p></div>
+        <div class="pd-kpi"><p>Rotas</p><p data-rotas>{{ rotas }}</p></div>
+        <div class="pd-kpi"><p>Atrasadas</p><p data-atrasadas class="{% if atrasadas %}!text-red-600{% endif %}">{{ atrasadas }}</p></div>
+    </section>
+
+    <p class="text-sm font-bold text-slate-700">{{ fecha|date:"l d \d\e F \d\e Y"|capfirst }}{% if es_hoy %} · hoy{% endif %}</p>
+
+    {% if grupos %}
+    <div class="pd-grid">
+        {% for g in grupos %}
+        <a href="{{ g.url }}" class="pd-card" data-programa-cliente="{{ g.cliente_id }}">
+            <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="font-bold text-slate-900 leading-snug line-clamp-2">{{ g.nombre }}</p>
+                    <p class="text-xs text-slate-500 mt-0.5">{{ g.solicitudes|length }} solicitud{{ g.solicitudes|length|pluralize:"es" }} · {% for s in g.solicitudes %}{{ s.codigo_solicitud }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+                </div>
+                <p class="text-2xl font-extrabold text-slate-900 tabular-nums shrink-0">{{ g.rotas }}<span class="text-sm text-slate-400">/{{ g.total }}</span></p>
+            </div>
+            <div class="pd-barra" role="progressbar" aria-label="Probetas rotas" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ g.porcentaje }}"><span style="width: {{ g.porcentaje }}%"></span></div>
+            <div>
+                {% for e in g.edades %}<span class="pd-edad">{{ e }} días</span>{% empty %}<span class="text-xs text-slate-400">Edad sin indicar</span>{% endfor %}
+            </div>
+            <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-500">{{ g.medidas }} medida{{ g.medidas|pluralize }} · {{ g.rotas }} rota{{ g.rotas|pluralize }}</span>
+                {% if g.atrasadas %}<span class="rs-chip rs-chip--rojo">{{ g.atrasadas }} atrasada{{ g.atrasadas|pluralize }}</span>{% endif %}
+            </div>
+            <span class="v-btn v-btn--primario v-btn--sm v-btn--block">Abrir hoja del día <i data-lucide="arrow-right"></i></span>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="v-tarjeta p-10 text-center" data-programa-vacio>
+        <i data-lucide="calendar-check" class="w-10 h-10 text-slate-300 mx-auto"></i>
+        <p class="font-semibold text-slate-600 mt-2">No hay probetas programadas para este día.</p>
+        <p class="text-xs text-slate-400 mt-1">La fecha sale de la fecha de moldeo más la edad de ensayo de cada probeta (o de la fecha programada de su recepción).</p>
+    </div>
+    {% endif %}
+
+    {% if sin_fecha_total %}
+    <details class="v-tarjeta p-4" data-sin-fecha>
+        <summary class="cursor-pointer font-semibold text-amber-700">{{ sin_fecha_total }} probeta{{ sin_fecha_total|pluralize }} pendiente{{ sin_fecha_total|pluralize }} sin fecha de ensayo</summary>
+        <p class="text-xs text-slate-500 mt-2">Les falta la fecha de moldeo o la edad (datos FOR-004 de la probeta) y su recepción no tiene fecha programada. Complétalos para que entren al programa.</p>
+        <ul class="mt-2 text-sm text-slate-700 grid sm:grid-cols-2 gap-1">
+            {% for d in sin_fecha %}<li><span class="font-mono">{{ d.muestra.codigo_laboratorio }}</span> · {{ d.solicitud.codigo_solicitud }}</li>{% endfor %}
+        </ul>
+    </details>
+    {% endif %}
+</div>
+{% endblock %}

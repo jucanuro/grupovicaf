@@ -1,3 +1,4 @@
+from urllib.parse import urlencode
 from django.views.generic import ListView
 
 from core.lista_utils import HeaderSearchMixin
@@ -24,7 +25,10 @@ from django.views.decorators.http import require_POST
 
 from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso, ve_todos_los_ensayos
 from .tasks import procesar_informe_final
-from .avance import calcular_avance, filtrar_por_proyecto, proyecto_de_filtro
+from .avance import (
+    calcular_avance, contar_pestanas, filtrar_por_proyecto, filtro_fechas_panel, pestana_de,
+    pestana_del_proyecto, proyecto_de_filtro,
+)
 
 from .models import (
     Proyecto,
@@ -62,6 +66,7 @@ def get_date_or_none(date_string):
 @login_required
 @permiso_requerido('proyectos.ver')
 def lista_proyectos_pendientes(request):
+    """Panel de proyectos (HU-LIMS-19) con pestañas por etapa y filtro por fecha (HU-LIMS-22)."""
     proyectos_qs = Proyecto.objects.select_related('cliente', 'cotizacion').filter(
         ~Q(estado__in=['FINALIZADO', 'CANCELADO'])
     )
@@ -75,18 +80,38 @@ def lista_proyectos_pendientes(request):
             Q(cliente__razon_social__icontains=search_query)
         )
 
-    proyectos_list = proyectos_qs.order_by('-creado_en')
+    filtro_fechas = filtro_fechas_panel(request.GET)
+    if filtro_fechas['desde']:
+        proyectos_qs = proyectos_qs.filter(fecha_inicio__gte=filtro_fechas['desde'])
+    if filtro_fechas['hasta']:
+        proyectos_qs = proyectos_qs.filter(fecha_inicio__lte=filtro_fechas['hasta'])
 
-    # Avance por muestra (HU-LIMS-19): se calcula solo para la página visible,
-    # con un número fijo de consultas.
-    paginator = Paginator(proyectos_list, 10)
+    # El avance de todos los proyectos abiertos se calcula con un número fijo de
+    # consultas; así cada pestaña cuenta bien antes de paginar.
+    proyectos = calcular_avance(proyectos_qs.order_by('-creado_en'), request.user)
+    pestana = pestana_de(request.GET.get('tab'))
+    pestanas = contar_pestanas(proyectos, pestana)
+    if pestana != 'todos':
+        proyectos = [p for p in proyectos if pestana_del_proyecto(p) == pestana]
+
+    paginator = Paginator(proyectos, 12)
     proyectos_paginados = paginator.get_page(request.GET.get('page'))
-    proyectos_paginados.object_list = calcular_avance(proyectos_paginados.object_list, request.user)
+
+    parametros = {k: v for k, v in (('q', search_query), ('desde', request.GET.get('desde', '')),
+                                    ('hasta', request.GET.get('hasta', '')), ('periodo', filtro_fechas['periodo']))
+                  if v}
+    for p in pestanas:
+        p['url'] = '?' + urlencode({**parametros, 'tab': p['clave']})
+    paginacion = urlencode({**parametros, 'tab': pestana})
 
     context = {
         'proyectos_pendientes': proyectos_paginados,
         'search_query': search_query,
         'query': search_query,
+        'pestanas': pestanas,
+        'pestana': pestana,
+        'filtro_fechas': filtro_fechas,
+        'paginacion': paginacion,
         'titulo_lista': 'Panel de Control de Proyectos',
         'header_search': {'id': 'buscar-proyectos', 'placeholder': 'Buscar proyecto por código, nombre o cliente...'},
     }

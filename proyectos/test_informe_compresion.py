@@ -150,7 +150,8 @@ class InformeCompresionTests(CompresionBase):
         self.assertIn('621,0', texto)
         self.assertIn('VCF-EQ-PRC-001', texto)
         self.assertIn('Fin del Informe', lector.pages[-1].extract_text())
-        self.assertIn('NTP ISO/IEC 17025', texto)
+        # El PDF puede partir la frase en dos líneas («ISO/\nIEC»).
+        self.assertIn('NTP ISO/IEC 17025', ' '.join(texto.replace('/\n', '/').split()))
         self.assertIn('19,42', texto)  # T final de la sesión
 
         r = self.client.get(reverse('proyectos:pdf_informe_compresion', args=[informe.pk]))
