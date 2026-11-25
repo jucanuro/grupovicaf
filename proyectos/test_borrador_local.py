@@ -44,8 +44,8 @@ class BorradorLocalPantallasTests(AvanceMixin, TestCase):
         """REQ-LIMS-113."""
         r = self.client.get(reverse('proyectos:crear_solicitud'))
         self.assertConBorrador(r, "getElementById('solicitud-form')")
-        self.assertContains(r, '#tabla-detalles tbody')
-        self.assertContains(r, '#body-incidencias')
+        self.assertContains(r, "'se-estado-borrador': 'estado_borrador'")
+        self.assertContains(r, 'id="estado_borrador"')
 
     def test_datos_de_probetas(self):
         """REQ-LIMS-114."""

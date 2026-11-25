@@ -324,3 +324,67 @@ class SolicitudVariasProbetasTests(AvanceMixin, TestCase):
         # Volver a guardar (las filas existentes llegan como ocultas) no duplica.
         self.client.post(reverse('proyectos:editar_solicitud', args=[solicitud.pk]), datos)
         self.assertEqual(solicitud.detalles.count(), 3)
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab')
+class SolicitudUnaPantallaTests(AvanceMixin, TestCase):
+    """HU-LIMS-32: la solicitud se arma en una pantalla (un ensayo para varias muestras)."""
+
+    def _usuario(self):
+        user, perfil = crear_trabajador('jefe.una', rol_con_permisos('Jefe una', 'ensayos.ver', 'ensayos.crear', 'ensayos.editar'))
+        self.perfil = perfil
+        self.client.force_login(user)
+
+    def test_la_pantalla_trae_el_nuevo_formulario(self):
+        proyecto = self._proyecto(2)
+        self._recepcion(proyecto, 2)
+        self._usuario()
+        html = self.client.get(reverse('proyectos:crear_solicitud'), {'proyecto': proyecto.pk}).content.decode()
+        for marca in ('id="se-filas"', 'solicitud_ensayo.js', 'id="se-tecnicos"', 'se-todas-muestras'):
+            self.assertIn(marca, html)
+        self.assertNotIn('sol-tab-btn', html)
+
+    def test_la_api_trae_muestras_con_tipo_y_norma_sin_none(self):
+        proyecto = self._proyecto(2)
+        self._recepcion(proyecto, 2)
+        self._usuario()
+        datos = self.client.get(reverse('proyectos:api_cotizacion_detalles', args=[proyecto.cot_.pk])).json()
+        self.assertEqual(len(datos['muestras']), 2)
+        self.assertIn('tipo_muestra__nombre', datos['muestras'][0])
+        for s in datos['servicios_pendientes']:
+            self.assertNotEqual(s['metodo'], 'None')
+            self.assertNotEqual(s['norma'], 'None')
+
+    def test_un_ensayo_para_varias_muestras_crea_una_linea_por_muestra(self):
+        proyecto = self._proyecto(3)
+        _, muestras = self._recepcion(proyecto, 3)
+        self._usuario()
+        hoy = date.today().isoformat()
+        self.client.post(reverse('proyectos:crear_solicitud'), {
+            'cotizacion': proyecto.cot_.pk, 'fecha_solicitud': hoy, 'fecha_entrega_programada': hoy,
+            'muestra_id[]': [m.pk for m in muestras[:2]],
+            'servicio_id[]': [proyecto.cot_.detalle_.pk] * 2,
+            'norma[]': ['ASTM C39'] * 2, 'metodo[]': [''] * 2,
+            'tecnico_id[]': [self.perfil.pk] * 2, 'entrega_detalle[]': [hoy] * 2,
+            'incidencia_detalle[]': ['Probeta con fisura'], 'incidencia_fecha[]': [hoy + 'T08:00'],
+            'incidencia_cliente[]': ['Ana'], 'incidencia_responsable_id[]': [''], 'incidencia_autorizado[]': ['false'],
+        })
+        solicitud = SolicitudEnsayo.objects.get(cotizacion=proyecto.cot_)
+        self.assertEqual(solicitud.detalles.count(), 2)
+        self.assertEqual(solicitud.incidencias.count(), 1)
+
+    def test_editar_muestra_las_incidencias_previas_como_lectura(self):
+        proyecto = self._proyecto(1)
+        _, muestras = self._recepcion(proyecto, 1)
+        self._usuario()
+        hoy = date.today().isoformat()
+        self.client.post(reverse('proyectos:crear_solicitud'), {
+            'cotizacion': proyecto.cot_.pk, 'fecha_solicitud': hoy, 'fecha_entrega_programada': hoy,
+            'muestra_id[]': [muestras[0].pk], 'servicio_id[]': [proyecto.cot_.detalle_.pk],
+            'norma[]': ['x'], 'metodo[]': [''], 'tecnico_id[]': [self.perfil.pk], 'entrega_detalle[]': [hoy],
+            'incidencia_detalle[]': ['Humedad alta'], 'incidencia_fecha[]': [hoy + 'T08:00'],
+            'incidencia_cliente[]': [''], 'incidencia_responsable_id[]': [''], 'incidencia_autorizado[]': ['false'],
+        })
+        solicitud = SolicitudEnsayo.objects.get(cotizacion=proyecto.cot_)
+        html = self.client.get(reverse('proyectos:editar_solicitud', args=[solicitud.pk])).content.decode()
+        self.assertIn('Humedad alta', html)

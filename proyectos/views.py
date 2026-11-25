@@ -668,16 +668,17 @@ def api_obtener_detalles_cotizacion(request, cotizacion_id):
                 'cotizacion_detalle_id': item.id,
                 'servicio_id': item.servicio.id if item.servicio else None,
                 'nombre_servicio': item.servicio.nombre if item.servicio else "Servicio Especial",
-                'norma': str(norma),
-                'metodo': str(metodo),
+                'norma': str(norma or ''),
+                'metodo': str(metodo or ''),
             })
 
         muestras = list(
             MuestraDetalle.objects.filter(
                 recepcion__cotizacion=cotizacion
             ).order_by('codigo_laboratorio').values(
-                'id', 'codigo_laboratorio', 'descripcion'
-            )[:100]
+                'id', 'codigo_laboratorio', 'descripcion',
+                'tipo_muestra__nombre', 'tipo_muestra__sigla',
+            )[:500]
         )
 
         logger.info(
@@ -1061,6 +1062,20 @@ def gestionar_solicitud_ensayo(request, pk=None):
         'muestras_disponibles': muestras_disponibles,
         'servicios_items': servicios_items,
         'dias_plazo': dias_plazo,
+        'tecnicos_json': json.dumps([
+            {'id': t.pk, 'nombre': t.nombre_completo}
+            for t in TrabajadorProfile.objects.all().order_by('nombre_completo')
+        ]),
+        'incidencias_json': json.dumps([
+            {
+                'detalle': i.detalle_incidencia,
+                'fecha': timezone.localtime(i.fecha_ocurrencia).strftime('%d/%m/%Y %H:%M'),
+                'cliente': i.representante_cliente or '',
+                'responsable': i.representante_laboratorio.nombre_completo if i.representante_laboratorio_id else '',
+                'autorizada': i.esta_autorizada,
+            } for i in (solicitud.incidencias.select_related('representante_laboratorio').all() if solicitud else [])
+        ]),
+        'cotizacion_inicial_id': cotizacion_activa.pk if cotizacion_activa else '',
     }
 
     return render(request, 'proyectos/ensayos_form.html', context)

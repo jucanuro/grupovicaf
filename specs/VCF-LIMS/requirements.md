@@ -368,6 +368,23 @@ Los datos FOR-004 siguen en su pantalla de probetas [Propuesto: pasarlos al moda
 | REQ-LIMS-139 | HU-LIMS-31 | EL SISTEMA DEBE mostrar en la tabla todas las columnas (n.º, ID, tipo, cantidad con unidad, masa, descripción, observaciones, acción) con el texto completo y sin cortes, y avisar que el ID de laboratorio se asigna al guardar. | sí (navegador) | [Validado con usuario] |
 | REQ-LIMS-140 | HU-LIMS-31 | MIENTRAS se edite una recepción, EL SISTEMA DEBE mostrar las muestras ya guardadas como solo lectura y no reenviarlas. | sí | [Propuesto] |
 
+## 2n. Solicitud de ensayo en una sola pantalla (v15)
+
+Pedido del Gerente (2026-11-25): «Nuevo ensayo» debía verse proporcionado, moderno y con menos
+clics, en una sola pantalla. HU-LIMS-32: «Como jefe de laboratorio quiero armar la solicitud en
+una pantalla, para asignar ensayos, técnicos y fechas sin recorrer tres pasos». No cambia el
+modelo ni lo que recibe el servidor (se siguen enviando los arreglos `muestra_id[]`, etc.).
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-141 | HU-LIMS-32 | EL SISTEMA DEBE mostrar cotización, fechas, plazo y responsable en una sola fila, y los ensayos, el ya asignado y las incidencias en la misma pantalla (sin pestañas). | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-142 | HU-LIMS-32 | EL SISTEMA DEBE listar una fila por ensayo pendiente de la cotización, con su norma y método, y permitir elegir varias muestras a la vez (todas, ninguna o por tipo) y un técnico y una entrega por fila. | sí | [Propuesto] |
+| REQ-LIMS-143 | HU-LIMS-32 | CUANDO se guarde, EL SISTEMA DEBE crear una línea de ensayo por cada muestra elegida de cada ensayo completo; SI un ensayo está a medias, ENTONCES EL SISTEMA DEBE avisar cuál y no guardar. | sí | [Propuesto] |
+| REQ-LIMS-144 | HU-LIMS-32 | EL SISTEMA DEBE ofrecer «Aplicar a todos» (técnico y entrega) y «Todas las muestras», y poner la entrega programada como fecha de cada ensayo que no tenga una. | sí (navegador) | [Propuesto] |
+| REQ-LIMS-145 | HU-LIMS-32 | EL SISTEMA DEBE mostrar lo ya asignado y las incidencias previas como solo lectura, y las incidencias nuevas en una sección plegable opcional. | sí | [Propuesto] |
+| REQ-LIMS-146 | HU-LIMS-32 | EL SISTEMA DEBE mostrar la norma y el método vacíos, nunca el texto «None», cuando el servicio no los tiene. | sí | [Validado con usuario] |
+| REQ-LIMS-147 | HU-LIMS-32 | DONDE haya un borrador local, EL SISTEMA DEBE restaurar cotización, muestras elegidas, técnicos, fechas e incidencias. | sí (navegador) | [Propuesto] |
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -395,6 +412,7 @@ Los datos FOR-004 siguen en su pantalla de probetas [Propuesto: pasarlos al moda
 | HU-LIMS-29 | Panel de cada pantalla siempre visible | REQ-LIMS-125 a 127 |
 | HU-LIMS-30 | Barra del panel con diseño unificado | REQ-LIMS-129 a 133 |
 | HU-LIMS-31 | Nueva recepción: elegir proyecto y registrar muestras | REQ-LIMS-134 a 140 |
+| HU-LIMS-32 | Solicitud de ensayo en una sola pantalla | REQ-LIMS-141 a 147 |
 
 ## 4. Preguntas abiertas
 
@@ -423,3 +441,4 @@ Los datos FOR-004 siguen en su pantalla de probetas [Propuesto: pasarlos al moda
 | v12 | 2026-11-25 | Claude (DLF) | Panel siempre visible en 25 pantallas (REQ-LIMS-125 a 127); panel de proyectos compacto (128) y filtro «Hoy» por movimiento (RN-15, REQ-LIMS-99 y 101 ajustados) |
 | v13 | 2026-11-25 | Claude (DLF) | Barra única del panel con botones modernos: REQ-LIMS-129 a 133 (HU-LIMS-30) |
 | v14 | 2026-11-25 | Claude (DLF) | Nueva recepción: elegir proyecto por fechas y modal «Registrar muestras»: REQ-LIMS-134 a 140 (HU-LIMS-31) |
+| v15 | 2026-11-25 | Claude (DLF) | Solicitud de ensayo en una sola pantalla: REQ-LIMS-141 a 147 (HU-LIMS-32) |

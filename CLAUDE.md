@@ -152,6 +152,15 @@ guardadas son `tr[data-existente]`, solo lectura y no se reenvían). El borrador
 guarda el HTML de `#tbody-muestras` y `RecepcionMuestras.reconstruir()` redibuja los
 botones al restaurar.
 
+**Solicitud de ensayo en una pantalla (HU-LIMS-32).** `ensayos_form.html` +
+`static/js/solicitud_ensayo.js`: una fila por ensayo pendiente de la cotización
+(`api_obtener_detalles_cotizacion`), con selector de varias muestras, técnico y
+entrega; al guardar el JS arma los mismos arreglos de siempre (`muestra_id[]`,
+`servicio_id[]`, `norma[]`, `metodo[]`, `tecnico_id[]`, `entrega_detalle[]`,
+`incidencia_*[]`), una línea por muestra. Lo ya asignado y las incidencias previas son de
+solo lectura (el servidor no duplica). El borrador local guarda el estado en JSON
+(`#estado_borrador`) y `SolicitudEnsayo.restaurarBorrador()` lo repone.
+
 **Panel de pantalla (HU-LIMS-29).** El «panel» (título, búsqueda, filtros y acciones)
 de las 25 pantallas con `data-command-header` va siempre visible arriba: no hay
 botón «Panel» ni X. El CSS está al final del `<style>` de `base_vicafpro.html`; una
