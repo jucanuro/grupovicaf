@@ -160,9 +160,13 @@ def mis_ensayos_compresion(request):
         e = _ensayo_de(d)
         d.plantilla = e.plantilla if e else ResultadoEnsayo.plantilla_para(d)
         d.total_fotos = FotoEnsayo.total_requerido(d.plantilla)
+        # «En curso»: ya hay algo guardado (también por el guardado automático) y falta terminar.
+        d.en_curso = bool(e and not e.terminado and not e.observacion_revision)
+    en_curso = [d for d in detalles if d.en_curso] if vista != 'terminados' else []
     sesion = SesionEnsayo.abierta_de(_perfil(request.user))
     return render(request, 'proyectos/compresion_lista.html', {
         'detalles': detalles,
+        'en_curso': en_curso,
         'vista': vista,
         'hoy': timezone.localdate(),
         'sesion': sesion,
@@ -200,6 +204,9 @@ def registrar_ensayo_compresion(request, detalle_id):
 
     if request.method == 'POST':
         accion = request.POST.get('accion', 'guardar')
+
+        if accion == 'autoguardar':
+            return _autoguardar(request, detalle, ensayo)
 
         if accion == 'reabrir':
             if not ve_todos or ensayo is None:
@@ -492,6 +499,53 @@ def medidas_solicitud(request, solicitud_id):
     return _medidas_en_lote(request, lineas, pantalla, solicitud.codigo_solicitud)
 
 
+def _autoguardar_medidas(request, lineas, etiquetas):
+    """«Medir y pesar todas»: guarda en silencio lo ya escrito, probeta por probeta (HU-LIMS-26).
+
+    Lo inválido se salta y se avisa; no se crean resultados vacíos ni se toca lo
+    terminado. Cada corrección de un dato ya guardado queda en la trazabilidad.
+    """
+    omitidos = []
+    referencia = max(lineas, key=lambda d: _fecha_minima(d) or date.min)
+    fecha, error = _leer_fecha(request, referencia)
+    if error:
+        omitidos.append(error)
+        fecha = None
+    solicitudes = {}
+    with transaction.atomic():
+        for d in lineas:
+            if d.ensayo is not None and d.ensayo.terminado:
+                continue
+            valores = {}
+            for campo in CAMPOS_MEDIDAS_LOTE:
+                clave = f'{campo}-{d.pk}'
+                if clave not in request.POST:
+                    continue
+                try:
+                    valores[campo] = _leer_decimal(request.POST.get(clave), etiquetas[campo], RANGOS_MEDIDAS[campo])
+                except ValueError as exc:
+                    omitidos.append(f"{d.muestra.codigo_laboratorio}: {exc}")
+            if not valores:
+                continue
+            ensayo = d.ensayo
+            if ensayo is None:
+                if all(v is None for v in valores.values()):
+                    continue  # nada escrito todavía: no se crea un resultado vacío
+                ensayo = ResultadoEnsayo.objects.create(detalle=d, plantilla=ResultadoEnsayo.PLANTILLA_COMPRESION)
+                d.ensayo = ensayo
+                solicitudes[d.solicitud_id] = d.solicitud
+            antes = trazabilidad.instantanea(ensayo, trazabilidad.CAMPOS_RESULTADO)
+            for campo, valor in valores.items():
+                setattr(ensayo, campo, valor)
+            if fecha:
+                ensayo.fecha_ensayo = fecha
+            ensayo.save(update_fields=[*valores.keys(), 'fecha_ensayo', 'actualizado_en'])
+            trazabilidad.anotar_cambios(ensayo, ensayo, antes, trazabilidad.CAMPOS_RESULTADO, request.user)
+        for solicitud in solicitudes.values():
+            solicitud.sincronizar_estado()
+    return JsonResponse({'ok': True, 'hora': timezone.localtime().strftime('%H:%M'), 'omitidos': omitidos})
+
+
 def _medidas_en_lote(request, lineas, pantalla, titulo, fecha_inicial=None):
     """Formulario «medir y pesar todas»: lo usan la solicitud y el programa del día.
 
@@ -500,6 +554,8 @@ def _medidas_en_lote(request, lineas, pantalla, titulo, fecha_inicial=None):
     """
     etiquetas = {f.name: str(f.verbose_name) for f in ResultadoEnsayo._meta.fields}
     errores = []
+    if request.method == 'POST' and request.POST.get('autoguardar') == '1':
+        return _autoguardar_medidas(request, lineas, etiquetas)
     if request.method == 'POST':
         # La fecha no puede ser anterior a la recepción más reciente del lote.
         referencia = max(lineas, key=lambda d: _fecha_minima(d) or date.min)
@@ -633,11 +689,17 @@ def _aplicar_datos_cliente(request, detalle, ensayo):
     return None
 
 
-def _aplicar_datos_generales(request, detalle, ensayo):
-    """Plantilla general: fecha, resumen, observaciones y la hoja de cálculo del ensayo."""
+def _aplicar_datos_generales(request, detalle, ensayo, omitidos=None):
+    """Plantilla general: fecha, resumen, observaciones y la hoja de cálculo del ensayo.
+
+    Con ``omitidos`` (lista) es el guardado automático: una fecha inválida se salta.
+    """
     fecha, error = _leer_fecha(request, detalle)
     if error:
-        return error
+        if omitidos is None:
+            return error
+        omitidos.append(error)
+        fecha = ensayo.fecha_ensayo
     antes = trazabilidad.instantanea(ensayo, trazabilidad.CAMPOS_RESULTADO)
     hoja = request.FILES.get('hoja_calculo')
     if hoja:
@@ -718,24 +780,40 @@ def _leer_decimal(texto, etiqueta, rango):
     return valor
 
 
-def _aplicar_datos(request, detalle, ensayo):
-    """Valida y guarda fecha, medidas, fractura y observaciones. Devuelve un error o None."""
+def _aplicar_datos(request, detalle, ensayo, omitidos=None):
+    """Valida y guarda fecha, medidas, fractura y observaciones. Devuelve un error o None.
+
+    Con ``omitidos`` (una lista) trabaja en modo tolerante, el del guardado
+    automático: lo que no es válido se salta, conserva lo ya guardado y se anota
+    en la lista; nunca devuelve error (HU-LIMS-26).
+    """
+    tolerante = omitidos is not None
     fecha, error = _leer_fecha(request, detalle)
     if error:
-        return error
+        if not tolerante:
+            return error
+        omitidos.append(error)
+        fecha = ensayo.fecha_ensayo
     etiquetas = {f.name: str(f.verbose_name) for f in ResultadoEnsayo._meta.fields}
     medidas = {}
     for campo in ResultadoEnsayo.CAMPOS_MEDIDOS:
         try:
             medidas[campo] = _leer_decimal(request.POST.get(campo), etiquetas[campo], RANGOS_MEDIDAS[campo])
         except ValueError as exc:
-            return str(exc)
+            if not tolerante:
+                return str(exc)
+            omitidos.append(str(exc))
+            medidas[campo] = getattr(ensayo, campo)
     texto_fractura = (request.POST.get('tipo_fractura') or '').strip()
     fractura = None
     if texto_fractura:
         if texto_fractura not in {str(n) for n in range(1, 7)}:
-            return "El tipo de fractura debe ser del 1 al 6."
-        fractura = int(texto_fractura)
+            if not tolerante:
+                return "El tipo de fractura debe ser del 1 al 6."
+            omitidos.append("El tipo de fractura debe ser del 1 al 6.")
+            fractura = ensayo.tipo_fractura
+        else:
+            fractura = int(texto_fractura)
 
     antes = trazabilidad.instantanea(ensayo, trazabilidad.CAMPOS_RESULTADO)
     ensayo.fecha_ensayo = fecha
@@ -758,6 +836,35 @@ def _aplicar_datos(request, detalle, ensayo):
     ])
     trazabilidad.anotar_cambios(ensayo, ensayo, antes, trazabilidad.CAMPOS_RESULTADO, request.user)
     return None
+
+
+def _autoguardar(request, detalle, ensayo):
+    """Guarda en silencio lo que el técnico ya escribió (HU-LIMS-26, REQ-LIMS-103 a 106).
+
+    Lo llama la pantalla cada vez que sale de un campo: así, si el teléfono se
+    apaga o se cierra el navegador, al volver a entrar el ensayo sigue donde
+    quedó. No termina el ensayo ni pide sesión; lo inválido se salta y se avisa.
+    """
+    if ensayo is not None and ensayo.terminado:
+        return JsonResponse({'ok': False, 'error': 'El ensayo ya está terminado.'}, status=409)
+    omitidos = []
+    with transaction.atomic():
+        if ensayo is None:
+            ensayo = ResultadoEnsayo.objects.create(detalle=detalle, plantilla=ResultadoEnsayo.plantilla_para(detalle))
+            detalle.solicitud.sincronizar_estado()
+        if ensayo.es_compresion:
+            if 'muestra-fc_diseno' in request.POST:
+                error = _aplicar_datos_cliente(request, detalle, ensayo)
+                if error:
+                    omitidos.append(error)
+            _aplicar_datos(request, detalle, ensayo, omitidos=omitidos)
+        else:
+            _aplicar_datos_generales(request, detalle, ensayo, omitidos=omitidos)
+    return JsonResponse({
+        'ok': True,
+        'hora': timezone.localtime().strftime('%H:%M'),
+        'omitidos': omitidos,
+    })
 
 
 @login_required

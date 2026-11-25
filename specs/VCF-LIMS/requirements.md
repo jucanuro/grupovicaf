@@ -240,6 +240,31 @@ y por fecha, para que el panel no se vea lleno*.
 | REQ-LIMS-102 | HU-LIMS-25 | DONDE la pantalla mida menos de 768 px, EL SISTEMA DEBE desplazar las pestañas en horizontal sin desbordar la página. | sí (revisión visual) | [Propuesto] |
 
 
+## 2h. Guardado automático del registro de ensayo (v9)
+
+Origen: conversación del Gerente con Frank (Supervisor de Laboratorio) del
+2026-11-25: los técnicos ensayan desde el teléfono o la tablet y, si se acaba la
+batería o se cierra el navegador, «esos datos no se tienen que perder»; al
+volver a entrar deben poder «continuar el ensayo». El Gerente respondió que cada
+dato se guardaba solo; la revisión del 2026-11-25 mostró que solo las fotos lo
+hacían, y esta sección lo completa. HU-LIMS-26: *como técnico quiero que lo que
+escribo se guarde solo, para no perder el registro si se apaga el teléfono*.
+
+Decisión de Frank sobre el informe, misma conversación: «cada solicitud tiene un
+informe» (cierra la pregunta abierta 2 de §4: el informe sigue siendo por solicitud).
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-103 | HU-LIMS-26 | CUANDO el técnico salga de un campo del registro de un ensayo, EL SISTEMA DEBE guardar lo escrito sin pulsar «Guardar», sin terminar el ensayo y sin pedir sesión de ensayo. | sí (unitaria + navegador) | [Validado con usuario] |
+| REQ-LIMS-104 | HU-LIMS-26 | SI un dato escrito no es válido, ENTONCES EL SISTEMA DEBE saltarlo, conservar lo ya guardado, guardar el resto y avisar «No se guardó: …». | sí (unitaria) | [Propuesto] |
+| REQ-LIMS-105 | HU-LIMS-26 | CUANDO el técnico vuelva a abrir el ensayo, EL SISTEMA DEBE mostrar lo guardado automáticamente. | sí (unitaria + navegador) | [Validado con usuario] |
+| REQ-LIMS-106 | HU-LIMS-26 | CUANDO el guardado automático cambie un dato que ya estaba guardado, EL SISTEMA DEBE anotar la corrección en la trazabilidad; el primer guardado de un dato no es una corrección. | sí (unitaria) | [Propuesto] |
+| REQ-LIMS-107 | HU-LIMS-26 | MIENTRAS un ensayo tenga datos guardados y no esté terminado, EL SISTEMA DEBE marcarlo «En curso · Continuar» y ofrecer «Continuar» arriba de Mis ensayos. | sí (unitaria) | [Validado con usuario] |
+| REQ-LIMS-108 | HU-LIMS-26 | CUANDO el técnico salga de un campo de «Medir y pesar todas», EL SISTEMA DEBE guardar las medidas de esa pantalla sin crear resultados vacíos ni tocar los terminados. | sí (unitaria) | [Validado con usuario] |
+| REQ-LIMS-109 | HU-LIMS-26 | SI no hay conexión, ENTONCES EL SISTEMA DEBE mantener lo escrito en la pantalla, avisar «Sin conexión» y reintentar el guardado al volver la señal y al cambiar de aplicación. | sí (navegador) | [Propuesto] |
+| REQ-LIMS-110 | HU-LIMS-26 | SI el ensayo ya está terminado o la línea no es del técnico, ENTONCES EL SISTEMA DEBE rechazar el guardado automático (409 o 404). | sí (unitaria) | [Propuesto] |
+
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -261,12 +286,13 @@ y por fecha, para que el panel no se vea lleno*.
 | HU-LIMS-23 | Tema común de gráficos (dashboard y Análisis) | REQ-LIMS-85, 86 |
 | HU-LIMS-24 | Programa de ensayos del día (hoja por cliente y día) | REQ-LIMS-87 a 96 |
 | HU-LIMS-25 | Pestañas por etapa y filtro por fecha del panel | REQ-LIMS-97 a 102 |
+| HU-LIMS-26 | Guardado automático del registro de ensayo | REQ-LIMS-103 a 110 |
 
 ## 4. Preguntas abiertas
 
 | # | Pregunta | Responsable | Estado |
 |---|---|---|---|
-| 2 | ¿El informe de rotura debe seguir siendo uno por solicitud (recepción) o uno por hoja del día (cliente + fecha)? Hoy es por solicitud (REQ-LIMS-70). | Gerente | Abierta |
+| 2 | ¿El informe de rotura es uno por solicitud o por hoja del día? | Gerente | Cerrada 2026-11-25: «cada solicitud tiene un informe» (Frank). Queda abierto solo si la solicitud debe pasar a ser por cliente y día. |
 | 3 | Numeración de HU: el código de compresión cita HU-LIMS-11 a 20 (CA-20.2) y esta spec usa HU-LIMS-19 y 20 para el panel y la cotización. Confirmar contra `proc/VCF-LIMS_HU_CU_compresion_v2.md`. | PM | Abierta |
 | 1 | Al leer `Proyecto.estado` (REQ-LIMS-16) los números pueden diferir del dashboard anterior, que recalculaba la etapa. Comparar en producción antes del pase (PM-02). | Gerente | Abierta |
 
@@ -283,3 +309,4 @@ y por fecha, para que el panel no se vea lleno*.
 | v6 | 2026-11-24 | Claude (DLF) | Calendario rediseñado: REQ-LIMS-62 a 73 (HU-LIMS-21) |
 | v7 | 2026-11-24 | Claude (DLF) | Gantt de ensayos y tema de gráficos: REQ-LIMS-74 a 86 (HU-LIMS-22, 23) |
 | v8 | 2026-11-24 | Claude (DLF) | Programa de ensayos del día (RN-12, 13, REQ-LIMS-87 a 96) y pestañas + fecha del panel (RN-14, 15, REQ-LIMS-97 a 102), opción A aprobada por el Gerente |
+| v9 | 2026-11-25 | Claude (DLF) | Guardado automático del registro de ensayo: REQ-LIMS-103 a 110 (HU-LIMS-26); informe por solicitud cerrado |

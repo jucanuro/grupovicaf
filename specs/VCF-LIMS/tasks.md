@@ -37,6 +37,7 @@
 | T78 | `sembrar_e2e` (usuarios `e2e.gantt`, `e2e.tecnico.c/d`, SOL-E2E-G01..G03) + `e2e/gantt.spec.js` | 74-84 | `npm run test:e2e` | [x] |
 | T79 | `proyectos/programa.py` (RN-12, 13), vistas `programa_dia`, `programa_cliente`, `programa_medidas`, medidas en lote compartidas, regreso del registro a la hoja, menús + pruebas | 87-96 | `python manage.py test proyectos.test_programa` | [x] |
 | T80 | Pestañas por etapa y filtro por fecha en `/proyectos/pendientes/` (`avance.py`, RN-14, 15), búsqueda en vivo que conserva filtros + pruebas | 97-102 | `python manage.py test proyectos.test_programa` + revisión visual | [x] |
+| T81 | Guardado automático: `_autoguardar` y `_autoguardar_medidas` (modo tolerante de `_aplicar_datos`), `static/js/autoguardado.js`, indicador en el registro y en «Medir y pesar», «En curso · Continuar» en Mis ensayos + `test_autoguardado.py` | 103-110 | `python manage.py test proyectos.test_autoguardado` + navegador | [x] |
 
 ## Historial
 
@@ -52,3 +53,4 @@
 | v7 | 2026-11-24 | Claude (DLF) | T69-T72: calendario rediseñado |
 | v8 | 2026-11-24 | Claude (DLF) | T75-T78: Gantt de ensayos y tema común de gráficos |
 | v9 | 2026-11-24 | Claude (DLF) | T79-T80: programa de ensayos del día y pestañas del panel |
+| v10 | 2026-11-25 | Claude (DLF) | T81: guardado automático del registro de ensayo |

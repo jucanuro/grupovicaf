@@ -132,6 +132,15 @@ solicitud, `_medidas_en_lote`) y cada «Romper» vuelve a la hoja
 nombre. Cada probeta sigue en su solicitud e informe. El panel de proyectos
 tiene pestañas por etapa (acción más urgente) y filtro por `fecha_inicio`.
 
+**Guardado automático (HU-LIMS-26).** El registro por probeta, el de ensayos
+generales y «Medir y pesar todas» guardan solos al salir de cada campo
+(`static/js/autoguardado.js` → `accion=autoguardar` en la misma URL;
+`_autoguardar` / `_autoguardar_medidas` en `views_compresion.py`, modo tolerante:
+lo inválido se salta y se avisa). No termina el ensayo; un dato ya guardado que
+cambia queda en la trazabilidad. Sin señal reintenta solo. Mis ensayos marca
+«En curso · Continuar». Las pruebas se corren con
+`DJANGO_SETTINGS_MODULE=grupovicaf.settings.test_local CORREO_ENVIO=simulado`.
+
 **Informe tipo Word (fase 2).** Todo informe, también el de compresión, pasa por el
 editor: al aprobar los resultados se abre `/proyectos/resultados/informe/<id>/editor/`
 (`views_informe_editor.py`, `informe_editor.py`, permiso `informes.aprobar`).

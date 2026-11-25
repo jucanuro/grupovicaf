@@ -398,6 +398,7 @@
                 <p class="v-barra__nota">Ensayo terminado. Si hay que corregirlo, pide al supervisor que lo reabra.</p>
                 {% endif %}
             {% else %}
+                <p class="text-[11px] font-semibold text-slate-500" data-autoguardado role="status" aria-live="polite">Lo que escribas se guarda solo.</p>
                 <p class="v-barra__nota" data-faltan></p>
                 <div class="v-barra__fila">
                     <button type="submit" name="accion" value="guardar" class="v-btn v-btn--secundario"><i data-lucide="save"></i> Guardar</button>
@@ -431,6 +432,7 @@
 {% if es_compresion %}<script src="{% static 'js/compresion_calculos.js' %}"></script>{% endif %}
 <script src="{% static 'js/centrado_foto.js' %}"></script>
 <script src="{% static 'js/camara_foto.js' %}"></script>
+<script src="{% static 'js/autoguardado.js' %}"></script>
 <script>
 (function () {
     const raiz = document.querySelector('[data-registro-compresion]');
@@ -825,6 +827,13 @@
     window.addEventListener('beforeunload', function (ev) {
         if (document.querySelector('[data-marco][data-estado="subiendo"]')) { ev.preventDefault(); ev.returnValue = ''; }
     });
+    // Guardado automático (HU-LIMS-26): lo escrito se manda al servidor al salir de cada campo.
+    if (window.AutoGuardado) {
+        AutoGuardado.iniciar({
+            form: document.getElementById('form-registro'),
+            indicador: document.querySelector('[data-autoguardado]'),
+        });
+    }
     actualizarTerminar();
 })();
 </script>

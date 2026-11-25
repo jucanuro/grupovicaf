@@ -61,6 +61,20 @@
         {% endif %}
     </section>
 
+    {% if en_curso %}
+    <section class="v-tarjeta p-4 border-blue-200 bg-blue-50/60" data-continuar>
+        <p class="font-bold text-slate-800">Ensayos en curso</p>
+        <p class="text-xs text-slate-600 mt-0.5">Lo que escribiste quedó guardado. Entra y continúa donde lo dejaste.</p>
+        <div class="mt-2 flex flex-wrap gap-2">
+            {% for d in en_curso %}
+            <a href="{% url 'proyectos:registrar_compresion' d.pk %}" class="v-btn v-btn--primario v-btn--sm" data-continuar-enlace>
+                <i data-lucide="play"></i> Continuar {{ d.muestra.codigo_laboratorio }}
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
     <ul class="space-y-3" data-lista-compresion>
         {% for d in detalles %}
         {% with e=d.resultado %}
@@ -77,6 +91,8 @@
                         <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-green-100 text-green-700 flex-shrink-0">Terminado</span>
                     {% elif e and e.observacion_revision %}
                         <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-800 flex-shrink-0">Devuelta</span>
+                    {% elif d.en_curso %}
+                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-blue-100 text-blue-700 flex-shrink-0" data-en-curso>En curso · Continuar</span>
                     {% elif d.fecha_entrega_programada < hoy %}
                         <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-red-100 text-red-700 flex-shrink-0">Atrasado</span>
                     {% else %}

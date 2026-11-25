@@ -58,6 +58,7 @@
         </section>
 
         <div class="v-barra">
+            <p class="text-[11px] font-semibold text-slate-500" data-autoguardado role="status" aria-live="polite">Lo que escribas se guarda solo.</p>
             <p class="v-barra__nota">Si corriges un dato ya guardado, queda en la trazabilidad para el revisor.</p>
             <div class="v-barra__fila">
                 <a href="{{ pantalla }}" class="v-btn v-btn--secundario">Cancelar</a>
@@ -69,9 +70,15 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="{% static 'js/autoguardado.js' %}"></script>
 <script>
 (function () {
     document.body.classList.add('rs-abierto');
+    // Guardado automático (HU-LIMS-26): cada medida se guarda al salir del campo.
+    if (window.AutoGuardado) {
+        AutoGuardado.iniciar({ form: document.querySelector('[data-medidas-solicitud] form'),
+                               indicador: document.querySelector('[data-autoguardado]') });
+    }
     // Enter pasa al siguiente campo, como en una hoja de cálculo.
     const campos = Array.from(document.querySelectorAll('[data-filas] input:not([disabled])'));
     campos.forEach(function (c, i) {
