@@ -12,7 +12,7 @@ from urllib.parse import quote
 from decimal import Decimal, InvalidOperation
 
 from django.db import IntegrityError, transaction
-from django.db.models import Q, Exists, OuterRef, Count, Max, F
+from django.db.models import Q, Exists, OuterRef, Count, Max, F, Case, When, Value, IntegerField
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, Http404, FileResponse
 from django.template.loader import render_to_string, get_template
 from django.shortcuts import render, redirect, get_object_or_404
@@ -1172,10 +1172,19 @@ def cambiar_estado_solicitud(request, pk, nuevo_estado):
 @login_required
 @permiso_requerido('ensayos.ver')
 def lista_solicitudes(request):
+    # Primero lo que falta empezar (pendiente), luego lo que está en proceso y al final lo
+    # finalizado; dentro de cada grupo, lo que vence antes va arriba.
     solicitudes = SolicitudEnsayo.objects.prefetch_related('detalles').select_related(
         'cotizacion__cliente',
         'elaborado_por'
-    ).all().order_by('-fecha_solicitud', '-id')
+    ).annotate(
+        prioridad=Case(
+            When(estado='pendiente', then=Value(0)),
+            When(estado='proceso', then=Value(1)),
+            default=Value(2),
+            output_field=IntegerField(),
+        ),
+    ).all().order_by('prioridad', F('fecha_entrega_programada').asc(nulls_last=True), '-id')
 
     ve_todos = ve_todos_los_ensayos(request.user)
     if not ve_todos:
@@ -1223,14 +1232,24 @@ def generar_pdf_ensayo(request, solicitud_id):
     proyecto = Proyecto.objects.filter(cotizacion=solicitud.cotizacion).first()
 
     detalles = solicitud.detalles.select_related(
-        'muestra',
+        'muestra__recepcion',
         'tecnico_asignado__user'
-    ).all()
+    ).order_by('id')
+
+    # Normas distintas (para el subtítulo del formato) y técnicos que intervienen.
+    normas, tecnicos = [], []
+    for d in detalles:
+        if d.norma and d.norma not in normas:
+            normas.append(d.norma)
+        if d.tecnico_asignado_id and d.tecnico_asignado.nombre_completo not in tecnicos:
+            tecnicos.append(d.tecnico_asignado.nombre_completo)
 
     context = {
         'solicitud': solicitud,
         'proyecto': proyecto,
         'detalles': detalles,
+        'normas': ' · '.join(normas),
+        'tecnicos': tecnicos,
         'user': request.user,
     }
 

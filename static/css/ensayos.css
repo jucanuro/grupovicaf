@@ -171,13 +171,19 @@ body.rs-abierto { overflow: hidden; }
 .rs-cerrar { margin-left: auto; width: 2.25rem; height: 2.25rem; border-radius: .6rem; display: flex;
              align-items: center; justify-content: center; color: #fff; background: rgba(255,255,255,.08); flex-shrink: 0; }
 .rs-cerrar:hover { background: rgba(255,255,255,.18); }
-.rs-cuerpo { max-width: 60rem; margin: 0 auto; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }
+.rs-cuerpo { max-width: 78rem; margin: 0 auto; padding: 1rem; display: grid; grid-template-columns: 15.5rem minmax(0, 1fr); gap: 1rem; align-items: start; }
+.rs-principal { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
 
-.rs-pasos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; }
-.rs-paso { background: #fff; border: 1px solid #e2e8f0; border-radius: .9rem; padding: .7rem .75rem; position: relative; }
+.rs-pasos { display: flex; flex-direction: column; gap: .5rem; position: sticky; top: 1rem; margin: 0; padding: 0; list-style: none; }
+.rs-paso::after { content: ""; position: absolute; left: 1.55rem; bottom: -.55rem; width: 2px; height: .55rem; background: #cbd5e1; }
+.rs-paso:last-child::after { display: none; }
+.rs-paso[data-hecho]::after { background: #16a34a; }
+.rs-paso { background: #fff; border: 1px solid #e2e8f0; border-radius: .9rem; padding: .7rem .75rem; position: relative;
+           display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); column-gap: .65rem; align-items: center; }
+.rs-paso__n { grid-row: 1 / span 2; }
 .rs-paso__n { width: 1.6rem; height: 1.6rem; border-radius: 999px; display: flex; align-items: center; justify-content: center;
               font-size: 12px; font-weight: 800; background: #e2e8f0; color: #475569; }
-.rs-paso__t { font-size: 12.5px; font-weight: 800; color: #0f172a; margin-top: .4rem; line-height: 1.2; }
+.rs-paso__t { font-size: 13px; font-weight: 800; color: #0f172a; line-height: 1.2; }
 .rs-paso__d { font-size: 11px; color: #64748b; margin-top: .1rem; }
 .rs-paso[data-hecho] .rs-paso__n { background: #16a34a; color: #fff; }
 .rs-paso[data-actual] { border-color: #2563eb; box-shadow: 0 0 0 3px #dbeafe; }
@@ -201,6 +207,13 @@ body.rs-abierto { overflow: hidden; }
 .rs-sesion { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; padding: .8rem 1rem;
              border-top: 1px solid #f1f5f9; }
 .rs-sesion:first-of-type { border-top: 0; }
+@media (max-width: 900px) {
+    .rs-cuerpo { grid-template-columns: minmax(0, 1fr); }
+    .rs-paso { display: block; }
+    .rs-pasos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); position: static; }
+    .rs-paso::after { display: none; }
+}
+.rs-btn-grande { padding: .7rem 1.3rem; font-size: .9rem; box-shadow: 0 8px 16px -8px rgba(37, 99, 235, .8); }
 @media (max-width: 640px) {
     .rs-pasos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .rs-linea { flex-wrap: wrap; }

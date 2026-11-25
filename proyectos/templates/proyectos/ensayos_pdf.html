@@ -1,305 +1,178 @@
-{% load static %}
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Solicitud de Ensayo N° {{ solicitud.id }}</title>
-    <style>
-        @page {
-            size: A4;
-            /* Margen superior reducido para subir el contenido */
-            margin: 1.1cm 1.1cm 2.0cm 1.1cm;
+<meta charset="utf-8">
+<title>Solicitud de ensayo {{ solicitud.codigo_solicitud }}</title>
+<style>
+    /* Formato VCF-LAB-FOR-089 (versión 03): solicitud de ensayo, hoja A4 horizontal. */
+    @page {
+        size: A4 landscape;
+        margin: 0.9cm 1.1cm 0.7cm 1.9cm;
+        @left-top { content: element(lateral); width: 1.9cm; vertical-align: top; }
+    }
+    * { box-sizing: border-box; }
+    body { font-family: Helvetica, Arial, sans-serif; font-size: 8pt; color: #000; margin: 0; line-height: 1.2; }
+    p { margin: 0; }
+    b { font-weight: bold; }
 
-            @frame header_frame {
-                -pdf-frame-content: header_content;
-                top: 0.4cm;
-                left: 1.1cm;
-                width: 18.8cm;
-                height: 2.5cm;
-            }
+    .lateral { position: running(lateral); }
+    .lateral div { width: 12.5cm; height: 0.5cm; position: relative; top: -0.55cm; left: 1.3cm; transform-origin: 0 0;
+                   transform: rotate(90deg); white-space: nowrap; font-size: 7pt; line-height: 0.5cm; }
+    .lateral .pagina::after { content: counter(page) " de " counter(pages); }
 
-            @frame footer_frame {
-                -pdf-frame-content: footer_content;
-                bottom: 0.45cm;
-                left: 1.1cm;
-                width: 18.8cm;
-                height: 0.8cm;
-            }
-        }
-        
-        body { 
-            font-family: Helvetica, Arial, sans-serif; 
-            font-size: 8.3px; 
-            color: #1a1a1a; 
-            line-height: 1.25; 
-        }
+    table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+    td, th { border: 0.8pt solid #000; padding: 1.1mm 1.6mm; vertical-align: middle; overflow-wrap: anywhere; }
+    th { background: #F2F2F2; font-weight: bold; text-align: center; font-size: 7.5pt; }
+    .c { text-align: center; }
+    .titulo { font-weight: bold; font-size: 7.8pt; margin: 1.8mm 0 0.7mm; }
+    .rotulo { background: #F2F2F2; font-weight: bold; }
+    .naranja { background: #F6A31C; font-weight: bold; text-align: center; }
 
-        table { width: 100%; border-collapse: collapse; }
-        
-        /* Cabecera Estilo Corporativo */
-        #header_content table, #header_content td { border: none; }
-        
-        .meta-top {
-            font-size: 6.8px;
-            text-align: right;
-            color: #5d6470;
-            margin-bottom: 1px;
-        }
+    .cab td { height: 7mm; }
+    .cab .logo { width: 6.1cm; text-align: center; }
+    .cab .logo img { height: 1.35cm; }
+    .cab .grande { text-align: center; font-weight: bold; font-size: 9.5pt; }
 
-        .header-shell {
-            border-bottom: 1px solid #d7dde6;
-            padding-bottom: 2px;
-        }
-
-        .logo-img { width: 165px; height: auto; }
-
-        .header-contact {
-            text-align: right;
-            font-size: 8px;
-            line-height: 1.2;
-            color: #243b7c;
-            font-weight: bold;
-        }
-
-        /* Bloque de Título Principal */
-        .main-title-box {
-            border: 1px solid #cfd6df;
-            margin-top: 0px;
-            margin-bottom: 6px;
-        }
-
-        .main-title-box td {
-            border: 1px solid #d9dfe8;
-            padding: 5px 8px;
-            vertical-align: middle;
-        }
-
-        .label-blue {
-            width: 18%;
-            font-size: 8.5px;
-            font-weight: bold;
-            color: #243b7c;
-            background: #f5f7fa;
-        }
-
-        .value-text {
-            width: 27%;
-            font-size: 8.5px;
-            font-weight: bold;
-            color: #4f5a67;
-        }
-
-        .title-panel {
-            width: 55%;
-            text-align: center;
-            font-weight: bold;
-            color: #223c63;
-            font-size: 11px;
-            text-transform: uppercase;
-            background: #fbfcfe;
-        }
-
-        /* Secciones y Tablas de Datos */
-        .section-band {
-            background: #eef2f7;
-            color: #243b5f;
-            font-weight: bold;
-            text-transform: uppercase;
-            font-size: 8.5px;
-            padding: 4px 8px;
-            margin-top: 8px;
-            margin-bottom: 4px;
-            border-left: 3px solid #243b7c;
-        }
-
-        .data-table {
-            margin-bottom: 6px;
-            border: 1px solid #dde3eb;
-        }
-
-        .data-table td {
-            border: 1px solid #dde3eb;
-            padding: 4px 6px;
-        }
-
-        .bg-gray-label {
-            font-weight: bold;
-            background: #fafbfd;
-            color: #2f3c4a;
-            width: 20%;
-        }
-
-        .confidential-tag {
-            color: #d32f2f;
-            font-weight: bold;
-            font-size: 7px;
-        }
-
-        /* Tabla de Ítems / Ensayos */
-        .items-table th {
-            background: #2b4a7f;
-            color: #ffffff;
-            border: 1px solid #243b63;
-            text-align: center;
-            font-size: 7.5px;
-            padding: 5px 4px;
-        }
-
-        .items-table td {
-            border: 1px solid #cfd5dd;
-            padding: 5px 6px;
-            font-size: 7.8px;
-            vertical-align: middle;
-        }
-
-        .method-text {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 7px;
-            color: #444;
-        }
-
-        /* Firmas */
-        .signature-wrap { margin-top: 20px; }
-        .signature-box {
-            border: 1px solid #cfd5dd;
-            height: 65px;
-            background: #fbfcfe;
-        }
-
-        #footer_content {
-            border-top: 1px solid #d9dee7;
-            padding-top: 4px;
-            font-size: 7px;
-            color: #5d6470;
-            text-align: center;
-        }
-    </style>
+    .detalle td { height: 7mm; font-size: 7.2pt; text-align: center; }
+    .detalle td.izq { text-align: left; }
+    .incid td { height: 6.5mm; font-size: 7.6pt; }
+    .caja { display: inline-block; width: 3mm; height: 3mm; border: 0.7pt solid #000; margin-right: 1.6mm; vertical-align: -0.5mm; text-align: center; line-height: 2.6mm; font-size: 7pt; }
+    .opciones td { padding: 1.4mm 2.5mm; }
+    .opcion { display: block; margin: 0.9mm 0; }
+    .pie-firma td { height: 1.5cm; vertical-align: top; }
+    .nota { font-size: 6.8pt; color: #333; margin-top: 1.5mm; }
+</style>
 </head>
 <body>
+<div class="lateral"><div><b>Código:</b> VCF-LAB-FOR-089 &nbsp;|&nbsp; <b>Fecha:</b> 2025-07-09 &nbsp;|&nbsp; <b>Versión:</b> 03 &nbsp;|&nbsp; <b>Aprobación:</b> JL &nbsp;|&nbsp; <b>Página:</b> <span class="pagina"></span></div></div>
 
-    <div id="header_content">
-        <div class="meta-top">
-            Código: VCF-LAB-FOR-025 | Fecha: 27/02/2026 | Versión: 02 | Página <pdf:pagenumber /> de <pdf:pagecount />
-        </div>
-        <table class="header-shell">
-            <tr>
-                <td style="width: 55%; text-align: left;">
-                    <img src="{% static 'img/LogoF.png' %}" class="logo-img" alt="Logo">
-                </td>
-                <td style="width: 45%;" class="header-contact">
-                    +51 941 573 750<br>
-                    informes@grupovicaf.com<br>
-                    GRUPO VICAF SAC
-                </td>
-            </tr>
-        </table>
-    </div>
+<table class="cab">
+    <tr>
+        <td class="logo" rowspan="2"><img src="{% static 'img/oferta/logo.png' %}" alt="Grupo VICAF SAC"></td>
+        <td class="grande">SOLICITUD DE ENSAYO{% if normas %}<br>{{ normas }}{% endif %}</td>
+        <td class="naranja" style="width: 6.4cm">No. DE SOLICITUD o INFORME</td>
+    </tr>
+    <tr>
+        <td class="grande">NTP-ISO/IEC 17025:2017</td>
+        <td class="c"><b>{{ solicitud.codigo_solicitud }}</b></td>
+    </tr>
+</table>
 
-    <div id="footer_content">
-        JR. LOS TOPACIOS 440 - CAJAMARCA | informes@grupovicaf.com | +51 941 573 750<br>
-        <strong>SISTEMA DE GESTIÓN DE LABORATORIO - VICAFPRO LAB</strong>
-    </div>
+<p class="titulo">1. DATOS GENERALES DEL SERVICIO</p>
+<table>
+    <tr>
+        <td style="width: 5.3cm" class="rotulo">No. COTIZACIÓN</td>
+        <td class="c" style="width: 6.2cm">{{ solicitud.cotizacion.numero_oferta|default:"-" }}</td>
+        <td style="width: 1.2cm; border: 0"></td>
+        <td class="rotulo" style="width: 5.3cm">FECHA PROGRAMADA DE ENTREGA DE REGISTROS</td>
+        <td class="c">{{ solicitud.fecha_entrega_programada|date:"d/m/Y" }}</td>
+    </tr>
+    <tr>
+        <td class="rotulo">ID DE CLIENTE</td>
+        <td class="c">{{ solicitud.cotizacion.cliente.codigo_confidencial|default:"-" }}</td>
+        <td style="border: 0"></td>
+        <td class="rotulo">FECHA REAL DE ENTREGA DE REGISTROS</td>
+        <td class="c">{{ solicitud.fecha_entrega_real|date:"d/m/Y"|default:"" }}</td>
+    </tr>
+</table>
 
-    <table class="main-title-box">
+<p class="titulo">2. DETALLE DE SOLICITUD DE ENSAYO</p>
+<table class="detalle">
+    <thead>
         <tr>
-            <td class="label-blue">SOLICITUD No.</td>
-            <td class="value-text">{{ solicitud.id|stringformat:"05d" }}</td>
-            <td rowspan="2" class="title-panel">
-                SOLICITUD DE ÓRDENES<br>
-                DE ENSAYO
-            </td>
+            <th style="width: 1.1cm">Ítem</th>
+            <th style="width: 3.0cm">ID Laboratorio</th>
+            <th style="width: 2.2cm">ID Cliente</th>
+            <th style="width: 2.5cm">Estructura</th>
+            <th>Ensayo · norma</th>
+            <th style="width: 2.1cm">Fecha de Fabricación</th>
+            <th style="width: 1.8cm">Fecha de Recepción</th>
+            <th style="width: 1.2cm">Edad (días)</th>
+            <th style="width: 1.6cm">f'c diseño (kg/cm²)</th>
+            <th style="width: 2.7cm">Técnico asignado</th>
+            <th style="width: 1.8cm">Entrega</th>
+            <th style="width: 2.0cm">Indicaciones adicionales</th>
         </tr>
+    </thead>
+    <tbody>
+        {% for d in detalles %}
         <tr>
-            <td class="label-blue">FECHA EMISIÓN</td>
-            <td class="value-text">{{ solicitud.fecha_solicitud|date:"d/m/Y" }}</td>
+            <td>{{ forloop.counter|stringformat:"02d" }}</td>
+            <td>{{ d.muestra.codigo_laboratorio }}</td>
+            <td>{{ d.muestra.codigo_cliente|default:"-" }}</td>
+            <td>{{ d.muestra.elemento_estructural|default:"-" }}</td>
+            <td class="izq"><b>{{ d.descripcion_ensayo }}</b>{% if d.norma %}<br>{{ d.norma }}{% endif %}</td>
+            <td>{{ d.muestra.fecha_fabricacion|date:"d/m/Y"|default:"-" }}</td>
+            <td>{{ d.muestra.recepcion.fecha_recepcion|date:"d/m/Y"|default:"-" }}</td>
+            <td>{% if d.muestra.edad_ensayo_dias is not None %}{{ d.muestra.edad_ensayo_dias }}{% else %}-{% endif %}</td>
+            <td>{{ d.muestra.fc_diseno|default_if_none:"-" }}</td>
+            <td>{{ d.tecnico_asignado.nombre_completo|default:"-" }}</td>
+            <td>{{ d.fecha_entrega_programada|date:"d/m/Y" }}</td>
+            <td>{{ d.observaciones|default:"-" }}</td>
         </tr>
-    </table>
+        {% empty %}
+        <tr><td colspan="12">Sin ensayos asignados.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
 
-    <div class="section-band">1. Información del Cliente (Confidencial)</div>
-    <table class="data-table">
+<p class="titulo">3. REPORTE DE INCIDENCIAS <span style="font-weight: normal">(Cambios en la solicitud de ensayo, anulación o incremento de ensayos, etc)</span></p>
+<table class="incid">
+    <thead>
         <tr>
-            <td class="bg-gray-label">ID CLIENTE:</td>
-            <td style="width: 30%;">
-                <strong style="color: #243b7c;">{{ solicitud.cotizacion.cliente.codigo_confidencial }}</strong> 
-                <span class="confidential-tag">[DATO PROTEGIDO]</span>
-            </td>
-            <td class="bg-gray-label">COTIZACIÓN REF:</td>
-            <td style="width: 30%;"><strong>{{ solicitud.cotizacion.numero_oferta|default:"S/N" }}</strong></td>
+            <th style="width: 1.1cm">Ítem</th>
+            <th>Detalle de la incidencia</th>
+            <th style="width: 3.0cm">Fecha</th>
+            <th style="width: 4.6cm">Representante del cliente</th>
+            <th style="width: 4.2cm">Responsable del laboratorio</th>
+            <th style="width: 3.3cm">Firma</th>
         </tr>
+    </thead>
+    <tbody>
+        {% for i in solicitud.incidencias.all %}
         <tr>
-            <td class="bg-gray-label">FECHA ENTREGA PROG:</td>
-            <td><strong style="color: #c2410c;">{{ solicitud.fecha_entrega_programada|date:"d/m/Y" }}</strong></td>
-            <td class="bg-gray-label">RESPONSABLE LAB:</td>
-            <td>{{ user.get_full_name|upper }}</td>
+            <td class="c">{{ forloop.counter }}</td>
+            <td>{{ i.detalle_incidencia|linebreaksbr }}</td>
+            <td class="c">{{ i.fecha_ocurrencia|date:"d/m/Y H:i" }}</td>
+            <td class="c">{{ i.representante_cliente|default:"" }}</td>
+            <td class="c">{{ i.representante_laboratorio.nombre_completo|default:"" }}</td>
+            <td class="c">{% if i.esta_autorizada %}<span style="font-size: 6.8pt">Autorizada{% if i.autorizado_por %}<br>{{ i.autorizado_por.nombre_completo }}{% endif %}</span>{% endif %}</td>
         </tr>
-    </table>
+        {% empty %}
+        <tr><td class="c">1</td><td></td><td></td><td></td><td></td><td></td></tr>
+        {% endfor %}
+    </tbody>
+</table>
 
-    <div class="section-band">2. Planificación de Ensayos y Métodos</div>
-    <table class="items-table">
-        <thead>
-            <tr>
-                <th style="width: 5%;">ÍT.</th>
-                <th style="width: 15%;">CÓD. MUESTRA</th>
-                <th style="width: 25%;">ENSAYO / SERVICIO</th>
-                <th style="width: 22%;">NORMA / MÉTODO</th>
-                <th style="width: 18%;">RESPONSABLE</th>
-                <th style="width: 15%;">FEC. ENTREGA</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for detalle in detalles %}
-            <tr>
-                <td style="text-align: center;">{{ forloop.counter }}</td>
-                <td style="text-align: center; font-weight: bold; color: #243b7c;">{{ detalle.muestra.codigo_laboratorio }}</td>
-                <td>{{ detalle.descripcion_ensayo }}</td>
-                <td class="method-text">
-                    {{ detalle.norma }}{% if detalle.metodo %}<br>Met: {{ detalle.metodo }}{% endif %}
-                </td>
-                <td style="text-align: center;">
-                    {{ detalle.tecnico_asignado.nombre_completo|default:detalle.tecnico_asignado.user.get_full_name|default:"-" }}
-                </td>
-                <td style="text-align: center;">{{ detalle.fecha_entrega_programada|date:"d/m/Y" }}</td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="6" style="text-align: center; padding: 10px;">No hay ensayos programados en esta solicitud.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<table class="opciones" style="margin-top: 2.5mm">
+    <tr>
+        <td class="rotulo c" style="width: 6.9cm">FABRICACIÓN DE LAS PROBETAS</td>
+        <td colspan="2"><span class="caja"></span>Muestreado por el cliente &nbsp;&nbsp;&nbsp; <span class="caja"></span>Muestreado por el laboratorio</td>
+        <td class="rotulo" style="width: 2cm">Notas:</td>
+        <td style="width: 9cm"></td>
+    </tr>
+</table>
 
-    <div class="section-band">3. Observaciones y Condiciones</div>
-    <div style="border: 1px solid #dde3eb; padding: 8px; min-height: 40px; font-size: 7.5px; color: #444;">
-        {{ solicitud.observaciones|default:"Sin observaciones adicionales." }}
-        <div style="margin-top: 8px; font-size: 6.5px; color: #777; font-style: italic;">
-            * Los resultados de estos ensayos se refieren exclusivamente a las muestras recibidas.<br>
-            * El plazo de entrega está sujeto a la disponibilidad operativa del laboratorio.
-        </div>
-    </div>
-
-    <div class="section-band">4. Control de Firmas</div>
-    <div class="signature-wrap">
-        <table style="width: 100%;">
-            <tr>
-                <td style="width: 48%; text-align: center;">
-                    <div class="signature-box"></div>
-                    <div style="border-top: 1px solid #606975; margin-top: 4px;"></div>
-                    <strong style="font-size: 8px;">{{ user.get_full_name|upper }}</strong><br>
-                    <span style="font-size: 6.5px; color: #555;">RESPONSABLE DE PROGRAMACIÓN</span>
-                </td>
-                <td style="width: 4%;"></td>
-                <td style="width: 48%; text-align: center;">
-                    <div class="signature-box"></div>
-                    <div style="border-top: 1px solid #606975; margin-top: 4px;"></div>
-                    <strong style="font-size: 8px;">VoBo DIRECCIÓN TÉCNICA</strong><br>
-                    <span style="font-size: 6.5px; color: #555;">VICAFPRO LAB</span>
-                </td>
-            </tr>
-        </table>
-    </div>
-
-    <div style="margin-top: 15px; font-size: 7px; color: #7f8c8d; text-align: left;">
-        <strong>Documento generado por:</strong> {{ user.username }} | 
-        <strong>Impreso el:</strong> {% now "d/m/Y H:i" %}
-    </div>
-
+<table class="opciones pie-firma" style="margin-top: 2.5mm">
+    <tr>
+        <th style="width: 6.9cm">MODO DE SUPERVISIÓN</th>
+        <th style="width: 10.4cm">TÉCNICO ASIGNADO</th>
+        <th>TÉCNICO DE ENSAYOS</th>
+        <th>JEFE DE LABORATORIO</th>
+    </tr>
+    <tr>
+        <td style="vertical-align: middle">
+            <span class="opcion"><span class="caja"></span>Supervisión Presencial</span>
+            <span class="opcion"><span class="caja"></span>Supervisión Virtual</span>
+            <span class="opcion"><span class="caja"></span>Grabación de Video</span>
+        </td>
+        <td style="vertical-align: middle">
+            {% for t in tecnicos %}<span class="opcion" style="display: inline-block; width: 49%"><span class="caja">X</span>{{ t }}</span>{% empty %}&nbsp;{% endfor %}
+        </td>
+        <td></td>
+        <td></td>
+    </tr>
+</table>
+<p class="nota">Documento generado por {{ user.get_full_name|default:user.username }} · {% now "d/m/Y H:i" %} · Los resultados se refieren exclusivamente a las muestras recibidas.</p>
 </body>
 </html>

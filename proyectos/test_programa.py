@@ -466,3 +466,68 @@ class SolicitudEditarAsignadosTests(AvanceMixin, TestCase):
         datos = self.client.get(reverse('proyectos:api_cotizacion_detalles', args=[proyecto.cot_.pk])).json()
         marcas = {d['detalle_id']: d['bloqueado'] for d in datos['detalles_asignados']}
         self.assertTrue(marcas[linea.pk])
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab')
+class ListaYPdfSolicitudTests(AvanceMixin, TestCase):
+    """Lista de solicitudes por prioridad, botón de estado y PDF FOR-089 con incidencias."""
+
+    def _solicitud(self, n_muestras=1, incidencia=None):
+        proyecto = self._proyecto(n_muestras)
+        _, muestras = self._recepcion(proyecto, n_muestras)
+        if not hasattr(self, '_jefe_pdf'):
+            self._jefe_pdf, self.perfil = crear_trabajador('jefe.pdf', rol_con_permisos('Jefe pdf', 'ensayos.ver', 'ensayos.crear', 'ensayos.editar'))
+            self.client.force_login(self._jefe_pdf)
+        perfil = self.perfil
+        hoy = date.today().isoformat()
+        datos = {
+            'cotizacion': proyecto.cot_.pk, 'fecha_solicitud': hoy, 'fecha_entrega_programada': hoy,
+            'muestra_id[]': [m.pk for m in muestras], 'servicio_id[]': [proyecto.cot_.detalle_.pk] * n_muestras,
+            'norma[]': ['ASTM C39'] * n_muestras, 'metodo[]': [''] * n_muestras,
+            'tecnico_id[]': [perfil.pk] * n_muestras, 'entrega_detalle[]': [hoy] * n_muestras,
+        }
+        if incidencia:
+            datos.update({'incidencia_detalle[]': [incidencia], 'incidencia_fecha[]': [hoy + 'T08:00'],
+                          'incidencia_cliente[]': ['Ana Pérez'], 'incidencia_responsable_id[]': [''],
+                          'incidencia_autorizado[]': ['false']})
+        self.client.post(reverse('proyectos:crear_solicitud'), datos)
+        return SolicitudEnsayo.objects.get(cotizacion=proyecto.cot_)
+
+    def test_la_lista_pone_primero_lo_pendiente_y_ultimo_lo_finalizado(self):
+        fin = self._solicitud()
+        pen = self._solicitud()
+        proc = self._solicitud()
+        SolicitudEnsayo.objects.filter(pk=fin.pk).update(estado='finalizado')
+        SolicitudEnsayo.objects.filter(pk=proc.pk).update(estado='proceso')
+        resp = self.client.get(reverse('proyectos:lista_solicitudes'))
+        estados = [x.estado for x in resp.context['solicitudes']]
+        self.assertEqual(estados, ['pendiente', 'proceso', 'finalizado'])
+
+    def test_el_boton_de_cada_estado_es_el_destacado(self):
+        pen = self._solicitud()
+        proc = self._solicitud()
+        SolicitudEnsayo.objects.filter(pk=proc.pk).update(estado='proceso')
+        html = self.client.get(reverse('proyectos:lista_solicitudes')).content.decode()
+        self.assertIn('accion-estado--iniciar', html)
+        self.assertIn('accion-estado--registrar', html)
+        self.assertIn('data-iniciar-proceso', html)
+
+    def test_el_pdf_sigue_el_formato_for_089_e_incluye_incidencias(self):
+        from django.template.loader import render_to_string
+        sol = self._solicitud(incidencia='Cambio de edad de ensayo')
+        html = render_to_string('proyectos/ensayos_pdf.html', {
+            'solicitud': sol, 'detalles': sol.detalles.select_related('muestra__recepcion', 'tecnico_asignado'),
+            'normas': 'ASTM C39', 'tecnicos': [self.perfil.nombre_completo], 'user': self.perfil.user,
+        })
+        for texto in ('VCF-LAB-FOR-089', 'SOLICITUD DE ENSAYO', sol.codigo_solicitud, 'Cambio de edad de ensayo',
+                      'Ana Pérez', 'REPORTE DE INCIDENCIAS', 'MODO DE SUPERVISIÓN'):
+            self.assertIn(texto, html)
+        resp = self.client.get(reverse('proyectos:generar_pdf_ensayo', args=[sol.pk]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.content.startswith(b'%PDF-'))
+
+    def test_resultados_trae_los_pasos_en_columna_izquierda(self):
+        sol = self._solicitud()
+        html = self.client.get(reverse('proyectos:resultados_solicitud', args=[sol.pk])).content.decode()
+        self.assertIn('class="rs-principal"', html)
+        self.assertLess(html.index('rs-pasos'), html.index('rs-principal'))

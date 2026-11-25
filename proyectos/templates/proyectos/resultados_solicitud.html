@@ -3,7 +3,7 @@
 {% block title %}Resultados {{ solicitud.codigo_solicitud }} | VICAF LIMS{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/ensayos.css' %}">
+<link rel="stylesheet" href="{% static 'css/ensayos.css' %}?v=20261125b">
 {% endblock %}
 
 {% block content %}
@@ -29,6 +29,7 @@
             {% endfor %}
         </ol>
 
+        <div class="rs-principal">
         {% if messages %}
             {% for message in messages %}
             <div class="v-aviso {% if message.tags == 'error' %}v-aviso--error{% else %}v-aviso--ok{% endif %}" role="status">{{ message }}</div>
@@ -143,9 +144,9 @@
                         {% if d.ensayo and d.ensayo.terminado %}
                         <a href="{% url 'proyectos:registrar_compresion' d.pk %}?desde=solicitud" class="v-btn v-btn--secundario v-btn--sm"><i data-lucide="eye"></i> Ver</a>
                         {% elif d.ensayo %}
-                        <a href="{% url 'proyectos:registrar_compresion' d.pk %}?desde=solicitud" class="v-btn v-btn--primario v-btn--sm" data-registrar><i data-lucide="pencil"></i> Continuar</a>
+                        <a href="{% url 'proyectos:registrar_compresion' d.pk %}?desde=solicitud" class="v-btn v-btn--primario v-btn--sm rs-btn-grande" data-registrar><i data-lucide="pencil"></i> Continuar</a>
                         {% else %}
-                        <a href="{% url 'proyectos:registrar_compresion' d.pk %}?desde=solicitud" class="v-btn v-btn--primario v-btn--sm" data-registrar><i data-lucide="clipboard-pen"></i> Registrar</a>
+                        <a href="{% url 'proyectos:registrar_compresion' d.pk %}?desde=solicitud" class="v-btn v-btn--primario v-btn--sm rs-btn-grande" data-registrar><i data-lucide="clipboard-pen"></i> Registrar</a>
                         {% endif %}
                     {% endif %}
                 </div>
@@ -155,6 +156,7 @@
             <p class="px-4 py-3 text-xs text-slate-500 border-t border-slate-100">Hay {{ ocultas }} ensayo{{ ocultas|pluralize }} más de esta solicitud asignado{{ ocultas|pluralize }} a otros técnicos.</p>
             {% endif %}
         </section>
+        </div>
     </div>
 </div>
 {% endblock %}

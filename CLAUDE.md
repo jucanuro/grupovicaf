@@ -164,6 +164,13 @@ rechaza si la línea ya tiene resultado o falta `ensayos.editar`); las incidenci
 solo lectura. El borrador local guarda el estado en JSON
 (`#estado_borrador`) y `SolicitudEnsayo.restaurarBorrador()` lo repone.
 
+**PDF de la solicitud y lista (HU-LIMS-33).** `proyectos/templates/proyectos/ensayos_pdf.html`
+sigue el formato VCF-LAB-FOR-089 v03 (A4 horizontal, WeasyPrint): datos generales, detalle por
+muestra/ensayo, reporte de incidencias de la solicitud, modo de supervisión, técnicos y firmas.
+`lista_solicitudes` ordena pendiente → proceso → finalizado y cada fila lleva un botón
+principal por estado (`accion-estado--iniciar` / `--registrar`). En `/proyectos/resultados/solicitud/<id>/`
+los pasos van en columna izquierda (`.rs-pasos`) y el contenido en `.rs-principal`.
+
 **Panel de pantalla (HU-LIMS-29).** El «panel» (título, búsqueda, filtros y acciones)
 de las 25 pantallas con `data-command-header` va siempre visible arriba: no hay
 botón «Panel» ni X. El CSS está al final del `<style>` de `base_vicafpro.html`; una

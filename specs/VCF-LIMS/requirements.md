@@ -387,6 +387,20 @@ modelo ni lo que recibe el servidor (se siguen enviando los arreglos `muestra_id
 | REQ-LIMS-149 | HU-LIMS-32 | EL SISTEMA DEBE plegar las incidencias nuevas mostrando una línea resumen, abrir solo una a la vez, abrir la nueva al añadir y abrir la elegida al hacer clic. | sí (navegador) | [Validado con usuario] |
 | REQ-LIMS-147 | HU-LIMS-32 | DONDE haya un borrador local, EL SISTEMA DEBE restaurar cotización, muestras elegidas, técnicos, fechas e incidencias. | sí (navegador) | [Propuesto] |
 
+## 2o. PDF de la solicitud, resultados y lista de solicitudes (v16)
+
+Pedido del Gerente (2026-11-25), con el formato VCF-LAB-FOR-089 v03 de ejemplo. HU-LIMS-33:
+«Como jefe de laboratorio quiero la solicitud impresa en el formato oficial, ver primero lo
+pendiente y llegar al siguiente paso con un botón claro».
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-150 | HU-LIMS-33 | EL SISTEMA DEBE imprimir la solicitud de ensayo en el formato VCF-LAB-FOR-089 (A4 horizontal): cabecera con logo, normas y n.° de solicitud; datos generales (cotización, ID de cliente, entrega programada y real); detalle por muestra y ensayo (ID laboratorio, ID cliente, estructura, fechas, edad, f'c, técnico, entrega, indicaciones). | sí (imagen del PDF) | [Validado con usuario] |
+| REQ-LIMS-151 | HU-LIMS-33 | EL SISTEMA DEBE incluir en el PDF el reporte de incidencias de la solicitud (detalle, fecha, representante del cliente, responsable del laboratorio y si está autorizada), y la franja de modo de supervisión, técnicos y firmas. | sí | [Validado con usuario] |
+| REQ-LIMS-152 | HU-LIMS-33 | EL SISTEMA DEBE ordenar la lista de solicitudes con las pendientes primero, luego las en proceso y al final las finalizadas, y dentro de cada grupo por entrega programada. | sí | [Validado con usuario] |
+| REQ-LIMS-153 | HU-LIMS-33 | EL SISTEMA DEBE mostrar en cada fila un botón principal grande y de color según el estado: «Iniciar» en pendientes y «Registrar» en las que están en proceso. | sí | [Validado con usuario] |
+| REQ-LIMS-154 | HU-LIMS-33 | EL SISTEMA DEBE mostrar los pasos (Iniciar, Registrar resultados, Revisión, Informe) en una columna a la izquierda de arriba abajo y el contenido a la derecha, y destacar más los botones Registrar y Continuar de cada ensayo. | sí (navegador) | [Validado con usuario] |
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -415,6 +429,7 @@ modelo ni lo que recibe el servidor (se siguen enviando los arreglos `muestra_id
 | HU-LIMS-30 | Barra del panel con diseño unificado | REQ-LIMS-129 a 133 |
 | HU-LIMS-31 | Nueva recepción: elegir proyecto y registrar muestras | REQ-LIMS-134 a 140 |
 | HU-LIMS-32 | Solicitud de ensayo en una sola pantalla | REQ-LIMS-141 a 149 |
+| HU-LIMS-33 | PDF de la solicitud FOR-089, resultados y lista | REQ-LIMS-150 a 154 |
 
 ## 4. Preguntas abiertas
 
@@ -443,4 +458,5 @@ modelo ni lo que recibe el servidor (se siguen enviando los arreglos `muestra_id
 | v12 | 2026-11-25 | Claude (DLF) | Panel siempre visible en 25 pantallas (REQ-LIMS-125 a 127); panel de proyectos compacto (128) y filtro «Hoy» por movimiento (RN-15, REQ-LIMS-99 y 101 ajustados) |
 | v13 | 2026-11-25 | Claude (DLF) | Barra única del panel con botones modernos: REQ-LIMS-129 a 133 (HU-LIMS-30) |
 | v14 | 2026-11-25 | Claude (DLF) | Nueva recepción: elegir proyecto por fechas y modal «Registrar muestras»: REQ-LIMS-134 a 140 (HU-LIMS-31) |
-| v15 | 2026-11-25 | Claude (DLF) | Solicitud de ensayo en una sola pantalla: REQ-LIMS-141 a 147 (HU-LIMS-32) |
+| v15 | 2026-11-25 | Claude (DLF) | Solicitud de ensayo en una sola pantalla: REQ-LIMS-141 a 149 (HU-LIMS-32) |
+| v16 | 2026-11-25 | Claude (DLF) | PDF de la solicitud FOR-089, pasos de resultados a la izquierda, lista por prioridad: REQ-LIMS-150 a 154 (HU-LIMS-33) |
