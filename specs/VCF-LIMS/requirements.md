@@ -218,7 +218,7 @@ y por fecha, para que el panel no se vea lleno*.
 | RN-12 | Fecha prevista de ensayo de una probeta = fecha de moldeo + edad de ensayo (FOR-004); si falta alguna, `RecepcionMuestra.fecha_ensayo_programado`; si falta también, «sin fecha». Una probeta terminada cuenta el día en que se ensayó (`ResultadoEnsayo.fecha_ensayo`). [Propuesto] |
 | RN-13 | En el programa de **hoy** se agregan, marcadas como atrasadas, las probetas pendientes cuya fecha prevista ya pasó. [Propuesto] |
 | RN-14 | Cada proyecto cae en una sola pestaña según su acción más urgente (RN-11): registrar o asignar → Muestras; seguir en ensayo → En ensayo; revisar y emitir → Por emitir informe; ver informes → Con informe. Sin cotización → Muestras. [Propuesto] |
-| RN-15 | El filtro por fecha usa `Proyecto.fecha_inicio`: últimos 7, 30 o 90 días, este mes, este año o un rango propio. Por defecto, todas las fechas. [Supuesto] |
+| RN-15 | El filtro del panel de proyectos es por **movimiento**: un proyecto «se manejó» en una fecha si ese día se creó o editó, llegaron muestras (recepción), se pidió un ensayo (solicitud), se registró un resultado o se emitió un informe. Por defecto es «Hoy»; también «Todas las fechas» y un rango propio. Semana, semana anterior y mes se agregan después. [Decisión Gerente: hoy por defecto; definición de movimiento: Propuesto] |
 
 | ID | HU | Requisito (EARS) | Verificable | Origen |
 |---|---|---|---|---|
@@ -234,9 +234,9 @@ y por fecha, para que el panel no se vea lleno*.
 | REQ-LIMS-96 | HU-LIMS-24 | EL SISTEMA DEBE ofrecer el programa del día en el menú «Laboratorio» y en el menú del celular. | sí (revisión visual) | [Propuesto] |
 | REQ-LIMS-97 | HU-LIMS-25 | EL SISTEMA DEBE mostrar en el panel de proyectos las pestañas Todos, Muestras, En ensayo, Por emitir informe y Con informe, cada una con su cantidad (RN-14). | sí (unitaria) | [Validado con usuario] |
 | REQ-LIMS-98 | HU-LIMS-25 | CUANDO el usuario elija una pestaña, EL SISTEMA DEBE mostrar solo los proyectos de esa etapa, paginados. | sí (unitaria) | [Validado con usuario] |
-| REQ-LIMS-99 | HU-LIMS-25 | CUANDO el usuario elija un periodo o un rango de fechas, EL SISTEMA DEBE filtrar los proyectos por su fecha de inicio (RN-15) y recalcular las cantidades de las pestañas. | sí (unitaria) | [Validado con usuario] |
+| REQ-LIMS-99 | HU-LIMS-25 | CUANDO el usuario abra el panel de proyectos sin filtros, EL SISTEMA DEBE mostrar los proyectos con movimiento hoy (RN-15); CUANDO elija «Todas las fechas» o un rango, EL SISTEMA DEBE filtrar por movimiento en ese rango y recalcular las cantidades de las pestañas. | sí (unitaria) | [Decisión Gerente] |
 | REQ-LIMS-100 | HU-LIMS-25 | EL SISTEMA DEBE conservar pestaña, periodo y búsqueda al cambiar de página, de pestaña o al buscar en vivo. | sí (unitaria + revisión) | [Propuesto] |
-| REQ-LIMS-101 | HU-LIMS-25 | SI ningún proyecto cumple los filtros, ENTONCES EL SISTEMA DEBE decir «Ningún proyecto con estos filtros». | sí (revisión) | [Propuesto] |
+| REQ-LIMS-101 | HU-LIMS-25 | SI ningún proyecto cumple los filtros, ENTONCES EL SISTEMA DEBE decirlo («Ningún proyecto con movimiento hoy» cuando el filtro es Hoy) y ofrecer «Ver todas las fechas». | sí (unitaria) | [Propuesto] |
 | REQ-LIMS-102 | HU-LIMS-25 | DONDE la pantalla mida menos de 768 px, EL SISTEMA DEBE desplazar las pestañas en horizontal sin desbordar la página. | sí (revisión visual) | [Propuesto] |
 
 
@@ -311,6 +311,26 @@ que cambia es la pantalla (estilos y modal comunes en `servicios/includes/`).
 | REQ-LIMS-124 | HU-LIMS-28 | EL SISTEMA DEBE ofrecer en la plantilla el borrador local de HU-LIMS-27. | sí (unitaria) | [Propuesto] |
 
 
+## 2k. Panel de cada pantalla siempre visible y panel de proyectos compacto (v12)
+
+Origen: pedido del Gerente del 2026-11-25: el botón «Panel» de las pantallas
+esconde el buscador, los filtros y las acciones; el usuario puede no verlo.
+Análisis: lo usan **25 pantallas** (13 listas y 12 formularios) y es un solo
+componente (`command-header`, CSS en `base_vicafpro.html`, JS en `vicafbase.js`).
+En el detalle de una recepción esconde «Ir a Ensayos», «Enviar WhatsApp», «Datos de
+probetas» y «Editar recepción». HU-LIMS-29: *como usuario quiero ver siempre el
+título, la búsqueda, los filtros y las acciones de la pantalla, sin tener que
+descubrir un botón*. Además, el panel de proyectos se ve muy lleno: tarjetas y
+pestañas más pequeñas.
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-125 | HU-LIMS-29 | EL SISTEMA DEBE mostrar siempre, en las 25 pantallas que lo tenían, el contenido del panel (título, búsqueda, filtros y acciones propias) arriba de la pantalla, sin el botón «Panel» ni la X. | sí (navegador, 25 pantallas) | [Decisión Gerente] |
+| REQ-LIMS-126 | HU-LIMS-29 | EL SISTEMA DEBE mantener a la derecha del panel las acciones principales de cada pantalla (Nuevo, Volver, Web, Dashboard). | sí (navegador) | [Decisión Gerente] |
+| REQ-LIMS-127 | HU-LIMS-29 | DONDE la pantalla mida menos de 640 px, EL SISTEMA DEBE poner las acciones arriba y el panel debajo, sin desbordar la página. | sí (navegador) | [Propuesto] |
+| REQ-LIMS-128 | HU-LIMS-25 | EL SISTEMA DEBE mostrar las tarjetas del panel de proyectos más compactas (hasta 4 por fila en pantalla grande), con botones, círculos de etapa y pestañas más pequeños. | sí (revisión visual) | [Decisión Gerente] |
+
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -331,10 +351,11 @@ que cambia es la pantalla (estilos y modal comunes en `servicios/includes/`).
 | HU-LIMS-22 | Gantt de ensayos por solicitud con avance real y atraso | REQ-LIMS-74 a 84 |
 | HU-LIMS-23 | Tema común de gráficos (dashboard y Análisis) | REQ-LIMS-85, 86 |
 | HU-LIMS-24 | Programa de ensayos del día (hoja por cliente y día) | REQ-LIMS-87 a 96 |
-| HU-LIMS-25 | Pestañas por etapa y filtro por fecha del panel | REQ-LIMS-97 a 102 |
+| HU-LIMS-25 | Pestañas por etapa y filtro por fecha del panel | REQ-LIMS-97 a 102, 128 |
 | HU-LIMS-26 | Guardado automático del registro de ensayo | REQ-LIMS-103 a 110 |
 | HU-LIMS-27 | Borrador local de formularios largos | REQ-LIMS-111 a 117 |
 | HU-LIMS-28 | Plantillas con el diseño de la cotización | REQ-LIMS-118 a 124 |
+| HU-LIMS-29 | Panel de cada pantalla siempre visible | REQ-LIMS-125 a 127 |
 
 ## 4. Preguntas abiertas
 
@@ -360,3 +381,4 @@ que cambia es la pantalla (estilos y modal comunes en `servicios/includes/`).
 | v9 | 2026-11-25 | Claude (DLF) | Guardado automático del registro de ensayo: REQ-LIMS-103 a 110 (HU-LIMS-26); informe por solicitud cerrado |
 | v10 | 2026-11-25 | Claude (DLF) | Borrador local de cotización, recepción, solicitud de ensayo y datos de probetas: REQ-LIMS-111 a 117 (HU-LIMS-27) |
 | v11 | 2026-11-25 | Claude (DLF) | Plantillas de cotización con el diseño de la cotización: REQ-LIMS-118 a 124 (HU-LIMS-28) |
+| v12 | 2026-11-25 | Claude (DLF) | Panel siempre visible en 25 pantallas (REQ-LIMS-125 a 127); panel de proyectos compacto (128) y filtro «Hoy» por movimiento (RN-15, REQ-LIMS-99 y 101 ajustados) |

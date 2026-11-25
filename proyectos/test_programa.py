@@ -232,29 +232,71 @@ class PestanasPanelTests(AvanceMixin, TestCase):
         r = self.client.get(url, {'tab': 'muestras'})
         self.assertEqual([p.pk for p in r.context['proyectos_pendientes']], [por_registrar.pk])
 
-    def test_filtro_por_fecha_de_inicio(self):
-        """REQ-LIMS-99/75."""
+    def _envejecer(self, proyecto, dias=60):
+        """Deja al proyecto sin movimiento reciente (creado y editado hace `dias`)."""
+        from datetime import datetime, time, timezone as tz
+        antes = datetime.combine(date.today() - timedelta(days=dias), time(12, 0), tzinfo=tz.utc)
+        type(proyecto).objects.filter(pk=proyecto.pk).update(creado_en=antes, modificado_en=antes)
+
+    def test_por_defecto_muestra_lo_que_se_manejo_hoy(self):
+        """REQ-LIMS-99 / RN-15: sin parámetros el filtro es «Hoy» (proyectos con movimiento hoy)."""
         viejo = self._proyecto(1)
-        viejo.fecha_inicio = date.today() - timedelta(days=60)
-        viejo.save(update_fields=['fecha_inicio'])
+        self._envejecer(viejo)
         nuevo = self._proyecto(1)
         self.client.force_login(self.user)
         url = reverse('proyectos:lista_proyectos_pendientes')
-        r = self.client.get(url, {'periodo': '30'})
+        r = self.client.get(url)
+        self.assertEqual(r.context['filtro_fechas']['periodo'], 'hoy')
         self.assertEqual([p.pk for p in r.context['proyectos_pendientes']], [nuevo.pk])
+        # Las cantidades de las pestañas salen del mismo filtro.
+        self.assertEqual(r.context['pestanas'][0]['cantidad'], 1)
+
+    def test_un_proyecto_viejo_aparece_si_hoy_tuvo_movimiento(self):
+        """RN-15: una recepción de hoy en un proyecto de hace 60 días lo trae a «Hoy»."""
+        viejo = self._proyecto(2)
+        self._envejecer(viejo)
+        self.client.force_login(self.user)
+        url = reverse('proyectos:lista_proyectos_pendientes')
+        self.assertEqual(list(self.client.get(url).context['proyectos_pendientes']), [])
+        self._recepcion(viejo, 1)
+        self.assertEqual([p.pk for p in self.client.get(url).context['proyectos_pendientes']], [viejo.pk])
+
+    def test_todas_las_fechas_y_rango_propio(self):
+        """REQ-LIMS-99: «Todas las fechas» y «Elegir fechas» (por movimiento)."""
+        viejo = self._proyecto(1)
+        self._envejecer(viejo)
+        nuevo = self._proyecto(1)
+        self.client.force_login(self.user)
+        url = reverse('proyectos:lista_proyectos_pendientes')
+        r = self.client.get(url, {'periodo': 'todas'})
+        self.assertEqual({p.pk for p in r.context['proyectos_pendientes']}, {viejo.pk, nuevo.pk})
         r = self.client.get(url, {'desde': (date.today() - timedelta(days=90)).isoformat(),
                                   'hasta': (date.today() - timedelta(days=30)).isoformat()})
+        self.assertEqual(r.context['filtro_fechas']['periodo'], 'rango')
         self.assertEqual([p.pk for p in r.context['proyectos_pendientes']], [viejo.pk])
-        # Las pestañas conservan el filtro.
+        # Las pestañas conservan el periodo.
         self.assertIn('periodo=rango', r.context['pestanas'][1]['url'])
 
+    def test_sin_movimiento_hoy_ofrece_ver_todas_las_fechas(self):
+        """REQ-LIMS-101."""
+        viejo = self._proyecto(1)
+        self._envejecer(viejo)
+        self.client.force_login(self.user)
+        r = self.client.get(reverse('proyectos:lista_proyectos_pendientes'))
+        self.assertContains(r, 'Ningún proyecto con movimiento hoy')
+        self.assertContains(r, 'data-ver-todas')
+
     def test_periodos(self):
-        hoy = date(2026, 11, 24)
-        self.assertEqual(filtro_fechas_panel({'periodo': 'mes'}, hoy)['desde'], date(2026, 11, 1))
-        self.assertEqual(filtro_fechas_panel({'periodo': '7'}, hoy)['desde'], date(2026, 11, 18))
+        hoy = date(2026, 11, 25)
+        self.assertEqual(filtro_fechas_panel({}, hoy)['periodo'], 'hoy')
+        f = filtro_fechas_panel({'periodo': 'hoy'}, hoy)
+        self.assertEqual((f['desde'], f['hasta']), (hoy, hoy))
+        f = filtro_fechas_panel({'periodo': 'todas'}, hoy)
+        self.assertEqual((f['desde'], f['hasta']), (None, None))
         f = filtro_fechas_panel({'desde': '2026-11-30', 'hasta': '2026-11-01'}, hoy)
-        self.assertEqual((f['desde'], f['hasta']), (date(2026, 11, 1), date(2026, 11, 30)))
-        self.assertEqual(filtro_fechas_panel({'periodo': 'raro'}, hoy)['periodo'], '')
+        self.assertEqual((f['periodo'], f['desde'], f['hasta']), ('rango', date(2026, 11, 1), date(2026, 11, 30)))
+        self.assertEqual(filtro_fechas_panel({'periodo': 'raro'}, hoy)['periodo'], 'hoy')
+        self.assertEqual([p['clave'] for p in f['periodos']], ['hoy', 'todas', 'rango'])
 
 
 @override_settings(ROOT_URLCONF='grupovicaf.urls_lab')

@@ -11,18 +11,18 @@ pantalla filtrada al proyecto) y la acción más urgente.
     <nav class="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1" aria-label="Proyectos por etapa" data-pestanas>
         {% for p in pestanas %}
         <a href="{{ p.url }}" data-pestana="{{ p.clave }}" {% if p.activa %}aria-current="page"{% endif %}
-           class="shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-[13px] font-semibold transition-all {% if p.activa %}bg-slate-900 text-white shadow-sm{% else %}bg-white text-slate-600 ring-1 ring-slate-200 hover:ring-slate-300 hover:text-slate-900{% endif %}">
-            <i data-lucide="{{ p.icono }}" class="w-4 h-4"></i>
+           class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all {% if p.activa %}bg-slate-900 text-white shadow-sm{% else %}bg-white text-slate-600 ring-1 ring-slate-200 hover:ring-slate-300 hover:text-slate-900{% endif %}">
+            <i data-lucide="{{ p.icono }}" class="w-3.5 h-3.5"></i>
             {{ p.etiqueta }}
-            <span class="min-w-[1.4rem] text-center px-1.5 py-0.5 rounded-full text-[11px] tabular-nums {% if p.activa %}bg-white/20 text-white{% else %}bg-slate-100 text-slate-500{% endif %}" data-cantidad-pestana>{{ p.cantidad }}</span>
+            <span class="min-w-[1.15rem] text-center px-1 py-px rounded-full text-[10px] tabular-nums {% if p.activa %}bg-white/20 text-white{% else %}bg-slate-100 text-slate-500{% endif %}" data-cantidad-pestana>{{ p.cantidad }}</span>
         </a>
         {% endfor %}
     </nav>
 
     <form method="get" id="filtros-proyectos" class="flex flex-wrap items-center gap-2" data-filtro-fechas>
         <input type="hidden" name="tab" value="{{ pestana }}">
-        <label class="inline-flex items-center gap-2 bg-white ring-1 ring-slate-200 rounded-xl px-3 py-1.5 text-[13px] text-slate-600">
-            <i data-lucide="calendar-range" class="w-4 h-4 text-slate-400"></i>
+        <label class="inline-flex items-center gap-1.5 bg-white ring-1 ring-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-600">
+            <i data-lucide="calendar-range" class="w-3.5 h-3.5 text-slate-400"></i>
             <span class="sr-only">Inicio del proyecto</span>
             <select name="periodo" class="bg-transparent outline-none font-semibold text-slate-700" data-periodo
                     onchange="this.form.querySelectorAll('[data-rango]').forEach(function (e) { e.hidden = this.value !== 'rango'; }, this); if (this.value !== 'rango') this.form.submit();">
@@ -42,33 +42,33 @@ pantalla filtrada al proyecto) y la acción más urgente.
 
 {% if proyectos_pendientes %}
 <div class="space-y-4">
-    <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4" id="projects-table">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3" id="projects-table">
         {% for proyecto in proyectos_pendientes %}
         {% with av=proyecto.avance %}
-        <article class="avance-card group bg-white border border-slate-200/80 rounded-3xl p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_12px_32px_-12px_rgba(15,23,42,0.18)] hover:border-slate-300 transition-all duration-300 flex flex-col gap-5"
+        <article class="avance-card group bg-white border border-slate-200/80 rounded-2xl p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_10px_26px_-12px_rgba(15,23,42,0.18)] hover:border-slate-300 transition-all duration-300 flex flex-col gap-2.5"
                  data-proyecto="{{ proyecto.pk }}" data-avance="{{ av.porcentaje }}">
 
             {# Cabecera: proyecto y porcentaje #}
-            <header class="flex items-start justify-between gap-4">
+            <header class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                    <h3 class="text-[15px] font-bold text-slate-900 leading-snug line-clamp-2 break-words" title="{{ proyecto.nombre_proyecto }}">
+                    <h3 class="text-[13px] font-bold text-slate-900 leading-snug line-clamp-2 break-words" title="{{ proyecto.nombre_proyecto }}">
                         {{ proyecto.nombre_proyecto }}
                     </h3>
-                    <p class="mt-1 text-xs text-slate-500 truncate">
-                        <span class="font-mono text-[11px] text-blue-600">{{ proyecto.codigo_proyecto }}</span>
+                    <p class="mt-0.5 text-[11px] text-slate-500 truncate">
+                        <span class="font-mono text-[10px] text-blue-600">{{ proyecto.codigo_proyecto }}</span>
                         <span class="text-slate-300 mx-1">·</span>{{ proyecto.cliente.razon_social }}
                     </p>
                 </div>
                 <div class="text-right shrink-0">
                     {% if av.completo %}
-                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold ring-1 ring-emerald-200">
-                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Completo
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold ring-1 ring-emerald-200">
+                            <i data-lucide="check-circle-2" class="w-3 h-3"></i> Completo
                         </span>
                     {% else %}
-                        <p class="text-[28px] leading-none font-extrabold tracking-tight text-slate-900 tabular-nums" data-porcentaje>{{ av.porcentaje }}<span class="text-base font-bold text-slate-400">%</span></p>
+                        <p class="text-xl leading-none font-extrabold tracking-tight text-slate-900 tabular-nums" data-porcentaje>{{ av.porcentaje }}<span class="text-xs font-bold text-slate-400">%</span></p>
                     {% endif %}
                     {% if av.total %}
-                        <p class="mt-1 text-[11px] text-slate-400 tabular-nums">{{ av.total }} muestra{{ av.total|pluralize }}</p>
+                        <p class="mt-0.5 text-[10px] text-slate-400 tabular-nums">{{ av.total }} muestra{{ av.total|pluralize }}</p>
                     {% endif %}
                 </div>
             </header>
@@ -81,35 +81,35 @@ pantalla filtrada al proyecto) y la acción más urgente.
             {% else %}
                 {# Barra de avance: el degradado cubre todo el ancho del riel, así el color dice cuánto se ha avanzado. #}
                 <div>
-                    <div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden"
+                    <div class="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden"
                          role="progressbar" aria-label="Avance del proyecto"
                          aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ av.porcentaje }}">
                         <div class="avance-barra h-full rounded-full transition-[width] duration-700 ease-out"
                              style="width: {{ av.porcentaje }}%; --avance: {{ av.porcentaje }};"></div>
                     </div>
                     {% if not av.total %}
-                        <p class="mt-2 text-xs text-slate-400">La cotización no indica cuántas muestras llegarán.</p>
+                        <p class="mt-1.5 text-[11px] text-slate-400">La cotización no indica cuántas muestras llegarán.</p>
                     {% endif %}
                 </div>
 
                 {# Etapas: cada número abre su pantalla filtrada al proyecto #}
                 <nav aria-label="Muestras por etapa de {{ proyecto.codigo_proyecto }}">
                     <ol class="relative grid grid-cols-4 gap-1">
-                        <span aria-hidden="true" class="absolute top-[22px] left-[12.5%] right-[12.5%] h-px bg-slate-200"></span>
+                        <span aria-hidden="true" class="absolute top-4 left-[12.5%] right-[12.5%] h-px bg-slate-200"></span>
                         {% for etapa in av.etapas %}
                         <li class="relative flex flex-col items-center text-center">
                             {% if etapa.url %}
                             <a href="{{ etapa.url }}"
                                data-etapa="{{ etapa.clave }}"
                                aria-label="{{ etapa.etiqueta }}: {{ etapa.cantidad }} muestra{{ etapa.cantidad|pluralize }}"
-                               class="etapa etapa--{{ etapa.clave }} {% if etapa.cantidad %}etapa--activa{% endif %} group/etapa flex flex-col items-center gap-1.5 rounded-2xl px-1 py-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                               class="etapa etapa--{{ etapa.clave }} {% if etapa.cantidad %}etapa--activa{% endif %} group/etapa flex flex-col items-center gap-1 rounded-xl px-1 py-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                             {% else %}
                             <span data-etapa="{{ etapa.clave }}" title="No tienes permiso para abrir esta pantalla"
-                                  class="etapa etapa--{{ etapa.clave }} {% if etapa.cantidad %}etapa--activa{% endif %} flex flex-col items-center gap-1.5 px-1 py-0.5 cursor-default">
+                                  class="etapa etapa--{{ etapa.clave }} {% if etapa.cantidad %}etapa--activa{% endif %} flex flex-col items-center gap-1 px-1 py-0.5 cursor-default">
                             {% endif %}
-                                <span class="etapa__circulo relative z-10 w-11 h-11 rounded-full flex items-center justify-center text-[15px] font-bold tabular-nums ring-4 ring-white transition-transform duration-200 {% if etapa.url %}group-hover/etapa:scale-110{% endif %}"
+                                <span class="etapa__circulo relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold tabular-nums ring-2 ring-white transition-transform duration-200 {% if etapa.url %}group-hover/etapa:scale-110{% endif %}"
                                       data-cantidad>{{ etapa.cantidad }}</span>
-                                <span class="text-[11px] font-medium leading-tight text-slate-500 {% if etapa.url %}group-hover/etapa:text-slate-900{% endif %}">{{ etapa.etiqueta }}</span>
+                                <span class="text-[10px] font-medium leading-tight text-slate-500 {% if etapa.url %}group-hover/etapa:text-slate-900{% endif %}">{{ etapa.etiqueta }}</span>
                             {% if etapa.url %}</a>{% else %}</span>{% endif %}
                         </li>
                         {% endfor %}
@@ -120,13 +120,13 @@ pantalla filtrada al proyecto) y la acción más urgente.
                 {% with accion=av.accion %}
                 {% if accion.permiso %}
                 <a href="{{ accion.url }}" data-accion="{{ accion.tipo }}"
-                   class="accion accion--{{ accion.tipo }} mt-auto group/accion w-full inline-flex items-center justify-between gap-3 px-5 py-3.5 rounded-2xl text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500">
+                   class="accion accion--{{ accion.tipo }} mt-auto group/accion w-full inline-flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500">
                     <span>{{ accion.texto }}</span>
-                    <i data-lucide="arrow-right" class="w-4 h-4 transition-transform duration-200 group-hover/accion:translate-x-1"></i>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5 transition-transform duration-200 group-hover/accion:translate-x-1"></i>
                 </a>
                 {% else %}
                 <span data-accion="{{ accion.tipo }}" data-sin-permiso
-                      class="mt-auto w-full inline-flex items-center justify-between gap-3 px-5 py-3.5 rounded-2xl text-sm font-medium text-slate-400 bg-slate-50 ring-1 ring-slate-200 cursor-not-allowed">
+                      class="mt-auto w-full inline-flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 bg-slate-50 ring-1 ring-slate-200 cursor-not-allowed">
                     <span>{{ accion.texto }}</span>
                     <span class="text-[11px]">Sin permiso</span>
                 </span>
@@ -134,7 +134,7 @@ pantalla filtrada al proyecto) y la acción más urgente.
                 {% endwith %}
             {% endif %}
 
-            <footer class="-mt-2 flex items-center justify-between text-[11px] text-slate-400">
+            <footer class="flex items-center justify-between text-[10px] text-slate-400">
                 <span class="font-mono tabular-nums">S/ {{ proyecto.monto_cotizacion|floatformat:2 }}</span>
                 {% if proyecto.fecha_entrega_estimada %}
                     <span>Entrega {{ proyecto.fecha_entrega_estimada|date:"d/m/Y" }}</span>
@@ -180,8 +180,11 @@ pantalla filtrada al proyecto) y la acción más urgente.
         <i data-lucide="search-x" class="w-8 h-8 text-slate-300"></i>
     </div>
     <p class="text-sm font-semibold text-slate-500">
-        {% if pestana != 'todos' or filtro_fechas.periodo or query %}Ningún proyecto con estos filtros{% else %}No hay proyectos pendientes{% endif %}
+        {% if filtro_fechas.periodo == 'hoy' %}Ningún proyecto con movimiento hoy{% elif pestana != 'todos' or filtro_fechas.periodo != 'todas' or query %}Ningún proyecto con estos filtros{% else %}No hay proyectos pendientes{% endif %}
     </p>
+    {% if filtro_fechas.periodo != 'todas' %}
+    <a href="?periodo=todas&tab={{ pestana }}" data-ver-todas class="mt-3 inline-block text-xs font-bold text-blue-600 hover:text-blue-700">Ver todas las fechas</a>
+    {% endif %}
 </div>
 {% endif %}
 

@@ -26,7 +26,7 @@ from django.views.decorators.http import require_POST
 from trabajadores.permissions import permiso_requerido, trabajador_tiene_permiso, ve_todos_los_ensayos
 from .tasks import procesar_informe_final
 from .avance import (
-    calcular_avance, contar_pestanas, filtrar_por_proyecto, filtro_fechas_panel, pestana_de,
+    calcular_avance, con_movimiento, contar_pestanas, filtrar_por_proyecto, filtro_fechas_panel, pestana_de,
     pestana_del_proyecto, proyecto_de_filtro,
 )
 
@@ -81,10 +81,7 @@ def lista_proyectos_pendientes(request):
         )
 
     filtro_fechas = filtro_fechas_panel(request.GET)
-    if filtro_fechas['desde']:
-        proyectos_qs = proyectos_qs.filter(fecha_inicio__gte=filtro_fechas['desde'])
-    if filtro_fechas['hasta']:
-        proyectos_qs = proyectos_qs.filter(fecha_inicio__lte=filtro_fechas['hasta'])
+    proyectos_qs = con_movimiento(proyectos_qs, filtro_fechas['desde'], filtro_fechas['hasta'])
 
     # El avance de todos los proyectos abiertos se calcula con un número fijo de
     # consultas; así cada pestaña cuenta bien antes de paginar.

@@ -141,6 +141,12 @@ cambia queda en la trazabilidad. Sin señal reintenta solo. Mis ensayos marca
 «En curso · Continuar». Las pruebas se corren con
 `DJANGO_SETTINGS_MODULE=grupovicaf.settings.test_local CORREO_ENVIO=simulado`.
 
+**Panel de pantalla (HU-LIMS-29).** El «panel» (título, búsqueda, filtros y acciones)
+de las 25 pantallas con `data-command-header` va siempre visible arriba: no hay
+botón «Panel» ni X. El CSS está al final del `<style>` de `base_vicafpro.html`; una
+pantalla nueva solo copia el bloque `command-header` de otra. El panel de
+proyectos filtra por **movimiento** (`avance.con_movimiento`), «Hoy» por defecto.
+
 **Plantillas de cotización (HU-LIMS-28).** La plantilla y la cotización son la misma
 pantalla: comparten `static/js/cotizacion-config.js` (la plantilla lo configura
 con `window.CotizacionConfig.esPlantilla` y `condicionesJsonUrl`), los estilos

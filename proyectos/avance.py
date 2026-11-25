@@ -210,12 +210,8 @@ _PESTANA_POR_ACCION = {
 }
 
 PERIODOS = (
-    ('', 'Todas las fechas'),
-    ('7', 'Últimos 7 días'),
-    ('30', 'Últimos 30 días'),
-    ('90', 'Últimos 3 meses'),
-    ('mes', 'Este mes'),
-    ('anio', 'Este año'),
+    ('hoy', 'Hoy'),
+    ('todas', 'Todas las fechas'),
     ('rango', 'Elegir fechas…'),
 )
 
@@ -253,23 +249,21 @@ def _fecha(texto):
 
 
 def filtro_fechas_panel(params, hoy=None):
-    """RN-15: periodo rápido o rango propio sobre la fecha de inicio del proyecto."""
-    from datetime import timedelta
+    """RN-15: «Hoy» por defecto; también todas las fechas o un rango propio.
+
+    Se filtra por movimiento del proyecto (ver `con_movimiento`), no por su fecha
+    de inicio. Semana, semana anterior y mes se agregarán cuando se definan.
+    """
     from django.utils import timezone
 
     hoy = hoy or timezone.localdate()
     periodo = params.get('periodo', '')
     if periodo not in {clave for clave, _ in PERIODOS}:
-        periodo = ''
+        periodo = 'rango' if (params.get('desde') or params.get('hasta')) else 'hoy'
     desde = hasta = None
-    if periodo in ('7', '30', '90'):
-        desde = hoy - timedelta(days=int(periodo) - 1)
-    elif periodo == 'mes':
-        desde = hoy.replace(day=1)
-    elif periodo == 'anio':
-        desde = hoy.replace(month=1, day=1)
-    elif periodo == 'rango' or (not periodo and (params.get('desde') or params.get('hasta'))):
-        periodo = 'rango'
+    if periodo == 'hoy':
+        desde = hasta = hoy
+    elif periodo == 'rango':
         desde, hasta = _fecha(params.get('desde')), _fecha(params.get('hasta'))
         if desde and hasta and desde > hasta:
             desde, hasta = hasta, desde
@@ -279,3 +273,36 @@ def filtro_fechas_panel(params, hoy=None):
         'hasta': hasta,
         'periodos': [{'clave': c, 'etiqueta': e, 'activo': c == periodo} for c, e in PERIODOS],
     }
+
+
+# Dónde se nota que un proyecto «se manejó» (RN-15): (campo, es_fecha_con_hora).
+_MOVIMIENTOS = (
+    ('creado_en', True),                                                      # el proyecto se creó
+    ('modificado_en', True),                                                  # se editó o cambió de estado
+    ('cotizacion__recepciones__fecha_recepcion', True),                      # llegaron muestras
+    ('cotizacion__solicitudes_ensayo__fecha_solicitud', False),              # se pidió un ensayo
+    ('cotizacion__solicitudes_ensayo__detalles__resultado__actualizado_en', True),  # se registró un resultado
+    ('cotizacion__solicitudes_ensayo__informe_final__fecha_emision', True),  # se emitió un informe
+)
+
+
+def con_movimiento(queryset, desde, hasta):
+    """RN-15: proyectos con algún movimiento entre `desde` y `hasta` (inclusive).
+
+    Sin fechas devuelve todo. Un movimiento es: creación, edición, recepción de
+    muestras, solicitud de ensayo, resultado registrado o informe emitido.
+    """
+    from django.db.models import Q
+
+    if not desde and not hasta:
+        return queryset
+    condicion = Q()
+    for campo, con_hora in _MOVIMIENTOS:
+        base = f'{campo}__date' if con_hora else campo
+        parte = Q()
+        if desde:
+            parte &= Q(**{f'{base}__gte': desde})
+        if hasta:
+            parte &= Q(**{f'{base}__lte': hasta})
+        condicion |= parte
+    return queryset.filter(condicion).distinct()
