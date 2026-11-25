@@ -654,7 +654,7 @@ def _cerrar_linea(request, detalle, ensayo, sesion=None, ejecutor=None):
     messages.success(request, texto)
 
 
-EXTENSIONES_HOJA = ('.xlsx', '.xls', '.ods', '.csv', '.pdf')
+EXTENSIONES_HOJA = ('.xlsx', '.xls', '.ods', '.csv', '.pdf', '.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif')
 HOJA_MAXIMO = 15 * 1024 * 1024
 
 
@@ -701,10 +701,10 @@ def _aplicar_datos_generales(request, detalle, ensayo, omitidos=None):
         omitidos.append(error)
         fecha = ensayo.fecha_ensayo
     antes = trazabilidad.instantanea(ensayo, trazabilidad.CAMPOS_RESULTADO)
-    hoja = request.FILES.get('hoja_calculo')
+    hoja = request.FILES.get('hoja_calculo') or request.FILES.get('hoja_foto')
     if hoja:
         if not hoja.name.lower().endswith(EXTENSIONES_HOJA):
-            return "La hoja debe ser Excel, ODS, CSV o PDF."
+            return "La hoja debe ser Excel, ODS, CSV, PDF o una foto (JPG, PNG, HEIC)."
         if hoja.size > HOJA_MAXIMO:
             return "La hoja pesa más de 15 MB."
         anterior = ensayo.hoja_calculo.name if ensayo.hoja_calculo else None
@@ -712,7 +712,7 @@ def _aplicar_datos_generales(request, detalle, ensayo, omitidos=None):
         if anterior:
             from .models import CambioResultado
             CambioResultado.objects.create(
-                resultado=ensayo, campo='hoja_calculo', etiqueta='Hoja de cálculo',
+                resultado=ensayo, campo='hoja_calculo', etiqueta='Hoja de resultados',
                 anterior='hoja anterior', nuevo=hoja.name[:255], usuario=request.user,
             )
             try:

@@ -126,13 +126,13 @@
         <div class="v-tarjeta" data-datos-generales>
             <div class="v-tarjeta__cab">
                 <span class="v-paso">1</span>
-                <div><h2>Resultados del ensayo</h2><p>Escribe el resumen que irá al informe y adjunta la hoja de cálculo con los datos.</p></div>
+                <div><h2>Resultados del ensayo</h2><p>Escribe el resumen que irá al informe y adjunta la hoja de resultados (Excel, PDF o foto del formato).</p></div>
             </div>
             <div class="v-tarjeta__cuerpo space-y-3">
             <label class="v-campo block">
                 <span class="v-etiqueta">Fecha de ensayo</span>
                 <input type="date" name="fecha_ensayo" id="fecha_ensayo"
-                       value="{% if ensayo.fecha_ensayo %}{{ ensayo.fecha_ensayo|date:'Y-m-d' }}{% endif %}"
+                       value="{% if ensayo.fecha_ensayo %}{{ ensayo.fecha_ensayo|date:'Y-m-d' }}{% elif not solo_lectura %}{{ hoy|date:'Y-m-d' }}{% endif %}"
                        {% if fecha_minima %}min="{{ fecha_minima|date:'Y-m-d' }}"{% endif %}
                        max="{{ hoy|date:'Y-m-d' }}"
                        {% if solo_lectura %}disabled{% endif %}
@@ -144,19 +144,28 @@
                           placeholder="Valores obtenidos, unidades y cualquier dato que deba ir en el informe."
                           class="w-full">{{ ensayo.resumen|default:'' }}</textarea>
             </label>
-            <div>
-                <span class="v-etiqueta">Hoja de cálculo</span>
+            <div data-hoja-bloque>
+                <span class="v-etiqueta">Hoja de resultados</span>
+                <p class="text-[12px] text-slate-500 mb-2">Es el respaldo de los datos del ensayo: el Excel o PDF con los cálculos, o una foto del formato en papel ya llenado.</p>
                 {% if ensayo.hoja_calculo %}
                 <a href="{% url 'proyectos:hoja_resultado' detalle.pk %}" class="v-btn v-btn--secundario v-btn--sm mb-2" data-hoja-actual>
-                    <i data-lucide="file-spreadsheet"></i> Descargar la hoja guardada
+                    <i data-lucide="file-check-2"></i> Ver la hoja guardada
                 </a>
                 {% endif %}
                 {% if not solo_lectura %}
-                <label class="v-campo block">
-                    <input type="file" name="hoja_calculo" id="hoja_calculo" accept=".xlsx,.xls,.ods,.csv,.pdf"
-                           data-hay-hoja="{% if ensayo.hoja_calculo %}1{% endif %}" class="w-full text-sm">
-                </label>
-                <p class="text-[11px] text-slate-500 mt-1">Excel, ODS, CSV o PDF, hasta 15 MB.{% if ensayo.hoja_calculo %} Si eliges otra, reemplaza a la guardada.{% endif %}</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <label class="v-btn v-btn--primario hoja-boton" for="hoja_foto" data-hoja-foto-boton>
+                        <i data-lucide="camera"></i> Foto del formato
+                    </label>
+                    <label class="v-btn v-btn--secundario hoja-boton" for="hoja_calculo" data-hoja-archivo-boton>
+                        <i data-lucide="paperclip"></i> Excel o PDF
+                    </label>
+                </div>
+                <input type="file" name="hoja_foto" id="hoja_foto" accept="image/*" capture="environment" class="sr-only">
+                <input type="file" name="hoja_calculo" id="hoja_calculo" accept=".xlsx,.xls,.ods,.csv,.pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,image/*"
+                       data-hay-hoja="{% if ensayo.hoja_calculo %}1{% endif %}" class="sr-only">
+                <p class="text-[12px] font-semibold text-emerald-700 mt-2 hidden" data-hoja-elegida></p>
+                <p class="text-[11px] text-slate-500 mt-1">Excel, ODS, CSV, PDF o foto, hasta 15 MB.{% if ensayo.hoja_calculo %} Si eliges otra, reemplaza a la guardada.{% endif %}</p>
                 {% endif %}
             </div>
             <label class="v-campo block">
@@ -448,6 +457,8 @@
     const fractura = document.getElementById('tipo_fractura');
     const resumen = document.getElementById('resumen');
     const hoja = document.getElementById('hoja_calculo');
+    const hojaFoto = document.getElementById('hoja_foto');
+    const hojaElegida = document.querySelector('[data-hoja-elegida]');
     const etiquetas = {};
     document.querySelectorAll('[data-slot]').forEach(function (s) {
         etiquetas[s.dataset.slot] = s.querySelector('p').textContent.replace(/^\d+\.\s*/, '').trim();
@@ -474,7 +485,7 @@
         const textoOtros = document.querySelector('[name="defectos"]');
         if (otros && otros.checked && textoOtros && !textoOtros.value.trim()) faltan.push('detalle del defecto «Otros»');
         if (resumen && !resumen.value.trim()) faltan.push('resumen de resultados');
-        if (hoja && !hoja.dataset.hayHoja && !(hoja.files && hoja.files.length)) faltan.push('hoja de cálculo');
+        if (hoja && !hoja.dataset.hayHoja && !(hoja.files && hoja.files.length) && !(hojaFoto && hojaFoto.files && hojaFoto.files.length)) faltan.push('hoja de resultados (archivo o foto del formato)');
         document.querySelectorAll('[data-slot]').forEach(function (s) {
             if (s.querySelector('[data-marco]').dataset.estado !== 'ok') faltan.push(etiquetas[s.dataset.slot]);
         });
@@ -488,6 +499,16 @@
         btnTerminar.disabled = faltan.length > 0;
         textoFaltan.textContent = faltan.length ? 'Falta: ' + faltan.join(' · ') : 'Todo listo para terminar.';
     }
+
+    function mostrarHoja() {
+        if (!hojaElegida) return;
+        const f = (hoja && hoja.files[0]) || (hojaFoto && hojaFoto.files[0]);
+        hojaElegida.textContent = f ? 'Listo para guardar: ' + f.name : '';
+        hojaElegida.classList.toggle('hidden', !f);
+        actualizarTerminar();
+    }
+    if (hoja) hoja.addEventListener('change', function () { if (hojaFoto) hojaFoto.value = ''; mostrarHoja(); });
+    if (hojaFoto) hojaFoto.addEventListener('change', function () { if (hoja) hoja.value = ''; mostrarHoja(); });
 
     function cerrarModal() {
         if (cropper) { cropper.destroy(); cropper = null; }

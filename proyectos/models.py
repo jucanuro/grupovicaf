@@ -937,7 +937,7 @@ class ResultadoEnsayo(models.Model):
             if not self.resumen.strip():
                 faltan.append("el resumen de resultados")
             if not self.hoja_calculo:
-                faltan.append("la hoja de cálculo")
+                faltan.append("la hoja de resultados (Excel, PDF o foto del formato)")
             if self.tipos_faltantes():
                 faltan.append("al menos una foto del ensayo")
             return faltan

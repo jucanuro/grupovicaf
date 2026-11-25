@@ -243,7 +243,7 @@ class FlujoResultadosTests(CompresionBase):
             'accion': 'terminar', 'fecha_ensayo': (date.today() - timedelta(days=1)).isoformat(),
         }, follow=True)
         self.assertContains(r, 'el resumen de resultados')
-        self.assertContains(r, 'la hoja de cálculo')
+        self.assertContains(r, 'la hoja de resultados')
         e = ResultadoEnsayo.objects.get(detalle=self.proctor)
         self.assertEqual(e.plantilla, ResultadoEnsayo.PLANTILLA_GENERAL)
         self.assertFalse(e.terminado)
@@ -262,8 +262,24 @@ class FlujoResultadosTests(CompresionBase):
         r = self.client.post(self.url_registro(self.proctor), {
             'accion': 'guardar', 'hoja_calculo': hoja('virus.exe'),
         }, follow=True)
-        self.assertContains(r, 'Excel, ODS, CSV o PDF')
+        self.assertContains(r, 'Excel, ODS, CSV, PDF o una foto')
         self.assertFalse(ResultadoEnsayo.objects.get(detalle=self.proctor).hoja_calculo)
+
+    def test_la_foto_del_formato_en_papel_vale_como_hoja(self):
+        self.client.force_login(self.user_tec)
+        self.client.post(self.url_registro(self.proctor), {
+            'accion': 'guardar', 'hoja_foto': hoja('IMG_8151.HEIC'),
+        }, follow=True)
+        e = ResultadoEnsayo.objects.get(detalle=self.proctor)
+        self.assertTrue(e.hoja_calculo)
+        self.assertTrue(e.hoja_calculo.name.lower().endswith('.heic'))
+
+    def test_la_pantalla_ofrece_fotografiar_el_formato(self):
+        self.client.force_login(self.user_tec)
+        r = self.client.get(self.url_registro(self.proctor))
+        self.assertContains(r, 'name="hoja_foto"')
+        self.assertContains(r, 'capture="environment"')
+        self.assertContains(r, 'Hoja de resultados')
 
     def test_hoja_solo_para_quien_ve_la_linea(self):
         self.terminar_general(self.proctor, self.user_tec)

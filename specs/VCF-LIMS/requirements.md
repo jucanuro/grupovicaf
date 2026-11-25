@@ -401,6 +401,20 @@ pendiente y llegar al siguiente paso con un botón claro».
 | REQ-LIMS-153 | HU-LIMS-33 | EL SISTEMA DEBE mostrar en cada fila un botón principal grande y de color según el estado: «Iniciar» en pendientes y «Registrar» en las que están en proceso. | sí | [Validado con usuario] |
 | REQ-LIMS-154 | HU-LIMS-33 | EL SISTEMA DEBE mostrar los pasos (Iniciar, Registrar resultados, Revisión, Informe) en una columna a la izquierda de arriba abajo y el contenido a la derecha, y destacar más los botones Registrar y Continuar de cada ensayo. | sí (navegador) | [Validado con usuario] |
 
+## 2p. Hoja de resultados de los ensayos generales (v17)
+
+Pedido del Gerente (2026-11-25): el técnico no podía terminar un ensayo general porque pedía una «hoja de cálculo»
+sin explicar qué es; además el registro será sobre todo en celular y tablet. HU-LIMS-34.
+La hoja es el respaldo de los datos del ensayo (cálculos del técnico: Excel o PDF) y, con esta versión,
+también vale una foto o escaneo del formato en papel ya llenado.
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-155 | HU-LIMS-34 | EL SISTEMA DEBE explicar en el registro del ensayo general qué es la hoja de resultados y aceptar como tal un Excel, ODS, CSV, PDF o una foto (JPG, PNG, WEBP, HEIC) de hasta 15 MB. | sí | [Validado con usuario] |
+| REQ-LIMS-156 | HU-LIMS-34 | DONDE el registro se haga desde un celular o tablet, EL SISTEMA DEBE ofrecer un botón grande «Foto del formato» que abra la cámara y otro para elegir un archivo, y mostrar el nombre de lo elegido antes de guardar. | sí (navegador) | [Propuesto] |
+| REQ-LIMS-157 | HU-LIMS-34 | EL SISTEMA DEBE proponer la fecha de hoy como fecha de ensayo en un ensayo general nuevo y decir con claridad qué falta para terminarlo («hoja de resultados (archivo o foto del formato)»). | sí | [Propuesto] |
+| REQ-LIMS-158 | HU-LIMS-34 | [Supuesto: pendiente de decisión del Gerente] La hoja de resultados es obligatoria para terminar cualquier ensayo general. | no verificable hasta decidir | [Supuesto] |
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -430,6 +444,7 @@ pendiente y llegar al siguiente paso con un botón claro».
 | HU-LIMS-31 | Nueva recepción: elegir proyecto y registrar muestras | REQ-LIMS-134 a 140 |
 | HU-LIMS-32 | Solicitud de ensayo en una sola pantalla | REQ-LIMS-141 a 149 |
 | HU-LIMS-33 | PDF de la solicitud FOR-089, resultados y lista | REQ-LIMS-150 a 154 |
+| HU-LIMS-34 | Hoja de resultados de los ensayos generales | REQ-LIMS-155 a 158 |
 
 ## 4. Preguntas abiertas
 
@@ -460,3 +475,4 @@ pendiente y llegar al siguiente paso con un botón claro».
 | v14 | 2026-11-25 | Claude (DLF) | Nueva recepción: elegir proyecto por fechas y modal «Registrar muestras»: REQ-LIMS-134 a 140 (HU-LIMS-31) |
 | v15 | 2026-11-25 | Claude (DLF) | Solicitud de ensayo en una sola pantalla: REQ-LIMS-141 a 149 (HU-LIMS-32) |
 | v16 | 2026-11-25 | Claude (DLF) | PDF de la solicitud FOR-089, pasos de resultados a la izquierda, lista por prioridad: REQ-LIMS-150 a 154 (HU-LIMS-33) |
+| v17 | 2026-11-25 | Claude (DLF) | Hoja de resultados del ensayo general: foto del formato, botones para celular, fecha de hoy: REQ-LIMS-155 a 158 (HU-LIMS-34) |
