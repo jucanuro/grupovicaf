@@ -127,8 +127,8 @@ def crear_tipo_muestra_ajax(request):
         if not nombre or len(nombre) < 2 or len(nombre) > 100:
             return JsonResponse({'status': 'error', 'message': 'Nombre debe tener entre 2 y 100 caracteres.'}, status=400)
 
-        if not sigla or len(sigla) < 1 or len(sigla) > 10:
-            return JsonResponse({'status': 'error', 'message': 'Sigla debe tener entre 1 y 10 caracteres.'}, status=400)
+        if not sigla or len(sigla) < 1 or len(sigla) > 5:
+            return JsonResponse({'status': 'error', 'message': 'La sigla debe tener entre 1 y 5 caracteres.'}, status=400)
 
         if re.search(r'[<>]', nombre) or re.search(r'[<>]', sigla):
             logger.warning(f"Intento de XSS en crear_tipo_muestra_ajax por usuario {request.user.username}")
@@ -149,7 +149,8 @@ def crear_tipo_muestra_ajax(request):
             'id': tipo.pk,
             'nombre': tipo.nombre,
             'sigla': tipo.sigla,
-            'nuevo': created
+            'nuevo': created,
+            'siguiente': _siguiente_numero_codigo_lab(timezone.now().year, tipo.sigla),
         })
 
     except IntegrityError:
@@ -242,6 +243,17 @@ def _seleccionar_proyecto_recepcion(request):
         'orden': orden,
         'ordenes': [(k, v[1]) for k, v in _ORDEN_ELEGIR_PROYECTO.items()],
     })
+
+
+def _siguiente_numero_codigo_lab(anio, sigla):
+    """Número que tendrá la próxima muestra de esta sigla (solo para mostrarlo, no reserva)."""
+    from core.models import Correlativo, _ultimo_numero
+    prefijo = f"V-M-{anio}-{sigla.upper()}-"
+    correlativo = Correlativo.objects.filter(clave=prefijo).first()
+    if correlativo is not None:
+        return correlativo.ultimo + 1
+    codigos = MuestraDetalle.objects.filter(codigo_laboratorio__startswith=prefijo).values_list('codigo_laboratorio', flat=True)
+    return _ultimo_numero(codigos) + 1
 
 
 @login_required
@@ -359,8 +371,13 @@ def gestionar_recepcion_muestra(request, proyecto_id=None, pk=None):
 
     tipos_qs = TipoMuestra.objects.all().order_by('nombre')
 
+    anio_codigo = timezone.now().year
     tipos_muestra_json = json.dumps([
-        {'id': t.id, 'nombre': t.nombre, 'prefijo': t.sigla} for t in tipos_qs
+        {
+            'id': t.id, 'nombre': t.nombre, 'prefijo': t.sigla,
+            'codigo_prefijo': f'V-M-{anio_codigo}-{t.sigla.upper()}-',
+            'siguiente': _siguiente_numero_codigo_lab(anio_codigo, t.sigla),
+        } for t in tipos_qs
     ])
 
     unidades_qs = UnidadMedida.objects.filter(activo=True).order_by('codigo')

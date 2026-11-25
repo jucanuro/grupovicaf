@@ -82,8 +82,9 @@
         if (existente) {
             tdId.appendChild(el('span', 'font-mono text-[11px] font-black text-blue-700', idLab || ''));
         } else {
-            tdId.appendChild(el('span', 'text-[10px] font-black text-amber-700 bg-amber-50 border border-amber-100 rounded px-2 py-0.5',
-                'Se asigna al guardar'));
+            var chip = el('span', 'idlab font-mono text-[11px] font-black text-blue-700 bg-blue-50 border border-blue-100 rounded px-2 py-0.5', '');
+            chip.title = 'Se confirma al guardar la recepción';
+            tdId.appendChild(chip);
         }
         tr.appendChild(tdId);
         var tdTipo = el('td', 'px-3 py-3 align-top');
@@ -132,6 +133,7 @@
             var n = tr.querySelector('.nro');
             if (n) n.textContent = String(i + 1).padStart(2, '0');
         });
+        asignarCodigos();
         var nuevas = tbody.querySelectorAll('tr[data-nueva]').length;
         var guardadas = tbody.querySelectorAll('tr[data-existente]').length;
         var partes = [];
@@ -143,6 +145,19 @@
         $('rm-contador').textContent = nuevas + ' en la lista';
         renderLista();
         icono();
+    }
+
+    /* ID de laboratorio: V-M-año-SIGLA-NNNN, igual que lo asigna el servidor al guardar. */
+    function codigoDe(t, n) { return t.codigo_prefijo + String(n).padStart(4, '0'); }
+    function asignarCodigos() {
+        var usados = {};
+        tbody.querySelectorAll('tr[data-nueva]').forEach(function (tr) {
+            var t = tipoPorId(datosDe(tr).tipo);
+            var chip = tr.querySelector('.idlab');
+            if (!t || !chip) return;
+            var n = (usados[t.id] = (usados[t.id] == null ? (t.siguiente || 1) : usados[t.id] + 1));
+            chip.textContent = codigoDe(t, n);
+        });
     }
 
     function quitar(tr) {
@@ -163,22 +178,28 @@
         var cont = $('rm-tipos');
         cont.textContent = '';
         var q = filtroTipo.toLowerCase();
-        tipos.filter(function (t) { return !q || t.nombre.toLowerCase().indexOf(q) >= 0 || t.prefijo.toLowerCase().indexOf(q) >= 0; })
-            .forEach(function (t) {
-                var activo = String($('rm-tipo-id').value) === String(t.id);
-                var b = el('button', 'rm-tipo px-3 py-2 rounded-xl border text-xs font-black uppercase tracking-tight transition-colors ' +
-                    (activo ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-700 hover:border-blue-400'), t.nombre);
-                b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', activo ? 'true' : 'false');
-                b.dataset.tipo = t.id;
-                b.addEventListener('click', function () { elegirTipo(t.id); });
-                cont.appendChild(b);
-            });
-        if (!cont.children.length) cont.appendChild(el('span', 'text-xs text-slate-400', 'Sin tipos. Crea uno con «Nuevo tipo».'));
+        var lista = tipos.filter(function (t) { return !q || t.nombre.toLowerCase().indexOf(q) >= 0 || t.prefijo.toLowerCase().indexOf(q) >= 0; });
+        lista.forEach(function (t) {
+            var activo = String($('rm-tipo-id').value) === String(t.id);
+            var b = el('button', 'rm-tipo w-full flex items-center justify-between gap-3 px-3 py-2 text-left text-xs transition-colors ' +
+                (activo ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-blue-50'));
+            b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', activo ? 'true' : 'false');
+            b.dataset.tipo = t.id;
+            b.appendChild(el('span', 'font-black uppercase truncate', t.nombre));
+            b.appendChild(el('span', 'font-mono text-[10px] ' + (activo ? 'text-blue-100' : 'text-slate-400'), t.prefijo));
+            b.addEventListener('click', function () { elegirTipo(t.id); });
+            cont.appendChild(b);
+        });
+        if (!lista.length) cont.appendChild(el('p', 'px-3 py-3 text-xs text-slate-400', 'Ningún tipo coincide. Crea uno con «Nuevo tipo».'));
+        var sel = tipoPorId($('rm-tipo-id').value);
+        var etiqueta = $('rm-tipo-elegido');
+        if (etiqueta) etiqueta.textContent = sel ? sel.nombre + ' (' + sel.prefijo + ')' : 'Ninguno elegido';
     }
 
     function elegirTipo(id) {
         $('rm-tipo-id').value = id;
         renderTipos();
+        refrescar();
         $('rm-cantidad').focus();
         $('rm-cantidad').select();
     }
@@ -301,12 +322,27 @@
 
     /* El tipo nuevo se suma a la lista sin recargar la página. */
     function agregarTipo(data) {
-        if (!tipoPorId(data.id)) tipos.push({ id: data.id, nombre: data.nombre, prefijo: data.sigla });
+        if (!tipoPorId(data.id)) {
+            tipos.push({ id: data.id, nombre: data.nombre, prefijo: data.sigla,
+                         codigo_prefijo: 'V-M-' + new Date().getFullYear() + '-' + String(data.sigla).toUpperCase() + '-',
+                         siguiente: data.siguiente || 1 });
+            tipos.sort(function (a, b) { return a.nombre.localeCompare(b.nombre); });
+        }
+        filtroTipo = ''; var q = $('rm-tipo-buscar'); if (q) q.value = '';
         $('rm-tipo-id').value = data.id;
         renderTipos();
         $('rm-cantidad').focus();
     }
 
+    var buscar = $('rm-tipo-buscar');
+    buscar.addEventListener('input', function () { filtroTipo = buscar.value.trim(); renderTipos(); });
+    buscar.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault(); e.stopPropagation();
+            var primero = $('rm-tipos').querySelector('.rm-tipo');
+            if (primero) elegirTipo(primero.dataset.tipo);
+        }
+    });
     $('btn-abrir-muestras').addEventListener('click', function () { abrir(); });
     $('btn-listo-muestras').addEventListener('click', cerrar);
     $('rm-agregar').addEventListener('click', agregar);

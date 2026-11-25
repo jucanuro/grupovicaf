@@ -156,3 +156,49 @@ class RegistroMuestrasModalTest(TestCase):
         resp = self.client.get(reverse('proyectos:editar_recepcion', args=[rec.pk]))
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, 'muestras-existentes')
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab')
+class CodigoLaboratorioVistaPreviaTest(TestCase):
+    """El modal muestra el ID de laboratorio que se asignará (V-M-año-SIGLA-NNNN)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from proyectos.models import TipoMuestra
+        cliente = Cliente.objects.create(ruc='20444444444', razon_social='Obra Cuatro SAC')
+        cot = Cotizacion.objects.create(
+            numero_oferta='VCF-OTE-2026-960', cliente=cliente, estado='Aceptada', asunto_servicio='x',
+            persona_contacto='X', correo_contacto='x@x.invalid', telefono_contacto='1',
+        )
+        cls.proyecto = Proyecto.objects.create(nombre_proyecto='Obra', codigo_proyecto='P-OBRA', cliente=cliente, cotizacion=cot)
+        cls.tipo = TipoMuestra.objects.create(nombre='Suelo natural', sigla='SN')
+        cls.usuario, _ = crear_trabajador('recep4', rol_con_permisos('Recepción', 'muestras.ver', 'muestras.crear'))
+
+    def test_tipos_traen_prefijo_y_siguiente_numero(self):
+        import json
+        from django.utils import timezone
+        self.client.force_login(self.usuario)
+        resp = self.client.get(reverse('proyectos:crear_recepcion_desde_proyecto', args=[self.proyecto.pk]))
+        tipos = json.loads(resp.context['tipos_muestra_json'])
+        sn = [t for t in tipos if t['prefijo'] == 'SN'][0]
+        self.assertEqual(sn['codigo_prefijo'], f'V-M-{timezone.now().year}-SN-')
+        self.assertEqual(sn['siguiente'], 1)
+
+    def test_el_siguiente_numero_sigue_a_lo_ya_registrado(self):
+        import json
+        from proyectos.models import MuestraDetalle, RecepcionMuestra
+        rec = RecepcionMuestra.objects.create(cotizacion=self.proyecto.cotizacion, responsable_recepcion=self.usuario)
+        MuestraDetalle.objects.create(recepcion=rec, tipo_muestra=self.tipo, nro_item=1, descripcion='a', cantidad=1, masa_aprox=1)
+        self.client.force_login(self.usuario)
+        resp = self.client.get(reverse('proyectos:crear_recepcion_desde_proyecto', args=[self.proyecto.pk]))
+        sn = [t for t in json.loads(resp.context['tipos_muestra_json']) if t['prefijo'] == 'SN'][0]
+        self.assertEqual(sn['siguiente'], 2)
+
+    def test_crear_tipo_devuelve_siguiente_y_limita_la_sigla_a_5(self):
+        self.client.force_login(self.usuario)
+        url = reverse('proyectos:crear_tipo_muestra_ajax')
+        ok = self.client.post(url, {'nombre': 'Roca fresca', 'sigla': 'rf'})
+        self.assertEqual(ok.status_code, 200)
+        self.assertEqual(ok.json()['siguiente'], 1)
+        largo = self.client.post(url, {'nombre': 'Algo', 'sigla': 'ABCDEFG'})
+        self.assertEqual(largo.status_code, 400)
