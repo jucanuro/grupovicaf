@@ -158,8 +158,10 @@ botones al restaurar.
 (`api_obtener_detalles_cotizacion`), con selector de varias muestras, técnico y
 entrega; al guardar el JS arma los mismos arreglos de siempre (`muestra_id[]`,
 `servicio_id[]`, `norma[]`, `metodo[]`, `tecnico_id[]`, `entrega_detalle[]`,
-`incidencia_*[]`), una línea por muestra. Lo ya asignado y las incidencias previas son de
-solo lectura (el servidor no duplica). El borrador local guarda el estado en JSON
+`incidencia_*[]`), una línea por muestra. Lo ya asignado se agrupa por ensayo y se corrige en el modal
+(`edit_detalle_id[]`/`edit_tecnico_id[]`/`edit_entrega[]`, `quitar_detalle_id[]`; el servidor lo
+rechaza si la línea ya tiene resultado o falta `ensayos.editar`); las incidencias previas son de
+solo lectura. El borrador local guarda el estado en JSON
 (`#estado_borrador`) y `SolicitudEnsayo.restaurarBorrador()` lo repone.
 
 **Panel de pantalla (HU-LIMS-29).** El «panel» (título, búsqueda, filtros y acciones)

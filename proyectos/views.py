@@ -636,6 +636,9 @@ def api_obtener_detalles_cotizacion(request, cotizacion_id):
                 'tecnico_asignado'
             ).order_by('id')
 
+            ids_con_resultado = set(
+                solicitud_existente.detalles.filter(resultado__isnull=False).values_list('id', flat=True)
+            )
             for d in detalles_qs:
                 servicios_registrados_ids.add(d.servicio_cotizado_id)
 
@@ -650,6 +653,7 @@ def api_obtener_detalles_cotizacion(request, cotizacion_id):
                     'tecnico_id': d.tecnico_asignado_id or '',
                     'tecnico_nombre': d.tecnico_asignado.nombre_completo if d.tecnico_asignado else '-- Sin Asignar --',
                     'fecha_entrega': d.fecha_entrega_programada.strftime('%Y-%m-%d') if d.fecha_entrega_programada else '',
+                    'bloqueado': d.id in ids_con_resultado,
                 })
 
         detalles_cotizacion = CotizacionDetalle.objects.filter(
@@ -788,6 +792,36 @@ def gestionar_solicitud_ensayo(request, pk=None):
                         elaborado_por=perfil_trabajador,
                         estado='pendiente'
                     )
+
+                # Correcciones de lo ya asignado (HU-LIMS-32): técnico y entrega, o quitar la línea.
+                # Solo mientras la línea no tenga resultado: después hay trazabilidad (ISO 17025).
+                bloqueadas = 0
+                if trabajador_tiene_permiso(request.user, 'ensayos.editar'):
+                    ids_quitar = [i for i in request.POST.getlist('quitar_detalle_id[]') if i.strip().isdigit()]
+                    if ids_quitar:
+                        bloqueadas += solicitud.detalles.filter(pk__in=ids_quitar, resultado__isnull=False).count()
+                        solicitud.detalles.filter(pk__in=ids_quitar, resultado__isnull=True).delete()
+                    ed_ids = request.POST.getlist('edit_detalle_id[]')
+                    ed_tecs = request.POST.getlist('edit_tecnico_id[]')
+                    ed_fechas = request.POST.getlist('edit_entrega[]')
+                    for k, did in enumerate(ed_ids):
+                        if not did.strip().isdigit() or k >= len(ed_tecs) or k >= len(ed_fechas):
+                            continue
+                        linea = solicitud.detalles.filter(pk=did).first()
+                        if not linea:
+                            continue
+                        if DetalleSolicitudEnsayo.objects.filter(pk=linea.pk, resultado__isnull=False).exists():
+                            bloqueadas += 1
+                            continue
+                        try:
+                            nueva_fecha = datetime.strptime(ed_fechas[k], "%Y-%m-%d").date()
+                        except ValueError:
+                            continue
+                        if not ed_tecs[k].strip().isdigit():
+                            continue
+                        linea.tecnico_asignado_id = int(ed_tecs[k])
+                        linea.fecha_entrega_programada = nueva_fecha
+                        linea.save(update_fields=['tecnico_asignado', 'fecha_entrega_programada'])
 
                 muestras_ids = request.POST.getlist('muestra_id[]')
                 servicios_ids = request.POST.getlist('servicio_id[]')
@@ -937,6 +971,11 @@ def gestionar_solicitud_ensayo(request, pk=None):
                 if incidencias_list:
                     IncidenciaSolicitud.objects.bulk_create(incidencias_list)
 
+            if bloqueadas:
+                messages.warning(
+                    request,
+                    f"{bloqueadas} línea(s) ya tienen resultado y no se modificaron."
+                )
             if omitidas:
                 messages.warning(
                     request,

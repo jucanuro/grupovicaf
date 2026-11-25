@@ -383,6 +383,8 @@ modelo ni lo que recibe el servidor (se siguen enviando los arreglos `muestra_id
 | REQ-LIMS-144 | HU-LIMS-32 | EL SISTEMA DEBE ofrecer «Aplicar a todos» (técnico y entrega) y «Todas las muestras», y poner la entrega programada como fecha de cada ensayo que no tenga una. | sí (navegador) | [Propuesto] |
 | REQ-LIMS-145 | HU-LIMS-32 | EL SISTEMA DEBE mostrar lo ya asignado y las incidencias previas como solo lectura, y las incidencias nuevas en una sección plegable opcional. | sí | [Propuesto] |
 | REQ-LIMS-146 | HU-LIMS-32 | EL SISTEMA DEBE mostrar la norma y el método vacíos, nunca el texto «None», cuando el servicio no los tiene. | sí | [Validado con usuario] |
+| REQ-LIMS-148 | HU-LIMS-32 | EL SISTEMA DEBE mostrar en el modal los ensayos ya asignados, agrupados por ensayo, y permitir cambiar su técnico y entrega o quitar las líneas; SI una línea ya tiene resultado, ENTONCES EL SISTEMA DEBE dejarla sin cambios y avisarlo, tanto en pantalla como en el servidor (solo con permiso de editar). | sí | [Propuesto] |
+| REQ-LIMS-149 | HU-LIMS-32 | EL SISTEMA DEBE plegar las incidencias nuevas mostrando una línea resumen, abrir solo una a la vez, abrir la nueva al añadir y abrir la elegida al hacer clic. | sí (navegador) | [Validado con usuario] |
 | REQ-LIMS-147 | HU-LIMS-32 | DONDE haya un borrador local, EL SISTEMA DEBE restaurar cotización, muestras elegidas, técnicos, fechas e incidencias. | sí (navegador) | [Propuesto] |
 
 ## 3. Trazabilidad HU → REQ
@@ -412,7 +414,7 @@ modelo ni lo que recibe el servidor (se siguen enviando los arreglos `muestra_id
 | HU-LIMS-29 | Panel de cada pantalla siempre visible | REQ-LIMS-125 a 127 |
 | HU-LIMS-30 | Barra del panel con diseño unificado | REQ-LIMS-129 a 133 |
 | HU-LIMS-31 | Nueva recepción: elegir proyecto y registrar muestras | REQ-LIMS-134 a 140 |
-| HU-LIMS-32 | Solicitud de ensayo en una sola pantalla | REQ-LIMS-141 a 147 |
+| HU-LIMS-32 | Solicitud de ensayo en una sola pantalla | REQ-LIMS-141 a 149 |
 
 ## 4. Preguntas abiertas
 

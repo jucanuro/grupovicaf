@@ -388,3 +388,81 @@ class SolicitudUnaPantallaTests(AvanceMixin, TestCase):
         solicitud = SolicitudEnsayo.objects.get(cotizacion=proyecto.cot_)
         html = self.client.get(reverse('proyectos:editar_solicitud', args=[solicitud.pk])).content.decode()
         self.assertIn('Humedad alta', html)
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab')
+class SolicitudEditarAsignadosTests(AvanceMixin, TestCase):
+    """HU-LIMS-32: lo ya asignado se corrige desde el modal mientras no tenga resultado."""
+
+    def _armar(self, n=2):
+        proyecto = self._proyecto(n)
+        _, muestras = self._recepcion(proyecto, n)
+        user, perfil = crear_trabajador('jefe.edi', rol_con_permisos('Jefe edi', 'ensayos.ver', 'ensayos.crear', 'ensayos.editar'))
+        otro_user, otro = crear_trabajador('tec.otro', rol_con_permisos('Tec otro', 'ensayos.ver'))
+        self.client.force_login(user)
+        self.perfil, self.otro = perfil, otro
+        hoy = date.today().isoformat()
+        self.hoy = hoy
+        self.client.post(reverse('proyectos:crear_solicitud'), {
+            'cotizacion': proyecto.cot_.pk, 'fecha_solicitud': hoy, 'fecha_entrega_programada': hoy,
+            'muestra_id[]': [m.pk for m in muestras], 'servicio_id[]': [proyecto.cot_.detalle_.pk] * n,
+            'norma[]': ['x'] * n, 'metodo[]': [''] * n,
+            'tecnico_id[]': [perfil.pk] * n, 'entrega_detalle[]': [hoy] * n,
+        })
+        return proyecto, SolicitudEnsayo.objects.get(cotizacion=proyecto.cot_)
+
+    def _post(self, proyecto, solicitud, extra):
+        datos = {'cotizacion': proyecto.cot_.pk, 'fecha_solicitud': self.hoy, 'fecha_entrega_programada': self.hoy}
+        datos.update(extra)
+        return self.client.post(reverse('proyectos:editar_solicitud', args=[solicitud.pk]), datos)
+
+    def test_cambia_tecnico_y_entrega_de_las_lineas(self):
+        proyecto, solicitud = self._armar()
+        ids = list(solicitud.detalles.values_list('pk', flat=True))
+        nueva = (date.today().replace(day=1)).isoformat()
+        self._post(proyecto, solicitud, {
+            'edit_detalle_id[]': ids, 'edit_tecnico_id[]': [self.otro.pk] * 2, 'edit_entrega[]': [nueva] * 2,
+        })
+        for d in solicitud.detalles.all():
+            self.assertEqual(d.tecnico_asignado_id, self.otro.pk)
+            self.assertEqual(d.fecha_entrega_programada.isoformat(), nueva)
+
+    def test_quitar_una_linea_la_borra(self):
+        proyecto, solicitud = self._armar()
+        uno = solicitud.detalles.first().pk
+        self._post(proyecto, solicitud, {'quitar_detalle_id[]': [uno]})
+        self.assertEqual(solicitud.detalles.count(), 1)
+        self.assertFalse(solicitud.detalles.filter(pk=uno).exists())
+
+    def test_con_resultado_no_se_modifica_ni_se_quita(self):
+        from proyectos.models import ResultadoEnsayo
+        proyecto, solicitud = self._armar()
+        linea = solicitud.detalles.first()
+        ResultadoEnsayo.objects.create(detalle=linea, plantilla='general')
+        self._post(proyecto, solicitud, {
+            'edit_detalle_id[]': [linea.pk], 'edit_tecnico_id[]': [self.otro.pk], 'edit_entrega[]': [self.hoy],
+            'quitar_detalle_id[]': [linea.pk],
+        })
+        linea.refresh_from_db()
+        self.assertEqual(linea.tecnico_asignado_id, self.perfil.pk)
+        self.assertTrue(solicitud.detalles.filter(pk=linea.pk).exists())
+
+    def test_sin_permiso_de_editar_no_cambia_nada(self):
+        proyecto, solicitud = self._armar()
+        user, _ = crear_trabajador('solo.crea', rol_con_permisos('Solo crea', 'ensayos.ver', 'ensayos.crear'))
+        self.client.force_login(user)
+        uno = solicitud.detalles.first().pk
+        self.client.post(reverse('proyectos:crear_solicitud'), {
+            'cotizacion': proyecto.cot_.pk, 'fecha_solicitud': self.hoy, 'fecha_entrega_programada': self.hoy,
+            'quitar_detalle_id[]': [uno],
+        })
+        self.assertTrue(solicitud.detalles.filter(pk=uno).exists())
+
+    def test_la_api_marca_las_lineas_con_resultado(self):
+        from proyectos.models import ResultadoEnsayo
+        proyecto, solicitud = self._armar()
+        linea = solicitud.detalles.first()
+        ResultadoEnsayo.objects.create(detalle=linea, plantilla='general')
+        datos = self.client.get(reverse('proyectos:api_cotizacion_detalles', args=[proyecto.cot_.pk])).json()
+        marcas = {d['detalle_id']: d['bloqueado'] for d in datos['detalles_asignados']}
+        self.assertTrue(marcas[linea.pk])

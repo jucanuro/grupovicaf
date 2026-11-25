@@ -124,20 +124,6 @@
             <p id="se-pagina-vacio" class="py-10 text-center text-sm font-semibold text-slate-400">Aquí verás lo asignado. Se abre solo al elegir la cotización.</p>
         </section>
 
-        <details id="se-asignados-caja" class="hidden bg-white border border-slate-200 rounded-2xl shadow-sm">
-            <summary class="cursor-pointer px-4 py-3 flex items-center gap-2 text-sm font-black text-slate-700">
-                <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i>
-                <span id="se-asignados-titulo">Ya asignados</span>
-            </summary>
-            <div class="overflow-x-auto border-t border-slate-100">
-                <table class="w-full text-left text-xs">
-                    <thead><tr class="bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                        <th class="px-4 py-2">Muestra</th><th class="px-4 py-2">Ensayo</th><th class="px-4 py-2">Norma</th><th class="px-4 py-2">Técnico</th><th class="px-4 py-2">Entrega</th>
-                    </tr></thead>
-                    <tbody id="se-asignados" class="divide-y divide-slate-100"></tbody>
-                </table>
-            </div>
-        </details>
 
         <!-- 3. Pantalla de asignación (modal a pantalla completa) -->
         <div id="se-modal" class="fixed inset-0 z-[9990] hidden flex-col bg-slate-100" role="dialog" aria-modal="true" aria-labelledby="se-modal-titulo">
@@ -169,13 +155,24 @@
                             <button type="button" id="se-todas-muestras" class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:border-blue-400 text-slate-700 text-[11px] font-black uppercase tracking-wide">Todas las muestras</button>
                         </div>
                     </div>
-                    <div id="se-cabecera" class="hidden xl:grid grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1.3fr)_150px] gap-x-4 px-4 py-2 bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500 shrink-0">
+                    <div id="se-cabecera" class="hidden xl:grid grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1.3fr)_190px] gap-x-4 px-4 py-2 bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500 shrink-0">
                         <span>Ensayo · norma · método</span><span>Muestras</span><span>Técnico asignado</span><span>Entrega</span>
                     </div>
-                    <div id="se-filas" class="flex-1 overflow-y-auto divide-y divide-slate-100 pb-40"></div>
-                    <div id="se-vacio" class="py-14 text-center">
-                        <i data-lucide="clipboard-list" class="w-10 h-10 mx-auto text-slate-200 mb-2"></i>
-                        <p class="text-sm font-bold text-slate-600" id="se-vacio-texto">Elige una cotización para cargar sus ensayos.</p>
+                    <div class="flex-1 overflow-y-auto pb-40">
+                        <div id="se-filas" class="divide-y divide-slate-100"></div>
+                        <div id="se-vacio" class="py-6 text-center">
+                            <i data-lucide="clipboard-list" class="w-9 h-9 mx-auto text-slate-200 mb-2"></i>
+                            <p class="text-sm font-bold text-slate-600" id="se-vacio-texto">Elige una cotización para cargar sus ensayos.</p>
+                        </div>
+                        <div id="se-asig-bloque" class="hidden border-t-4 border-slate-100">
+                            <div class="flex items-center justify-between gap-2 px-4 py-2.5 bg-emerald-50/60">
+                                <h3 class="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-emerald-800">
+                                    <i data-lucide="check-circle-2" class="w-4 h-4"></i> <span id="se-asig-titulo">Ya asignados</span>
+                                </h3>
+                                <span class="text-[10px] font-semibold text-emerald-700">Cambia técnico o entrega, o quita la línea. Con resultado ya no se modifica.</span>
+                            </div>
+                            <div id="se-asig-filas" class="divide-y divide-slate-100"></div>
+                        </div>
                     </div>
                 </section>
 
@@ -229,7 +226,7 @@
         esEdicion: {% if solicitud %}true{% else %}false{% endif %}
     };
 </script>
-<script src="{% static 'js/solicitud_ensayo.js' %}?v=4"></script>
+<script src="{% static 'js/solicitud_ensayo.js' %}?v=6"></script>
 <script>
     if (window.BorradorLocal) {
         BorradorLocal.iniciar({

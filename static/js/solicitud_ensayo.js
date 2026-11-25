@@ -19,6 +19,7 @@
     var tecnicos = leerJSON('se-tecnicos');
     var previas = leerJSON('se-incidencias-previas');
     var muestras = [];            // [{id, codigo, descripcion, tipo, sigla}]
+    var asignados = [];           // grupos ya guardados: {id, nombre, norma, lineas:[{detalle_id, muestra, tecnico, fecha, bloqueado}], tecnico, fecha, quitar, dirty}
     var filas = [];               // ensayos por asignar: {id, nombre, norma, metodo, sel:[ids], tecnico, fecha}
     var incidencias = [];         // nuevas: {detalle, fecha, cliente, responsable, autorizada}
     var tsCotizacion = null;
@@ -114,10 +115,11 @@
                     return { id: s.cotizacion_detalle_id, nombre: s.nombre_servicio, norma: s.norma || '', metodo: s.metodo || '',
                              sel: muestras.length === 1 ? [muestras[0].id] : [], tecnico: '', fecha: '' };
                 });
-                pintarAsignados(d.detalles_asignados || []);
+                asignados = agruparAsignados(d.detalles_asignados || []);
+                pintarAsignados();
                 cargando = false;
                 $('se-vacio-texto').textContent = (d.detalles_asignados || []).length
-                    ? 'Todos los ensayos de esta cotización ya están asignados.' : 'Esta cotización no tiene ensayos.';
+                    ? 'No quedan ensayos por asignar en esta cotización.' : 'Esta cotización no tiene ensayos.';
                 pintarFilas(); resumen();
                 if (pendienteBorrador) { aplicarEstado(pendienteBorrador); pendienteBorrador = null; }
             })
@@ -127,19 +129,71 @@
             });
     }
 
-    function pintarAsignados(lista) {
-        var caja = $('se-asignados-caja'), tb = $('se-asignados');
-        tb.textContent = '';
-        caja.classList.toggle('hidden', !lista.length);
-        $('se-asignados-titulo').textContent = 'Ya asignados (' + lista.length + ' línea' + (lista.length === 1 ? '' : 's') + ')';
+    function agruparAsignados(lista) {
+        var grupos = {};
+        var orden = [];
         lista.forEach(function (d) {
-            var tr = el('tr', '');
-            [d.muestra_codigo, d.nombre_servicio, d.norma, d.tecnico_nombre, d.fecha_entrega].forEach(function (t, i) {
-                tr.appendChild(el('td', 'px-4 py-2 ' + (i === 0 ? 'font-mono font-black text-blue-700' : 'text-slate-600'), t || '—'));
-            });
-            tb.appendChild(tr);
+            var k = d.servicio_cotizado_id;
+            if (!grupos[k]) { grupos[k] = { id: k, nombre: d.nombre_servicio, norma: d.norma || '', lineas: [], tecnico: '', fecha: '', quitar: false, dirty: false }; orden.push(k); }
+            grupos[k].lineas.push({ detalle: d.detalle_id, muestra: d.muestra_codigo, tecnico: String(d.tecnico_id || ''), fecha: d.fecha_entrega || '', bloqueado: !!d.bloqueado });
+        });
+        return orden.map(function (k) {
+            var g = grupos[k];
+            var tecs = {}, fechas = {};
+            g.lineas.forEach(function (l) { tecs[l.tecnico] = true; fechas[l.fecha] = true; });
+            g.tecnico = Object.keys(tecs).length === 1 ? g.lineas[0].tecnico : 'varios';
+            g.fecha = Object.keys(fechas).length === 1 ? g.lineas[0].fecha : '';
+            return g;
         });
     }
+
+    function pintarAsignados() {
+        var bloque = $('se-asig-bloque'), cont = $('se-asig-filas');
+        cont.textContent = '';
+        bloque.classList.toggle('hidden', !asignados.length);
+        var total = asignados.reduce(function (n, g) { return n + g.lineas.length; }, 0);
+        $('se-asig-titulo').textContent = 'Ya asignados · ' + total + ' línea' + (total === 1 ? '' : 's');
+        asignados.forEach(function (g) {
+            var editables = g.lineas.filter(function (l) { return !l.bloqueado; }).length;
+            var bloqueadas = g.lineas.length - editables;
+            var fila = el('div', 'px-4 py-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1.3fr)_190px] gap-x-4 gap-y-2 items-center' + (g.quitar ? ' opacity-50' : ''));
+            fila.style.borderLeft = '4px solid ' + (g.quitar ? '#f43f5e' : '#10b981');
+            var c1 = el('div', 'min-w-0');
+            c1.appendChild(el('p', 'text-sm font-black text-slate-800 leading-tight' + (g.quitar ? ' line-through' : ''), g.nombre));
+            c1.appendChild(el('p', 'text-[11px] font-mono text-blue-600 mt-0.5 break-words', g.norma || 'Sin norma'));
+            fila.appendChild(c1);
+
+            var c2 = el('div', 'min-w-0');
+            c2.appendChild(el('p', 'text-xs font-bold text-slate-700', g.lineas.length + ' muestra' + (g.lineas.length === 1 ? '' : 's')));
+            c2.appendChild(el('p', 'text-[11px] font-mono text-slate-500 break-words', g.lineas.map(function (l) { return l.muestra; }).join(' · ')));
+            if (bloqueadas) c2.appendChild(el('p', 'text-[10px] font-black uppercase text-amber-700 mt-0.5', bloqueadas + ' con resultado (no se modifica)'));
+            fila.appendChild(c2);
+
+            var sel = el('select', 'se-campo'); opcionesTecnico(sel, g.tecnico === 'varios' ? '' : g.tecnico);
+            if (g.tecnico === 'varios') { var ov = el('option', '', '— Varios técnicos —'); ov.value = 'varios'; sel.insertBefore(ov, sel.firstChild); sel.value = 'varios'; }
+            sel.disabled = !editables || g.quitar;
+            sel.addEventListener('change', function () { g.tecnico = sel.value; g.dirty = true; cambioAsig(); });
+            fila.appendChild(sel);
+
+            var c4 = el('div', 'flex items-center gap-2');
+            var fe = el('input', 'se-campo min-w-0 flex-1'); fe.type = 'date'; fe.value = g.fecha; fe.disabled = !editables || g.quitar;
+            fe.addEventListener('change', function () { g.fecha = fe.value; g.dirty = true; cambioAsig(); });
+            c4.appendChild(fe);
+            if (editables) {
+                var q = el('button', 'p-1.5 rounded-lg ' + (g.quitar ? 'text-rose-600 bg-rose-50' : 'text-slate-400 hover:text-rose-600'));
+                q.type = 'button'; q.title = g.quitar ? 'Deshacer: no quitar' : 'Quitar estas líneas (se vuelve a poder asignar)';
+                q.setAttribute('aria-label', q.title);
+                var ic = document.createElement('i'); ic.setAttribute('data-lucide', g.quitar ? 'rotate-ccw' : 'trash-2'); ic.className = 'w-4 h-4'; q.appendChild(ic);
+                q.addEventListener('click', function () { g.quitar = !g.quitar; pintarAsignados(); cambioAsig(); });
+                c4.appendChild(q);
+            }
+            fila.appendChild(c4);
+            cont.appendChild(fila);
+        });
+        icono();
+    }
+
+    function cambioAsig() { resumen(); }
 
     /* ---------- Filas de ensayos ---------- */
 
@@ -172,7 +226,7 @@
     }
 
     function crearFila(f) {
-        var tr = el('div', 'px-4 py-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1.3fr)_150px] gap-x-4 gap-y-2 items-center');
+        var tr = el('div', 'px-4 py-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1.3fr)_190px] gap-x-4 gap-y-2 items-center');
         tr.dataset.id = f.id;
         estadoFila(tr, f);
 
@@ -288,10 +342,12 @@
         $('se-resumen').textContent = filas.length
             ? filas.length + ' ensayo' + (filas.length === 1 ? '' : 's') + ' por asignar · ' + listas.length + ' listo' + (listas.length === 1 ? '' : 's') +
               (muestras.length ? ' · ' + muestras.length + ' muestra' + (muestras.length === 1 ? '' : 's') + ' en la recepción' : '')
-            : 'Elige una cotización para ver sus ensayos.';
+            : asignados.length ? 'Todos los ensayos están asignados. Puedes corregir técnico o entrega abajo.' : 'Elige una cotización para ver sus ensayos.';
         var partes = [];
         if (lineas) partes.push(lineas + ' línea' + (lineas === 1 ? '' : 's') + ' de ensayo por guardar');
         if (parciales.length) partes.push(parciales.length + ' ensayo' + (parciales.length === 1 ? '' : 's') + ' incompleto' + (parciales.length === 1 ? '' : 's'));
+        var cambios = asignados.filter(function (g) { return g.dirty || g.quitar; }).length;
+        if (cambios) partes.push(cambios + ' ensayo' + (cambios === 1 ? '' : 's') + ' asignado' + (cambios === 1 ? '' : 's') + ' con cambios');
         var inc = incidencias.filter(function (i) { return (i.detalle || '').trim(); }).length;
         if (inc) partes.push(inc + ' incidencia' + (inc === 1 ? '' : 's'));
         var e = $('se-estado');
@@ -307,7 +363,7 @@
         cont.textContent = '';
         var visibles = filas.filter(function (f) { return completa(f) || parcial(f); });
         $('se-pagina-vacio').classList.toggle('hidden', visibles.length > 0);
-        $('se-abrir').disabled = !filas.length && !muestras.length;
+        $('se-abrir').disabled = !filas.length && !muestras.length && !asignados.length;
         $('se-pagina-resumen').textContent = !$('id_cotizacion').value ? 'Elige una cotización para asignar sus ensayos.'
             : (lineas ? lineas + ' línea' + (lineas === 1 ? '' : 's') + ' de ensayo por guardar' : 'Aún no asignaste ensayos') +
               (inc ? ' · ' + inc + ' incidencia' + (inc === 1 ? '' : 's') : '');
@@ -348,6 +404,19 @@
                 envio.appendChild(oculto('metodo[]', f.metodo));
                 envio.appendChild(oculto('tecnico_id[]', f.tecnico));
                 envio.appendChild(oculto('entrega_detalle[]', f.fecha));
+            });
+        });
+        asignados.forEach(function (g) {
+            g.lineas.forEach(function (l) {
+                if (l.bloqueado) return;
+                if (g.quitar) { envio.appendChild(oculto('quitar_detalle_id[]', l.detalle)); return; }
+                if (!g.dirty) return;
+                var tec = g.tecnico === 'varios' ? l.tecnico : g.tecnico;
+                var fec = g.fecha || l.fecha;
+                if (!tec || !fec) return;
+                envio.appendChild(oculto('edit_detalle_id[]', l.detalle));
+                envio.appendChild(oculto('edit_tecnico_id[]', tec));
+                envio.appendChild(oculto('edit_entrega[]', fec));
             });
         });
         incidencias.forEach(function (i) {
