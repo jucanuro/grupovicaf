@@ -1,0 +1,220 @@
+{% load static %}
+{# Estilos comunes de cotización y plantilla: textos resaltados, pasos en pills, modal del detalle y cabecera. #}
+<style>
+    /* Textos de condiciones del Word FOR-001: lo que va entre llaves dobles se ve resaltado (cotizacion-config.js). */
+    .cond-resaltado { position: relative; }
+    .cond-fondo, .cond-texto { margin: 0; border: 0; width: 100%; white-space: pre-wrap; word-wrap: break-word;
+                               overflow-wrap: break-word; font: inherit; letter-spacing: inherit; }
+    .cond-fondo { position: absolute; inset: 0; color: transparent; pointer-events: none; overflow: hidden; }
+    .cond-texto { position: relative; display: block; background: transparent; resize: none; outline: none; color: #334155; }
+    .cond-chico .cond-fondo, .cond-chico .cond-texto { font-size: 12px; line-height: 1.55; font-weight: 600; padding: 2px 0; }
+    .cond-grande .cond-fondo, .cond-grande .cond-texto { font-size: 13px; line-height: 1.6; font-weight: 500; padding: 12px 16px; }
+    .cond-mark { background: #fde047; color: transparent; border-radius: 3px; box-shadow: 0 0 0 1px #facc15; }
+</style>
+    <link rel="stylesheet" href="{% static 'css/cotizacion-config.css' %}?v=20261122d">
+    <style>
+        /* Pasos del asistente en forma de "pills" (mismo estilo en los 4 pasos). */
+        .cot-tabs{
+            display:flex;
+            gap:.5rem;
+            padding:.4rem;
+            border-radius:999px;
+            background:#f1f5f9;
+            border:1px solid #e2e8f0;
+            overflow-x:auto;
+            scrollbar-width:none;
+        }
+        .cot-tabs::-webkit-scrollbar{ display:none; }
+
+        .cot-tab-btn{
+            flex:1 1 0;
+            min-width:max-content;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            gap:.6rem;
+            padding:.6rem 1.1rem .6rem .6rem;
+            border:0;
+            border-radius:999px;
+            background:transparent;
+            color:#475569;
+            transition:background .2s ease, color .2s ease, box-shadow .2s ease;
+            text-align:left;
+            white-space:nowrap;
+        }
+        .cot-tab-btn:hover{ background:#e2e8f0; color:#0f172a; }
+        .cot-tab-btn:focus-visible{ outline:2px solid #6366f1; outline-offset:2px; }
+
+        .cot-tab-btn.active{
+            background:linear-gradient(135deg,#2563eb 0%,#4f46e5 100%);
+            color:#fff;
+            box-shadow:0 8px 22px rgba(79,70,229,.28);
+        }
+
+        .cot-tab-num{
+            width:1.9rem;
+            height:1.9rem;
+            min-width:1.9rem;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            border-radius:999px;
+            background:#fff;
+            color:#64748b;
+            border:1px solid #cbd5e1;
+            font-size:.75rem;
+            font-weight:900;
+        }
+        .cot-tab-btn.active .cot-tab-num{
+            background:rgba(255,255,255,.22);
+            border-color:rgba(255,255,255,.45);
+            color:#fff;
+        }
+
+        .cot-tab-text{ display:flex; flex-direction:column; line-height:1.1; }
+        .cot-tab-text strong{
+            font-size:.78rem;
+            font-weight:900;
+            text-transform:uppercase;
+            letter-spacing:.06em;
+        }
+        .cot-tab-text small{
+            font-size:.64rem;
+            font-weight:700;
+            margin-top:.15rem;
+            opacity:.75;
+        }
+        @media (max-width: 767px){
+            .cot-tab-text small{ display:none; }
+            .cot-tab-btn{ padding-right:.9rem; }
+        }
+
+        .cot-tab-panel{ display:none; }
+        .cot-tab-panel.active{ display:block; }
+        .cot-tab-panel-enter{ animation:cotTabFade .22s ease; }
+        @keyframes cotTabFade{
+            from{opacity:0; transform:translateY(6px);}
+            to{opacity:1; transform:translateY(0);}
+        }
+
+        /* Modal del detalle a pantalla completa: formulario a la izquierda, tabla a la derecha. */
+        .detalle-modal{ position:fixed; inset:0; z-index:1000; display:none; background:#f8fafc; }
+        .detalle-modal.abierto{ display:flex; flex-direction:column; animation:cotTabFade .18s ease; }
+        .detalle-modal__cuerpo{ flex:1; min-height:0; display:grid; grid-template-columns:clamp(380px,33%,640px) 1fr; }
+        .detalle-modal__form{ overflow-y:auto; background:#fff; border-right:1px solid #e2e8f0; padding:1.25rem 1.5rem; container-type:inline-size; }
+        /* Formulario: 2 columnas; categoría/sub-categoría y norma/método lado a lado cuando hay ancho. */
+        .detalle-modal #content-registro{ display:grid; grid-template-columns:1fr 1fr; gap:1rem .9rem; }
+        .detalle-modal #content-registro > *{ grid-column:span 2; }
+        .detalle-modal #content-registro > .campo-medio{ grid-column:span 1; }
+        @container (min-width: 520px){
+            .detalle-modal #content-registro > .campo-par{ grid-column:span 1; }
+        }
+        .detalle-modal #content-registro label{ font-size:11px; letter-spacing:.04em; }
+        .detalle-modal #content-registro .grid.grid-cols-12{ display:flex; gap:.5rem; }
+        .detalle-modal #content-registro .grid.grid-cols-12 > .col-span-10{ flex:1; min-width:0; }
+        .detalle-modal #content-registro .grid.grid-cols-12 > .col-span-2{ flex:0 0 44px; }
+        .detalle-modal #content-registro .grid.grid-cols-12 > .col-span-2 > div{ height:100%; min-height:42px; }
+        .detalle-modal #content-registro .campo-servicio{ padding:.9rem; border-radius:1rem; background:#eef2ff; border:1px solid #c7d2fe; }
+        .detalle-modal #content-registro .ts-control{ min-height:42px; font-size:.8rem; }
+        .detalle-modal #content-registro .campo-servicio .ts-control{ min-height:48px; font-size:.85rem; }
+        .detalle-modal #content-registro input[type=number]{ height:42px; font-size:.85rem; }
+        .detalle-modal .ts-dropdown{ font-size:.8rem; }
+        .detalle-modal .ts-dropdown .ts-dropdown-content{ max-height:min(55vh,460px); }
+        .detalle-modal .ts-dropdown .option{ padding:.55rem .8rem; line-height:1.3; border-bottom:1px solid #f1f5f9; }
+        .detalle-modal__tabla{ min-width:0; overflow:hidden; display:flex; flex-direction:column; padding:1rem 1.25rem; }
+        .detalle-modal__tabla #detalle-tabla{ display:block; flex:1; max-height:none; background:#fff;
+            border:1px solid #e2e8f0; border-radius:1rem; }
+        .detalle-modal__tabla #detalle-tabla thead th{ padding-top:.75rem; }
+                .detalle-modal #cotizacion-detalles tr.editando td{ background:#fff7ed !important; }
+        /* El formulario es angosto: el servicio elegido va en una sola línea, con «…». */
+        .detalle-modal .ts-wrapper.single .ts-control{ flex-wrap:nowrap; overflow:hidden; }
+        .detalle-modal .ts-wrapper.single .ts-control .item{ display:block; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        @media (max-width: 767px){
+            .detalle-modal__cuerpo{ display:block; overflow-y:auto; }
+            .detalle-modal__form{ border-right:0; border-bottom:1px solid #e2e8f0; overflow:visible; padding:1rem; }
+            .detalle-modal__tabla{ overflow:visible; padding:1rem; }
+            .detalle-modal__tabla #detalle-tabla{ max-height:none; }
+        }
+    </style>
+    <style>
+        .command-header--cotizacion {
+            margin-top: -0.55rem;
+            margin-bottom: 1rem;
+        }
+
+        .command-header--cotizacion .command-header__toolbar {
+            position: relative;
+            top: -0.5rem;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: -0.15rem;
+            z-index: 95;
+            pointer-events: auto;
+        }
+
+        .command-header--cotizacion .command-header__trigger {
+            position: relative;
+            top: 0;
+            left: 0;
+        }
+
+        .command-header--cotizacion .command-header__panel {
+            top: calc(100% - 1.15rem);
+            left: 0;
+            width: fit-content;
+            max-width: min(100%, 980px);
+        }
+
+        .command-header--cotizacion .command-header__card {
+            width: fit-content;
+            max-width: min(100vw - 3rem, 980px);
+        }
+
+        @media (max-width: 1024px) {
+            .command-header--cotizacion {
+                margin-top: -0.4rem;
+            }
+
+            .command-header--cotizacion .command-header__toolbar {
+                top: -0.95rem;
+            }
+
+            .command-header--cotizacion .command-header__panel,
+            .command-header--cotizacion .command-header__card {
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .command-header--cotizacion .command-header__panel {
+                top: calc(100% - 0.95rem);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .command-header--cotizacion {
+                margin-top: -0.0rem;
+                margin-bottom: 0.85rem;
+            }
+
+            .command-header--cotizacion .command-header__toolbar {
+                top: -0.8rem;
+                margin-bottom: 0.1rem;
+                gap: 0.75rem;
+            }
+
+            .command-header--cotizacion .command-header__panel {
+                top: calc(100% - 0.8rem);
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .command-header--cotizacion .command-header__card {
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+</style>

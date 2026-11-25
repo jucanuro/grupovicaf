@@ -141,6 +141,15 @@ cambia queda en la trazabilidad. Sin señal reintenta solo. Mis ensayos marca
 «En curso · Continuar». Las pruebas se corren con
 `DJANGO_SETTINGS_MODULE=grupovicaf.settings.test_local CORREO_ENVIO=simulado`.
 
+**Plantillas de cotización (HU-LIMS-28).** La plantilla y la cotización son la misma
+pantalla: comparten `static/js/cotizacion-config.js` (la plantilla lo configura
+con `window.CotizacionConfig.esPlantilla` y `condicionesJsonUrl`), los estilos
+(`servicios/includes/_cot_estilos.html`) y el modal del detalle
+(`servicios/includes/_detalle_modal.html`). Se guarda por fetch (JSON) y la norma
+y el método de cada ítem van por código. Un cambio en esa pantalla se hace una
+vez y vale para las dos. `static/js/plantilla-config.js` y `acordeon_plantilla.js`
+quedaron sin uso.
+
 **Borrador local (HU-LIMS-27).** Cotización, recepción de muestras, solicitud de
 ensayo y datos de probetas guardan un borrador en el navegador
 (`static/js/borrador_local.js`, `localStorage` por usuario y pantalla, 7 días);

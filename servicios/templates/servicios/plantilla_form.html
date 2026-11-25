@@ -2,221 +2,44 @@
 {% load static %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/cotizacion-config.css' %}">
-    <style>
-        .cot-tab-btn{
-            display:flex;
-            align-items:center;
-            gap:.9rem;
-            width:100%;
-            padding:.95rem 1rem;
-            border:1px solid #e2e8f0;
-            border-radius:1rem;
-            background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
-            transition:all .25s ease;
-            text-align:left;
-        }
-
-        .cot-tab-btn:hover{
-            border-color:#6ee7b7;
-            box-shadow:0 8px 24px rgba(16,185,129,.10);
-            transform:translateY(-1px);
-        }
-
-        .cot-tab-btn.active{
-            background:linear-gradient(135deg,#ecfdf5 0%,#ffffff 100%);
-            border-color:#10b981;
-            box-shadow:0 10px 28px rgba(16,185,129,.12);
-        }
-
-        .cot-tab-step{
-            width:2rem;
-            height:2rem;
-            min-width:2rem;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            border-radius:.8rem;
-            background:#0f172a;
-            color:white;
-            font-size:.72rem;
-            font-weight:900;
-            letter-spacing:.08em;
-        }
-
-        .cot-tab-btn.active .cot-tab-step{
-            background:#059669;
-        }
-
-        .cot-tab-text{
-            display:flex;
-            flex-direction:column;
-            line-height:1.1;
-        }
-
-        .cot-tab-text strong{
-            font-size:.78rem;
-            font-weight:900;
-            text-transform:uppercase;
-            color:#0f172a;
-            letter-spacing:.08em;
-        }
-
-        .cot-tab-text small{
-            font-size:.68rem;
-            font-weight:700;
-            color:#64748b;
-            margin-top:.2rem;
-            text-transform:uppercase;
-            letter-spacing:.08em;
-        }
-
-        .cot-tab-panel{
-            display:none;
-        }
-
-        .cot-tab-panel.active{
-            display:block;
-        }
-
-        .cot-tab-panel-enter{
-            animation:cotTabFade .22s ease;
-        }
-
-        .cot-tab-btn{
-            position:relative;
-            display:flex;
-            align-items:center;
-            gap:1rem;
-            width:100%;
-            padding:1rem 1.1rem;
-            border:1px solid #e2e8f0;
-            border-radius:1.25rem;
-            background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
-            transition:all .25s ease;
-            text-align:left;
-            overflow:hidden;
-        }
-
-        .cot-tab-btn:hover{
-            border-color:#93c5fd;
-            box-shadow:0 14px 35px rgba(37,99,235,.10);
-            transform:translateY(-1px);
-        }
-
-        .cot-tab-btn.active{
-            background:linear-gradient(135deg,#eff6ff 0%,#ffffff 55%,#ecfeff 100%);
-            border-color:#2563eb;
-            box-shadow:0 16px 40px rgba(37,99,235,.14);
-        }
-
-        .cot-tab-btn.active::after{
-            content:'';
-            position:absolute;
-            left:1rem;
-            right:1rem;
-            bottom:0;
-            height:3px;
-            border-radius:999px;
-            background:#2563eb;
-        }
-
-        .cot-tab-step{
-            width:2.75rem;
-            height:2.75rem;
-            min-width:2.75rem;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            border-radius:1rem;
-            background:#0f172a;
-            color:white;
-            box-shadow:0 10px 25px rgba(15,23,42,.16);
-        }
-
-        .cot-tab-btn.active .cot-tab-step{
-            background:#2563eb;
-            box-shadow:0 12px 28px rgba(37,99,235,.25);
-        }
-
-        .cot-tab-text{
-            display:flex;
-            flex-direction:column;
-            line-height:1.12;
-            min-width:0;
-        }
-
-        .cot-tab-text strong{
-            font-size:.82rem;
-            font-weight:900;
-            text-transform:uppercase;
-            color:#0f172a;
-            letter-spacing:.08em;
-        }
-
-        .cot-tab-text small{
-            font-size:.68rem;
-            font-weight:800;
-            color:#64748b;
-            margin-top:.25rem;
-            text-transform:uppercase;
-            letter-spacing:.07em;
-        }
-
-        @keyframes cotTabFade{
-            from{opacity:0; transform:translateY(6px);}
-            to{opacity:1; transform:translateY(0);}
-        }
-    </style>
+    {% include 'servicios/includes/_cot_estilos.html' %}
 {% endblock %}
 
 {% block content %}
 <div class="bg-vicaf-engine"></div>
-<div class="max-w-full mx-auto px-4 relative z-10 space-y-6 min-h-screen overflow-y-auto">
+<div class="max-w-full mx-auto py-4 px-4 relative z-10 space-y-6 min-h-screen overflow-y-auto">
 
-    <div class="command-header hidden" data-command-header>
+    <div class="command-header command-header--cotizacion" data-command-header>
         <div class="command-header__backdrop" data-command-backdrop></div>
 
         <div class="command-header__toolbar">
-            <button type="button"
-                    class="command-header__trigger"
-                    data-command-toggle
-                    aria-label="Abrir panel de plantilla">
+            <button type="button" class="command-header__trigger" data-command-toggle aria-label="Abrir panel de plantilla">
                 <i data-lucide="panel-top-open" class="w-4 h-4"></i>
                 <span class="command-header__trigger-label">Panel</span>
             </button>
 
-            <a href="{% url 'servicios:lista_plantillas' %}"
-            class="command-header__action command-header__action--secondary">
+            <a href="{% url 'servicios:lista_plantillas' %}" class="command-header__action command-header__action--secondary">
                 <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
                 Volver a librería
             </a>
         </div>
 
         <div class="command-header__panel" data-command-panel>
-            <div class="command-header__card relative px-5 py-4 sm:px-6 sm:py-4">
+            <div class="command-header__card relative px-5 py-4 sm:px-6 sm:py-5">
                 <div class="command-header__glow"></div>
-
                 <div class="relative flex items-start justify-between gap-4">
                     <div class="flex items-center gap-4 min-w-0">
-                        <div class="w-11 h-11 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-md flex-shrink-0">
+                        <div class="w-11 h-11 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-md flex-shrink-0">
                             <i data-lucide="layout-template" class="w-5 h-5"></i>
                         </div>
-
                         <div class="command-header__title-wrap">
                             <h1 class="command-header__title truncate uppercase">
-                                {% if plantilla.pk %}Editar Plantilla Maestro{% else %}Nueva Plantilla Maestro{% endif %}
+                                {% if plantilla.pk %}Editar plantilla de cotización{% else %}Nueva plantilla de cotización{% endif %}
                             </h1>
-                            <p class="command-header__subtitle truncate">
-                                VICAF PRO V2.0 // Biblioteca de Modelos
-                            </p>
+                            <p class="command-header__subtitle truncate">Modelo para armar cotizaciones más rápido</p>
                         </div>
                     </div>
-
-                    <button type="button"
-                            class="command-header__close"
-                            data-command-close
-                            aria-label="Cerrar panel">
+                    <button type="button" class="command-header__close" data-command-close aria-label="Cerrar panel">
                         <i data-lucide="x" class="w-4 h-4"></i>
                     </button>
                 </div>
@@ -224,68 +47,36 @@
         </div>
     </div>
 
-    {% if error %}
-    <div class="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-semibold">
-        {{ error }}
-    </div>
-    {% endif %}
+    <nav class="cot-tabs" role="tablist" aria-label="Pasos de la plantilla">
+        <button type="button" class="cot-tab-btn active" role="tab" aria-selected="true" data-tab="general" onclick="switchPlantillaTab('general')">
+            <span class="cot-tab-num">1</span>
+            <span class="cot-tab-text"><strong>General</strong><small>Nombre, pago y plazo</small></span>
+        </button>
+        <button type="button" class="cot-tab-btn" role="tab" aria-selected="false" data-tab="servicios" onclick="switchPlantillaTab('servicios')">
+            <span class="cot-tab-num">2</span>
+            <span class="cot-tab-text"><strong>Servicios</strong><small>Ensayos y precios</small></span>
+        </button>
+        <button type="button" class="cot-tab-btn" role="tab" aria-selected="false" data-tab="contenido" onclick="switchPlantillaTab('contenido')">
+            <span class="cot-tab-num">3</span>
+            <span class="cot-tab-text"><strong>Contenido</strong><small>Textos de oferta</small></span>
+        </button>
+    </nav>
 
-    <div class="bg-white/90 backdrop-blur border border-slate-200 rounded-[1.5rem] shadow-sm p-3">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-
-            <button type="button"
-                    class="cot-tab-btn active group"
-                    data-tab="general"
-                    onclick="switchPlantillaTab('general')">
-                <span class="cot-tab-step">
-                    <i data-lucide="layout-template" class="w-4 h-4"></i>
-                </span>
-                <span class="cot-tab-text">
-                    <span class="text-[10px] font-black text-emerald-600 uppercase tracking-[0.18em]">Paso 01</span>
-                    <strong>General</strong>
-                    <small>Datos base</small>
-                </span>
-            </button>
-
-            <button type="button"
-                    class="cot-tab-btn group"
-                    data-tab="servicios"
-                    onclick="switchPlantillaTab('servicios')">
-                <span class="cot-tab-step">
-                    <i data-lucide="clipboard-list" class="w-4 h-4"></i>
-                </span>
-                <span class="cot-tab-text">
-                    <span class="text-[10px] font-black text-emerald-600 uppercase tracking-[0.18em]">Paso 02</span>
-                    <strong>Servicios</strong>
-                    <small>Estructura maestra</small>
-                </span>
-            </button>
-
-            <button type="button"
-                    class="cot-tab-btn group"
-                    data-tab="condiciones"
-                    onclick="switchPlantillaTab('condiciones')">
-                <span class="cot-tab-step">
-                    <i data-lucide="file-check-2" class="w-4 h-4"></i>
-                </span>
-                <span class="cot-tab-text">
-                    <span class="text-[10px] font-black text-emerald-600 uppercase tracking-[0.18em]">Paso 03</span>
-                    <strong>Contenido</strong>
-                    <small>Textos de plantilla</small>
-                </span>
-            </button>
-
-        </div>
+    <div id="cotizacion-error-banner"
+         class="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3 text-rose-700 text-xs font-bold {% if not error %}hidden{% endif %}">
+        <i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0"></i>
+        <span id="cotizacion-error-text">{{ error|default:'' }}</span>
     </div>
 
-    <form method="post" id="plantilla-form" novalidate>
+    {# Mismo formulario y mismos ids que la cotización: lo maneja cotizacion-config.js (guardado por fetch, sin perder lo escrito si hay un error). #}
+    <form method="post" id="cotizacion-form" data-entidad="plantilla" novalidate>
         {% csrf_token %}
 
         <div id="tab-panel-general" class="cot-tab-panel active cot-tab-panel-enter">
             <div class="bg-white border border-slate-200 rounded-2xl shadow-sm mb-6 transition-all duration-300 relative">
                 <div class="flex items-center justify-between px-8 py-4 bg-slate-50/50 border-b border-slate-100 rounded-t-2xl">
                     <div class="flex items-center gap-2">
-                        <i data-lucide="file-stack" class="w-4 h-4 text-emerald-500"></i>
+                        <i data-lucide="file-stack" class="w-4 h-4 text-blue-500"></i>
                         <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Identificación de la plantilla</h3>
                     </div>
                 </div>
@@ -296,7 +87,7 @@
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombre de Plantilla <span class="text-red-500">*</span></label>
                             <input type="text" name="nombre" id="id_nombre" required
                                 data-validar data-label="Nombre de plantilla" data-min="2" maxlength="200"
-                                class="js-input w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                                class="js-input w-full px-4 py-2.5 bg-white border border-blue-100 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                                 value="{{ plantilla.nombre_plantilla|default:'' }}">
                             <div class="campo-estado" data-for="nombre">
                                 <span class="campo-msg" data-msg></span>
@@ -328,7 +119,7 @@
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Asunto referencial</label>
                             <input type="text" name="asunto_servicio" id="id_asunto_servicio"
                                 data-validar data-label="Asunto referencial" maxlength="255"
-                                class="js-input w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                                class="js-input w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                                 value="{{ plantilla.asunto_referencial|default:'COTIZACIÓN DE SERVICIOS' }}">
                             <div class="campo-estado" data-for="asunto_servicio">
                                 <span class="campo-msg" data-msg></span>
@@ -358,7 +149,7 @@
                     <div class="mt-8 flex justify-end">
                         <button type="button"
                                 onclick="switchPlantillaTab('servicios')"
-                                class="bg-slate-900 hover:bg-emerald-600 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg transition-all flex items-center gap-3">
+                                class="bg-slate-900 hover:bg-blue-600 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg transition-all flex items-center gap-3">
                             <i data-lucide="arrow-right" class="w-4 h-4"></i>
                             Continuar a servicios
                         </button>
@@ -368,99 +159,55 @@
         </div>
 
         <div id="tab-panel-servicios" class="cot-tab-panel">
-            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 mb-6">
-                <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-3">
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 sm:p-8 mb-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 border-b border-slate-100 pb-3">
                     <div class="flex items-center gap-2">
-                        <i data-lucide="list-plus" class="w-4 h-4 text-emerald-500"></i>
-                        <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Detalle maestro de servicios</h3>
+                        <i data-lucide="list-plus" class="w-4 h-4 text-blue-500"></i>
+                        <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Detalle de la plantilla <span class="text-red-500">*</span></h3>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-[9px] font-bold text-slate-400 uppercase">Los ítems y precios sugeridos pasan a las cotizaciones que usen esta plantilla</span>
+                        <button type="button" id="btn-agregar-detalle-barra" data-abrir-detalle onclick="abrirDetalle()"
+                                class="hidden bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black py-2.5 px-5 rounded-full text-[11px] uppercase tracking-widest shadow-md transition-all items-center gap-2 whitespace-nowrap">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            Agregar detalle
+                        </button>
                     </div>
                 </div>
 
-                <div class="bg-white border border-slate-200 rounded-2xl shadow-sm mb-4 relative">
-                    <div onclick="toggleRegistroPanel()" class="flex items-center justify-between px-6 py-3 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors border-b border-slate-100 rounded-t-2xl">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="search-code" class="w-4 h-4 text-emerald-500"></i>
-                            <h3 class="text-[11px] font-black text-slate-500 uppercase tracking-widest">Panel de selección de servicios</h3>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-[9px] font-bold text-slate-400 uppercase">Configurar servicio</span>
-                            <i id="icon-registro" data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform duration-300"></i>
-                        </div>
+                <div id="detalle-vacio" class="flex flex-col items-center justify-center text-center py-14 px-4 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/60">
+                    <div class="w-14 h-14 rounded-2xl bg-white border border-slate-200 text-indigo-500 flex items-center justify-center shadow-sm mb-4">
+                        <i data-lucide="clipboard-list" class="w-6 h-6"></i>
                     </div>
-
-                    <div id="content-registro" class="p-6 transition-all duration-300 relative z-50">
-                        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-4 bg-slate-50/50 p-6 rounded-2xl border border-dashed border-slate-200">
-
-                            <div class="md:col-span-6">
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cabecera de Grupo (Categoría)</label>
-                                <select id="reg_categoria" class="w-full text-[10px] border-slate-200 rounded-lg bg-white h-[38px] font-bold text-slate-700">
-                                    <option value="">-- SELECCIONAR CATEGORÍA --</option>
-                                    {% for cat in servicio_grupos %}
-                                        <option value="{{ cat.nombre }}">{{ cat.nombre }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <div class="md:col-span-6">
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sub-Categoría</label>
-                                <select id="reg_subcategoria" class="w-full text-[10px] border-slate-200 rounded-lg bg-white h-[38px] font-bold text-slate-700">
-                                    <option value="">-- SELECCIONAR SUB-CATEGORÍA --</option>
-                                    {% for sub in subcategorias %}
-                                        <option value="{{ sub.nombre }}">{{ sub.nombre }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <div class="md:col-span-4 relative">
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Buscar Servicio (Ensayo)</label>
-                                <select id="reg_servicio" class="vicaf-search-select"></select>
-                            </div>
-
-                            <div class="md:col-span-4">
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Referencia Norma/Método</label>
-                                <div class="flex gap-2">
-                                    <div id="reg_norma_txt" class="flex-1 text-[10px] p-2.5 bg-white border border-slate-200 rounded-lg text-slate-400 italic">Norma</div>
-                                    <div id="reg_metodo_txt" class="flex-1 text-[10px] p-2.5 bg-white border border-slate-200 rounded-lg text-slate-400 italic">Método</div>
-                                </div>
-                            </div>
-
-                            <div class="md:col-span-2">
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cant. Sugerida</label>
-                                <input type="number" id="reg_cantidad" value="1" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
-                            </div>
-
-                            <div class="md:col-span-2">
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">P. Sugerido (S/)</label>
-                                <input type="number" step="0.01" id="reg_precio" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-emerald-600">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex justify-end mb-8">
-                    <button type="button" onclick="addItem()" class="group bg-slate-900 hover:bg-emerald-600 text-white font-black py-3 px-8 rounded-xl text-[11px] uppercase tracking-widest shadow-lg transition-all flex items-center gap-3">
-                        <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-300 group-hover:text-white"></i>
-                        Agregar ítem al detalle
+                    <p class="text-sm font-extrabold text-slate-700">Aún no hay ensayos en la plantilla</p>
+                    <p class="text-xs text-slate-500 font-medium mt-1 mb-6 max-w-sm">Agrega las categorías, sub-categorías y servicios que se cargarán en cada cotización.</p>
+                    <button type="button" id="btn-agregar-detalle" data-abrir-detalle onclick="abrirDetalle()"
+                            class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black py-4 px-10 rounded-full text-xs uppercase tracking-widest shadow-lg shadow-indigo-200 transition-all flex items-center gap-3">
+                        <i data-lucide="plus" class="w-5 h-5"></i>
+                        Agregar detalle
                     </button>
                 </div>
 
-                <div class="overflow-x-auto overflow-y-auto max-h-[400px] min-h-[200px] scrollbar-thin scrollbar-thumb-slate-200">
+                <div id="detalle-tabla-ancla" hidden></div>
+                <div id="detalle-tabla" class="hidden overflow-x-auto overflow-y-auto max-h-[480px] scrollbar-thin scrollbar-thumb-slate-200">
                     <table class="w-full border-collapse">
                         <thead class="sticky top-0 z-10 bg-white">
                             <tr class="text-[10px] text-slate-400 uppercase tracking-widest font-black shadow-[0_1px_0_0_rgba(226,232,240,1)]">
                                 <th class="pb-4 pt-2 pl-4 text-left w-12 bg-white">#</th>
                                 <th class="pb-4 pt-2 text-left bg-white">Descripción del Ensayo</th>
-                                <th class="pb-4 pt-2 text-center bg-white">Norma/Método</th>
+                                <th class="pb-4 pt-2 text-center hidden md:table-cell bg-white">Norma/Método</th>
                                 <th class="pb-4 pt-2 text-center w-20 bg-white">Cant.</th>
-                                <th class="pb-4 pt-2 text-center w-20 bg-white">Und.</th>
+                                <th class="pb-4 pt-2 text-center hidden md:table-cell w-20 bg-white">Und.</th>
                                 <th class="pb-4 pt-2 text-right w-28 bg-white">P. Unitario</th>
                                 <th class="pb-4 pt-2 text-right w-28 pr-4 bg-white">P. Parcial</th>
-                                <th class="pb-4 pt-2 text-center w-12 bg-white"></th>
+                                <th class="pb-4 pt-2 text-center w-40 bg-white"><span class="sr-only">Acciones</span></th>
                             </tr>
                         </thead>
-                        <tbody id="cotizacion-detalles" class="divide-y divide-slate-100"></tbody>
+                        <tbody id="cotizacion-detalles" class="divide-y divide-slate-100">
+                        </tbody>
                     </table>
                 </div>
+
 
                 <div class="mt-8 flex flex-col sm:flex-row justify-between gap-3">
                     <button type="button"
@@ -471,18 +218,17 @@
                     </button>
 
                     <button type="button"
-                            onclick="switchPlantillaTab('condiciones')"
-                            class="bg-slate-900 hover:bg-emerald-600 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg transition-all flex items-center justify-center gap-3">
+                            onclick="switchPlantillaTab('contenido')"
+                            class="bg-slate-900 hover:bg-blue-600 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg transition-all flex items-center justify-center gap-3">
                         <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                        Continuar a condiciones
+                        Continuar a contenido
                     </button>
                 </div>
             </div>
         </div>
 
-        <div id="tab-panel-condiciones" class="cot-tab-panel">
+        <div id="tab-panel-contenido" class="cot-tab-panel">
             <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 mb-6">
-
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-slate-100 pb-5 mb-6">
                     <div class="flex items-start gap-4">
                         <div class="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-200">
@@ -494,7 +240,7 @@
                                 Contenido editable de la plantilla
                             </h3>
                             <p class="text-xs text-slate-500 font-medium mt-1">
-                                Configura los textos base que heredarán las futuras cotizaciones.
+                                Configura los textos base que heredarán las cotizaciones generadas desde esta plantilla.
                             </p>
                         </div>
                     </div>
@@ -505,36 +251,7 @@
                     </span>
                 </div>
 
-                <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 mb-6">
-                    <div class="xl:col-span-7">
-                        <div class="rounded-2xl border border-emerald-100 bg-emerald-50 px-5 py-4">
-                            <p class="text-[10px] text-emerald-700 font-black uppercase mb-1">
-                                Plantilla maestra
-                            </p>
-                            <p class="text-xs text-slate-600 font-semibold leading-relaxed">
-                                Los textos seleccionados aquí quedarán como base para nuevas cotizaciones generadas desde esta plantilla.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="xl:col-span-5 space-y-3 bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                        <div class="flex justify-between items-center text-xs">
-                            <span class="text-slate-500 font-bold uppercase">Subtotal Referencial</span>
-                            <span class="text-slate-700 font-mono-tech font-bold" id="subtotal_cotizacion">0.00</span>
-                        </div>
-                        <div class="flex justify-between items-center text-xs">
-                            <span class="text-slate-500 font-bold uppercase">IGV (18%)</span>
-                            <span class="text-slate-700 font-mono-tech font-bold" id="igv_cotizacion">0.00</span>
-                        </div>
-                        <div class="pt-3 border-t border-slate-200 flex justify-between items-center">
-                            <span class="text-emerald-600 font-black text-[11px] uppercase">Monto Total S/</span>
-                            <span class="text-emerald-600 font-mono-tech font-black text-xl" id="total_final_cotizacion">0.00</span>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-cyan-50 overflow-hidden">
-
                     <div class="px-6 py-4 border-b border-emerald-100 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
                         <div class="flex flex-wrap gap-2">
                             <button type="button"
@@ -565,20 +282,25 @@
 
                     <div class="grid grid-cols-1 xl:grid-cols-12 min-h-[480px]">
 
-                        <div class="xl:col-span-4 border-r border-slate-100 bg-slate-50/60 p-4 space-y-3">
-                            <div class="text-xs font-black text-slate-400 uppercase tracking-widest px-2 mb-2">
+                        <!-- 🧭 LADO IZQUIERDO (SECCIONES) -->
+                        <div class="xl:col-span-4 border-r border-slate-100 bg-slate-50/60 p-4 space-y-3"
+                            id="condiciones-sidebar">
+
+                            <!-- se llena dinámicamente -->
+                            <div class="text-xs font-bold text-slate-400 uppercase tracking-widest px-2 mb-2">
                                 Secciones
                             </div>
 
                             <div id="condiciones-sidebar-list" class="space-y-2">
-                                <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-400">
-                                    Cargando secciones...
-                                </div>
+                                <!-- JS render -->
                             </div>
+
                         </div>
 
+                        <!-- ✍️ LADO DERECHO (EDITOR) -->
                         <div class="xl:col-span-8 bg-white p-6">
-                            <div class="flex items-center justify-between gap-4 mb-4">
+
+                            <div class="flex items-center justify-between mb-4">
                                 <div>
                                     <h4 id="editor-title"
                                         class="text-sm font-extrabold text-slate-800 uppercase tracking-wide">
@@ -600,6 +322,7 @@
                                     No hay contenido seleccionado
                                 </div>
                             </div>
+
                         </div>
 
                     </div>
@@ -622,9 +345,10 @@
                     </button>
 
                     <button type="submit"
-                            class="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-200 transition-all flex items-center justify-center gap-3">
+                            form="cotizacion-form"
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-200 transition-all flex items-center justify-center gap-3">
                         <i data-lucide="save" class="w-5 h-5"></i>
-                        Guardar plantilla maestra
+                        Guardar plantilla
                     </button>
                 </div>
             </div>
@@ -633,6 +357,8 @@
         <input type="hidden" name="detalles_json" id="detalles_json">
         <input type="hidden" name="condiciones_json" id="condiciones_json">
     </form>
+
+    {% include 'servicios/includes/_detalle_modal.html' with titulo_modal='Detalle de la plantilla' %}
 </div>
 {% endblock %}
 
@@ -647,6 +373,10 @@
     [{% for g in servicio_grupos %}{"pk":"{{ g.pk }}","nombre":"{{ g.nombre }}"}{% if not forloop.last %},{% endif %}{% endfor %}]
 </script>
 
+<script id="subcategorias-data" type="application/json">
+    [{% for s in subcategorias %}{"pk":"{{ s.pk }}","nombre":"{{ s.nombre }}"}{% if not forloop.last %},{% endif %}{% endfor %}]
+</script>
+
 <script id="initial-detalles-json" type="application/json">
     {% if detalles_cotizacion_json %}{{ detalles_cotizacion_json|safe }}{% else %}[]{% endif %}
 </script>
@@ -655,52 +385,69 @@
     {% if condiciones_plantilla_json %}{{ condiciones_plantilla_json|safe }}{% else %}[]{% endif %}
 </script>
 
+<script src="https://unpkg.com/lucide@latest"></script>
 <script>
     window.CotizacionConfig = {
+        esPlantilla: true,
         urlCrearCategoria: "{% url 'servicios:crear_categoria_ajax' %}",
         urlCrearSubcategoria: "{% url 'servicios:crear_subcategoria_ajax' %}",
+        urlCrearServicio: "{% url 'servicios:crear_servicio_ajax' %}",
         plantillaId: {% if plantilla.pk %}{{ plantilla.pk }}{% else %}null{% endif %},
-        condicionesJsonUrl: {% if plantilla.pk %}"{% url 'servicios:condiciones_plantilla_json' plantilla.pk %}"{% else %}null{% endif %},
-        condicionesGuardarUrl: {% if plantilla.pk %}"{% url 'servicios:guardar_condiciones_plantilla_json' plantilla.pk %}"{% else %}null{% endif %},
-        condicionesResumenUrl: {% if plantilla.pk %}"{% url 'servicios:resumen_condiciones_plantilla_json' plantilla.pk %}"{% else %}null{% endif %}
+        condicionesJsonUrl: {% if plantilla.pk %}"{% url 'servicios:condiciones_plantilla_json' plantilla.pk %}"{% else %}null{% endif %}
     };
 
     function switchPlantillaTab(tabName) {
         document.querySelectorAll('.cot-tab-btn').forEach(btn => {
             btn.classList.remove('active');
+            btn.setAttribute('aria-selected', 'false');
         });
-
         document.querySelectorAll('.cot-tab-panel').forEach(panel => {
             panel.classList.remove('active', 'cot-tab-panel-enter');
         });
 
         const activeBtn = document.querySelector(`.cot-tab-btn[data-tab="${tabName}"]`);
         const activePanel = document.getElementById(`tab-panel-${tabName}`);
-
-        if (activeBtn) activeBtn.classList.add('active');
-        if (activePanel) activePanel.classList.add('active', 'cot-tab-panel-enter');
-
-        if (window.lucide) {
-            lucide.createIcons();
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+            activeBtn.setAttribute('aria-selected', 'true');
+            activeBtn.scrollIntoView({ block: 'nearest', inline: 'nearest' });
         }
+        if (activePanel) activePanel.classList.add('active', 'cot-tab-panel-enter');
+        if (window.lucide) lucide.createIcons();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
+    // «Agregar detalle»: lo abre cotizacion-config.js.
+    function abrirDetalle() {
+        if (typeof window.abrirDetalleNuevo === 'function') {
+            window.abrirDetalleNuevo();
+            return;
+        }
+        var banner = document.getElementById('cotizacion-error-banner');
+        var texto = document.getElementById('cotizacion-error-text');
+        if (texto) texto.textContent = 'No se pudo abrir el detalle: el navegador tiene una versión anterior de la página. Recárgala con Ctrl + F5.';
+        if (banner) banner.classList.remove('hidden');
     }
 
     // form_validador.js frena el envío si un campo es inválido; si está en otra
     // pestaña, cambiar a ella para que el foco caiga sobre algo visible.
-    document.getElementById('plantilla-form').addEventListener('validador:rechazado', function (e) {
+    document.getElementById('cotizacion-form').addEventListener('validador:rechazado', function (e) {
         var panel = e.detail.campo.closest('.cot-tab-panel');
         if (panel && !panel.classList.contains('active')) {
             switchPlantillaTab(panel.id.replace('tab-panel-', ''));
         }
     });
 </script>
-
-<script src="https://unpkg.com/lucide@latest"></script>
-<script src="{% static 'js/acordeon_plantilla.js' %}"></script>
-<script src="{% static 'js/cotizacion-config.js' %}"></script>
+<script>
+    // Borrador local (HU-LIMS-27): se restaura antes de que cotizacion-config.js arme sus tablas.
+    if (window.BorradorLocal) {
+        BorradorLocal.iniciar({
+            form: document.getElementById('cotizacion-form'),
+            temprano: true,
+            ajax: true,
+            scripts: { 'initial-detalles-json': 'detalles_json' },
+        });
+    }
+</script>
+<script src="{% static 'js/cotizacion-config.js' %}?v=20261125d"></script>
 {% endblock %}

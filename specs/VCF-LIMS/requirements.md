@@ -290,6 +290,27 @@ equipo, para no volver a capturarlo*.
 | REQ-LIMS-117 | HU-LIMS-27 | EL SISTEMA DEBE descartar los borradores de más de 7 días y no ofrecer uno que sea igual a lo que ya muestra la pantalla. | sí (navegador) | [Propuesto] |
 
 
+## 2j. Plantillas de cotización con el diseño de la cotización (v11)
+
+Origen: pedido del Gerente del 2026-11-25: las plantillas tienen lo mismo que las
+cotizaciones pero con un diseño antiguo; deben quedar como la cotización, sobre
+todo en servicios, detalle y contenido. Pantallas: `/servicios/plantillas/crear/`
+y `/servicios/plantillas/editar/<id>/`. HU-LIMS-28: *como comercial quiero armar
+una plantilla con la misma pantalla que una cotización, para no aprender dos
+formas de hacer lo mismo*. La plantilla ya compartía `cotizacion-config.js`; lo
+que cambia es la pantalla (estilos y modal comunes en `servicios/includes/`).
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-118 | HU-LIMS-28 | EL SISTEMA DEBE mostrar los pasos de la plantilla (General, Servicios, Contenido) como pills redondeadas con su número, igual que la cotización. | sí (unitaria + revisión visual) | [Decisión Gerente] |
+| REQ-LIMS-119 | HU-LIMS-28 | MIENTRAS el detalle de la plantilla no tenga ítems, EL SISTEMA DEBE mostrar en el paso Servicios un estado vacío con un solo botón «Agregar detalle»; CUANDO se pulse, EL SISTEMA DEBE abrir el mismo modal a pantalla completa de la cotización (formulario a la izquierda, tabla a la derecha). | sí (navegador) | [Decisión Gerente] |
+| REQ-LIMS-120 | HU-LIMS-28 | EL SISTEMA DEBE permitir en la plantilla agregar, editar, subir, bajar y quitar categorías, sub-categorías y servicios con los mismos controles que la cotización, incluida la norma de ensayo. | sí (navegador) | [Decisión Gerente] |
+| REQ-LIMS-121 | HU-LIMS-28 | EL SISTEMA DEBE mostrar el paso Contenido con el mismo editor que la cotización (secciones, grupos, datos a completar resaltados en amarillo). | sí (navegador) | [Decisión Gerente] |
+| REQ-LIMS-122 | HU-LIMS-28 | CUANDO se guarde la plantilla, EL SISTEMA DEBE enviarla por fetch y, SI hay un error, ENTONCES EL SISTEMA DEBE avisarlo en la misma pantalla sin perder el detalle ni el contenido escritos. | sí (unitaria + navegador) | [Propuesto] |
+| REQ-LIMS-123 | HU-LIMS-28 | EL SISTEMA DEBE guardar la norma y el método de cada ítem de la plantilla por su código, y mostrar al editar las plantillas guardadas antes (norma y método juntos) sin repetir el método. | sí (unitaria) | [Propuesto] |
+| REQ-LIMS-124 | HU-LIMS-28 | EL SISTEMA DEBE ofrecer en la plantilla el borrador local de HU-LIMS-27. | sí (unitaria) | [Propuesto] |
+
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -313,6 +334,7 @@ equipo, para no volver a capturarlo*.
 | HU-LIMS-25 | Pestañas por etapa y filtro por fecha del panel | REQ-LIMS-97 a 102 |
 | HU-LIMS-26 | Guardado automático del registro de ensayo | REQ-LIMS-103 a 110 |
 | HU-LIMS-27 | Borrador local de formularios largos | REQ-LIMS-111 a 117 |
+| HU-LIMS-28 | Plantillas con el diseño de la cotización | REQ-LIMS-118 a 124 |
 
 ## 4. Preguntas abiertas
 
@@ -337,3 +359,4 @@ equipo, para no volver a capturarlo*.
 | v8 | 2026-11-24 | Claude (DLF) | Programa de ensayos del día (RN-12, 13, REQ-LIMS-87 a 96) y pestañas + fecha del panel (RN-14, 15, REQ-LIMS-97 a 102), opción A aprobada por el Gerente |
 | v9 | 2026-11-25 | Claude (DLF) | Guardado automático del registro de ensayo: REQ-LIMS-103 a 110 (HU-LIMS-26); informe por solicitud cerrado |
 | v10 | 2026-11-25 | Claude (DLF) | Borrador local de cotización, recepción, solicitud de ensayo y datos de probetas: REQ-LIMS-111 a 117 (HU-LIMS-27) |
+| v11 | 2026-11-25 | Claude (DLF) | Plantillas de cotización con el diseño de la cotización: REQ-LIMS-118 a 124 (HU-LIMS-28) |

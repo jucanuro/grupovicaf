@@ -1427,6 +1427,8 @@ def crear_editar_plantilla(request, pk=None):
     else:
         plantilla = PlantillaCotizacion(activo=True)
 
+    es_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+
     if request.method == 'POST':
         try:
             with transaction.atomic():
@@ -1503,10 +1505,23 @@ def crear_editar_plantilla(request, pk=None):
 
                     servicio = Servicio.objects.get(pk=int(servicio_id))
 
+                    # Igual que en la cotización: la norma y el método se guardan por su código.
+                    norma_txt = ""
+                    norma_id = item.get('norma_id')
+                    if norma_id and str(norma_id).isdigit():
+                        n = Norma.objects.filter(pk=norma_id).first()
+                        norma_txt = n.codigo if n else ""
+                    metodo_txt = ""
+                    metodo_id = item.get('metodo_id')
+                    if metodo_id and str(metodo_id).isdigit():
+                        m = Metodo.objects.filter(pk=metodo_id).first()
+                        metodo_txt = m.codigo if m else ""
+
                     PlantillaDetalle.objects.create(
                         grupo=grupo_actual,
                         servicio=servicio,
-                        norma_manual=item.get('norma_nombre', ''),
+                        norma_manual=norma_txt or item.get('norma_manual', '') or '',
+                        metodo_manual=metodo_txt or item.get('metodo_manual', '') or '',
                         descripcion_especifica=item.get('descripcion_especifica') or servicio.nombre,
                         unidad_medida=item.get('unidad_medida') or servicio.unidad_base,
                         cantidad=Decimal(str(item.get('cantidad', '1')).replace(',', '.')),
@@ -1521,10 +1536,15 @@ def crear_editar_plantilla(request, pk=None):
                     plantilla.condiciones_secciones.all().delete()
 
                 messages.success(request, f"Plantilla '{plantilla.nombre_plantilla}' guardada.")
+                if es_ajax:
+                    return JsonResponse({'status': 'success', 'redirect_url': redirect('servicios:lista_plantillas').url})
                 return redirect('servicios:lista_plantillas')
 
         except Exception as e:
             error = f'Error: {str(e)}'
+            if es_ajax:
+                # La pantalla no se recarga: no se pierde lo escrito (detalle y contenido).
+                return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
             if is_editing and pk:
                 plantilla = get_object_or_404(
                     PlantillaCotizacion.objects.prefetch_related(
@@ -1541,7 +1561,9 @@ def crear_editar_plantilla(request, pk=None):
             'nombre': s.nombre,
             'precio_base': str(s.precio_base),
             'norma_codigo': s.norma.codigo if s.norma else '',
+            'norma_pk': s.norma_id,
             'metodo_codigo': s.metodo.codigo if s.metodo else '',
+            'metodo_pk': s.metodo_id,
             'unidad_base': s.unidad_base
         })
 
@@ -1555,11 +1577,20 @@ def crear_editar_plantilla(request, pk=None):
                 })
 
             for detalle in grupo.detalles_items.all():
+                servicio = detalle.servicio
+                norma_cod = detalle.norma_manual or (servicio.norma.codigo if servicio.norma_id else '')
+                metodo_cod = detalle.metodo_manual or (servicio.metodo.codigo if servicio.metodo_id else '')
+                # Plantillas guardadas antes de este cambio traen la norma y el método juntos en `norma_manual`.
+                norma_nombre = norma_cod if ' / ' in norma_cod else norma_cod + (f' / {metodo_cod}' if metodo_cod else '')
                 detalles_list.append({
                     'tipo_fila': 'servicio',
-                    'servicio_id': detalle.servicio.pk,
+                    'servicio_id': servicio.pk,
                     'descripcion_especifica': detalle.descripcion_especifica,
-                    'norma_nombre': detalle.norma_manual,
+                    'norma_id': servicio.norma_id,
+                    'metodo_id': servicio.metodo_id,
+                    'norma_manual': detalle.norma_manual,
+                    'metodo_manual': detalle.metodo_manual,
+                    'norma_nombre': norma_nombre,
                     'unidad_medida': detalle.unidad_medida,
                     'cantidad': str(detalle.cantidad),
                     'precio_unitario': str(detalle.precio_unitario)

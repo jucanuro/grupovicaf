@@ -127,3 +127,89 @@ class PdfOfertaTests(TestCase):
         self.assertNotIn('{{', texto)
         self.assertNotIn('no va', texto)
         self.assertNotIn('50/50', texto)
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab')
+class PlantillaMismoDisenoTests(TestCase):
+    """HU-LIMS-28: la plantilla se arma con la misma pantalla que la cotización
+    (pasos en pills, detalle en modal, contenido con el mismo editor)."""
+
+    def setUp(self):
+        from servicios.models import Metodo, Norma
+        self.user = User.objects.create_superuser('jefe.pl', 'j@x.pe', 'x')
+        self.client.force_login(self.user)
+        self.norma = Norma.objects.create(codigo='ASTM C39/C39M-24', nombre='Compresión de cilindros')
+        self.metodo = Metodo.objects.create(codigo='M-01', nombre='Método uno')
+        self.servicio = Servicio.objects.create(codigo_facturacion='PL1', nombre='Compresión de probetas',
+                                                norma=self.norma, metodo=self.metodo, precio_base=Decimal('25'))
+
+    def guardar(self, **extra):
+        import json
+        detalles = [
+            {'tipo_fila': 'categoria', 'descripcion_especifica': 'CONCRETO'},
+            {'tipo_fila': 'servicio', 'servicio_id': self.servicio.pk, 'cantidad': 2, 'precio_unitario': 25,
+             'norma_id': self.norma.pk, 'metodo_id': self.metodo.pk, 'unidad_medida': 'Ensayo'},
+        ]
+        datos = {'nombre': 'Plantilla de prueba', 'asunto_servicio': 'Compresión', 'forma_pago': 'Contado',
+                 'tiempo_entrega': '5', 'activo': 'True', 'detalles_json': json.dumps(detalles), 'condiciones_json': '[]'}
+        datos.update(extra)
+        return self.client.post(reverse('servicios:crear_plantilla'), datos, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+    def test_la_pantalla_usa_pills_modal_y_el_mismo_script(self):
+        r = self.client.get(reverse('servicios:crear_plantilla'))
+        self.assertEqual(r.status_code, 200)
+        for esperado in ('class="cot-tabs"', 'data-tab="contenido"', 'id="modalDetalle"', 'Detalle de la plantilla',
+                         'id="btn-agregar-detalle"', 'js/cotizacion-config.js', 'esPlantilla: true',
+                         'BorradorLocal.iniciar', 'id="cotizacion-form"'):
+            self.assertContains(r, esperado)
+        # El panel de selección antiguo ya no está en la página.
+        self.assertNotContains(r, 'toggleRegistroPanel')
+        self.assertNotContains(r, 'acordeon_plantilla.js')
+
+    def test_la_cotizacion_sigue_con_su_modal(self):
+        r = self.client.get(reverse('servicios:crear_cotizacion'))
+        self.assertContains(r, 'Detalle de la cotización')
+        self.assertContains(r, 'id="modalDetalle"')
+
+    def test_guarda_por_fetch_con_la_norma_y_el_metodo_por_codigo(self):
+        from servicios.models import PlantillaCotizacion, PlantillaDetalle
+        r = self.guardar()
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertEqual(r.json()['status'], 'success')
+        self.assertIn('/servicios/plantillas/', r.json()['redirect_url'])
+        detalle = PlantillaDetalle.objects.get(grupo__plantilla__nombre_plantilla='Plantilla de prueba')
+        self.assertEqual(detalle.norma_manual, 'ASTM C39/C39M-24')
+        self.assertEqual(detalle.metodo_manual, 'M-01')
+        self.assertEqual(detalle.cantidad, 2)
+        self.assertEqual(PlantillaCotizacion.objects.count(), 1)
+
+    def test_un_error_responde_json_sin_recargar_y_sin_guardar_a_medias(self):
+        from servicios.models import PlantillaCotizacion
+        r = self.guardar(detalles_json='{no es json')
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.json()['status'], 'error')
+        self.assertTrue(r.json()['message'])
+        self.assertEqual(PlantillaCotizacion.objects.count(), 0)
+
+    def test_al_editar_carga_los_items_con_la_norma_para_mostrar(self):
+        import json
+        from servicios.models import PlantillaCotizacion
+        self.guardar()
+        plantilla = PlantillaCotizacion.objects.get()
+        r = self.client.get(reverse('servicios:editar_plantilla', args=[plantilla.pk]))
+        self.assertEqual(r.status_code, 200)
+        items = json.loads(r.context['detalles_cotizacion_json'])
+        servicio = next(i for i in items if i['tipo_fila'] == 'servicio')
+        self.assertEqual(servicio['norma_nombre'], 'ASTM C39/C39M-24 / M-01')
+        self.assertEqual(servicio['norma_id'], self.norma.pk)
+
+    def test_plantillas_guardadas_antes_traen_norma_y_metodo_juntos(self):
+        import json
+        from servicios.models import PlantillaCotizacion, PlantillaDetalle, PlantillaGrupo
+        p = PlantillaCotizacion.objects.create(nombre_plantilla='Vieja', asunto_referencial='x')
+        g = PlantillaGrupo.objects.create(plantilla=p, nombre_grupo='ENSAYOS DE LABORATORIO', orden=0)
+        PlantillaDetalle.objects.create(grupo=g, servicio=self.servicio, norma_manual='ASTM C39 / M-01',
+                                        descripcion_especifica='x', precio_unitario=Decimal('10'))
+        r = self.client.get(reverse('servicios:editar_plantilla', args=[p.pk]))
+        servicio = json.loads(r.context['detalles_cotizacion_json'])[0]
+        self.assertEqual(servicio['norma_nombre'], 'ASTM C39 / M-01')  # no repite el método

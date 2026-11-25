@@ -32,7 +32,9 @@ document.addEventListener('DOMContentLoaded', () => {
         configurado: false,
     };
 
+    // Cotización y plantilla comparten esta pantalla: cada una trae su propio endpoint de condiciones.
     const CONDICIONES_ENDPOINT = (() => {
+        if (config.condicionesJsonUrl) return config.condicionesJsonUrl;
         const cotizacionId = config.cotizacionId || null;
         if (!cotizacionId) return null;
         return `/servicios/cotizaciones/${cotizacionId}/condiciones/json/`;
