@@ -265,6 +265,31 @@ informe» (cierra la pregunta abierta 2 de §4: el informe sigue siendo por soli
 | REQ-LIMS-110 | HU-LIMS-26 | SI el ensayo ya está terminado o la línea no es del técnico, ENTONCES EL SISTEMA DEBE rechazar el guardado automático (409 o 404). | sí (unitaria) | [Propuesto] |
 
 
+## 2i. Borrador local de formularios largos (v10)
+
+Origen: pedido del Gerente del 2026-11-25 («esto se puede implementar para
+cotización y varios procesos críticos; analiza cuáles son críticos y hagámoslo
+para muestras, informes, etc.»). Análisis: son críticos los formularios que se
+arman en varios minutos y cuya pérdida cuesta trabajo del cliente en el mostrador
+o del área comercial: **cotización**, **recepción de muestras**, **solicitud de
+ensayo** y **datos de probetas (FOR-004)**. El registro de ensayo ya guarda en
+el servidor (HU-LIMS-26) y el editor del informe ya tiene autoguardado y
+versiones. No se guarda en el servidor porque una cotización a medias gastaría
+un número de oferta y aparecería en las listas. HU-LIMS-27: *como usuario quiero
+recuperar lo que estaba escribiendo si se cierra el navegador o se apaga el
+equipo, para no volver a capturarlo*.
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-111 | HU-LIMS-27 | CUANDO el usuario escriba en el formulario de cotización, EL SISTEMA DEBE guardar un borrador en ese equipo y, al volver a abrir la pantalla, ofrecer «Restaurar borrador» o «Descartar»; la restauración incluye el detalle de ítems y las condiciones. | sí (unitaria + navegador) | [Validado con usuario] |
+| REQ-LIMS-112 | HU-LIMS-27 | EL SISTEMA DEBE ofrecer lo mismo en la recepción de muestras, incluidas las filas de muestras ya añadidas. | sí (unitaria + navegador) | [Validado con usuario] |
+| REQ-LIMS-113 | HU-LIMS-27 | EL SISTEMA DEBE ofrecer lo mismo en la solicitud de ensayo, incluidas las filas de ensayos e incidencias. | sí (unitaria + navegador) | [Validado con usuario] |
+| REQ-LIMS-114 | HU-LIMS-27 | EL SISTEMA DEBE ofrecer lo mismo en los datos de probetas de una recepción. | sí (unitaria + navegador) | [Validado con usuario] |
+| REQ-LIMS-115 | HU-LIMS-27 | EL SISTEMA DEBE guardar el borrador solo en el equipo del usuario (por usuario y por pantalla), sin crear registros ni consumir números de oferta. | sí (unitaria) | [Propuesto] |
+| REQ-LIMS-116 | HU-LIMS-27 | CUANDO el formulario se guarde bien, EL SISTEMA DEBE borrar el borrador; SI el servidor rechaza el envío por un dato inválido, ENTONCES EL SISTEMA DEBE conservarlo. | sí (navegador) | [Propuesto] |
+| REQ-LIMS-117 | HU-LIMS-27 | EL SISTEMA DEBE descartar los borradores de más de 7 días y no ofrecer uno que sea igual a lo que ya muestra la pantalla. | sí (navegador) | [Propuesto] |
+
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -287,6 +312,7 @@ informe» (cierra la pregunta abierta 2 de §4: el informe sigue siendo por soli
 | HU-LIMS-24 | Programa de ensayos del día (hoja por cliente y día) | REQ-LIMS-87 a 96 |
 | HU-LIMS-25 | Pestañas por etapa y filtro por fecha del panel | REQ-LIMS-97 a 102 |
 | HU-LIMS-26 | Guardado automático del registro de ensayo | REQ-LIMS-103 a 110 |
+| HU-LIMS-27 | Borrador local de formularios largos | REQ-LIMS-111 a 117 |
 
 ## 4. Preguntas abiertas
 
@@ -310,3 +336,4 @@ informe» (cierra la pregunta abierta 2 de §4: el informe sigue siendo por soli
 | v7 | 2026-11-24 | Claude (DLF) | Gantt de ensayos y tema de gráficos: REQ-LIMS-74 a 86 (HU-LIMS-22, 23) |
 | v8 | 2026-11-24 | Claude (DLF) | Programa de ensayos del día (RN-12, 13, REQ-LIMS-87 a 96) y pestañas + fecha del panel (RN-14, 15, REQ-LIMS-97 a 102), opción A aprobada por el Gerente |
 | v9 | 2026-11-25 | Claude (DLF) | Guardado automático del registro de ensayo: REQ-LIMS-103 a 110 (HU-LIMS-26); informe por solicitud cerrado |
+| v10 | 2026-11-25 | Claude (DLF) | Borrador local de cotización, recepción, solicitud de ensayo y datos de probetas: REQ-LIMS-111 a 117 (HU-LIMS-27) |

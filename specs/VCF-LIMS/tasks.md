@@ -38,6 +38,7 @@
 | T79 | `proyectos/programa.py` (RN-12, 13), vistas `programa_dia`, `programa_cliente`, `programa_medidas`, medidas en lote compartidas, regreso del registro a la hoja, menús + pruebas | 87-96 | `python manage.py test proyectos.test_programa` | [x] |
 | T80 | Pestañas por etapa y filtro por fecha en `/proyectos/pendientes/` (`avance.py`, RN-14, 15), búsqueda en vivo que conserva filtros + pruebas | 97-102 | `python manage.py test proyectos.test_programa` + revisión visual | [x] |
 | T81 | Guardado automático: `_autoguardar` y `_autoguardar_medidas` (modo tolerante de `_aplicar_datos`), `static/js/autoguardado.js`, indicador en el registro y en «Medir y pesar», «En curso · Continuar» en Mis ensayos + `test_autoguardado.py` | 103-110 | `python manage.py test proyectos.test_autoguardado` + navegador | [x] |
+| T82 | `static/js/borrador_local.js` (borrador en el equipo, restaurar/descartar, caducidad, limpieza al guardar) conectado en cotización, recepción, solicitud de ensayo y datos de probetas + `test_borrador_local.py` | 111-117 | `python manage.py test proyectos.test_borrador_local` + navegador | [x] |
 
 ## Historial
 
@@ -54,3 +55,4 @@
 | v8 | 2026-11-24 | Claude (DLF) | T75-T78: Gantt de ensayos y tema común de gráficos |
 | v9 | 2026-11-24 | Claude (DLF) | T79-T80: programa de ensayos del día y pestañas del panel |
 | v10 | 2026-11-25 | Claude (DLF) | T81: guardado automático del registro de ensayo |
+| v11 | 2026-11-25 | Claude (DLF) | T82: borrador local de formularios largos |

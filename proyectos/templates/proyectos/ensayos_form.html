@@ -307,7 +307,7 @@
         </div>
     </div>
 
-    <form method="POST" class="space-y-6">
+    <form method="POST" class="space-y-6" id="solicitud-form">
         {% csrf_token %}
         
         <div id="sol-tab-panel-control" class="sol-tab-panel active">
@@ -1085,5 +1085,15 @@
             });
         }
     });
+</script>
+<script>
+    // Borrador local (HU-LIMS-27): filas de ensayos e incidencias que se arman a mano.
+    if (window.BorradorLocal) {
+        BorradorLocal.iniciar({
+            form: document.getElementById('solicitud-form'),
+            contenedores: ['#tabla-detalles tbody', '#body-incidencias'],
+            alRestaurar: function () { if (window.lucide) lucide.createIcons(); },
+        });
+    }
 </script>
 {% endblock %}

@@ -141,6 +141,16 @@ cambia queda en la trazabilidad. Sin señal reintenta solo. Mis ensayos marca
 «En curso · Continuar». Las pruebas se corren con
 `DJANGO_SETTINGS_MODULE=grupovicaf.settings.test_local CORREO_ENVIO=simulado`.
 
+**Borrador local (HU-LIMS-27).** Cotización, recepción de muestras, solicitud de
+ensayo y datos de probetas guardan un borrador en el navegador
+(`static/js/borrador_local.js`, `localStorage` por usuario y pantalla, 7 días);
+al volver a abrir ofrecen «Restaurar borrador / Descartar». No toca la base: una
+cotización a medias gastaría número de oferta. Se guarda solo tras un gesto de
+la persona (el JS de la página mueve campos al arrancar) y se borra al guardar
+bien (otra pantalla o redirección; con error de validación se conserva). La
+cotización restaura antes de armar sus tablas (`temprano`); las pantallas con
+filas dinámicas guardan el HTML de su tabla (`contenedores`).
+
 **Informe tipo Word (fase 2).** Todo informe, también el de compresión, pasa por el
 editor: al aprobar los resultados se abre `/proyectos/resultados/informe/<id>/editor/`
 (`views_informe_editor.py`, `informe_editor.py`, permiso `informes.aprobar`).

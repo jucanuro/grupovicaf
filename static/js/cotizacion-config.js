@@ -678,6 +678,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const detallesInput = document.getElementById('detalles_json');
         if (detallesInput) detallesInput.value = JSON.stringify(DATA_ARRAY);
+        if (window.BorradorLocal) window.BorradorLocal.marcarCambio();
 
         // Sin ítems: estado vacío con un solo botón; con ítems: tabla + botón en la barra.
         const hayItems = DATA_ARRAY.length > 0;
@@ -1018,6 +1019,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const input = getCondicionesInput();
         if (!input) return;
         input.value = JSON.stringify(window.CondicionesCotizacionState.secciones || []);
+        if (window.BorradorLocal) window.BorradorLocal.marcarCambio();
     }
 
     function countSelectedItems(items = []) {
@@ -1636,6 +1638,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (data.status === 'success') {
+                if (window.BorradorLocal) window.BorradorLocal.descartar();
                 window.location.href = data.redirect_url;
                 return; // no reactivar el botón: la página ya está navegando
             }

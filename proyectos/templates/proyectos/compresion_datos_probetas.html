@@ -81,4 +81,10 @@
         {% endif %}
     </form>
 </div>
+<script>
+    // Borrador local (HU-LIMS-27): f'c, moldeo y edad de muchas probetas se llenan de corrido.
+    if (window.BorradorLocal) {
+        BorradorLocal.iniciar({ form: document.querySelector('[data-form-probetas]') });
+    }
+</script>
 {% endblock %}

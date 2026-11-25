@@ -607,7 +607,9 @@
     {% block extra_css %}{% endblock %}
 </head>
 
-<body class="antialiased selection:bg-brand-600 selection:text-white bg-slate-50">
+<body class="antialiased selection:bg-brand-600 selection:text-white bg-slate-50" data-usuario-id="{{ user.id|default:'' }}">
+    {# Borrador local de formularios largos (HU-LIMS-27): va primero para que las pantallas lo tengan al armarse. #}
+    <script src="{% static 'js/borrador_local.js' %}"></script>
     <div class="app-shell flex w-full">
         {% include 'header.html' %}
 

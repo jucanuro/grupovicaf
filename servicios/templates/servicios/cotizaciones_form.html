@@ -1138,5 +1138,17 @@
 
 <script src="{% static 'js/cotizacion-partial.js' %}"></script>
 <script src="{% static 'js/acordeon_cotizacion.js' %}"></script>
-<script src="{% static 'js/cotizacion-config.js' %}?v=20261125b"></script>
+<script>
+    // Borrador local (HU-LIMS-27): si se cierra el navegador a medias, se ofrece restaurar.
+    // Se restaura antes de que cotizacion-config.js arme sus tablas.
+    if (window.BorradorLocal) {
+        BorradorLocal.iniciar({
+            form: document.getElementById('cotizacion-form'),
+            temprano: true,
+            ajax: true,
+            scripts: { 'initial-detalles-json': 'detalles_json' },
+        });
+    }
+</script>
+<script src="{% static 'js/cotizacion-config.js' %}?v=20261125c"></script>
 {% endblock %}
