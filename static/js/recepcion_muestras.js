@@ -400,7 +400,25 @@
         refrescar();
     }
 
-    window.RecepcionMuestras = { agregarTipo: agregarTipo, abrir: abrir, refrescar: refrescar, reconstruir: reconstruir };
+    /* Sigla propuesta a partir del nombre, sin repetir las que ya existen. */
+    function sugerirSigla(nombre) {
+        var limpio = String(nombre || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9 ]/g, ' ').trim();
+        if (!limpio) return '';
+        var palabras = limpio.split(/\s+/);
+        var usadas = {};
+        tipos.forEach(function (t) { usadas[String(t.prefijo).toUpperCase()] = true; });
+        var candidatas = [];
+        if (palabras.length > 1) candidatas.push(palabras.map(function (w) { return w[0]; }).join('').slice(0, 5));
+        var base = (palabras[0] || limpio).replace(/\s/g, '');
+        [2, 3, 4, 5].forEach(function (n) { if (base.length >= n) candidatas.push(base.slice(0, n)); });
+        if (!candidatas.length) candidatas.push(base);
+        for (var i = 0; i < candidatas.length; i++) { if (candidatas[i] && !usadas[candidatas[i]]) return candidatas[i]; }
+        var raiz = candidatas[0].slice(0, 4);
+        for (var k = 2; k < 100; k++) { if (!usadas[raiz + k]) return raiz + k; }
+        return raiz;
+    }
+
+    window.RecepcionMuestras = { sugerirSigla: sugerirSigla, agregarTipo: agregarTipo, abrir: abrir, refrescar: refrescar, reconstruir: reconstruir };
 
     document.addEventListener('DOMContentLoaded', function () {
         llenarUnidades();

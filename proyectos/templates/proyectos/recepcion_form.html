@@ -552,6 +552,7 @@
             clearMessage();
 
             if (form) form.reset();
+            siglaEditada = false;
 
             setTimeout(() => {
                 if (nombreInput) nombreInput.focus();
@@ -595,9 +596,19 @@
             }
         });
 
+        // La sigla se propone sola según el nombre (sin repetir las existentes) hasta que la persona la edite.
+        let siglaEditada = false;
         if (siglaInput) {
             siglaInput.addEventListener('input', function () {
                 this.value = this.value.toUpperCase().replace(/\s+/g, '');
+                siglaEditada = this.value !== '';
+            });
+        }
+        if (nombreInput && siglaInput) {
+            nombreInput.addEventListener('input', function () {
+                if (siglaEditada || !window.RecepcionMuestras) return;
+                siglaInput.value = window.RecepcionMuestras.sugerirSigla(nombreInput.value);
+                siglaInput.dispatchEvent(new Event('change', { bubbles: true }));
             });
         }
 
@@ -667,7 +678,7 @@
         }
     });
 </script>
-<script src="{% static 'js/recepcion_muestras.js' %}?v=20261125d"></script>
+<script src="{% static 'js/recepcion_muestras.js' %}?v=20261125e"></script>
 <script>
     // Borrador local (HU-LIMS-27): las filas de muestras se arman en el mostrador, con el cliente delante.
     if (window.BorradorLocal) {
