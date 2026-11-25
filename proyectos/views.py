@@ -12,7 +12,7 @@ from urllib.parse import quote
 from decimal import Decimal, InvalidOperation
 
 from django.db import IntegrityError, transaction
-from django.db.models import Q, Exists, OuterRef
+from django.db.models import Q, Exists, OuterRef, Count, Max, F
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, Http404, FileResponse
 from django.template.loader import render_to_string, get_template
 from django.shortcuts import render, redirect, get_object_or_404
@@ -160,17 +160,48 @@ def crear_tipo_muestra_ajax(request):
         return JsonResponse({'status': 'error', 'message': 'Error interno del servidor.'}, status=500)
 
 
+_ORDEN_ELEGIR_PROYECTO = {
+    'recientes': ('-creado_en', 'Más recientes'),
+    'antiguos': ('creado_en', 'Más antiguos'),
+    'entrega': ('fecha_entrega_estimada', 'Entrega más próxima'),
+    'cliente': ('cliente__razon_social', 'Cliente (A-Z)'),
+    'sin_muestras': ('total_muestras', 'Con menos muestras'),
+}
+
+
+def _cubeta_fecha(fecha, hoy):
+    """Grupo de fechas para ordenar la lista: Hoy, Ayer, Esta semana…"""
+    dias = (hoy - fecha).days
+    if dias <= 0:
+        return 'Hoy'
+    if dias == 1:
+        return 'Ayer'
+    if dias < 7:
+        return 'Esta semana'
+    if dias < 31:
+        return 'Este mes'
+    return 'Anteriores'
+
+
 def _seleccionar_proyecto_recepcion(request):
-    """Lista de proyectos abiertos con cotización para iniciar una recepción."""
+    """Proyectos abiertos con cotización para iniciar una recepción.
+
+    Pantalla completa: tabla ordenable (más recientes primero) agrupada por
+    fecha de creación, con el avance de muestras ya recibidas por proyecto.
+    """
     proyectos = (
         Proyecto.objects.filter(cotizacion__isnull=False)
         .exclude(estado__in=['FINALIZADO', 'CANCELADO'])
         .select_related('cliente', 'cotizacion')
         .only(
             'id', 'codigo_proyecto', 'nombre_proyecto', 'estado', 'creado_en',
-            'cliente__razon_social', 'cotizacion__numero_oferta',
+            'fecha_entrega_estimada', 'cliente__razon_social', 'cotizacion__numero_oferta',
         )
-        .order_by('-creado_en')
+        .annotate(
+            total_muestras=Count('cotizacion__recepciones__muestras', distinct=True),
+            total_recepciones=Count('cotizacion__recepciones', distinct=True),
+            ultima_recepcion=Max('cotizacion__recepciones__fecha_recepcion'),
+        )
     )
     query = (request.GET.get('q') or '').strip()
     if query:
@@ -180,9 +211,36 @@ def _seleccionar_proyecto_recepcion(request):
             | Q(cliente__razon_social__icontains=query)
             | Q(cotizacion__numero_oferta__icontains=query)
         )
+    orden = request.GET.get('orden')
+    if orden not in _ORDEN_ELEGIR_PROYECTO:
+        orden = 'recientes'
+    campo = _ORDEN_ELEGIR_PROYECTO[orden][0]
+    if orden == 'entrega':
+        proyectos = proyectos.order_by(F('fecha_entrega_estimada').asc(nulls_last=True), '-creado_en')
+    else:
+        proyectos = proyectos.order_by(campo, '-creado_en')
+
+    hoy = timezone.localdate()
+    filas = list(proyectos[:200])
+    grupos = []
+    for p in filas:
+        p.etiqueta_fecha = _cubeta_fecha(timezone.localtime(p.creado_en).date(), hoy)
+        if p.fecha_entrega_estimada:
+            p.dias_entrega = (p.fecha_entrega_estimada - hoy).days
+    if orden in ('recientes', 'antiguos'):
+        for p in filas:
+            if grupos and grupos[-1]['titulo'] == p.etiqueta_fecha:
+                grupos[-1]['proyectos'].append(p)
+            else:
+                grupos.append({'titulo': p.etiqueta_fecha, 'proyectos': [p]})
+    elif filas:
+        grupos = [{'titulo': '', 'proyectos': filas}]
     return render(request, 'proyectos/recepcion_elegir_proyecto.html', {
-        'proyectos': proyectos[:100],
+        'grupos': grupos,
+        'total': len(filas),
         'query': query,
+        'orden': orden,
+        'ordenes': [(k, v[1]) for k, v in _ORDEN_ELEGIR_PROYECTO.items()],
     })
 
 

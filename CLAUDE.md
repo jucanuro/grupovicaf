@@ -141,6 +141,17 @@ cambia queda en la trazabilidad. Sin señal reintenta solo. Mis ensayos marca
 «En curso · Continuar». Las pruebas se corren con
 `DJANGO_SETTINGS_MODULE=grupovicaf.settings.test_local CORREO_ENVIO=simulado`.
 
+**Nueva recepción (HU-LIMS-31).** `/proyectos/recepcion/nueva/` elige el proyecto a
+pantalla completa (`_seleccionar_proyecto_recepcion`: más recientes primero, grupos
+Hoy/Ayer/Esta semana…, `?orden=`, muestras y recepciones por proyecto). En el formulario
+las muestras se registran en un modal a pantalla completa
+(`static/js/recepcion_muestras.js`, reemplaza `gestion_muestras.js`): la tabla de la
+página es la fuente de verdad (`tr[data-nueva]` con campos ocultos `tipo_muestra_id[]`,
+`cantidad[]`, `unidad_medida_id[]`, `masa[]`, `descripcion[]`, `observaciones[]`; las ya
+guardadas son `tr[data-existente]`, solo lectura y no se reenvían). El borrador local
+guarda el HTML de `#tbody-muestras` y `RecepcionMuestras.reconstruir()` redibuja los
+botones al restaurar.
+
 **Panel de pantalla (HU-LIMS-29).** El «panel» (título, búsqueda, filtros y acciones)
 de las 25 pantallas con `data-command-header` va siempre visible arriba: no hay
 botón «Panel» ni X. El CSS está al final del `<style>` de `base_vicafpro.html`; una

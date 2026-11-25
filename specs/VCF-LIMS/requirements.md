@@ -349,6 +349,25 @@ encontrar rápido la búsqueda, los filtros y las acciones*. Cambio solo de dise
 | REQ-LIMS-133 | HU-LIMS-30 | DONDE la pantalla mida menos de 1100 px, EL SISTEMA DEBE poner las acciones debajo de la barra y, menos de 640 px, a todo el ancho, sin desbordar la página; EL SISTEMA DEBE mantener el mismo diseño en el tema oscuro. | sí (navegador) | [Propuesto] |
 
 
+## 2m. Nueva recepción: elegir proyecto y registrar muestras (v14)
+
+Pedido del Gerente (2026-11-25): la elección de proyecto debía ocupar toda la pantalla y
+ordenarse por fechas; registrar muestras debía parecerse al detalle de la cotización
+(una sola pantalla, menos clics) y la tabla tenía datos que no se veían. HU-LIMS-31:
+«Como recepcionista quiero elegir el proyecto y registrar muestras de corrido, para recibir al
+cliente sin perder tiempo». Alcance: no cambia el modelo ni el contrato del servidor.
+Los datos FOR-004 siguen en su pantalla de probetas [Propuesto: pasarlos al modal si se pide].
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-134 | HU-LIMS-31 | CUANDO se abra «Nueva recepción», EL SISTEMA DEBE mostrar los proyectos abiertos con cotización a todo el ancho, con la barra única del panel (título, búsqueda, orden y «Volver»). | sí | [Validado con usuario] |
+| REQ-LIMS-135 | HU-LIMS-31 | EL SISTEMA DEBE ordenar por defecto del más reciente al más antiguo y agrupar por fecha de creación (Hoy, Ayer, Esta semana, Este mes, Anteriores); DONDE se elija otro orden (antiguos, entrega más próxima, cliente, menos muestras), EL SISTEMA DEBE aplicarlo sin grupos y ignorar valores no válidos. | sí | [Propuesto] |
+| REQ-LIMS-136 | HU-LIMS-31 | EL SISTEMA DEBE mostrar por proyecto la fecha de creación, la entrega estimada (en rojo si venció) y cuántas muestras y recepciones lleva. | sí | [Propuesto] |
+| REQ-LIMS-137 | HU-LIMS-31 | CUANDO la persona pulse «Registrar muestras», EL SISTEMA DEBE abrir una pantalla completa con el formulario a la izquierda y lo ya agregado a la derecha, y permitir agregar con Enter conservando tipo, unidad y cantidad. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-138 | HU-LIMS-31 | EL SISTEMA DEBE permitir elegir el tipo con un clic, crear un tipo nuevo sin recargar la página, y editar, duplicar o quitar una muestra antes de guardar. | sí (navegador) | [Propuesto] |
+| REQ-LIMS-139 | HU-LIMS-31 | EL SISTEMA DEBE mostrar en la tabla todas las columnas (n.º, ID, tipo, cantidad con unidad, masa, descripción, observaciones, acción) con el texto completo y sin cortes, y avisar que el ID de laboratorio se asigna al guardar. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-140 | HU-LIMS-31 | MIENTRAS se edite una recepción, EL SISTEMA DEBE mostrar las muestras ya guardadas como solo lectura y no reenviarlas. | sí | [Propuesto] |
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -375,6 +394,7 @@ encontrar rápido la búsqueda, los filtros y las acciones*. Cambio solo de dise
 | HU-LIMS-28 | Plantillas con el diseño de la cotización | REQ-LIMS-118 a 124 |
 | HU-LIMS-29 | Panel de cada pantalla siempre visible | REQ-LIMS-125 a 127 |
 | HU-LIMS-30 | Barra del panel con diseño unificado | REQ-LIMS-129 a 133 |
+| HU-LIMS-31 | Nueva recepción: elegir proyecto y registrar muestras | REQ-LIMS-134 a 140 |
 
 ## 4. Preguntas abiertas
 
@@ -402,3 +422,4 @@ encontrar rápido la búsqueda, los filtros y las acciones*. Cambio solo de dise
 | v11 | 2026-11-25 | Claude (DLF) | Plantillas de cotización con el diseño de la cotización: REQ-LIMS-118 a 124 (HU-LIMS-28) |
 | v12 | 2026-11-25 | Claude (DLF) | Panel siempre visible en 25 pantallas (REQ-LIMS-125 a 127); panel de proyectos compacto (128) y filtro «Hoy» por movimiento (RN-15, REQ-LIMS-99 y 101 ajustados) |
 | v13 | 2026-11-25 | Claude (DLF) | Barra única del panel con botones modernos: REQ-LIMS-129 a 133 (HU-LIMS-30) |
+| v14 | 2026-11-25 | Claude (DLF) | Nueva recepción: elegir proyecto por fechas y modal «Registrar muestras»: REQ-LIMS-134 a 140 (HU-LIMS-31) |

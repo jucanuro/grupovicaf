@@ -42,6 +42,7 @@
 | T83 | `plantilla_form.html` rehecho con pills, estado vacío y modal del detalle; estilos y modal compartidos en `servicios/includes/`; `crear_editar_plantilla` por fetch (JSON) y norma/método por código + pruebas | 118-124 | `python manage.py test servicios` + navegador | [x] |
 | T84 | CSS común del panel siempre visible en `base_vicafpro.html` (25 pantallas), panel de proyectos compacto y filtro «Hoy» por movimiento (`avance.con_movimiento`) + pruebas | 99, 101, 125-128 | `python manage.py test proyectos.test_programa` + navegador (25 pantallas, celular) | [x] |
 | T85 | Barra única del panel (título, controles, acciones) con botones modernos en `base_vicafpro.html`; filas propias en informes, cotizaciones y plantillas | 129-133 | Revisión visual (25 pantallas, oscuro, celular) | [x] |
+| T86 | Elegir proyecto a pantalla completa (fechas, orden, avance) y modal «Registrar muestras» con tabla clara (`recepcion_muestras.js`, reemplaza `gestion_muestras.js`) | 134-140 | `proyectos/tests_recepcion_nueva.py` + navegador (escritorio y celular) | [x] |
 
 ## Historial
 
@@ -62,3 +63,4 @@
 | v12 | 2026-11-25 | Claude (DLF) | T83: plantillas con el diseño de la cotización |
 | v13 | 2026-11-25 | Claude (DLF) | T84: panel siempre visible y panel de proyectos compacto con filtro Hoy |
 | v14 | 2026-11-25 | Claude (DLF) | T85: barra única del panel con botones modernos |
+| v15 | 2026-11-25 | Claude (DLF) | T86: nueva recepción (elegir proyecto y registrar muestras) |
