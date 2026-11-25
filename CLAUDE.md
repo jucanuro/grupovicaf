@@ -147,8 +147,8 @@ con `window.CotizacionConfig.esPlantilla` y `condicionesJsonUrl`), los estilos
 (`servicios/includes/_cot_estilos.html`) y el modal del detalle
 (`servicios/includes/_detalle_modal.html`). Se guarda por fetch (JSON) y la norma
 y el método de cada ítem van por código. Un cambio en esa pantalla se hace una
-vez y vale para las dos. `static/js/plantilla-config.js` y `acordeon_plantilla.js`
-quedaron sin uso.
+vez y vale para las dos. Se borraron `plantilla-config.js` y
+`acordeon_plantilla.js` (copias viejas que ninguna pantalla cargaba).
 
 **Borrador local (HU-LIMS-27).** Cotización, recepción de muestras, solicitud de
 ensayo y datos de probetas guardan un borrador en el navegador
