@@ -377,7 +377,7 @@ modelo ni lo que recibe el servidor (se siguen enviando los arreglos `muestra_id
 
 | ID | HU | Requisito (EARS) | Verificable | Origen |
 |---|---|---|---|---|
-| REQ-LIMS-141 | HU-LIMS-32 | EL SISTEMA DEBE mostrar cotización, fechas, plazo y responsable en una sola fila, y los ensayos, el ya asignado y las incidencias en la misma pantalla (sin pestañas). | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-141 | HU-LIMS-32 | EL SISTEMA DEBE mostrar cotización, fechas, plazo y responsable en una sola fila y, CUANDO se elija la cotización, abrir una pantalla completa de asignación con los ensayos a la izquierda y las incidencias en una columna lateral, con el botón de guardar siempre visible (sin pestañas ni scroll de página). | sí (navegador) | [Validado con usuario] |
 | REQ-LIMS-142 | HU-LIMS-32 | EL SISTEMA DEBE listar una fila por ensayo pendiente de la cotización, con su norma y método, y permitir elegir varias muestras a la vez (todas, ninguna o por tipo) y un técnico y una entrega por fila. | sí | [Propuesto] |
 | REQ-LIMS-143 | HU-LIMS-32 | CUANDO se guarde, EL SISTEMA DEBE crear una línea de ensayo por cada muestra elegida de cada ensayo completo; SI un ensayo está a medias, ENTONCES EL SISTEMA DEBE avisar cuál y no guardar. | sí | [Propuesto] |
 | REQ-LIMS-144 | HU-LIMS-32 | EL SISTEMA DEBE ofrecer «Aplicar a todos» (técnico y entrega) y «Todas las muestras», y poner la entrega programada como fecha de cada ensayo que no tenga una. | sí (navegador) | [Propuesto] |

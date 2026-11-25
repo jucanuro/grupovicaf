@@ -32,6 +32,25 @@
     function ahoraLocal() { var d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); }
     function muestraPorId(id) { return muestras.find(function (m) { return String(m.id) === String(id); }); }
 
+    /* ---------- Pantalla de asignación (modal) ---------- */
+
+    function abrirModal() {
+        var m = $('se-modal');
+        m.classList.remove('hidden'); m.classList.add('flex');
+        document.body.classList.add('overflow-hidden');
+        var sel = $('id_cotizacion');
+        var opt = sel.options[sel.selectedIndex];
+        $('se-modal-sub').textContent = (opt && opt.text ? opt.text.trim() : '') + (muestras.length ? ' · ' + muestras.length + ' muestra' + (muestras.length === 1 ? '' : 's') : '');
+        icono();
+    }
+    function cerrarModal() {
+        cerrarSelector();
+        var m = $('se-modal');
+        m.classList.add('hidden'); m.classList.remove('flex');
+        document.body.classList.remove('overflow-hidden');
+        resumen();
+    }
+
     /* ---------- Estado y borrador ---------- */
 
     function estado() {
@@ -88,7 +107,8 @@
             .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
             .then(function (d) {
                 muestras = (d.muestras || []).map(function (m) {
-                    return { id: m.id, codigo: m.codigo_laboratorio, descripcion: m.descripcion || '', tipo: m.tipo_muestra__nombre || '', sigla: m.tipo_muestra__sigla || '' };
+                    return { id: m.id, codigo: m.codigo_laboratorio, descripcion: m.descripcion || '', tipo: m.tipo_muestra__nombre || '', sigla: m.tipo_muestra__sigla || '',
+                             idCliente: m.codigo_cliente || '', estructura: m.elemento_estructural || '' };
                 });
                 filas = (d.servicios_pendientes || []).map(function (s) {
                     return { id: s.cotizacion_detalle_id, nombre: s.nombre_servicio, norma: s.norma || '', metodo: s.metodo || '',
@@ -152,7 +172,7 @@
     }
 
     function crearFila(f) {
-        var tr = el('div', 'px-4 py-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1.3fr)_150px_36px] gap-x-4 gap-y-2 items-center');
+        var tr = el('div', 'px-4 py-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1.3fr)_150px] gap-x-4 gap-y-2 items-center');
         tr.dataset.id = f.id;
         estadoFila(tr, f);
 
@@ -187,8 +207,6 @@
         fe.addEventListener('change', function () { f.fecha = fe.value; estadoFila(tr, f); cambio(); });
         tr.appendChild(fe);
 
-        var ok = el('span', 'hidden xl:flex justify-center text-emerald-600');
-        tr.appendChild(ok);
         tr._refrescar = function () { sel.value = f.tecnico; fe.value = f.fecha; txt.textContent = textoMuestras(); estadoFila(tr, f); };
         return tr;
     }
@@ -230,7 +248,7 @@
                 l.appendChild(c);
                 var b = el('span', 'min-w-0');
                 b.appendChild(el('span', 'block font-mono text-[11px] font-black text-blue-700', m.codigo));
-                b.appendChild(el('span', 'block text-[11px] text-slate-500 break-words', [m.tipo, m.descripcion].filter(Boolean).join(' · ')));
+                b.appendChild(el('span', 'block text-[11px] text-slate-500 break-words', [m.tipo, m.idCliente && ('ID cliente ' + m.idCliente), m.estructura, m.descripcion].filter(Boolean).join(' · ')));
                 l.appendChild(b);
                 lista.appendChild(l);
             });
@@ -281,6 +299,28 @@
         e.className = 'text-xs font-bold ' + (parciales.length ? 'text-amber-700' : lineas ? 'text-emerald-700' : 'text-slate-500');
         var c = $('se-inc-contador');
         c.textContent = incidencias.length; c.classList.toggle('hidden', !incidencias.length);
+        pintarPagina(listas, parciales, lineas, inc);
+    }
+
+    function pintarPagina(listas, parciales, lineas, inc) {
+        var cont = $('se-pagina-lista');
+        cont.textContent = '';
+        var visibles = filas.filter(function (f) { return completa(f) || parcial(f); });
+        $('se-pagina-vacio').classList.toggle('hidden', visibles.length > 0);
+        $('se-abrir').disabled = !filas.length && !muestras.length;
+        $('se-pagina-resumen').textContent = !$('id_cotizacion').value ? 'Elige una cotización para asignar sus ensayos.'
+            : (lineas ? lineas + ' línea' + (lineas === 1 ? '' : 's') + ' de ensayo por guardar' : 'Aún no asignaste ensayos') +
+              (inc ? ' · ' + inc + ' incidencia' + (inc === 1 ? '' : 's') : '');
+        visibles.forEach(function (f) {
+            var ok = completa(f);
+            var fila = el('div', 'px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1 ' + (ok ? 'se-fila-lista' : 'se-fila-parcial'));
+            fila.appendChild(el('span', 'text-sm font-black text-slate-800 min-w-[220px] flex-1', f.nombre));
+            var t = tecnicos.find(function (x) { return String(x.id) === String(f.tecnico); });
+            [f.sel.length + ' muestra' + (f.sel.length === 1 ? '' : 's'), t ? t.nombre : 'Sin técnico', f.fecha || 'Sin fecha'].forEach(function (x, i) {
+                fila.appendChild(el('span', 'text-xs font-semibold ' + (i === 1 && !t || i === 2 && !f.fecha || i === 0 && !f.sel.length ? 'text-amber-700' : 'text-slate-600'), x));
+            });
+            cont.appendChild(fila);
+        });
     }
 
     function oculto(n, v) { var i = document.createElement('input'); i.type = 'hidden'; i.name = n; i.value = v == null ? '' : v; return i; }
@@ -288,11 +328,12 @@
     form.addEventListener('submit', function (ev) {
         var envio = $('se-envio');
         envio.textContent = '';
-        if (!$('id_cotizacion').value) { ev.preventDefault(); $('se-estado').textContent = 'Elige una cotización.'; $('se-estado').className = 'text-xs font-bold text-rose-700'; return; }
-        if (!$('fecha_entrega_programada').value) { ev.preventDefault(); $('fecha_entrega_programada').focus(); $('se-estado').textContent = 'Indica la entrega programada (o el plazo en días).'; $('se-estado').className = 'text-xs font-bold text-rose-700'; return; }
+        if (!$('id_cotizacion').value) { ev.preventDefault(); cerrarModal(); $('se-estado').textContent = 'Elige una cotización.'; $('se-estado').className = 'text-xs font-bold text-rose-700'; return; }
+        if (!$('fecha_entrega_programada').value) { ev.preventDefault(); cerrarModal(); $('fecha_entrega_programada').focus(); $('se-estado').textContent = 'Indica la entrega programada (o el plazo en días).'; $('se-estado').className = 'text-xs font-bold text-rose-700'; return; }
         var incompletos = filas.filter(parcial);
         if (incompletos.length) {
             ev.preventDefault();
+            abrirModal();
             $('se-estado').textContent = 'Completa o vacía: ' + incompletos.map(function (f) { return f.nombre; }).join(' · ');
             $('se-estado').className = 'text-xs font-bold text-rose-700';
             var tr = $('se-filas').querySelector('[data-id="' + incompletos[0].id + '"]');
@@ -330,32 +371,43 @@
             d.appendChild(el('p', 'text-[11px] text-slate-500 mt-0.5', [i.fecha, i.cliente && ('Cliente: ' + i.cliente), i.responsable && ('Lab: ' + i.responsable), i.autorizada ? 'Autorizada' : 'Sin autorizar'].filter(Boolean).join(' · ')));
             c.appendChild(d);
         });
-        if (previas.length) $('se-incidencias-caja').open = true;
+        vacioIncidencias();
+    }
+
+    function vacioIncidencias() {
+        $('se-inc-vacio').classList.toggle('hidden', previas.length > 0 || incidencias.length > 0);
+    }
+
+    function campoInc(etiqueta, nodo) {
+        var w = el('div', ''); w.appendChild(el('span', 'se-label', etiqueta)); w.appendChild(nodo); return w;
     }
 
     function pintarIncidencias() {
         var c = $('se-inc-lista'); c.textContent = '';
         incidencias.forEach(function (inc, idx) {
-            var caja = el('div', 'grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_210px_minmax(0,1fr)_minmax(0,1fr)_auto_36px] gap-3 items-start rounded-xl border border-slate-200 p-3');
-            var ta = el('textarea', 'se-campo'); ta.rows = 2; ta.placeholder = 'Detalle de la incidencia…'; ta.value = inc.detalle || '';
+            var caja = el('div', 'rounded-xl border border-slate-200 p-3 space-y-2');
+            var ta = el('textarea', 'se-campo'); ta.rows = 3; ta.placeholder = 'Detalle de la incidencia…'; ta.value = inc.detalle || '';
             ta.addEventListener('input', function () { inc.detalle = ta.value; cambio(); });
             var fe = el('input', 'se-campo'); fe.type = 'datetime-local'; fe.value = inc.fecha || ahoraLocal();
             inc.fecha = fe.value;
             fe.addEventListener('change', function () { inc.fecha = fe.value; cambio(); });
             var cl = el('input', 'se-campo'); cl.placeholder = 'Representante del cliente'; cl.value = inc.cliente || '';
             cl.addEventListener('input', function () { inc.cliente = cl.value; cambio(); });
-            var rs = el('select', 'se-campo'); opcionesTecnico(rs, inc.responsable, '— Responsable lab —');
+            var rs = el('select', 'se-campo'); opcionesTecnico(rs, inc.responsable, '— Responsable lab (JL/SL) —');
             rs.addEventListener('change', function () { inc.responsable = rs.value; cambio(); });
-            var au = el('label', 'flex items-center gap-2 text-[11px] font-black uppercase text-slate-600 pt-2');
+            var pie = el('div', 'flex items-center justify-between');
+            var au = el('label', 'flex items-center gap-2 text-[11px] font-black uppercase text-slate-600');
             var ck = document.createElement('input'); ck.type = 'checkbox'; ck.checked = !!inc.autorizada;
             ck.addEventListener('change', function () { inc.autorizada = ck.checked; cambio(); });
             au.appendChild(ck); au.appendChild(document.createTextNode('Autorizar'));
-            var q = el('button', 'p-2 text-slate-400 hover:text-rose-600'); q.type = 'button'; q.setAttribute('aria-label', 'Quitar incidencia');
+            var q = el('button', 'p-1.5 text-slate-400 hover:text-rose-600'); q.type = 'button'; q.setAttribute('aria-label', 'Quitar incidencia');
             var ic = document.createElement('i'); ic.setAttribute('data-lucide', 'trash-2'); ic.className = 'w-4 h-4'; q.appendChild(ic);
             q.addEventListener('click', function () { incidencias.splice(idx, 1); pintarIncidencias(); cambio(); });
-            [ta, fe, cl, rs, au, q].forEach(function (n) { caja.appendChild(n); });
+            pie.appendChild(au); pie.appendChild(q);
+            [ta, campoInc('Fecha y hora', fe), campoInc('Cliente', cl), campoInc('Responsable', rs), pie].forEach(function (n) { caja.appendChild(n); });
             c.appendChild(caja);
         });
+        vacioIncidencias();
         icono();
     }
 
@@ -380,6 +432,9 @@
     $('fecha_entrega_programada').addEventListener('change', function () { fechaPorDefecto(); cambio(); });
 
     function iniciar() {
+        $('se-abrir').addEventListener('click', abrirModal);
+        $('se-cerrar').addEventListener('click', cerrarModal);
+        $('se-listo').addEventListener('click', cerrarModal);
         opcionesTecnico($('se-tec-todos'), '', '— Elegir técnico —');
         pintarPrevias();
         var sel = $('id_cotizacion');
@@ -392,7 +447,7 @@
                 return;
             }
             sel.dataset.anterior = v;
-            cargarCotizacion(v).then(function () { fechaPorDefecto(); });
+            cargarCotizacion(v).then(function () { fechaPorDefecto(); abrirModal(); });
         }
         if (sinOpciones) { sel.disabled = true; }
         else if (window.TomSelect) {
@@ -402,7 +457,7 @@
                 onChange: alElegir,
             });
         } else { sel.addEventListener('change', function () { alElegir(sel.value); }); }
-        if (sel.value && !sinOpciones) { sel.dataset.anterior = sel.value; cargarCotizacion(sel.value).then(function () { fechaPorDefecto(); cambio(); }); }
+        if (sel.value && !sinOpciones) { sel.dataset.anterior = sel.value; cargarCotizacion(sel.value).then(function () { fechaPorDefecto(); cambio(); abrirModal(); }); }
         icono();
     }
 

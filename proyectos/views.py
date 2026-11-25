@@ -678,6 +678,7 @@ def api_obtener_detalles_cotizacion(request, cotizacion_id):
             ).order_by('codigo_laboratorio').values(
                 'id', 'codigo_laboratorio', 'descripcion',
                 'tipo_muestra__nombre', 'tipo_muestra__sigla',
+                'codigo_cliente', 'elemento_estructural',
             )[:500]
         )
 

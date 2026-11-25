@@ -340,7 +340,7 @@ class SolicitudUnaPantallaTests(AvanceMixin, TestCase):
         self._recepcion(proyecto, 2)
         self._usuario()
         html = self.client.get(reverse('proyectos:crear_solicitud'), {'proyecto': proyecto.pk}).content.decode()
-        for marca in ('id="se-filas"', 'solicitud_ensayo.js', 'id="se-tecnicos"', 'se-todas-muestras'):
+        for marca in ('id="se-filas"', 'id="se-modal"', 'id="se-inc-lista"', 'solicitud_ensayo.js', 'id="se-tecnicos"', 'se-todas-muestras'):
             self.assertIn(marca, html)
         self.assertNotIn('sol-tab-btn', html)
 

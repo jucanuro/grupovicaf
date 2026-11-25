@@ -153,7 +153,8 @@ guarda el HTML de `#tbody-muestras` y `RecepcionMuestras.reconstruir()` redibuja
 botones al restaurar.
 
 **Solicitud de ensayo en una pantalla (HU-LIMS-32).** `ensayos_form.html` +
-`static/js/solicitud_ensayo.js`: una fila por ensayo pendiente de la cotización
+`static/js/solicitud_ensayo.js`: al elegir la cotización se abre un modal a pantalla completa
+(`#se-modal`: ensayos a la izquierda, incidencias al costado, guardar fijo); una fila por ensayo pendiente de la cotización
 (`api_obtener_detalles_cotizacion`), con selector de varias muestras, técnico y
 entrega; al guardar el JS arma los mismos arreglos de siempre (`muestra_id[]`,
 `servicio_id[]`, `norma[]`, `metodo[]`, `tecnico_id[]`, `entrega_detalle[]`,
