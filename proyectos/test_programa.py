@@ -526,6 +526,22 @@ class ListaYPdfSolicitudTests(AvanceMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertTrue(resp.content.startswith(b'%PDF-'))
 
+    def test_el_logo_del_pdf_va_incrustado_sin_pedirlo_por_http(self):
+        from unittest import mock
+        sol = self._solicitud()
+        capturado = {}
+        import proyectos.views as vistas
+        original = vistas.render_to_string
+
+        def espia(plantilla, contexto=None, *a, **k):
+            if plantilla == 'proyectos/ensayos_pdf.html':
+                capturado.update(contexto)
+            return original(plantilla, contexto, *a, **k)
+
+        with mock.patch.object(vistas, 'render_to_string', espia):
+            self.client.get(reverse('proyectos:generar_pdf_ensayo', args=[sol.pk]))
+        self.assertTrue(capturado['logo_data'].startswith('data:image/png;base64,'))
+
     def test_resultados_trae_los_pasos_en_columna_izquierda(self):
         sol = self._solicitud()
         html = self.client.get(reverse('proyectos:resultados_solicitud', args=[sol.pk])).content.decode()

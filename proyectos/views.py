@@ -6,6 +6,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from datetime import datetime
 import json
 import io
+import base64
 import logging
 import re
 from urllib.parse import quote
@@ -18,6 +19,7 @@ from django.template.loader import render_to_string, get_template
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
+from django.contrib.staticfiles import finders
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.utils import timezone
@@ -1244,10 +1246,18 @@ def generar_pdf_ensayo(request, solicitud_id):
         if d.tecnico_asignado_id and d.tecnico_asignado.nombre_completo not in tecnicos:
             tecnicos.append(d.tecnico_asignado.nombre_completo)
 
+    # El logo va incrustado: WeasyPrint no debe pedirlo por HTTP al propio servidor.
+    logo_data = ''
+    ruta_logo = finders.find('img/oferta/logo.png')
+    if ruta_logo:
+        with open(ruta_logo, 'rb') as f:
+            logo_data = 'data:image/png;base64,' + base64.b64encode(f.read()).decode('ascii')
+
     context = {
         'solicitud': solicitud,
         'proyecto': proyecto,
         'detalles': detalles,
+        'logo_data': logo_data,
         'normas': ' · '.join(normas),
         'tecnicos': tecnicos,
         'user': request.user,

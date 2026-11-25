@@ -28,9 +28,9 @@
     .rotulo { background: #F2F2F2; font-weight: bold; }
     .naranja { background: #F6A31C; font-weight: bold; text-align: center; }
 
-    .cab td { height: 7mm; }
+    .cab td { height: 9mm; }
     .cab .logo { width: 6.1cm; text-align: center; }
-    .cab .logo img { height: 1.35cm; }
+    .cab .logo img { height: 1.9cm; }
     .cab .grande { text-align: center; font-weight: bold; font-size: 9.5pt; }
 
     .detalle td { height: 7mm; font-size: 7.2pt; text-align: center; }
@@ -48,7 +48,7 @@
 
 <table class="cab">
     <tr>
-        <td class="logo" rowspan="2"><img src="{% static 'img/oferta/logo.png' %}" alt="Grupo VICAF SAC"></td>
+        <td class="logo" rowspan="2"><img src="{% if logo_data %}{{ logo_data }}{% else %}{% static 'img/oferta/logo.png' %}{% endif %}" alt="Grupo VICAF SAC"></td>
         <td class="grande">SOLICITUD DE ENSAYO{% if normas %}<br>{{ normas }}{% endif %}</td>
         <td class="naranja" style="width: 6.4cm">No. DE SOLICITUD o INFORME</td>
     </tr>
