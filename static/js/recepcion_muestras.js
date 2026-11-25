@@ -174,30 +174,53 @@
 
     /* ---------- Modal ---------- */
 
+    /* Combobox de tipos: plegado, con búsqueda al escribir y teclado (↑ ↓ Enter Esc). */
+    var abierto = false;
+    var resaltado = -1;
+
+    function etiquetaTipo(t) { return t.nombre + ' (' + t.prefijo + ')'; }
+
+    function listaFiltrada() {
+        var q = filtroTipo.toLowerCase();
+        return tipos.filter(function (t) { return !q || t.nombre.toLowerCase().indexOf(q) >= 0 || t.prefijo.toLowerCase().indexOf(q) >= 0; });
+    }
+
     function renderTipos() {
         var cont = $('rm-tipos');
+        var entrada = $('rm-tipo-buscar');
         cont.textContent = '';
-        var q = filtroTipo.toLowerCase();
-        var lista = tipos.filter(function (t) { return !q || t.nombre.toLowerCase().indexOf(q) >= 0 || t.prefijo.toLowerCase().indexOf(q) >= 0; });
-        lista.forEach(function (t) {
-            var activo = String($('rm-tipo-id').value) === String(t.id);
-            var b = el('button', 'rm-tipo w-full flex items-center justify-between gap-3 px-3 py-2 text-left text-xs transition-colors ' +
-                (activo ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-blue-50'));
-            b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', activo ? 'true' : 'false');
+        var lista = listaFiltrada();
+        var actual = String($('rm-tipo-id').value);
+        lista.forEach(function (t, i) {
+            var activo = actual === String(t.id);
+            var b = el('div', 'rm-tipo flex items-center justify-between gap-3 px-3 py-2 cursor-pointer text-xs ' +
+                (i === resaltado ? 'bg-blue-100 ' : '') + (activo ? 'font-black text-blue-700' : 'text-slate-700 hover:bg-blue-50'));
+            b.setAttribute('role', 'option'); b.setAttribute('aria-selected', activo ? 'true' : 'false');
             b.dataset.tipo = t.id;
-            b.appendChild(el('span', 'font-black uppercase truncate', t.nombre));
-            b.appendChild(el('span', 'font-mono text-[10px] ' + (activo ? 'text-blue-100' : 'text-slate-400'), t.prefijo));
-            b.addEventListener('click', function () { elegirTipo(t.id); });
+            b.appendChild(el('span', 'font-bold uppercase truncate', t.nombre));
+            b.appendChild(el('span', 'font-mono text-[10px] text-slate-400', t.prefijo));
+            b.addEventListener('mousedown', function (e) { e.preventDefault(); elegirTipo(t.id); });
             cont.appendChild(b);
         });
         if (!lista.length) cont.appendChild(el('p', 'px-3 py-3 text-xs text-slate-400', 'Ningún tipo coincide. Crea uno con «Nuevo tipo».'));
-        var sel = tipoPorId($('rm-tipo-id').value);
-        var etiqueta = $('rm-tipo-elegido');
-        if (etiqueta) etiqueta.textContent = sel ? sel.nombre + ' (' + sel.prefijo + ')' : 'Ninguno elegido';
+        cont.classList.toggle('hidden', !abierto);
+        entrada.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+        var hl = cont.children[resaltado] || cont.querySelector('[aria-selected="true"]');
+        if (abierto && hl && hl.scrollIntoView) hl.scrollIntoView({ block: 'nearest' });
     }
+
+    function mostrarElegido() {
+        var t = tipoPorId($('rm-tipo-id').value);
+        $('rm-tipo-buscar').value = t ? etiquetaTipo(t) : '';
+    }
+
+    function abrirCombo() { abierto = true; resaltado = -1; renderTipos(); }
+    function cerrarCombo() { abierto = false; filtroTipo = ''; mostrarElegido(); renderTipos(); }
 
     function elegirTipo(id) {
         $('rm-tipo-id').value = id;
+        abierto = false; filtroTipo = '';
+        mostrarElegido();
         renderTipos();
         refrescar();
         $('rm-cantidad').focus();
@@ -234,7 +257,11 @@
             var fila = el('div', 'flex items-start gap-3 px-4 py-3 hover:bg-slate-50' + (tr === enEdicion ? ' bg-amber-50' : ''));
             fila.appendChild(el('span', 'text-[10px] font-mono text-slate-400 w-6 pt-0.5', String(i + 1).padStart(2, '0')));
             var cuerpo = el('div', 'flex-1 min-w-0');
-            cuerpo.appendChild(el('div', 'text-xs font-black text-slate-800 uppercase', (t ? t.nombre : '') + ' · ' + textoCantidad(d)));
+            var chipTr = tr.querySelector('.idlab');
+            var cab = el('div', 'flex items-center gap-2 flex-wrap');
+            if (chipTr) cab.appendChild(el('span', 'font-mono text-[11px] font-black text-blue-700 bg-blue-50 border border-blue-100 rounded px-2 py-0.5', chipTr.textContent));
+            cab.appendChild(el('span', 'text-xs font-black text-slate-800 uppercase', (t ? t.nombre : '') + ' · ' + textoCantidad(d)));
+            cuerpo.appendChild(cab);
             var detalle = [d.masa ? d.masa + ' kg' : '', d.descripcion, d.observaciones].filter(Boolean).join(' · ');
             if (detalle) cuerpo.appendChild(el('div', 'text-[11px] font-semibold text-slate-500 break-words', detalle));
             fila.appendChild(cuerpo);
@@ -258,7 +285,7 @@
         $('rm-agregar-texto').textContent = 'Guardar cambios';
         $('rm-cancelar-edicion').classList.remove('hidden');
         error('');
-        renderTipos(); renderLista(); icono();
+        mostrarElegido(); renderTipos(); renderLista(); icono();
         $('rm-descripcion').focus();
     }
 
@@ -280,11 +307,10 @@
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         document.body.classList.add('overflow-hidden');
-        renderTipos(); renderLista(); icono();
+        mostrarElegido(); renderTipos(); renderLista(); icono();
         if (trParaEditar) { cargarEnFormulario(trParaEditar); return; }
-        if (!$('rm-tipo-id').value && tipos.length === 1) $('rm-tipo-id').value = tipos[0].id;
-        renderTipos();
-        setTimeout(function () { (($('rm-tipo-id').value ? $('rm-descripcion') : modal.querySelector('.rm-tipo')) || $('rm-cantidad')).focus(); }, 60);
+        if (!$('rm-tipo-id').value && tipos.length === 1) { $('rm-tipo-id').value = tipos[0].id; mostrarElegido(); }
+        setTimeout(function () { ($('rm-tipo-id').value ? $('rm-descripcion') : $('rm-tipo-buscar')).focus(); }, 60);
     }
 
     function cerrar() {
@@ -328,20 +354,31 @@
                          siguiente: data.siguiente || 1 });
             tipos.sort(function (a, b) { return a.nombre.localeCompare(b.nombre); });
         }
-        filtroTipo = ''; var q = $('rm-tipo-buscar'); if (q) q.value = '';
-        $('rm-tipo-id').value = data.id;
-        renderTipos();
-        $('rm-cantidad').focus();
+        filtroTipo = '';
+        elegirTipo(data.id);
     }
 
     var buscar = $('rm-tipo-buscar');
-    buscar.addEventListener('input', function () { filtroTipo = buscar.value.trim(); renderTipos(); });
+    buscar.addEventListener('focus', function () { buscar.select(); abrirCombo(); });
+    buscar.addEventListener('click', function () { if (!abierto) abrirCombo(); });
+    buscar.addEventListener('input', function () { filtroTipo = buscar.value.trim(); abierto = true; resaltado = 0; renderTipos(); });
+    buscar.addEventListener('blur', function () { cerrarCombo(); });
+    $('rm-combo-flecha').addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        if (abierto) { cerrarCombo(); } else { buscar.focus(); abrirCombo(); }
+    });
     buscar.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') {
+        var n = listaFiltrada().length;
+        if (e.key === 'ArrowDown') { e.preventDefault(); if (!abierto) { abrirCombo(); } resaltado = Math.min(resaltado + 1, n - 1); renderTipos(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); resaltado = Math.max(resaltado - 1, 0); renderTipos(); }
+        else if (e.key === 'Enter') {
             e.preventDefault(); e.stopPropagation();
-            var primero = $('rm-tipos').querySelector('.rm-tipo');
-            if (primero) elegirTipo(primero.dataset.tipo);
+            var cont = $('rm-tipos');
+            var op = abierto ? (cont.children[resaltado >= 0 ? resaltado : 0]) : null;
+            if (op && op.dataset.tipo) elegirTipo(op.dataset.tipo);
+            else if (!abierto) $('rm-cantidad').focus();
         }
+        else if (e.key === 'Escape' && abierto) { e.preventDefault(); e.stopPropagation(); cerrarCombo(); }
     });
     $('btn-abrir-muestras').addEventListener('click', function () { abrir(); });
     $('btn-listo-muestras').addEventListener('click', cerrar);
