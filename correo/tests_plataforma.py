@@ -297,6 +297,32 @@ class HilosTests(BasePlataforma):
         self.assertEqual([p['correo'] for p in borrador.para], ['ana@cliente.example', 'b@cliente.example'])
         self.assertEqual([p['correo'] for p in borrador.cc], ['c@cliente.example'])
 
+    def test_responder_a_un_compañero_interno_lo_incluye_y_conserva_los_demas(self):
+        interno = crear_mensaje(
+            self.informes, 'entrada', de='raquel.riojas@grupovicaf.com', asunto='Interno',
+            para=[{'nombre': '', 'correo': 'informes@grupovicaf.com'}, {'nombre': '', 'correo': 'laboratorio@grupovicaf.com'}],
+            cc=[{'nombre': '', 'correo': 'frank.gonzales@grupovicaf.com'}],
+        )
+        self.entrar(self.gestor)
+        self.get('redactar', responder=interno.pk)
+        solo = Mensaje.objects.filter(estado_envio=Mensaje.BORRADOR).latest('pk')
+        self.assertEqual([p['correo'] for p in solo.para], ['raquel.riojas@grupovicaf.com'])
+        solo.delete()
+        self.get('redactar', responder_todos=interno.pk)
+        todos = Mensaje.objects.filter(estado_envio=Mensaje.BORRADOR).latest('pk')
+        self.assertEqual([p['correo'] for p in todos.para], ['raquel.riojas@grupovicaf.com', 'laboratorio@grupovicaf.com'])
+        self.assertEqual([p['correo'] for p in todos.cc], ['frank.gonzales@grupovicaf.com'])
+
+    def test_responder_a_un_mensaje_enviado_va_a_sus_destinatarios(self):
+        enviado = crear_mensaje(
+            self.informes, 'enviados', de='informes@grupovicaf.com', asunto='Oferta', estado=Mensaje.ENVIADO,
+            para=[{'nombre': '', 'correo': 'ana@cliente.example'}],
+        )
+        self.entrar(self.gestor)
+        self.get('redactar', responder=enviado.pk)
+        borrador = Mensaje.objects.filter(estado_envio=Mensaje.BORRADOR).latest('pk')
+        self.assertEqual([p['correo'] for p in borrador.para], ['ana@cliente.example'])
+
     def test_reenviar_conserva_los_adjuntos(self):
         self.entrar(self.gestor)
         self.get('redactar', reenviar=self.m.pk)
