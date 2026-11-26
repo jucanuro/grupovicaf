@@ -5,6 +5,7 @@ html.dark .bg-black\/50:not(.tema-claro *) { background-color: rgb(0 0 0 / 0.5);
 html.dark .bg-black:not(.tema-claro *) { background-color: rgb(0 0 0); }
 html.dark .bg-white\/5:not(.tema-claro *) { background-color: rgb(255 255 255 / 0.05); }
 html.dark .bg-white\/10:not(.tema-claro *) { background-color: rgb(255 255 255 / 0.1); }
+html.dark .bg-white\/20:not(.tema-claro *) { background-color: rgb(255 255 255 / 0.2); }
 html.dark .bg-white\/40:not(.tema-claro *) { background-color: rgb(17 26 43 / 0.4); }
 html.dark .bg-white\/50:not(.tema-claro *) { background-color: rgb(17 26 43 / 0.5); }
 html.dark .bg-white\/90:not(.tema-claro *) { background-color: rgb(17 26 43 / 0.9); }
@@ -16,7 +17,6 @@ html.dark .bg-slate-50\/70:not(.tema-claro *) { background-color: rgb(22 33 51 /
 html.dark .bg-slate-50\/80:not(.tema-claro *) { background-color: rgb(22 33 51 / 0.8); }
 html.dark .bg-slate-50\/95:not(.tema-claro *) { background-color: rgb(22 33 51 / 0.95); }
 html.dark .bg-slate-50:not(.tema-claro *) { background-color: rgb(22 33 51); }
-html.dark .bg-slate-100\/50:not(.tema-claro *) { background-color: rgb(27 39 59 / 0.5); }
 html.dark .bg-slate-100\/60:not(.tema-claro *) { background-color: rgb(27 39 59 / 0.6); }
 html.dark .bg-slate-100:not(.tema-claro *) { background-color: rgb(27 39 59); }
 html.dark .bg-slate-200\/30:not(.tema-claro *) { background-color: rgb(36 49 70 / 0.3); }
@@ -30,7 +30,6 @@ html.dark .bg-slate-900\/40:not(.tema-claro *) { background-color: rgb(15 23 42 
 html.dark .bg-slate-900\/50:not(.tema-claro *) { background-color: rgb(15 23 42 / 0.5); }
 html.dark .bg-slate-900\/60:not(.tema-claro *) { background-color: rgb(15 23 42 / 0.6); }
 html.dark .bg-slate-900\/95:not(.tema-claro *) { background-color: rgb(51 65 85 / 0.95); }
-html.dark .bg-slate-900\/98:not(.tema-claro *) { background-color: rgb(51 65 85 / 0.98); }
 html.dark .bg-slate-900:not(.tema-claro *) { background-color: rgb(51 65 85); }
 html.dark .bg-gray-50:not(.tema-claro *) { background-color: rgb(22 33 51); }
 html.dark .bg-gray-200:not(.tema-claro *) { background-color: rgb(36 49 70); }
@@ -41,17 +40,10 @@ html.dark .bg-red-500\/10:not(.tema-claro *) { background-color: rgb(239 68 68 /
 html.dark .bg-red-600:not(.tema-claro *) { background-color: rgb(220 38 38); }
 html.dark .bg-red-700:not(.tema-claro *) { background-color: rgb(185 28 28); }
 html.dark .bg-orange-50:not(.tema-claro *) { background-color: rgb(249 115 22 / 0.12); }
-html.dark .bg-orange-100:not(.tema-claro *) { background-color: rgb(249 115 22 / 0.18); }
 html.dark .bg-orange-600:not(.tema-claro *) { background-color: rgb(234 88 12); }
-html.dark .bg-amber-50\/20:not(.tema-claro *) { background-color: rgb(245 158 11 / 0.024); }
-html.dark .bg-amber-50\/30:not(.tema-claro *) { background-color: rgb(245 158 11 / 0.036); }
-html.dark .bg-amber-50\/60:not(.tema-claro *) { background-color: rgb(245 158 11 / 0.072); }
 html.dark .bg-amber-50:not(.tema-claro *) { background-color: rgb(245 158 11 / 0.12); }
-html.dark .bg-amber-100\/40:not(.tema-claro *) { background-color: rgb(245 158 11 / 0.072); }
 html.dark .bg-amber-100:not(.tema-claro *) { background-color: rgb(245 158 11 / 0.18); }
 html.dark .bg-amber-400:not(.tema-claro *) { background-color: rgb(251 191 36); }
-html.dark .bg-amber-500:not(.tema-claro *) { background-color: rgb(245 158 11); }
-html.dark .bg-amber-600:not(.tema-claro *) { background-color: rgb(217 119 6); }
 html.dark .bg-yellow-500\/20:not(.tema-claro *) { background-color: rgb(234 179 8 / 0.2); }
 html.dark .bg-green-50:not(.tema-claro *) { background-color: rgb(34 197 94 / 0.12); }
 html.dark .bg-green-100:not(.tema-claro *) { background-color: rgb(34 197 94 / 0.18); }
@@ -60,17 +52,14 @@ html.dark .bg-emerald-50\/40:not(.tema-claro *) { background-color: rgb(16 185 1
 html.dark .bg-emerald-50\/60:not(.tema-claro *) { background-color: rgb(16 185 129 / 0.072); }
 html.dark .bg-emerald-50:not(.tema-claro *) { background-color: rgb(16 185 129 / 0.12); }
 html.dark .bg-emerald-100:not(.tema-claro *) { background-color: rgb(16 185 129 / 0.18); }
-html.dark .bg-emerald-200:not(.tema-claro *) { background-color: rgb(16 185 129 / 0.26); }
 html.dark .bg-emerald-400:not(.tema-claro *) { background-color: rgb(52 211 153); }
 html.dark .bg-emerald-500:not(.tema-claro *) { background-color: rgb(16 185 129); }
 html.dark .bg-emerald-600:not(.tema-claro *) { background-color: rgb(5 150 105); }
 html.dark .bg-sky-50:not(.tema-claro *) { background-color: rgb(14 165 233 / 0.12); }
-html.dark .bg-blue-50\/30:not(.tema-claro *) { background-color: rgb(59 130 246 / 0.036); }
 html.dark .bg-blue-50\/50:not(.tema-claro *) { background-color: rgb(59 130 246 / 0.06); }
 html.dark .bg-blue-50:not(.tema-claro *) { background-color: rgb(59 130 246 / 0.12); }
 html.dark .bg-blue-100\/60:not(.tema-claro *) { background-color: rgb(59 130 246 / 0.108); }
 html.dark .bg-blue-100:not(.tema-claro *) { background-color: rgb(59 130 246 / 0.18); }
-html.dark .bg-blue-200:not(.tema-claro *) { background-color: rgb(59 130 246 / 0.26); }
 html.dark .bg-blue-400:not(.tema-claro *) { background-color: rgb(96 165 250); }
 html.dark .bg-blue-500\/0:not(.tema-claro *) { background-color: rgb(59 130 246 / 0); }
 html.dark .bg-blue-500\/20:not(.tema-claro *) { background-color: rgb(59 130 246 / 0.2); }
@@ -84,7 +73,6 @@ html.dark .bg-indigo-500\/20:not(.tema-claro *) { background-color: rgb(99 102 2
 html.dark .bg-indigo-500:not(.tema-claro *) { background-color: rgb(99 102 241); }
 html.dark .bg-indigo-600:not(.tema-claro *) { background-color: rgb(79 70 229); }
 html.dark .bg-violet-50:not(.tema-claro *) { background-color: rgb(139 92 246 / 0.12); }
-html.dark .bg-violet-100:not(.tema-claro *) { background-color: rgb(139 92 246 / 0.18); }
 html.dark .bg-purple-50:not(.tema-claro *) { background-color: rgb(168 85 247 / 0.12); }
 html.dark .bg-purple-100:not(.tema-claro *) { background-color: rgb(168 85 247 / 0.18); }
 html.dark .bg-purple-500\/20:not(.tema-claro *) { background-color: rgb(168 85 247 / 0.2); }
@@ -120,8 +108,6 @@ html.dark .text-red-600:not(.tema-claro *) { color: rgb(248 113 113); }
 html.dark .text-red-700:not(.tema-claro *) { color: rgb(252 165 165); }
 html.dark .text-orange-300:not(.tema-claro *) { color: rgb(253 186 116); }
 html.dark .text-orange-600:not(.tema-claro *) { color: rgb(251 146 60); }
-html.dark .text-orange-700:not(.tema-claro *) { color: rgb(253 186 116); }
-html.dark .text-amber-400:not(.tema-claro *) { color: rgb(251 191 36); }
 html.dark .text-amber-500:not(.tema-claro *) { color: rgb(251 191 36); }
 html.dark .text-amber-600:not(.tema-claro *) { color: rgb(251 191 36); }
 html.dark .text-amber-700\/70:not(.tema-claro *) { color: rgb(252 211 77 / 0.7); }
@@ -132,19 +118,18 @@ html.dark .text-yellow-300:not(.tema-claro *) { color: rgb(253 224 71); }
 html.dark .text-yellow-400:not(.tema-claro *) { color: rgb(250 204 21); }
 html.dark .text-green-400:not(.tema-claro *) { color: rgb(74 222 128); }
 html.dark .text-green-700:not(.tema-claro *) { color: rgb(134 239 172); }
-html.dark .text-green-800:not(.tema-claro *) { color: rgb(187 247 208); }
 html.dark .text-emerald-300:not(.tema-claro *) { color: rgb(110 231 183); }
 html.dark .text-emerald-400:not(.tema-claro *) { color: rgb(52 211 153); }
 html.dark .text-emerald-500:not(.tema-claro *) { color: rgb(52 211 153); }
 html.dark .text-emerald-600:not(.tema-claro *) { color: rgb(52 211 153); }
 html.dark .text-emerald-700\/70:not(.tema-claro *) { color: rgb(110 231 183 / 0.7); }
 html.dark .text-emerald-700:not(.tema-claro *) { color: rgb(110 231 183); }
+html.dark .text-emerald-800:not(.tema-claro *) { color: rgb(167 243 208); }
 html.dark .text-cyan-300:not(.tema-claro *) { color: rgb(103 232 249); }
 html.dark .text-sky-600:not(.tema-claro *) { color: rgb(56 189 248); }
 html.dark .text-blue-300:not(.tema-claro *) { color: rgb(147 197 253); }
 html.dark .text-blue-400:not(.tema-claro *) { color: rgb(96 165 250); }
 html.dark .text-blue-500\/10:not(.tema-claro *) { color: rgb(96 165 250 / 0.1); }
-html.dark .text-blue-500\/80:not(.tema-claro *) { color: rgb(96 165 250 / 0.8); }
 html.dark .text-blue-500:not(.tema-claro *) { color: rgb(96 165 250); }
 html.dark .text-blue-600\/70:not(.tema-claro *) { color: rgb(96 165 250 / 0.7); }
 html.dark .text-blue-600:not(.tema-claro *) { color: rgb(96 165 250); }
@@ -161,6 +146,7 @@ html.dark .text-violet-700:not(.tema-claro *) { color: rgb(196 181 253); }
 html.dark .text-purple-300:not(.tema-claro *) { color: rgb(216 180 254); }
 html.dark .text-purple-400:not(.tema-claro *) { color: rgb(192 132 252); }
 html.dark .text-purple-600:not(.tema-claro *) { color: rgb(192 132 252); }
+html.dark .text-purple-700:not(.tema-claro *) { color: rgb(216 180 254); }
 html.dark .text-fuchsia-600:not(.tema-claro *) { color: rgb(232 121 249); }
 html.dark .text-pink-600:not(.tema-claro *) { color: rgb(244 114 182); }
 html.dark .text-rose-500:not(.tema-claro *) { color: rgb(251 113 133); }
@@ -175,7 +161,6 @@ html.dark .border-white\/10:not(.tema-claro *) { border-color: rgb(255 255 255 /
 html.dark .border-white\/20:not(.tema-claro *) { border-color: rgb(255 255 255 / 0.2); }
 html.dark .border-white:not(.tema-claro *) { border-color: rgb(31 43 63); }
 html.dark .border-slate-50:not(.tema-claro *) { border-color: rgb(26 37 56); }
-html.dark .border-slate-100\/50:not(.tema-claro *) { border-color: rgb(31 43 63 / 0.5); }
 html.dark .border-slate-100:not(.tema-claro *) { border-color: rgb(31 43 63); }
 html.dark .border-slate-200\/50:not(.tema-claro *) { border-color: rgb(39 53 75 / 0.5); }
 html.dark .border-slate-200\/80:not(.tema-claro *) { border-color: rgb(39 53 75 / 0.8); }
@@ -190,7 +175,6 @@ html.dark .border-gray-100:not(.tema-claro *) { border-color: rgb(31 43 63); }
 html.dark .border-gray-200:not(.tema-claro *) { border-color: rgb(39 53 75); }
 html.dark .border-gray-300:not(.tema-claro *) { border-color: rgb(51 67 89); }
 html.dark .border-red-200:not(.tema-claro *) { border-color: rgb(239 68 68 / 0.35); }
-html.dark .border-red-300:not(.tema-claro *) { border-color: rgb(239 68 68 / 0.5); }
 html.dark .border-red-500:not(.tema-claro *) { border-color: rgb(239 68 68); }
 html.dark .border-orange-100:not(.tema-claro *) { border-color: rgb(249 115 22 / 0.25); }
 html.dark .border-amber-100:not(.tema-claro *) { border-color: rgb(245 158 11 / 0.25); }
@@ -205,28 +189,26 @@ html.dark .border-emerald-500:not(.tema-claro *) { border-color: rgb(16 185 129)
 html.dark .border-sky-100:not(.tema-claro *) { border-color: rgb(14 165 233 / 0.25); }
 html.dark .border-blue-100:not(.tema-claro *) { border-color: rgb(59 130 246 / 0.25); }
 html.dark .border-blue-200:not(.tema-claro *) { border-color: rgb(59 130 246 / 0.35); }
-html.dark .border-blue-400:not(.tema-claro *) { border-color: rgb(96 165 250); }
+html.dark .border-blue-300:not(.tema-claro *) { border-color: rgb(59 130 246 / 0.5); }
 html.dark .border-blue-500:not(.tema-claro *) { border-color: rgb(59 130 246); }
 html.dark .border-indigo-100:not(.tema-claro *) { border-color: rgb(99 102 241 / 0.25); }
 html.dark .border-indigo-200:not(.tema-claro *) { border-color: rgb(99 102 241 / 0.35); }
 html.dark .border-indigo-400\/20:not(.tema-claro *) { border-color: rgb(129 140 248 / 0.2); }
 html.dark .border-indigo-600:not(.tema-claro *) { border-color: rgb(79 70 229); }
 html.dark .border-violet-100:not(.tema-claro *) { border-color: rgb(139 92 246 / 0.25); }
-html.dark .border-purple-200:not(.tema-claro *) { border-color: rgb(168 85 247 / 0.35); }
 html.dark .border-fuchsia-100:not(.tema-claro *) { border-color: rgb(217 70 239 / 0.25); }
 html.dark .border-pink-100:not(.tema-claro *) { border-color: rgb(236 72 153 / 0.25); }
 html.dark .border-rose-100:not(.tema-claro *) { border-color: rgb(244 63 94 / 0.25); }
 html.dark .border-rose-200:not(.tema-claro *) { border-color: rgb(244 63 94 / 0.35); }
 html.dark .border-rose-400:not(.tema-claro *) { border-color: rgb(251 113 133); }
 html.dark .border-transparent:not(.tema-claro *) { border-color: transparent; }
+html.dark .divide-slate-50:not(.tema-claro *) > :not([hidden]) ~ :not([hidden]) { border-color: rgb(26 37 56); }
 html.dark .divide-slate-100:not(.tema-claro *) > :not([hidden]) ~ :not([hidden]) { border-color: rgb(31 43 63); }
 html.dark .ring-white:not(.tema-claro *) { --tw-ring-color: rgb(31 43 63); }
 html.dark .ring-slate-50:not(.tema-claro *) { --tw-ring-color: rgb(26 37 56); }
 html.dark .ring-slate-200:not(.tema-claro *) { --tw-ring-color: rgb(39 53 75); }
 html.dark .ring-slate-900\/5:not(.tema-claro *) { --tw-ring-color: rgb(15 23 42 / 0.05); }
-html.dark .ring-amber-200:not(.tema-claro *) { --tw-ring-color: rgb(253 230 138); }
 html.dark .ring-emerald-200:not(.tema-claro *) { --tw-ring-color: rgb(167 243 208); }
-html.dark .ring-blue-100\/50:not(.tema-claro *) { --tw-ring-color: rgb(219 234 254 / 0.5); }
 html.dark .ring-blue-100:not(.tema-claro *) { --tw-ring-color: rgb(219 234 254); }
 html.dark .ring-rose-100:not(.tema-claro *) { --tw-ring-color: rgb(255 228 230); }
 html.dark .placeholder-slate-400:not(.tema-claro *)::placeholder { color: rgb(127 142 165); }
@@ -243,23 +225,18 @@ html.dark .from-transparent:not(.tema-claro *) { --tw-gradient-from: transparent
 html.dark .via-white:not(.tema-claro *) { --tw-gradient-to: transparent var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), rgb(17 26 43) var(--tw-gradient-via-position), var(--tw-gradient-to); }
 html.dark .via-slate-800:not(.tema-claro *) { --tw-gradient-to: transparent var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), rgb(59 74 96) var(--tw-gradient-via-position), var(--tw-gradient-to); }
 html.dark .to-white:not(.tema-claro *) { --tw-gradient-to: rgb(17 26 43) var(--tw-gradient-to-position); }
-html.dark .to-slate-50:not(.tema-claro *) { --tw-gradient-to: rgb(22 33 51) var(--tw-gradient-to-position); }
 html.dark .to-red-600:not(.tema-claro *) { --tw-gradient-to: rgb(220 38 38) var(--tw-gradient-to-position); }
 html.dark .to-cyan-50:not(.tema-claro *) { --tw-gradient-to: rgb(6 182 212 / 0.12) var(--tw-gradient-to-position); }
 html.dark .to-blue-600:not(.tema-claro *) { --tw-gradient-to: rgb(37 99 235) var(--tw-gradient-to-position); }
 html.dark .to-indigo-600:not(.tema-claro *) { --tw-gradient-to: rgb(79 70 229) var(--tw-gradient-to-position); }
-html.dark .to-indigo-700:not(.tema-claro *) { --tw-gradient-to: rgb(67 56 202) var(--tw-gradient-to-position); }
 html.dark .to-indigo-800:not(.tema-claro *) { --tw-gradient-to: rgb(55 48 163) var(--tw-gradient-to-position); }
 html.dark .to-indigo-950:not(.tema-claro *) { --tw-gradient-to: rgb(30 27 75) var(--tw-gradient-to-position); }
 html.dark .to-brand-600:not(.tema-claro *) { --tw-gradient-to: rgb(37 99 235) var(--tw-gradient-to-position); }
 html.dark .to-transparent:not(.tema-claro *) { --tw-gradient-to: transparent var(--tw-gradient-to-position); }
-html.dark .hover\:bg-black:not(.tema-claro *):hover { background-color: rgb(0 0 0); }
+html.dark .hover\:bg-white\/10:not(.tema-claro *):hover { background-color: rgb(255 255 255 / 0.1); }
 html.dark .focus\:bg-white:not(.tema-claro *):focus { background-color: rgb(17 26 43); }
 html.dark .group:hover .group-hover\:bg-white:not(.tema-claro *) { background-color: rgb(17 26 43); }
 html.dark .hover\:bg-white:not(.tema-claro *):hover { background-color: rgb(17 26 43); }
-html.dark .hover\:bg-slate-50\/50:not(.tema-claro *):hover { background-color: rgb(22 33 51 / 0.5); }
-html.dark .active\:bg-slate-50:not(.tema-claro *):active { background-color: rgb(22 33 51); }
-html.dark .focus\:bg-slate-50:not(.tema-claro *):focus { background-color: rgb(22 33 51); }
 html.dark .hover\:bg-slate-50:not(.tema-claro *):hover { background-color: rgb(22 33 51); }
 html.dark .hover\:bg-slate-100:not(.tema-claro *):hover { background-color: rgb(27 39 59); }
 html.dark .hover\:bg-slate-200\/50:not(.tema-claro *):hover { background-color: rgb(36 49 70 / 0.5); }
@@ -272,15 +249,11 @@ html.dark .hover\:bg-gray-300:not(.tema-claro *):hover { background-color: rgb(4
 html.dark .hover\:bg-red-50:not(.tema-claro *):hover { background-color: rgb(239 68 68 / 0.12); }
 html.dark .hover\:bg-red-700:not(.tema-claro *):hover { background-color: rgb(185 28 28); }
 html.dark .hover\:bg-orange-100:not(.tema-claro *):hover { background-color: rgb(249 115 22 / 0.18); }
-html.dark .hover\:bg-amber-50\/50:not(.tema-claro *):hover { background-color: rgb(245 158 11 / 0.06); }
 html.dark .hover\:bg-amber-50:not(.tema-claro *):hover { background-color: rgb(245 158 11 / 0.12); }
 html.dark .hover\:bg-amber-100:not(.tema-claro *):hover { background-color: rgb(245 158 11 / 0.18); }
-html.dark .hover\:bg-amber-600:not(.tema-claro *):hover { background-color: rgb(217 119 6); }
-html.dark .hover\:bg-amber-700:not(.tema-claro *):hover { background-color: rgb(180 83 9); }
 html.dark .hover\:bg-green-600:not(.tema-claro *):hover { background-color: rgb(22 163 74); }
 html.dark .hover\:bg-emerald-50:not(.tema-claro *):hover { background-color: rgb(16 185 129 / 0.12); }
 html.dark .hover\:bg-emerald-100:not(.tema-claro *):hover { background-color: rgb(16 185 129 / 0.18); }
-html.dark .peer:checked ~ .peer-checked\:bg-emerald-500:not(.tema-claro *) { background-color: rgb(16 185 129); }
 html.dark .hover\:bg-emerald-600:not(.tema-claro *):hover { background-color: rgb(5 150 105); }
 html.dark .hover\:bg-emerald-700:not(.tema-claro *):hover { background-color: rgb(4 120 87); }
 html.dark .hover\:bg-sky-50:not(.tema-claro *):hover { background-color: rgb(14 165 233 / 0.12); }
@@ -292,6 +265,7 @@ html.dark .hover\:bg-blue-50:not(.tema-claro *):hover { background-color: rgb(59
 html.dark .hover\:bg-blue-100:not(.tema-claro *):hover { background-color: rgb(59 130 246 / 0.18); }
 html.dark .group:hover .group-hover\:bg-blue-500\/5:not(.tema-claro *) { background-color: rgb(59 130 246 / 0.05); }
 html.dark .hover\:bg-blue-500\/40:not(.tema-claro *):hover { background-color: rgb(59 130 246 / 0.4); }
+html.dark .hover\:bg-blue-500:not(.tema-claro *):hover { background-color: rgb(59 130 246); }
 html.dark .group:hover .group-hover\:bg-blue-600:not(.tema-claro *) { background-color: rgb(37 99 235); }
 html.dark .hover\:bg-blue-600:not(.tema-claro *):hover { background-color: rgb(37 99 235); }
 html.dark .hover\:bg-blue-700:not(.tema-claro *):hover { background-color: rgb(29 78 216); }
@@ -302,7 +276,6 @@ html.dark .active\:bg-indigo-600:not(.tema-claro *):active { background-color: r
 html.dark .group:hover .group-hover\:bg-indigo-600:not(.tema-claro *) { background-color: rgb(79 70 229); }
 html.dark .hover\:bg-indigo-600:not(.tema-claro *):hover { background-color: rgb(79 70 229); }
 html.dark .hover\:bg-indigo-700:not(.tema-claro *):hover { background-color: rgb(67 56 202); }
-html.dark .hover\:bg-purple-50:not(.tema-claro *):hover { background-color: rgb(168 85 247 / 0.12); }
 html.dark .hover\:bg-purple-500\/40:not(.tema-claro *):hover { background-color: rgb(168 85 247 / 0.4); }
 html.dark .hover\:bg-fuchsia-100:not(.tema-claro *):hover { background-color: rgb(217 70 239 / 0.18); }
 html.dark .hover\:bg-pink-100:not(.tema-claro *):hover { background-color: rgb(236 72 153 / 0.18); }
@@ -310,11 +283,9 @@ html.dark .hover\:bg-rose-50:not(.tema-claro *):hover { background-color: rgb(24
 html.dark .hover\:bg-rose-700:not(.tema-claro *):hover { background-color: rgb(190 18 60); }
 html.dark .group:hover .group-hover\:text-white:not(.tema-claro *) { color: rgb(255 255 255); }
 html.dark .hover\:text-white:not(.tema-claro *):hover { color: rgb(255 255 255); }
-html.dark .placeholder\:text-slate-200:not(.tema-claro *)::placeholder { color: rgb(74 90 113); }
 html.dark .placeholder\:text-slate-300:not(.tema-claro *)::placeholder { color: rgb(93 109 132); }
 html.dark .placeholder\:text-slate-400:not(.tema-claro *)::placeholder { color: rgb(127 142 165); }
 html.dark .hover\:text-slate-600:not(.tema-claro *):hover { color: rgb(182 194 210); }
-html.dark .hover\:text-slate-800:not(.tema-claro *):hover { color: rgb(226 232 240); }
 html.dark .hover\:text-slate-900:not(.tema-claro *):hover { color: rgb(241 245 249); }
 html.dark .hover\:text-red-500:not(.tema-claro *):hover { color: rgb(248 113 113); }
 html.dark .hover\:text-red-600:not(.tema-claro *):hover { color: rgb(248 113 113); }
@@ -329,18 +300,18 @@ html.dark .group:hover .group-hover\:text-blue-500:not(.tema-claro *) { color: r
 html.dark .group:hover .group-hover\:text-blue-600:not(.tema-claro *) { color: rgb(96 165 250); }
 html.dark .hover\:text-blue-600:not(.tema-claro *):hover { color: rgb(96 165 250); }
 html.dark .group:hover .group-hover\:text-blue-700:not(.tema-claro *) { color: rgb(147 197 253); }
+html.dark .hover\:text-blue-700:not(.tema-claro *):hover { color: rgb(147 197 253); }
+html.dark .hover\:text-blue-800:not(.tema-claro *):hover { color: rgb(191 219 254); }
 html.dark .hover\:text-blue-900:not(.tema-claro *):hover { color: rgb(191 219 254); }
 html.dark .group:focus-within .group-focus-within\:text-indigo-500:not(.tema-claro *) { color: rgb(129 140 248); }
 html.dark .hover\:text-indigo-600:not(.tema-claro *):hover { color: rgb(129 140 248); }
 html.dark .group:hover .group-hover\:text-indigo-700:not(.tema-claro *) { color: rgb(165 180 252); }
-html.dark .hover\:text-rose-500:not(.tema-claro *):hover { color: rgb(251 113 133); }
 html.dark .hover\:text-rose-600:not(.tema-claro *):hover { color: rgb(251 113 133); }
 html.dark .hover\:border-slate-100:not(.tema-claro *):hover { border-color: rgb(31 43 63); }
 html.dark .hover\:border-slate-300:not(.tema-claro *):hover { border-color: rgb(51 67 89); }
 html.dark .hover\:border-red-200:not(.tema-claro *):hover { border-color: rgb(239 68 68 / 0.35); }
 html.dark .hover\:border-amber-200:not(.tema-claro *):hover { border-color: rgb(245 158 11 / 0.35); }
 html.dark .hover\:border-emerald-200:not(.tema-claro *):hover { border-color: rgb(16 185 129 / 0.35); }
-html.dark .hover\:border-emerald-300:not(.tema-claro *):hover { border-color: rgb(16 185 129 / 0.5); }
 html.dark .focus-within\:border-emerald-400:not(.tema-claro *):focus-within { border-color: rgb(52 211 153); }
 html.dark .hover\:border-emerald-400:not(.tema-claro *):hover { border-color: rgb(52 211 153); }
 html.dark .focus\:border-emerald-500:not(.tema-claro *):focus { border-color: rgb(16 185 129); }
@@ -357,7 +328,7 @@ html.dark .hover\:border-indigo-400:not(.tema-claro *):hover { border-color: rgb
 html.dark .focus\:border-indigo-500:not(.tema-claro *):focus { border-color: rgb(99 102 241); }
 html.dark .hover\:border-rose-200:not(.tema-claro *):hover { border-color: rgb(244 63 94 / 0.35); }
 html.dark .hover\:border-rose-500:not(.tema-claro *):hover { border-color: rgb(244 63 94); }
-html.dark .focus\:ring-slate-200:not(.tema-claro *):focus { --tw-ring-color: rgb(39 53 75); }
+html.dark .hover\:ring-slate-300:not(.tema-claro *):hover { --tw-ring-color: rgb(51 67 89); }
 html.dark .focus\:ring-red-500:not(.tema-claro *):focus { --tw-ring-color: rgb(239 68 68); }
 html.dark .focus-within\:ring-emerald-500\/10:not(.tema-claro *):focus-within { --tw-ring-color: rgb(16 185 129 / 0.1); }
 html.dark .focus\:ring-emerald-500\/20:not(.tema-claro *):focus { --tw-ring-color: rgb(16 185 129 / 0.2); }

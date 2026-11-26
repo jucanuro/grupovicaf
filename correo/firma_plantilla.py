@@ -34,7 +34,7 @@ CAMPOS_REDES = (
     ('tiktok', 'TikTok', 'TikTok'),
 )
 POSICIONES = (('izquierda', 'Logo a la izquierda'), ('arriba', 'Logo arriba'))
-LOGO_ANCHO_MIN, LOGO_ANCHO_MAX, LOGO_ANCHO_INICIAL = 60, 260, 130
+LOGO_ANCHO_MIN, LOGO_ANCHO_MAX, LOGO_ANCHO_INICIAL = 50, 260, 90
 LOGO_MAX_BYTES = 2 * 1024 * 1024
 OPCIONES_INICIALES = {
     'logo_ancho': LOGO_ANCHO_INICIAL, 'logo_pos': 'izquierda',
@@ -157,17 +157,17 @@ def _fila(icono, texto, enlace, base):
         contenido = f'<a href="{_e(enlace)}" style="color:{GRIS};text-decoration:none">{contenido}</a>'
     return (
         f'<tr>'
-        f'<td width="30" valign="middle" style="width:30px;padding:3px 10px 3px 0">'
-        f'<img src="{_e(url_icono(icono, base))}" alt="" width="20" height="20" style="width:20px;height:20px"></td>'
-        f'<td valign="middle" style="padding:3px 0;{FUENTE};font-size:13px;line-height:18px;color:{GRIS}">{contenido}</td>'
+        f'<td width="24" valign="middle" style="width:24px;padding:1px 8px 1px 0">'
+        f'<img src="{_e(url_icono(icono, base))}" alt="" width="16" height="16" style="width:16px;height:16px"></td>'
+        f'<td valign="middle" style="padding:1px 0;{FUENTE};font-size:12px;line-height:16px;color:{GRIS}">{contenido}</td>'
         f'</tr>')
 
 
 def _boton(enlace, icono, etiqueta, base):
     return (
         f'<td valign="middle" style="padding:0 6px 0 0"><a href="{_e(enlace)}" title="{_e(etiqueta)}">'
-        f'<img src="{_e(url_icono(icono, base))}" alt="{_e(etiqueta)}" width="28" height="28" '
-        f'style="width:28px;height:28px;border-radius:14px"></a></td>')
+        f'<img src="{_e(url_icono(icono, base))}" alt="{_e(etiqueta)}" width="22" height="22" '
+        f'style="width:22px;height:22px;border-radius:11px"></a></td>')
 
 
 def generar_html(datos, logo_url=None, base=None):
@@ -185,36 +185,36 @@ def generar_html(datos, logo_url=None, base=None):
         _fila('correo', d['correo'], f"mailto:{d['correo']}" if '@' in d['correo'] else None, base),
         _fila('sede', ubicacion, None, base),
     ))
-    cargo = (f'<div style="{FUENTE};font-size:11px;line-height:16px;font-weight:bold;letter-spacing:2px;'
-             f'color:{acento};padding:2px 0 10px 0">{_e(d["cargo"].upper())}</div>') if d['cargo'] else (
-        '<div style="height:8px;line-height:8px">&nbsp;</div>')
+    cargo = (f'<div style="{FUENTE};font-size:10px;line-height:14px;font-weight:bold;letter-spacing:1px;'
+             f'color:{acento};padding:1px 0 6px 0">{_e(d["cargo"].upper())}</div>') if d['cargo'] else (
+        '<div style="height:5px;line-height:5px">&nbsp;</div>')
     botones = ''.join(_boton(d[c], c, etiqueta, base) for c, etiqueta, _m in CAMPOS_REDES if d[c])
     barra_redes = (
-        f'<tr><td colspan="2" bgcolor="{principal}" style="background-color:{principal};padding:10px 16px">'
+        f'<tr><td colspan="2" bgcolor="{principal}" style="background-color:{principal};padding:6px 12px">'
         f'<table cellpadding="0" cellspacing="0" border="0"><tr>'
-        f'<td valign="middle" style="padding:0 14px 0 0;{FUENTE};font-size:11px;font-weight:bold;'
-        f'letter-spacing:2px;color:#ffffff">SÍGUENOS</td>{botones}</tr></table></td></tr>'
+        f'<td valign="middle" style="padding:0 14px 0 0;{FUENTE};font-size:10px;font-weight:bold;'
+        f'letter-spacing:1px;color:#ffffff">SÍGUENOS</td>{botones}</tr></table></td></tr>'
     ) if botones else ''
     imagen = (f'<img src="{_e(logo_url or url_logo(base))}" alt="Logo" width="{ancho}" '
               f'style="width:{ancho}px;height:auto">')
     informacion = (
-        f'<div style="{FUENTE};font-size:19px;line-height:24px;font-weight:bold;color:{principal}">{_e(d["nombre"])}</div>'
+        f'<div style="{FUENTE};font-size:15px;line-height:20px;font-weight:bold;color:{principal}">{_e(d["nombre"])}</div>'
         f'{cargo}'
         f'<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">{filas}</table>')
     if d['logo_pos'] == 'arriba':
         cuerpo = (
-            f'<tr><td colspan="2" align="left" bgcolor="{panel}" style="padding:16px 20px;background-color:{panel}">'
+            f'<tr><td colspan="2" align="left" bgcolor="{panel}" style="padding:10px 14px;background-color:{panel}">'
             f'{imagen}</td></tr>'
-            f'<tr><td colspan="2" valign="middle" style="padding:16px 20px;border-bottom:1px solid #E2E8F0">'
+            f'<tr><td colspan="2" valign="middle" style="padding:10px 14px;border-bottom:1px solid #E2E8F0">'
             f'{informacion}</td></tr>')
     else:
         cuerpo = (
-            f'<tr><td width="{ancho + 40}" valign="middle" align="center" bgcolor="{panel}" '
-            f'style="width:{ancho + 40}px;padding:16px 20px;background-color:{panel}">{imagen}</td>'
-            f'<td valign="middle" style="padding:16px 20px;border-bottom:1px solid #E2E8F0">{informacion}</td></tr>')
+            f'<tr><td width="{ancho + 28}" valign="middle" align="center" bgcolor="{panel}" '
+            f'style="width:{ancho + 28}px;padding:10px 14px;background-color:{panel}">{imagen}</td>'
+            f'<td valign="middle" style="padding:10px 14px;border-bottom:1px solid #E2E8F0">{informacion}</td></tr>')
     return (
-        f'<table cellpadding="0" cellspacing="0" border="0" width="520" '
-        f'style="width:520px;max-width:100%;border-collapse:collapse;margin-top:14px">'
+        f'<table cellpadding="0" cellspacing="0" border="0" width="440" '
+        f'style="width:440px;max-width:100%;border-collapse:collapse;margin-top:10px">'
         f'<tr><td width="40%" height="4" bgcolor="{principal}" style="height:4px;line-height:4px;font-size:1px;'
         f'background-color:{principal}">&nbsp;</td>'
         f'<td height="4" bgcolor="{acento}" style="height:4px;line-height:4px;font-size:1px;'
