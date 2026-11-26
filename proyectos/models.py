@@ -460,6 +460,11 @@ class InformeFinal(models.Model):
         TrabajadorProfile, on_delete=models.PROTECT, related_name='informes_firmados'
     )
     descargas_count = models.PositiveIntegerField(default=0)
+    # Cómo se envió al cliente (HU-LIMS-47): 'correo' (por el módulo de correo) o 'whatsapp'. Para el correo,
+    # `mensaje_envio` es el borrador que se preparó; al salir, el informe pasa solo a «enviado».
+    CANALES_ENVIO = [('correo', 'correo'), ('whatsapp', 'WhatsApp')]
+    canal_envio = models.CharField(max_length=10, blank=True, default='', choices=CANALES_ENVIO)
+    mensaje_envio = models.PositiveIntegerField(null=True, blank=True)
 
     # Informe que arma el propio sistema (compresión, HU-LIMS-16). Vacío en
     # los informes que se suben a mano como PDF.

@@ -1,0 +1,97 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+{% block title %}Enviar {{ informe.codigo_informe }} | VICAF LIMS{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/enviar_informe.css' %}">{% endblock %}
+
+{% block content %}
+{% with cli=informe.solicitud.cotizacion.cliente %}
+<div class="ei-pantalla" data-enviar-informe>
+    <header class="ei-barra">
+        <div class="ei-barra__t">
+            <span class="ei-barra__ico"><i data-lucide="send" class="w-5 h-5"></i></span>
+            <div>
+                <h1>Enviar al cliente <b>{{ informe.codigo_informe }}</b></h1>
+                <p>{{ cli.razon_social }} · Solicitud {{ informe.solicitud.codigo_solicitud }}{% if informe.estado_envio == 'enviado' %} · <span class="ei-ya">Ya enviado el {{ informe.fecha_envio|date:"d/m/Y H:i" }}{% if informe.canal_envio %} por {{ informe.get_canal_envio_display|default:informe.canal_envio }}{% endif %}</span>{% endif %}</p>
+            </div>
+        </div>
+        <a href="{% url 'proyectos:revision_compresion' informe.solicitud_id %}" class="ei-cerrar" aria-label="Volver a la solicitud"><i data-lucide="x" class="w-5 h-5"></i></a>
+    </header>
+
+    {% if messages %}{% for m in messages %}<p class="ei-msg ei-msg--{{ m.tags }}" role="status">{{ m }}</p>{% endfor %}{% endif %}
+
+    <div class="ei-cols">
+        <section class="ei-card ei-informe">
+            <p class="ei-eti">Informe</p>
+            <div class="ei-doc">
+                <span class="ei-doc__ico"><i data-lucide="file-check-2" class="w-6 h-6"></i></span>
+                <div><b>{{ informe.codigo_informe }}.pdf</b><small>Emitido el {{ informe.fecha_emision|date:"d/m/Y H:i" }}</small></div>
+            </div>
+            <div class="ei-botones">
+                <a href="{% url 'proyectos:pdf_informe_compresion' informe.pk %}" target="_blank" rel="noopener" class="ei-b"><i data-lucide="eye" class="w-4 h-4"></i> Ver PDF</a>
+                <a href="{% url 'proyectos:descargar_pdf_informe' informe.pk %}" class="ei-b"><i data-lucide="download" class="w-4 h-4"></i> Descargar</a>
+            </div>
+            {% if informe.qr_code %}<div class="ei-qr"><img src="{{ informe.qr_code.url }}" alt="QR de validación" width="96" height="96"><p>El QR del informe y este enlace validan su autenticidad:<br><a href="{{ enlace_validacion }}" target="_blank" rel="noopener">{{ enlace_validacion }}</a></p></div>{% endif %}
+        </section>
+
+        <section class="ei-card ei-correo" data-canal="correo">
+            <div class="ei-cab"><span class="ei-cab__ico ei-cab__ico--azul"><i data-lucide="mail" class="w-5 h-5"></i></span>
+                <div><h2>Por correo</h2><p>Respuesta al pedido del cliente, desde el correo de la empresa</p></div><em class="ei-rec">Recomendado</em></div>
+            {% if sin_correo %}
+                <p class="ei-aviso ei-aviso--amb">Tu usuario no tiene acceso al módulo de correo, así que no puedes enviar desde aquí. Usa WhatsApp o pide acceso al administrador.</p>
+            {% elif not plan.puede %}
+                <p class="ei-aviso ei-aviso--amb">{{ plan.motivo }}</p>
+            {% else %}
+                <div class="ei-ruta">
+                    <div class="ei-paso"><span class="ei-paso__n">1</span>
+                        <div><small>{% if plan.modo == 'respuesta' %}Se responderá a este correo{% else %}Correo nuevo (no se encontró el pedido del cliente){% endif %}</small>
+                        {% if plan.origen %}<b>{{ plan.origen.asunto|default:"(sin asunto)" }}</b>
+                        <span>de {{ plan.origen.de_nombre|default:plan.origen.de }} &lt;{{ plan.origen.de }}&gt; · {{ plan.origen.fecha|date:"d/m/Y H:i" }} · en {{ plan.origen.cuenta.direccion }}</span>{% else %}<b>{{ plan.asunto }}</b>{% endif %}</div></div>
+                    <div class="ei-paso"><span class="ei-paso__n">2</span>
+                        <div><small>Desde</small><span class="ei-chip {% if plan.cuenta_empresa %}ei-chip--ok{% else %}ei-chip--amb{% endif %}" data-cuenta-empresa="{% if plan.cuenta_empresa %}1{% else %}0{% endif %}"><i data-lucide="{% if plan.cuenta_empresa %}building-2{% else %}user{% endif %}" class="w-3.5 h-3.5"></i> {{ plan.cuenta.direccion }} · {% if plan.cuenta_empresa %}cuenta de la empresa{% else %}buzón personal{% endif %}</span></div></div>
+                    <div class="ei-paso"><span class="ei-paso__n">3</span>
+                        <div><small>Para</small>{% for p in plan.para %}<span class="ei-chip"><i data-lucide="user-round" class="w-3.5 h-3.5"></i> {{ p.nombre|default:p.correo }}{% if p.nombre %} &lt;{{ p.correo }}&gt;{% endif %}</span>{% empty %}<span class="ei-vacio">Sin destinatario: lo agregas al redactar</span>{% endfor %}</div></div>
+                    <div class="ei-paso"><span class="ei-paso__n">4</span>
+                        <div><small>Con copia (quien envió o recibió el pedido)</small>{% for p in plan.cc %}<span class="ei-chip ei-chip--cc"><i data-lucide="users" class="w-3.5 h-3.5"></i> {{ p.nombre|default:p.correo }}{% if p.nombre %} &lt;{{ p.correo }}&gt;{% endif %}</span>{% empty %}<span class="ei-vacio">{% if plan.modo == 'respuesta' %}Nadie más en el hilo{% else %}Sin correo de origen: no hay a quién copiar{% endif %}</span>{% endfor %}</div></div>
+                    <div class="ei-paso"><span class="ei-paso__n">5</span>
+                        <div><small>Se adjunta</small><span class="ei-chip"><i data-lucide="paperclip" class="w-3.5 h-3.5"></i> {{ informe.codigo_informe }}.pdf + enlace de validación</span></div></div>
+                </div>
+                {% if plan.aviso %}<p class="ei-aviso ei-aviso--amb"><i data-lucide="triangle-alert" class="w-4 h-4"></i> {{ plan.aviso }}</p>{% endif %}
+                <form method="post" action="{% url 'proyectos:enviar_informe_correo' informe.pk %}" class="ei-accion">{% csrf_token %}
+                    <p>Se abre el borrador en el correo para que lo revises y lo envíes. Cuando salga, el informe queda como enviado.</p>
+                    <button type="submit" class="ei-principal" data-abrir-correo><i data-lucide="mail-open" class="w-4 h-4"></i> Abrir en el correo y revisar</button>
+                </form>
+            {% endif %}
+        </section>
+
+        <section class="ei-card ei-wa" data-canal="whatsapp">
+            <div class="ei-cab"><span class="ei-cab__ico ei-cab__ico--verde"><i data-lucide="message-circle" class="w-5 h-5"></i></span>
+                <div><h2>Por WhatsApp</h2><p>Mensaje con el enlace de validación</p></div></div>
+            <label class="ei-campo"><span>Celular del cliente{% if contacto %} · {{ contacto }}{% endif %}</span>
+                <input type="tel" inputmode="tel" data-wa-telefono value="{{ telefono }}" placeholder="51999999999"></label>
+            <label class="ei-campo"><span>Mensaje</span><textarea rows="6" data-wa-texto>{{ texto_whatsapp }}</textarea></label>
+            <button type="button" class="ei-principal ei-principal--wa" data-wa-enviar data-url-registro="{% url 'proyectos:enviar_informe_whatsapp' informe.pk %}"><i data-lucide="send" class="w-4 h-4"></i> Abrir WhatsApp</button>
+            <p class="ei-nota">Se abre el chat con el mensaje listo; al abrirlo, el informe queda registrado como enviado por WhatsApp.</p>
+            {% csrf_token %}
+        </section>
+    </div>
+</div>
+{% endwith %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    var btn = document.querySelector('[data-wa-enviar]');
+    if (btn) btn.addEventListener('click', function () {
+        var tel = (document.querySelector('[data-wa-telefono]').value || '').replace(/\D/g, '');
+        if (tel.length === 9) tel = '51' + tel;
+        var texto = document.querySelector('[data-wa-texto]').value;
+        window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(texto), '_blank', 'noopener');
+        var token = document.querySelector('[name=csrfmiddlewaretoken]');
+        var fd = new FormData(); if (token) fd.append('csrfmiddlewaretoken', token.value);
+        fetch(btn.dataset.urlRegistro, { method: 'POST', body: fd, credentials: 'same-origin' }).catch(function () {});
+    });
+    if (window.lucide) lucide.createIcons();
+})();
+</script>
+{% endblock %}

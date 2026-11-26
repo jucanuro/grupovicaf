@@ -2,153 +2,171 @@
 {% load static %}
 {% block title %}Revisión {{ solicitud.codigo_solicitud }} | VICAF LIMS{% endblock %}
 
-{% block extra_css %}<link rel="stylesheet" href="{% static 'css/ensayos.css' %}">{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/ensayos.css' %}?v=20261126a"><link rel="stylesheet" href="{% static 'css/resultados_lista.css' %}"><link rel="stylesheet" href="{% static 'css/revision.css' %}">{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto px-4 pt-5 pb-4 space-y-4">
-    <a href="{% url 'proyectos:revision_compresion_lista' %}" class="v-volver">
-        <i data-lucide="arrow-left"></i> Revisión de resultados
-    </a>
-
-    <div class="v-tarjeta p-4 flex flex-wrap items-start justify-between gap-3">
+<div class="rs-completo rv-completo" data-revision-solicitud role="dialog" aria-modal="true" aria-labelledby="rv-titulo">
+    <header class="rs-barra">
         <div class="min-w-0">
-            <p class="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">Solicitud</p>
-            <h1 class="font-mono text-xl font-bold text-slate-900">{{ solicitud.codigo_solicitud }}</h1>
-            <p class="text-xs text-slate-500">{{ filas|length }} ensayo{{ filas|length|pluralize }} de la solicitud</p>
+            <h1 id="rv-titulo">Revisión · {{ solicitud.codigo_solicitud }}</h1>
+            <p>{{ solicitud.cotizacion.cliente.razon_social }} · {{ filas|length }} ensayo{{ filas|length|pluralize }}</p>
         </div>
-        {% if informe %}
-        <div class="text-right" data-informe>
-            <p class="font-mono font-bold text-slate-900">{{ informe.codigo_informe }}</p>
-            {% if informe.pdf_estado == 'listo' %}
-                <a href="{% url 'proyectos:pdf_informe_compresion' informe.pk %}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 underline">
-                    <i data-lucide="file-text" class="w-4 h-4"></i> Ver PDF</a>
-                <p class="text-xs text-slate-500">{% if informe.estado_envio == 'enviado' %}Enviado el {{ informe.fecha_envio|date:"d/m/Y H:i" }}{% else %}Sin enviar{% endif %}</p>
-            {% elif informe.pdf_estado == 'generando' %}
-                <p class="text-sm text-amber-700 font-semibold">Generando el PDF… recarga en unos segundos.</p>
-            {% elif informe.pdf_estado == 'error' %}
-                <p class="text-sm text-red-700 font-semibold">{{ informe.pdf_error|default:"No se pudo generar el PDF." }}</p>
+        <a href="{% url 'proyectos:revision_compresion_lista' %}" class="rs-cerrar" aria-label="Cerrar y volver a la revisión de resultados" title="Cerrar (Esc)" data-cerrar>
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </a>
+    </header>
+
+    <div class="rv-cuerpo">
+        <ol class="rv-linea" aria-label="Avance de la solicitud">
+            <li class="rv-etapa {% if todas_terminadas %}rv-etapa--ok{% else %}rv-etapa--act{% endif %}"><span class="rv-etapa__n">{% if todas_terminadas %}<i data-lucide="check" class="w-3.5 h-3.5"></i>{% else %}1{% endif %}</span><div><b>Resultados</b><small>{% if todas_terminadas %}Todos terminados{% else %}Faltan ensayos por terminar{% endif %}</small></div></li>
+            <li class="rv-etapa {% if aprobadas %}rv-etapa--ok{% elif todas_terminadas %}rv-etapa--act{% endif %}"><span class="rv-etapa__n">{% if aprobadas %}<i data-lucide="check" class="w-3.5 h-3.5"></i>{% else %}2{% endif %}</span><div><b>Revisión</b><small>{% if aprobadas %}Aprobada{% elif todas_terminadas %}Por revisar y aprobar{% else %}Pendiente{% endif %}</small></div></li>
+            <li class="rv-etapa {% if informe and informe.pdf_estado == 'listo' %}rv-etapa--ok{% elif aprobadas %}rv-etapa--act{% endif %}"><span class="rv-etapa__n">{% if informe and informe.pdf_estado == 'listo' %}<i data-lucide="check" class="w-3.5 h-3.5"></i>{% else %}3{% endif %}</span><div><b>Informe firmado</b><small>{% if informe and informe.pdf_estado == 'listo' %}{{ informe.codigo_informe }}{% elif informe and informe.pdf_estado == 'generando' %}Generando el PDF…{% elif aprobadas %}Falta firmar{% else %}Pendiente{% endif %}</small></div></li>
+            <li class="rv-etapa {% if informe and informe.estado_envio == 'enviado' %}rv-etapa--ok{% elif informe and informe.pdf_estado == 'listo' %}rv-etapa--act{% endif %}"><span class="rv-etapa__n">{% if informe and informe.estado_envio == 'enviado' %}<i data-lucide="check" class="w-3.5 h-3.5"></i>{% else %}4{% endif %}</span><div><b>Enviado</b><small>{% if informe and informe.estado_envio == 'enviado' %}{{ informe.fecha_envio|date:"d/m/Y H:i" }}{% if informe.canal_envio %} · {{ informe.get_canal_envio_display }}{% endif %}{% else %}Sin enviar{% endif %}</small></div></li>
+        </ol>
+
+        <div class="rv-principal">
+            {% if messages %}
+                {% for message in messages %}
+                <div class="rounded-xl px-4 py-3 text-sm {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-green-50 text-green-700 border border-green-200{% endif %}" role="status">{{ message }}</div>
+                {% endfor %}
             {% endif %}
-        </div>
-        {% endif %}
-    </div>
 
-    {% if messages %}
-        {% for message in messages %}
-        <div class="rounded-xl px-4 py-3 text-sm {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-green-50 text-green-700 border border-green-200{% endif %}" role="status">{{ message }}</div>
-        {% endfor %}
-    {% endif %}
+            {% if informe %}
+            <section class="rv-informe" data-informe>
+                <span class="rv-informe__ico"><i data-lucide="file-check-2" class="w-5 h-5"></i></span>
+                <div class="rv-informe__t"><b>{{ informe.codigo_informe }}</b>
+                    {% if informe.pdf_estado == 'listo' %}<small>{% if informe.estado_envio == 'enviado' %}Enviado el {{ informe.fecha_envio|date:"d/m/Y H:i" }}{% if informe.canal_envio %} por {{ informe.get_canal_envio_display }}{% endif %}{% else %}Listo para enviar al cliente{% endif %}</small>
+                    {% elif informe.pdf_estado == 'generando' %}<small class="rv-amb">Generando el PDF… recarga en unos segundos.</small>
+                    {% elif informe.pdf_estado == 'error' %}<small class="rv-rojo">{{ informe.pdf_error|default:"No se pudo generar el PDF." }}</small>{% endif %}</div>
+                {% if informe.pdf_estado == 'listo' %}<a href="{% url 'proyectos:pdf_informe_compresion' informe.pk %}" target="_blank" rel="noopener" class="rv-btn"><i data-lucide="file-text" class="w-4 h-4"></i> Ver PDF</a>{% endif %}
+            </section>
+            {% endif %}
 
-    <div class="v-aviso {% if total_cambios %}v-aviso--ambar{% else %}v-aviso--ok{% endif %}" role="note" data-trazabilidad>
-        <i data-lucide="history"></i>
-        <span>{% if total_cambios %}Hay {{ total_cambios }} correcci{{ total_cambios|pluralize:"ón,ones" }} de datos en esta solicitud. Revísalas debajo de cada muestra antes de aprobar: se ve lo que se digitó, lo que quedó, quién y cuándo.{% else %}Sin correcciones: ningún dato guardado se cambió después.{% endif %}</span>
-    </div>
-
-    <div class="v-tarjeta overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
-                <tr>
-                    <th class="text-left px-3 py-2">Muestra</th><th class="px-3 py-2">Ensayo</th><th class="px-3 py-2">Edad</th>
-                    <th class="px-3 py-2">kg/cm²</th><th class="px-3 py-2">%</th><th class="px-3 py-2">Fractura</th><th class="px-3 py-2">Fotos</th><th class="text-left px-3 py-2">Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for f in filas %}
-            {% with e=f.ensayo %}
-            <tr class="border-t border-slate-100 align-top" data-fila="{{ f.detalle.muestra.codigo_laboratorio }}">
-                <td class="px-3 py-2">
-                    <a href="{% url 'proyectos:revisar_ensayo' f.detalle.pk %}" class="font-mono font-bold text-slate-900 underline" title="Revisar este ensayo">{{ f.detalle.muestra.codigo_laboratorio }}</a>
-                    <p class="text-[11px] text-slate-500">{{ f.detalle.muestra.codigo_cliente|default:"" }}{% if e.tecnico %} · {{ e.tecnico.nombre_completo }}{% endif %}</p>
-                </td>
-                <td class="px-3 py-2 text-center">{{ e.fecha_ensayo|date:"d/m/Y"|default:"—" }}</td>
-                {% if e and not e.es_compresion %}
-                <td class="px-3 py-2" colspan="4" data-resumen>
-                    <p class="text-xs font-semibold text-slate-700">{{ f.detalle.descripcion_ensayo|default:f.detalle.norma }}</p>
-                    {% if e.filas_formulario %}
-                    <dl class="text-xs text-slate-600 grid grid-cols-1 sm:grid-cols-2 gap-x-4" data-datos-formulario>
-                        {% for grupo, etiqueta, texto in e.filas_formulario %}<div class="flex justify-between gap-2 border-b border-slate-100 py-0.5"><dt>{{ etiqueta }}</dt><dd class="font-semibold text-slate-800">{{ texto|default:"—" }}</dd></div>{% endfor %}
-                    </dl>
-                    {% else %}
-                    <p class="text-xs text-slate-600 whitespace-pre-line">{{ e.resumen|default:"Sin resumen"|truncatechars:280 }}</p>
-                    {% endif %}
-                    {% if e.hoja_calculo %}<a href="{% url 'proyectos:hoja_resultado' f.detalle.pk %}" class="text-xs font-semibold text-blue-700 underline">Descargar hoja de cálculo</a>{% endif %}
-                </td>
-                {% else %}
-                <td class="px-3 py-2 text-center">{{ e.edad_dias|default_if_none:"—" }}</td>
-                <td class="px-3 py-2 text-center font-mono font-bold">{{ e.resistencia_kgcm2|default_if_none:"—" }}</td>
-                <td class="px-3 py-2 text-center">{{ e.porcentaje|default_if_none:"—" }}</td>
-                <td class="px-3 py-2 text-center">{% if e.tipo_fractura %}Tipo {{ e.tipo_fractura }}{% else %}—{% endif %}</td>
-                {% endif %}
-                <td class="px-3 py-2">
-                    <div class="flex gap-1">{% for foto in f.fotos %}<a href="{% url 'proyectos:foto_compresion' foto.pk %}" target="_blank" rel="noopener"><img src="{% url 'proyectos:foto_compresion' foto.pk %}" alt="{{ foto.get_tipo_display }}" class="h-10 w-auto rounded border border-slate-200" loading="lazy" width="23" height="40"></a>{% endfor %}</div>
-                </td>
-                <td class="px-3 py-2">
-                    {% if not e %}<span class="text-xs text-slate-500">Sin registrar</span>
-                    {% elif e.aprobado %}<span class="text-xs font-bold text-green-700">Aprobada</span>
-                    {% elif e.terminado %}
-                        <span class="text-xs font-bold text-violet-700">Terminada</span>
-                        <a href="{% url 'proyectos:revisar_ensayo' f.detalle.pk %}" class="v-btn v-btn--primario v-btn--sm mt-1" data-revisar><i data-lucide="search-check"></i> Revisar</a>
-                        {% if not informe or informe.pdf_estado != 'listo' %}
-                        <details class="mt-1">
-                            <summary class="cursor-pointer text-xs font-semibold text-slate-700">Devolver</summary>
-                            <form method="post" class="mt-1 space-y-1">
-                                {% csrf_token %}
-                                <input type="hidden" name="accion" value="devolver">
-                                <input type="hidden" name="detalle_id" value="{{ f.detalle.pk }}">
-                                <textarea name="observacion" rows="2" required placeholder="Qué debe corregir" class="w-48 rounded-lg border border-slate-300 px-2 py-1 text-xs"></textarea>
-                                <button type="submit" class="v-btn v-btn--aviso v-btn--sm"><i data-lucide="undo-2"></i> Devolver al técnico</button>
-                            </form>
-                        </details>
-                        {% endif %}
-                    {% else %}<span class="text-xs text-amber-700 font-semibold">En registro{% if e.observacion_revision %} (devuelta{% if e.marcas_revision %} · {{ e.marcas_revision|length }} marcada{{ e.marcas_revision|length|pluralize }}{% endif %}){% endif %}</span>{% endif %}
-                </td>
-            </tr>
-            {% if f.cambios %}
-            <tr class="bg-amber-50/60" data-cambios-fila="{{ f.detalle.muestra.codigo_laboratorio }}">
-                <td colspan="8" class="px-3 py-2">
-                    <details open>
-                        <summary class="cursor-pointer text-xs font-bold text-amber-800">{{ f.cambios|length }} correcci{{ f.cambios|length|pluralize:"ón,ones" }} en {{ f.detalle.muestra.codigo_laboratorio }}</summary>
-                        <ul class="mt-1 text-xs space-y-0.5">
+            <details class="rv-traza" data-trazabilidad>
+                <summary>
+                    <span class="rv-traza__ico"><i data-lucide="history" class="w-4 h-4"></i></span>
+                    <span class="rv-traza__t"><b>Trazabilidad</b>
+                        <small>{% if total_cambios %}Hay {{ total_cambios }} correcci{{ total_cambios|pluralize:"ón,ones" }} de datos en esta solicitud. Se ve lo que se digitó, lo que quedó, quién y cuándo.{% else %}Sin correcciones: ningún dato guardado se cambió después.{% endif %}</small></span>
+                    <span class="rv-traza__n {% if total_cambios %}rv-traza__n--amb{% endif %}">{{ total_cambios }}</span>
+                    <i data-lucide="chevron-down" class="w-4 h-4 rv-chev"></i>
+                </summary>
+                {% if total_cambios %}
+                <div class="rv-traza__cuerpo">
+                    <div class="rv-traza__acciones"><button type="button" data-expandir-todo>Desplegar todo</button><button type="button" data-plegar-todo>Plegar todo</button></div>
+                    {% for f in filas %}{% if f.cambios %}
+                    <details class="rv-grupo" data-cambios-fila="{{ f.detalle.muestra.codigo_laboratorio }}">
+                        <summary><b>{{ f.detalle.muestra.codigo_laboratorio }}</b><span>{{ f.cambios|length }} correcci{{ f.cambios|length|pluralize:"ón,ones" }}</span><i data-lucide="chevron-down" class="w-3.5 h-3.5 rv-chev"></i></summary>
+                        <ol class="rv-tl">
                             {% for c in f.cambios %}
-                            <li><b>{{ c.etiqueta }}</b>: digitado <span class="line-through text-red-700">{{ c.anterior }}</span> → quedó <span class="font-semibold text-green-800">{{ c.nuevo|default:"(vacío)" }}</span> <span class="text-slate-500">· {{ c.usuario.get_full_name|default:c.usuario.username|default:"—" }}, {{ c.registrado_en|date:"d/m/Y H:i" }}</span></li>
+                            <li><span class="rv-tl__pt"></span>
+                                <p><b>{{ c.etiqueta }}</b>: <s>{{ c.anterior }}</s> <i data-lucide="arrow-right" class="w-3 h-3"></i> <em>{{ c.nuevo|default:"(vacío)" }}</em></p>
+                                <small>{{ c.usuario.get_full_name|default:c.usuario.username|default:"—" }} · {{ c.registrado_en|date:"d/m/Y H:i" }}</small></li>
                             {% endfor %}
-                        </ul>
+                        </ol>
                     </details>
-                </td>
-            </tr>
-            {% endif %}
-            {% endwith %}
-            {% endfor %}
-            </tbody>
-        </table>
+                    {% endif %}{% endfor %}
+                </div>
+                {% endif %}
+            </details>
+
+            <div class="rv-lista">
+            {% for f in filas %}{% with e=f.ensayo %}
+            <article class="rv-ens {% if e and e.aprobado %}rv-ens--ok{% elif e and e.terminado %}rv-ens--rev{% endif %}" data-fila="{{ f.detalle.muestra.codigo_laboratorio }}">
+                <div class="rv-ens__cab">
+                    <div class="rv-ens__id">
+                        <a href="{% url 'proyectos:revisar_ensayo' f.detalle.pk %}" title="Revisar este ensayo">{{ f.detalle.muestra.codigo_laboratorio }}</a>
+                        <small>{{ f.detalle.muestra.codigo_cliente|default:"" }}{% if e.tecnico %} · {{ e.tecnico.nombre_completo }}{% endif %} · {{ e.fecha_ensayo|date:"d/m/Y"|default:"—" }}</small>
+                    </div>
+                    <div class="rv-ens__estado">
+                        {% if not e %}<span class="rl-chip rl-chip--amb">Sin registrar</span>
+                        {% elif e.aprobado %}<span class="rl-chip rl-chip--ok">Aprobada</span>
+                        {% elif e.terminado %}<span class="rl-chip rl-chip--morado">Terminada</span>
+                        {% else %}<span class="rl-chip rl-chip--amb">En registro{% if e.observacion_revision %} (devuelta{% if e.marcas_revision %} · {{ e.marcas_revision|length }} marcada{{ e.marcas_revision|length|pluralize }}{% endif %}){% endif %}</span>{% endif %}
+                    </div>
+                </div>
+                <div class="rv-ens__datos">
+                    {% if e and not e.es_compresion %}
+                    <div class="rv-ens__res" data-resumen>
+                        <p class="rv-ens__nom">{{ f.detalle.descripcion_ensayo|default:f.detalle.norma }}</p>
+                        {% if e.filas_formulario %}
+                        <dl data-datos-formulario>{% for grupo, etiqueta, texto in e.filas_formulario %}<div><dt>{{ etiqueta }}</dt><dd>{{ texto|default:"—" }}</dd></div>{% endfor %}</dl>
+                        {% else %}<p class="rv-ens__txt">{{ e.resumen|default:"Sin resumen"|truncatechars:280 }}</p>{% endif %}
+                        {% if e.hoja_calculo %}<a href="{% url 'proyectos:hoja_resultado' f.detalle.pk %}" class="rv-link">Descargar hoja de cálculo</a>{% endif %}
+                    </div>
+                    {% else %}
+                    <dl class="rv-ens__m">
+                        <div><dt>Edad</dt><dd>{{ e.edad_dias|default_if_none:"—" }}</dd></div>
+                        <div><dt>kg/cm²</dt><dd class="rv-grande">{{ e.resistencia_kgcm2|default_if_none:"—" }}</dd></div>
+                        <div><dt>% f'c</dt><dd>{{ e.porcentaje|default_if_none:"—" }}</dd></div>
+                        <div><dt>Fractura</dt><dd>{% if e.tipo_fractura %}Tipo {{ e.tipo_fractura }}{% else %}—{% endif %}</dd></div>
+                    </dl>
+                    {% endif %}
+                    <div class="rv-ens__fotos">{% for foto in f.fotos %}<a href="{% url 'proyectos:foto_compresion' foto.pk %}" target="_blank" rel="noopener"><img src="{% url 'proyectos:foto_compresion' foto.pk %}" alt="{{ foto.get_tipo_display }}" loading="lazy"></a>{% endfor %}</div>
+                </div>
+                {% if e and e.terminado and not e.aprobado %}
+                <div class="rv-ens__acc">
+                    <a href="{% url 'proyectos:revisar_ensayo' f.detalle.pk %}" class="rv-btn rv-btn--p" data-revisar><i data-lucide="search-check" class="w-4 h-4"></i> Revisar</a>
+                    {% if not informe or informe.pdf_estado != 'listo' %}
+                    <details class="rv-dev"><summary>Devolver</summary>
+                        <form method="post">{% csrf_token %}
+                            <input type="hidden" name="accion" value="devolver"><input type="hidden" name="detalle_id" value="{{ f.detalle.pk }}">
+                            <textarea name="observacion" rows="2" required placeholder="Qué debe corregir"></textarea>
+                            <button type="submit" class="rv-btn rv-btn--a"><i data-lucide="undo-2" class="w-4 h-4"></i> Devolver al técnico</button>
+                        </form>
+                    </details>
+                    {% endif %}
+                </div>
+                {% endif %}
+                {% if f.cambios %}
+                <details class="rv-ens__tr">
+                    <summary><i data-lucide="history" class="w-3.5 h-3.5"></i> {{ f.cambios|length }} correcci{{ f.cambios|length|pluralize:"ón,ones" }} <i data-lucide="chevron-down" class="w-3.5 h-3.5 rv-chev"></i></summary>
+                    <ol class="rv-tl">{% for c in f.cambios %}<li><span class="rv-tl__pt"></span><p><b>{{ c.etiqueta }}</b>: <s>{{ c.anterior }}</s> <i data-lucide="arrow-right" class="w-3 h-3"></i> <em>{{ c.nuevo|default:"(vacío)" }}</em></p><small>{{ c.usuario.get_full_name|default:c.usuario.username|default:"—" }} · {{ c.registrado_en|date:"d/m/Y H:i" }}</small></li>{% endfor %}</ol>
+                </details>
+                {% endif %}
+            </article>
+            {% endwith %}{% endfor %}
+            </div>
+        </div>
     </div>
 
-    <div class="v-barra">
-        <p class="v-barra__nota">{% if informe and informe.pdf_estado == 'listo' %}{% if correo_cliente %}Se enviará a {{ correo_cliente }}.{% else %}El cliente no tiene correo registrado.{% endif %}{% elif informe and informe.pdf_estado == 'generando' %}Generando el PDF… recarga en unos segundos.{% elif not todas_terminadas %}Se habilita cuando todos los ensayos estén terminados.{% elif aprobadas %}Resultados aprobados: revisa el informe en el editor y emítelo.{% else %}Al aprobar pasas al editor del informe para revisarlo y emitirlo.{% endif %}</p>
-        <div class="v-barra__fila">
-            {% if puede_exportar %}
-            <a href="{% url 'proyectos:excel_compresion' %}?solicitud={{ solicitud.pk }}" class="v-btn v-btn--secundario"><i data-lucide="sheet"></i> Excel</a>
-            {% endif %}
+    <div class="rv-barra">
+        <p class="rv-barra__nota">{% if informe and informe.pdf_estado == 'listo' %}{% if correo_cliente %}Contacto del cliente: {{ correo_cliente }}.{% else %}El cliente no tiene correo registrado.{% endif %}{% elif informe and informe.pdf_estado == 'generando' %}El informe se está generando.{% elif informe and informe.pdf_estado == 'error' %}No se pudo generar el PDF.{% elif aprobadas %}Resultados aprobados: revisa el informe, fírmalo y emítelo.{% elif todas_terminadas %}Al aprobar pasas al editor del informe para revisarlo y emitirlo.{% else %}Faltan ensayos por terminar.{% endif %}</p>
+        <div class="rv-barra__fila">
+            {% if puede_exportar %}<a href="{% url 'proyectos:excel_compresion' %}?solicitud={{ solicitud.pk }}" class="rv-btn"><i data-lucide="sheet" class="w-4 h-4"></i> Excel</a>{% endif %}
             {% if informe and informe.pdf_estado == 'listo' %}
                 <form method="post">{% csrf_token %}
-                    <button type="submit" name="accion" value="enviar" {% if not correo_cliente %}disabled title="El cliente no tiene correo registrado"{% endif %} class="v-btn v-btn--primario">
-                        <i data-lucide="send"></i> {% if informe.estado_envio == 'enviado' %}Reenviar al cliente{% else %}Enviar al cliente{% endif %}
+                    <button type="submit" name="accion" value="enviar" class="rv-btn rv-btn--p" data-enviar-cliente>
+                        <i data-lucide="send" class="w-4 h-4"></i> {% if informe.estado_envio == 'enviado' %}Reenviar al cliente{% else %}Enviar al cliente{% endif %}
+                        <small>correo o WhatsApp</small>
                     </button>
                 </form>
             {% elif informe and informe.pdf_estado == 'error' %}
-                <form method="post">{% csrf_token %}<button type="submit" name="accion" value="regenerar" class="v-btn v-btn--peligro"><i data-lucide="refresh-cw"></i> Volver a generar el PDF</button></form>
+                <form method="post">{% csrf_token %}<button type="submit" name="accion" value="regenerar" class="rv-btn rv-btn--r"><i data-lucide="refresh-cw" class="w-4 h-4"></i> Volver a generar el PDF</button></form>
             {% elif informe and informe.pdf_estado == 'generando' %}
             {% elif aprobadas %}
-                <a href="{% url 'proyectos:editor_informe' solicitud.pk %}" class="v-btn v-btn--primario" data-abrir-editor>
-                    <i data-lucide="file-pen-line"></i> {% if borrador %}Seguir con el informe{% else %}Revisar el informe{% endif %}
-                </a>
+                <a href="{% url 'proyectos:editor_informe' solicitud.pk %}" class="rv-btn rv-btn--p" data-abrir-editor><i data-lucide="file-pen-line" class="w-4 h-4"></i> {% if borrador %}Seguir con el informe{% else %}Revisar el informe{% endif %}</a>
             {% else %}
                 <form method="post">{% csrf_token %}
-                    <button type="submit" name="accion" value="aprobar" {% if not todas_terminadas %}disabled{% endif %} data-aprobar class="v-btn v-btn--exito">
-                        <i data-lucide="badge-check"></i> Aprobar resultados
-                    </button>
+                    <button type="submit" name="accion" value="aprobar" {% if not todas_terminadas %}disabled{% endif %} data-aprobar class="rv-btn rv-btn--v"><i data-lucide="badge-check" class="w-4 h-4"></i> Aprobar resultados</button>
                 </form>
             {% endif %}
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    document.body.classList.add('rs-abierto');
+    var cerrar = document.querySelector('[data-revision-solicitud] [data-cerrar]');
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && cerrar && !document.querySelector('details.rv-dev[open]')) window.location.href = cerrar.href;
+    });
+    function abrirTodo(v) { document.querySelectorAll('.rv-traza__cuerpo details, .rv-ens__tr').forEach(function (d) { d.open = v; }); }
+    var a = document.querySelector('[data-expandir-todo]'), b = document.querySelector('[data-plegar-todo]');
+    if (a) a.addEventListener('click', function () { abrirTodo(true); });
+    if (b) b.addEventListener('click', function () { abrirTodo(false); });
+})();
+</script>
 {% endblock %}

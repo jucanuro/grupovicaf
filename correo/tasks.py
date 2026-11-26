@@ -2,6 +2,7 @@
 import hashlib
 import logging
 
+from django.utils import timezone
 from celery import shared_task
 from django.core.files.base import ContentFile
 from django.db import transaction
@@ -47,6 +48,12 @@ def enviar_mensaje(mensaje_id):
             mensaje.estado_envio = Mensaje.EN_COLA if reintentar else Mensaje.FALLIDO
             logger.warning('Envío fallido del mensaje %s (intento %s): %s', mensaje.pk, mensaje.intentos, resultado.error)
         mensaje.save(update_fields=campos)
+        if resultado.ok:
+            # Si era el envío de un informe, queda registrado como enviado al cliente (HU-LIMS-47).
+            from proyectos.models import InformeFinal
+            InformeFinal.objects.filter(mensaje_envio=mensaje.pk).update(
+                estado_envio='enviado', fecha_envio=timezone.now(), canal_envio='correo',
+            )
         if reintentar:
             espera = 60 * mensaje.intentos
             transaction.on_commit(lambda: enviar_mensaje.apply_async((mensaje_id,), countdown=espera))

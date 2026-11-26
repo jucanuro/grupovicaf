@@ -216,29 +216,92 @@ class InformeCompresionTests(CompresionBase):
         self.client.force_login(self.user_tec)
         self.assertEqual(self.client.get(reverse('proyectos:pdf_informe_compresion', args=[informe.pk])).status_code, 403)
 
-    def test_enviar_al_cliente(self):
-        informe = self.emitir()
-        with patch('proyectos.views_informe_compresion.enviar_informe_cliente') as tarea:
-            self.client.post(self.url, {'accion': 'enviar'})
-            tarea.delay.assert_called_once_with(informe.pk, 'a@b.pe')
-        enviar_informe_cliente.apply(args=[informe.pk, 'a@b.pe'])
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].to, ['a@b.pe'])
-        self.assertEqual(mail.outbox[0].attachments[0][2], 'application/pdf')
-        self.assertIn(str(informe.slug_validacion), mail.outbox[0].body)
-        informe.refresh_from_db()
-        self.assertEqual(informe.estado_envio, 'enviado')
-
-    def test_sin_correo_del_cliente_no_envia(self):
-        informe = self.emitir()
+    def preparar_correo(self, de='cliente@empresa.pe', personal=False):
+        """Un usuario con correo, una cuenta y el pedido del cliente recibido en ella."""
+        from correo.mensajeria import crear_mensaje
+        from correo.models import AccesoCuenta, CuentaCorreo
+        rol = rol_con_permisos('Correo informes', 'correo.ver', 'informes.ver', 'informes.aprobar')
+        usuario, _ = crear_trabajador('correista', rol, 'Carla Correo')
+        cuenta = CuentaCorreo.objects.create(direccion='ventas@vicaf.pe', nombre='Ventas VICAF', slug='ventas', personal=personal)
+        AccesoCuenta.objects.create(usuario=usuario, cuenta=cuenta, rol=AccesoCuenta.GESTIONA)
         cot = self.mia.solicitud.cotizacion
-        type(cot).objects.filter(pk=cot.pk).update(correo_contacto='')
-        type(cot.cliente).objects.filter(pk=cot.cliente_id).update(correo_contacto='')
-        with patch('proyectos.views_informe_compresion.enviar_informe_cliente') as tarea:
-            self.client.post(self.url, {'accion': 'enviar'})
-            tarea.delay.assert_not_called()
+        type(cot).objects.filter(pk=cot.pk).update(correo_contacto='cliente@empresa.pe', persona_contacto='Ana Pérez')
+        pedido = crear_mensaje(
+            cuenta, 'entrada', de=de, de_nombre='Ana Pérez', para=[{'nombre': '', 'correo': cuenta.direccion},
+                                                                {'nombre': 'Obra', 'correo': 'obra@empresa.pe'}],
+            asunto=f'Solicitud de ensayos {self.mia.solicitud.codigo_solicitud}', html='<p>Necesitamos ensayos</p>',
+            leido=True,
+        )
+        return usuario, cuenta, pedido
+
+    def test_enviar_al_cliente_lleva_a_la_pantalla_de_envio(self):
+        informe = self.emitir()
+        r = self.client.post(self.url, {'accion': 'enviar'})
+        self.assertRedirects(r, reverse('proyectos:enviar_informe', args=[informe.pk]), fetch_redirect_response=False)
+        r = self.client.get(reverse('proyectos:enviar_informe', args=[informe.pk]))
+        self.assertContains(r, 'Por correo')
+        self.assertContains(r, 'Por WhatsApp')
+        self.assertContains(r, str(informe.slug_validacion))
+
+    def test_correo_inteligente_responde_al_pedido_con_copia(self):
+        from proyectos import envio_informe as envio
+        informe = self.emitir()
+        usuario, cuenta, pedido = self.preparar_correo()
+        plan = envio.planear_correo(usuario, informe)
+        self.assertEqual(plan.modo, 'respuesta')
+        self.assertEqual(plan.origen.pk, pedido.pk)
+        self.assertTrue(plan.cuenta_empresa)
+        self.assertEqual([p['correo'] for p in plan.para], ['cliente@empresa.pe'])
+        self.assertEqual([p['correo'] for p in plan.cc], ['obra@empresa.pe'])  # sin copiar a nuestra propia cuenta
+        self.assertTrue(plan.asunto.startswith('RE: '))
+        borrador = envio.crear_borrador_correo(usuario, informe, plan)
+        self.assertEqual(borrador.hilo_id, pedido.hilo_id)
+        self.assertEqual(borrador.in_reply_to, pedido.message_id)
+        self.assertEqual(borrador.adjuntos.count(), 1)
+        self.assertEqual(borrador.adjuntos.first().nombre, f'{informe.codigo_informe}.pdf')
+        self.assertIn(str(informe.slug_validacion), borrador.cuerpo_html)
         informe.refresh_from_db()
-        self.assertEqual(informe.estado_envio, 'pendiente')
+        self.assertEqual(informe.mensaje_envio, borrador.pk)
+
+    def test_si_otra_persona_reenvio_el_pedido_va_con_copia_a_quien_lo_envio(self):
+        from proyectos import envio_informe as envio
+        informe = self.emitir()
+        usuario, cuenta, pedido = self.preparar_correo(de='intermediario@gestor.pe')
+        plan = envio.planear_correo(usuario, informe)
+        self.assertEqual([p['correo'] for p in plan.para], ['cliente@empresa.pe'])
+        self.assertIn('intermediario@gestor.pe', [p['correo'] for p in plan.cc])
+
+    def test_cuenta_personal_avisa_y_sin_pedido_redacta_uno_nuevo(self):
+        from proyectos import envio_informe as envio
+        informe = self.emitir()
+        usuario, cuenta, pedido = self.preparar_correo(personal=True)
+        plan = envio.planear_correo(usuario, informe)
+        self.assertFalse(plan.cuenta_empresa)
+        self.assertIn('personal', plan.aviso)
+        pedido.delete()
+        plan = envio.planear_correo(usuario, informe)
+        self.assertEqual(plan.modo, 'nuevo')
+        self.assertEqual([p['correo'] for p in plan.para], ['cliente@empresa.pe'])
+
+    def test_al_salir_el_correo_el_informe_queda_enviado(self):
+        from correo.tasks import enviar_mensaje
+        from correo.models import Mensaje
+        from proyectos import envio_informe as envio
+        informe = self.emitir()
+        usuario, cuenta, pedido = self.preparar_correo()
+        borrador = envio.crear_borrador_correo(usuario, informe)
+        Mensaje.objects.filter(pk=borrador.pk).update(estado_envio=Mensaje.EN_COLA)
+        with override_settings(CORREO_ENVIO='simulado'):
+            enviar_mensaje.apply(args=[borrador.pk])
+        informe.refresh_from_db()
+        self.assertEqual((informe.estado_envio, informe.canal_envio), ('enviado', 'correo'))
+
+    def test_whatsapp_registra_el_envio(self):
+        informe = self.emitir()
+        r = self.client.post(reverse('proyectos:enviar_informe_whatsapp', args=[informe.pk]))
+        self.assertEqual(r.json(), {'ok': True})
+        informe.refresh_from_db()
+        self.assertEqual((informe.estado_envio, informe.canal_envio), ('enviado', 'whatsapp'))
 
     def test_excel_con_numeros(self):
         self.terminar(self.mia, self.user_tec)

@@ -27,3 +27,4 @@
 .inf-b--esp { color: #b45309; background: #fffbeb; border-color: #fde68a; } .inf-b--err { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
 .inf-vacio { display: grid; justify-items: center; gap: .6rem; padding: 3rem 1rem; color: #94a3b8; font-size: .8rem; font-weight: 600; text-align: center; }
 @media (max-width: 1099px) { .inf-fila { grid-template-columns: 2.1rem minmax(0, 1fr) auto; } .inf-fecha, .inf-pasos { grid-column: 2 / -1; } .inf-acc { grid-column: 1 / -1; justify-content: flex-start; } }
+.inf-b--env { background: linear-gradient(135deg, #2563eb, #1e40af); color: #fff; border-color: transparent; } .inf-b--env:hover { background: linear-gradient(135deg, #1d4ed8, #1e3a8a); color: #fff; }

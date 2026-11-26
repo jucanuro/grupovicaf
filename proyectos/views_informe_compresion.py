@@ -235,17 +235,65 @@ def _correo_cliente(solicitud):
 
 
 def _enviar(request, solicitud, informe):
-    url = redirect('proyectos:revision_compresion', solicitud_id=solicitud.pk)
+    """Desde la revisión, «Enviar al cliente» abre la pantalla de envío (correo inteligente o WhatsApp)."""
     if informe is None or informe.pdf_estado != InformeFinal.PDF_LISTO:
-        messages.error(request, "El informe aún no tiene PDF listo.")
-        return url
-    destinatario = _correo_cliente(solicitud)
-    if not destinatario:
-        messages.error(request, "El cliente no tiene correo de contacto registrado; no se envió.")
-        return url
-    enviar_informe_cliente.delay(informe.pk, destinatario)
-    messages.success(request, f"El informe se está enviando a {destinatario}.")
-    return url
+        messages.error(request, "El informe aún no está listo para enviar.")
+        return redirect('proyectos:revision_compresion', solicitud_id=solicitud.pk)
+    return redirect('proyectos:enviar_informe', informe_id=informe.pk)
+
+
+@login_required
+@permiso_requerido('informes.ver')
+def enviar_informe(request, informe_id):
+    """Pantalla de envío al cliente: correo inteligente (respuesta al pedido, con copia) o WhatsApp."""
+    from . import envio_informe as envio
+    from correo.permisos import puede_entrar_correo
+    informe = get_object_or_404(InformeFinal.objects.select_related('solicitud__cotizacion__cliente'), pk=informe_id)
+    if informe.pdf_estado != InformeFinal.PDF_LISTO and not informe.archivo_pdf:
+        messages.error(request, "El informe aún no tiene PDF.")
+        return redirect('proyectos:revision_compresion', solicitud_id=informe.solicitud_id)
+    plan = envio.planear_correo(request.user, informe) if puede_entrar_correo(request.user) else None
+    telefono = envio.telefono_whatsapp(informe)
+    return render(request, 'proyectos/enviar_informe.html', {
+        'informe': informe,
+        'plan': plan,
+        'sin_correo': plan is None,
+        'telefono': telefono,
+        'texto_whatsapp': envio.texto_whatsapp(informe),
+        'enlace_validacion': envio.enlace_validacion(informe),
+        'contacto': envio.nombre_contacto(informe),
+    })
+
+
+@login_required
+@permiso_requerido('informes.ver')
+@require_POST
+def enviar_informe_correo(request, informe_id):
+    """Crea el borrador (respuesta al pedido del cliente o correo nuevo) y abre el módulo de correo."""
+    from . import envio_informe as envio
+    from correo.enlaces import crear_enlace, url_correo
+    from django.urls import reverse
+    informe = get_object_or_404(InformeFinal.objects.select_related('solicitud__cotizacion__cliente'), pk=informe_id)
+    try:
+        borrador = envio.crear_borrador_correo(request.user, informe)
+    except PermissionError as exc:
+        messages.error(request, str(exc))
+        return redirect('proyectos:enviar_informe', informe_id=informe.pk)
+    destino = reverse('borrador', urlconf='grupovicaf.urls_correo', args=[borrador.pk]) + '?completo=1'
+    entrar = reverse('entrar', urlconf='grupovicaf.urls_correo')
+    return redirect(url_correo(request, entrar, t=crear_enlace(request.user, destino)))
+
+
+@login_required
+@permiso_requerido('informes.ver')
+@require_POST
+def enviar_informe_whatsapp(request, informe_id):
+    """Deja registrado que el informe se mandó por WhatsApp (el chat lo abre el navegador)."""
+    from django.http import JsonResponse
+    from . import envio_informe as envio
+    informe = get_object_or_404(InformeFinal, pk=informe_id)
+    envio.marcar_enviado(informe, 'whatsapp')
+    return JsonResponse({'ok': True})
 
 
 @login_required

@@ -190,6 +190,13 @@ Antes de esto el formulario iba en columnas, la sesión de ensayo integrada (`_s
 («Repetir esta foto» usa el asistente). Ya no se sube hoja de cálculo; el
 campo `hoja_calculo` y su descarga solo sirven a ensayos viejos.
 
+**Envío inteligente del informe (HU-LIMS-47).** «Enviar al cliente» (en `revision_compresion` y en Informes) abre `/proyectos/informe/<id>/enviar/`:
+correo o WhatsApp. El correo (`proyectos/envio_informe.py`) busca en las bandejas del usuario el pedido del cliente (por su correo y por el código de
+solicitud/cotización en el asunto), prepara en el módulo de correo una **respuesta** a ese hilo con el PDF y el enlace de validación (Para: el contacto;
+CC: quien envió o recibió el pedido; si lo reenvió otra persona, ella va en copia), desde la cuenta de la empresa (avisa si es un buzón personal) y abre el
+borrador por un enlace firmado al host del correo. `InformeFinal.mensaje_envio` liga el borrador: al salir (`correo.tasks.enviar_mensaje`) el informe pasa a
+«enviado» con `canal_envio='correo'`; WhatsApp lo registra al abrir el chat. La revisión de una solicitud es una pantalla completa (`revision.css`) con trazabilidad plegable.
+
 **Informe con el diseño oficial (HU-LIMS-46).** Los bloques del editor dibujan el formato del laboratorio: `caratula` = VCF-LAB-FOR-064
 (secciones 1–5), `notas` = secciones 6–7, `firmas` = QR + «Informe autorizado por», y `resultados` = una hoja FOR-039 por ensayo (también los que no son compresión: llevan el FOR-009 registrado, con los cálculos hechos al vuelo si no se guardaron, y sus resultados propios en «Resultados del ensayo») con su registro
 fotográfico de 5 fotos (carga, 2 antes, 2 después), esquema de fracturas, equipamiento y firma (`informe_bloques/`, estilos `.fmt-*` en `informe_hoja.css`, cabecera común en
