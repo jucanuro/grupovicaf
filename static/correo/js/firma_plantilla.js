@@ -11,7 +11,7 @@
     var urlPrevia = form.getAttribute('data-url-previa');
     var anchos = vista.querySelectorAll('[data-ancho]');
     var temporizador = null;
-    var INICIAL = { logo_ancho: '130', logo_pos: 'izquierda', color_principal: '#12306b',
+    var INICIAL = { logo_ancho: '90', logo_pos: 'izquierda', color_principal: '#12306b',
                     color_acento: '#f5a623', color_panel: '#f3f6fc' };
 
     // Se envía el formulario completo a la vista previa y se restaura su destino.

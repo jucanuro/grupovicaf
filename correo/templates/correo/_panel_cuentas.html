@@ -40,4 +40,12 @@
     {% empty %}
     <p class="lateral__nota">Aún no tienes cuentas de correo asignadas.</p>
     {% endfor %}
+    <section class="mini-cal" data-mini-cal aria-label="Calendario">
+        <div class="mini-cal__cabeza">
+            <button type="button" class="mini-cal__flecha" data-mc-ant aria-label="Mes anterior">‹</button>
+            <strong class="mini-cal__mes" data-mc-titulo aria-live="polite"></strong>
+            <button type="button" class="mini-cal__flecha" data-mc-sig aria-label="Mes siguiente">›</button>
+        </div>
+        <div class="mini-cal__dias" data-mc-dias role="grid"></div>
+    </section>
 </nav>

@@ -1057,3 +1057,22 @@ html.dark .tipo--correo { --t-fondo: rgba(99, 102, 241, .2); --t-tinta: #C7D2FE;
 .firma-bloque[hidden] { display: none; }
 .firma-bloque__barra { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .firma-bloque__marco { display: block; width: 100%; height: 220px; border: 0; background: #fff; border-radius: 8px; }
+
+/* ---- Calendario pequeño de la barra lateral ---- */
+.mini-cal { margin: 18px 4px 0; padding: 10px 8px 12px; border-radius: 14px; background: var(--hover); }
+.mini-cal__cabeza { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.mini-cal__mes { font-size: 13px; text-transform: capitalize; color: var(--tinta); }
+.mini-cal__flecha { width: 26px; height: 26px; border: 0; border-radius: 8px; background: transparent; color: var(--tinta-3); font-size: 18px; line-height: 1; cursor: pointer; }
+.mini-cal__flecha:hover { background: var(--activa); color: var(--tinta); }
+.mini-cal__dias { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px 0; text-align: center; font-size: 12px; }
+.mini-cal__cab { font-size: 10.5px; font-weight: 700; color: var(--tinta-3); padding: 2px 0; }
+.mini-cal__dia { display: inline-grid; place-items: center; width: 26px; height: 26px; margin: 0 auto; border-radius: 50%; color: var(--tinta); }
+.mini-cal__dia--finde { font-weight: 700; }
+.mini-cal__dia--fuera { color: var(--tinta-3); font-weight: 400; opacity: .6; }
+.mini-cal__dia--hoy { background: #F25C2F; color: #fff; font-weight: 700; opacity: 1; }
+
+/* Adjuntar cotización: texto legible en modo claro y oscuro */
+.dialogo { background: var(--blanco); color: var(--tinta); }
+.dialogo input[type="search"] { background: var(--blanco); color: var(--tinta); }
+.resultado-cot { color: var(--tinta); font: inherit; }
+.resultado-cot strong, .resultado-cot span { color: var(--tinta); }
