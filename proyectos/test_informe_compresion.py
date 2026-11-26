@@ -270,7 +270,8 @@ class FlujoResultadosTests(CompresionBase):
         self.assertNotContains(r, 'name="hoja_foto"')
         self.assertNotContains(r, 'name="hoja_calculo"')
         self.assertContains(r, 'data-fotos-ensayo')
-        self.assertContains(r, 'data-ir-formulario')
+        self.assertContains(r, 'data-abrir-formulario')
+        self.assertContains(r, 'data-modal-formulario')
         self.assertContains(r, 'Llenar formulario')
 
     def test_hoja_solo_para_quien_ve_la_linea(self):

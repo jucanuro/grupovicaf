@@ -252,3 +252,27 @@ class RegistroPantallaCompletaTests(CompresionBase):
         self.client.post(reverse('proyectos:abrir_sesion_ensayo'), self.datos_sesion(), HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         r = self.client.post(reverse('proyectos:abrir_sesion_ensayo'), self.datos_sesion(), HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(r.status_code, 409)
+
+
+class FormularioEnModalTests(CompresionBase):
+    """HU-LIMS-39: el formulario va en un modal a pantalla completa y lo llenado se resume junto a las fotos."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user_tec)
+
+    def test_el_formulario_esta_en_un_modal_y_hay_resumen_junto_a_las_fotos(self):
+        html = self.client.get(self.url_registro(self.mia)).content.decode()
+        for marca in ('data-modal-formulario', 'data-cerrar-formulario', 'data-abrir-formulario', 'data-resumen-cuerpo',
+                      'id="panel-resumen"', 'id="panel-fotos"', 'Llenar formulario'):
+            self.assertIn(marca, html)
+        self.assertLess(html.index('id="panel-resumen"'), html.index('id="panel-fotos"'))
+        self.assertNotIn('data-ir-panel', html)
+
+    def test_el_codigo_de_cliente_viene_de_la_cotizacion_y_no_se_edita(self):
+        html = self.client.get(self.url_registro(self.mia)).content.decode()
+        codigo = self.mia.solicitud.cotizacion.cliente.codigo_confidencial
+        self.assertIn('data-codigo-cliente-oficial', html)
+        self.assertIn(f'data-codigo-cliente="{codigo}"', html)
+        self.assertNotIn('name="codigo_cliente_oficial"', html)
+        self.assertIn('ID de la muestra (del cliente)', html)

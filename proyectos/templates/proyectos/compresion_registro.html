@@ -35,6 +35,31 @@
     .camara-disparo { width: 68px; height: 68px; border-radius: 999px; border: 4px solid #fff; background: transparent; padding: 4px; }
     .camara-disparo span { display: block; width: 100%; height: 100%; border-radius: 999px; background: #fff; transition: transform .1s; }
     .camara-disparo:active span { transform: scale(.85); }
+    /* Formulario en modal y resumen junto a las fotos (HU-LIMS-39) */
+    .rg-principal { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1fr); }
+    @media (min-width: 1024px) { .rg-principal { grid-template-columns: minmax(0, 1fr) 27rem; align-items: start; } }
+    @media (max-width: 1023px) { .rg-fotos { order: -1; } }
+    .rg-resumen { background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; }
+    .rg-resumen__cab { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem 1.1rem; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; }
+    .rg-resumen__cab h2 { font-weight: 800; font-size: 1.05rem; color: #0f172a; }
+    .rg-resumen__cab p { font-size: .8rem; color: #64748b; }
+    .rg-boton-form { padding: .8rem 1.3rem; font-size: 1rem; }
+    .rg-resumen__cuerpo { padding: 1rem 1.1rem 1.2rem; display: grid; gap: 1.1rem 1.5rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+    .rg-resumen__vacio { grid-column: 1 / -1; font-size: .9rem; color: #64748b; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: .8rem; padding: .9rem 1rem; }
+    .rg-grupo h3 { font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #64748b; margin-bottom: .35rem; }
+    .rg-grupo dl > div { display: flex; justify-content: space-between; gap: .8rem; padding: .28rem 0; border-bottom: 1px solid #f1f5f9; font-size: .85rem; }
+    .rg-grupo dt { color: #475569; }
+    .rg-grupo dd { font-weight: 700; color: #0f172a; text-align: right; overflow-wrap: anywhere; }
+    .rg-grupo dd.rg-vacio { color: #cbd5e1; font-weight: 600; }
+    .rg-modal { position: fixed; inset: 0; z-index: 1200; background: #f1f5f9; display: flex; flex-direction: column; }
+    .rg-modal[hidden] { display: none; }
+    .rg-modal__barra { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 1.25rem; background: #0f172a; color: #fff; flex-shrink: 0; }
+    .rg-modal__barra h2 { font-weight: 800; font-size: 1rem; }
+    .rg-modal__barra p { font-size: .75rem; color: #cbd5e1; }
+    .rg-modal__cuerpo { flex: 1; min-height: 0; overflow-y: auto; padding: 1rem 1.25rem 2rem; column-width: 23rem; column-gap: 1rem; }
+    .rg-modal__cuerpo > .v-tarjeta, .rg-modal__cuerpo > details { break-inside: avoid; margin-bottom: 1rem; }
+    .rg-modal__cuerpo > .rg-ancho { column-span: all; }
+    @media (max-width: 639px) { .rg-modal__cuerpo { padding: .75rem .75rem 2rem; column-width: auto; } }
     /* Pantalla completa en columnas (HU-LIMS-38) */
     .rg-completo { background: #f1f5f9; }
     .rg-cuerpo { max-width: none; margin: 0; padding: 1rem 1.25rem 2rem; display: flex; flex-direction: column; gap: .9rem; }
@@ -114,6 +139,7 @@
      data-es-compresion="{% if es_compresion %}1{% else %}0{% endif %}"
      data-sesion="{% if sesion or sesion_ensayo %}1{% else %}0{% endif %}"
      data-solo-lectura="{% if solo_lectura %}1{% else %}0{% endif %}"
+     data-codigo-cliente="{{ codigo_cliente_oficial }}"
      data-subir-url="{% url 'proyectos:subir_foto_compresion' detalle.pk 'TIPO' %}"
      data-sesion-url="{{ url_sesion_ajax }}"
      data-lado-maximo="{{ lado_maximo }}">
@@ -160,28 +186,124 @@
     <section class="rg-requisitos" data-requisitos aria-label="Qué necesitas para terminar">
         <p class="rg-requisitos__titulo">Para terminar este ensayo necesitas</p>
         <ul class="rg-requisitos__lista" data-requisitos-lista></ul>
+        <button type="button" class="v-btn v-btn--primario v-btn--block solo-movil mt-3" data-abrir-formulario>
+            <i data-lucide="clipboard-pen"></i> <span data-texto-abrir-formulario>Llenar formulario</span>
+        </button>
     </section>
     {% endif %}
 
-    <div class="reg-switch {% if solo_lectura %}reg-solo-lectura{% endif %}" role="tablist" aria-label="Qué registrar">
-        <button type="button" role="tab" data-ir-panel="fotos"><i data-lucide="camera" class="w-5 h-5"></i> Fotos <span class="reg-cuenta" data-fotos-cuenta-switch>0/6</span></button>
-        <button type="button" role="tab" data-ir-panel="formulario"><i data-lucide="clipboard-pen" class="w-5 h-5"></i> Llenar formulario</button>
+
+    <div class="rg-principal">
+        <section class="rg-resumen" id="panel-resumen" aria-label="Datos del ensayo">
+            <div class="rg-resumen__cab">
+                <div>
+                    <h2>Datos del ensayo</h2>
+                    <p data-resumen-estado>{% if solo_lectura %}Registrados al terminar.{% else %}Se agregan aquí cuando pulses «Listo» en el formulario.{% endif %}</p>
+                </div>
+                {% if not solo_lectura %}
+                <button type="button" class="v-btn v-btn--primario rg-boton-form" data-abrir-formulario>
+                    <i data-lucide="clipboard-pen"></i> <span data-texto-abrir-formulario>Llenar formulario</span>
+                </button>
+                {% endif %}
+            </div>
+            <div class="rg-resumen__cuerpo" data-resumen-cuerpo></div>
+        </section>
+        <aside class="rg-fotos" id="panel-fotos" aria-label="Fotos del ensayo">
+            <section class="v-tarjeta" data-fotos-ensayo>
+                <div class="v-tarjeta__cab">
+                    <span class="v-paso"><i data-lucide="camera" class="w-4 h-4"></i></span>
+                    <div><h2>Fotos del ensayo · <span data-fotos-contador>0</span> de 6</h2><p>Un solo botón: el sistema te dice cuál foto sigue (antes, durante y después).</p></div>
+                </div>
+                <div class="v-tarjeta__cuerpo space-y-3">
+                    {% if not solo_lectura %}
+                    <div class="asistente" data-asistente>
+                        <p class="asistente__titulo" data-asist-titulo>Toma la foto: Antes del ensayo</p>
+                        <p class="asistente__sub" data-asist-sub>Foto 1 de 6</p>
+                        <div class="asistente__botones">
+                            <label class="v-btn v-btn--primario v-btn--grande" data-asist-principal>
+                                <i data-lucide="camera"></i> <span data-asist-texto>Tomar foto</span>
+                                <input type="file" accept="image/*" capture="environment" class="sr-only" data-asist-camara>
+                            </label>
+                            <label class="v-btn v-btn--secundario" data-asist-secundario>
+                                <i data-lucide="images"></i> <span data-asist-texto2>Elegir de la galería</span>
+                                <input type="file" accept="image/*" multiple class="sr-only" data-asist-archivos>
+                            </label>
+                            <button type="button" class="v-btn v-btn--secundario hidden" data-asist-webcam><i data-lucide="video"></i> Usar la cámara del equipo</button>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <details class="grupo-fotos" data-grupo-fotos="antes">
+                        <summary><span>1 · Antes</span> <span class="text-xs font-semibold text-slate-500" data-grupo-cuenta></span>
+                            <span class="miniaturas" data-miniaturas><span></span><span></span></span>
+                            <i data-lucide="chevron-down" class="w-4 h-4 chev"></i></summary>
+                        <div class="grupo-fotos__cuerpo grid grid-cols-2 gap-3">
+                            {% include "proyectos/_slot_foto.html" with s=foto.antes ancho=False %}
+                            {% include "proyectos/_slot_foto.html" with s=foto.antes_pizarra ancho=False %}
+                        </div>
+                    </details>
+                    <details class="grupo-fotos" data-grupo-fotos="durante">
+                        <summary><span>2 · Durante</span> <span class="text-xs font-semibold text-slate-500" data-grupo-cuenta></span>
+                            <span class="miniaturas" data-miniaturas><span></span><span></span></span>
+                            <i data-lucide="chevron-down" class="w-4 h-4 chev"></i></summary>
+                        <div class="grupo-fotos__cuerpo grid grid-cols-2 gap-3">
+                            {% include "proyectos/_slot_foto.html" with s=foto.durante ancho=False %}
+                            {% include "proyectos/_slot_foto.html" with s=foto.carga ancho=True %}
+                        </div>
+                    </details>
+                    <details class="grupo-fotos" data-grupo-fotos="despues">
+                        <summary><span>3 · Después</span> <span class="text-xs font-semibold text-slate-500" data-grupo-cuenta></span>
+                            <span class="miniaturas" data-miniaturas><span></span><span></span></span>
+                            <i data-lucide="chevron-down" class="w-4 h-4 chev"></i></summary>
+                        <div class="grupo-fotos__cuerpo grid grid-cols-2 gap-3">
+                            {% include "proyectos/_slot_foto.html" with s=foto.despues ancho=False %}
+                            {% include "proyectos/_slot_foto.html" with s=foto.despues_pizarra ancho=False %}
+                        </div>
+                    </details>
+                    {% if galeria %}
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800 mb-2">Fotos anteriores del ensayo</h3>
+                        <div class="galeria">
+                            {% for f in galeria %}
+                            <figure class="galeria__item" data-estado="ok"><img src="{% url 'proyectos:foto_compresion' f.pk %}" alt="Foto {{ forloop.counter }}" width="{{ f.ancho }}" height="{{ f.alto }}" loading="lazy"><span class="galeria__num">{{ forloop.counter }}</span></figure>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if not solo_lectura %}
+                    <button type="button" class="v-btn v-btn--primario v-btn--block solo-movil" data-ir-formulario>
+                        <i data-lucide="clipboard-pen"></i> Llenar formulario
+                    </button>
+                    {% endif %}
+                </div>
+            </section>
+        </aside>
     </div>
 
-    <div class="reg-cuerpo {% if solo_lectura %}reg-solo-lectura{% endif %}">
-    <div class="reg-panel" id="panel-formulario" data-panel="formulario" data-activo>
-    <form method="post" id="form-registro" class="rg-form" enctype="multipart/form-data" novalidate>
+    <form method="post" id="form-registro" class="rg-formulario" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
+        <div class="rg-modal" data-modal-formulario role="dialog" aria-modal="true" aria-labelledby="rg-modal-titulo" hidden>
+            <div class="rg-modal__barra">
+                <div class="min-w-0">
+                    <h2 id="rg-modal-titulo">Formulario del ensayo · {{ detalle.muestra.codigo_laboratorio }}</h2>
+                    <p>Formato FOR-009. Llena lo que corresponda; lo que escribes se guarda solo.</p>
+                </div>
+                <button type="button" class="v-btn v-btn--exito" data-cerrar-formulario><i data-lucide="check"></i> Listo</button>
+            </div>
+            <div class="rg-modal__cuerpo">
         {% include "proyectos/_sesion_en_registro.html" %}
         <div class="v-tarjeta" data-datos-cliente>
             <div class="v-tarjeta__cab">
                 <span class="v-paso">1</span>
-                <div><h2>Datos del cliente</h2><p>Cópialos de la solicitud o del formato: código del cliente, f&#39;c de diseño, fecha de moldeo y edad.</p></div>
+                <div><h2>Datos del cliente</h2><p>El código del cliente viene de la cotización. Copia del formato la identificación de la muestra, f&#39;c, fecha de moldeo y edad.</p></div>
             </div>
             <div class="v-tarjeta__cuerpo">
+            <div class="flex items-center justify-between gap-3 rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 mb-3" data-codigo-cliente-oficial>
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Código de cliente</span>
+                <span class="font-mono font-bold text-slate-900 flex items-center gap-1.5"><i data-lucide="lock" class="w-3.5 h-3.5 text-slate-400"></i>{{ codigo_cliente_oficial }}</span>
+            </div>
             {% if solo_lectura %}
             <dl class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
-                <dt class="text-slate-500">ID del cliente</dt><dd class="font-semibold text-slate-800 break-all">{{ muestra.codigo_cliente|default:"—" }}</dd>
+                <dt class="text-slate-500">ID de la muestra</dt><dd class="font-semibold text-slate-800 break-all">{{ muestra.codigo_cliente|default:"—" }}</dd>
                 <dt class="text-slate-500">Elemento</dt><dd class="font-semibold text-slate-800">{{ muestra.elemento_estructural|default:"—" }}</dd>
                 <dt class="text-slate-500">f'c de diseño</dt><dd class="font-semibold text-slate-800">{% if muestra.fc_diseno %}{{ muestra.fc_diseno|floatformat:0 }} kg/cm²{% else %}—{% endif %}</dd>
                 <dt class="text-slate-500">Moldeo</dt><dd class="font-semibold text-slate-800">{{ muestra.fecha_fabricacion|date:"d/m/Y"|default:"—" }}</dd>
@@ -364,6 +486,8 @@
         </details>
         {% endif %}
 
+            </div>
+        </div>
         <div class="v-barra">
             {% if solo_lectura %}
                 {% if ve_todos and not ensayo.aprobado %}
@@ -385,77 +509,6 @@
         </div>
     </form>
     <form id="form-sesion" method="post" action="{{ url_sesion_ajax }}" hidden>{% csrf_token %}</form>
-    </div>
-    <aside class="reg-panel" id="panel-fotos" data-panel="fotos" aria-label="Fotos del ensayo">
-        <section class="v-tarjeta" data-fotos-ensayo>
-            <div class="v-tarjeta__cab">
-                <span class="v-paso"><i data-lucide="camera" class="w-4 h-4"></i></span>
-                <div><h2>Fotos del ensayo · <span data-fotos-contador>0</span> de 6</h2><p>Un solo botón: el sistema te dice cuál foto sigue (antes, durante y después).</p></div>
-            </div>
-            <div class="v-tarjeta__cuerpo space-y-3">
-                {% if not solo_lectura %}
-                <div class="asistente" data-asistente>
-                    <p class="asistente__titulo" data-asist-titulo>Toma la foto: Antes del ensayo</p>
-                    <p class="asistente__sub" data-asist-sub>Foto 1 de 6</p>
-                    <div class="asistente__botones">
-                        <label class="v-btn v-btn--primario v-btn--grande" data-asist-principal>
-                            <i data-lucide="camera"></i> <span data-asist-texto>Tomar foto</span>
-                            <input type="file" accept="image/*" capture="environment" class="sr-only" data-asist-camara>
-                        </label>
-                        <label class="v-btn v-btn--secundario" data-asist-secundario>
-                            <i data-lucide="images"></i> <span data-asist-texto2>Elegir de la galería</span>
-                            <input type="file" accept="image/*" multiple class="sr-only" data-asist-archivos>
-                        </label>
-                        <button type="button" class="v-btn v-btn--secundario hidden" data-asist-webcam><i data-lucide="video"></i> Usar la cámara del equipo</button>
-                    </div>
-                </div>
-                {% endif %}
-                <details class="grupo-fotos" data-grupo-fotos="antes">
-                    <summary><span>1 · Antes</span> <span class="text-xs font-semibold text-slate-500" data-grupo-cuenta></span>
-                        <span class="miniaturas" data-miniaturas><span></span><span></span></span>
-                        <i data-lucide="chevron-down" class="w-4 h-4 chev"></i></summary>
-                    <div class="grupo-fotos__cuerpo grid grid-cols-2 gap-3">
-                        {% include "proyectos/_slot_foto.html" with s=foto.antes ancho=False %}
-                        {% include "proyectos/_slot_foto.html" with s=foto.antes_pizarra ancho=False %}
-                    </div>
-                </details>
-                <details class="grupo-fotos" data-grupo-fotos="durante">
-                    <summary><span>2 · Durante</span> <span class="text-xs font-semibold text-slate-500" data-grupo-cuenta></span>
-                        <span class="miniaturas" data-miniaturas><span></span><span></span></span>
-                        <i data-lucide="chevron-down" class="w-4 h-4 chev"></i></summary>
-                    <div class="grupo-fotos__cuerpo grid grid-cols-2 gap-3">
-                        {% include "proyectos/_slot_foto.html" with s=foto.durante ancho=False %}
-                        {% include "proyectos/_slot_foto.html" with s=foto.carga ancho=True %}
-                    </div>
-                </details>
-                <details class="grupo-fotos" data-grupo-fotos="despues">
-                    <summary><span>3 · Después</span> <span class="text-xs font-semibold text-slate-500" data-grupo-cuenta></span>
-                        <span class="miniaturas" data-miniaturas><span></span><span></span></span>
-                        <i data-lucide="chevron-down" class="w-4 h-4 chev"></i></summary>
-                    <div class="grupo-fotos__cuerpo grid grid-cols-2 gap-3">
-                        {% include "proyectos/_slot_foto.html" with s=foto.despues ancho=False %}
-                        {% include "proyectos/_slot_foto.html" with s=foto.despues_pizarra ancho=False %}
-                    </div>
-                </details>
-                {% if galeria %}
-                <div>
-                    <h3 class="text-sm font-bold text-slate-800 mb-2">Fotos anteriores del ensayo</h3>
-                    <div class="galeria">
-                        {% for f in galeria %}
-                        <figure class="galeria__item" data-estado="ok"><img src="{% url 'proyectos:foto_compresion' f.pk %}" alt="Foto {{ forloop.counter }}" width="{{ f.ancho }}" height="{{ f.alto }}" loading="lazy"><span class="galeria__num">{{ forloop.counter }}</span></figure>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
-                {% if not solo_lectura %}
-                <button type="button" class="v-btn v-btn--primario v-btn--block solo-movil" data-ir-formulario>
-                    <i data-lucide="clipboard-pen"></i> Llenar formulario
-                </button>
-                {% endif %}
-            </div>
-        </section>
-    </aside>
-    </div>
     </div>
 </div>
 
@@ -751,8 +804,6 @@
 
     // Fotos y formulario (HU-LIMS-36): contadores por grupo y cambio de panel en celular y tablet.
     const panelFotos = document.getElementById('panel-fotos');
-    const esPc = window.matchMedia('(min-width: 1024px)');
-    let fotosCompletasAntes = null;
     function contarFotos() {
         let total = 0;
         document.querySelectorAll('[data-grupo-fotos]').forEach(function (g) {
@@ -763,7 +814,6 @@
             if (cuenta) cuenta.textContent = hechas + '/' + marcos.length;
         });
         document.querySelectorAll('[data-fotos-contador]').forEach(function (e) { e.textContent = total; });
-        document.querySelectorAll('[data-fotos-cuenta-switch]').forEach(function (e) { e.textContent = total + '/6'; });
         document.querySelectorAll('[data-grupo-fotos]').forEach(function (g) {
             const minis = g.querySelectorAll('[data-miniaturas] span');
             g.querySelectorAll('[data-slot]').forEach(function (sl, i) {
@@ -779,10 +829,7 @@
         });
         actualizarAsistente();
         const completas = total >= 6;
-        document.querySelectorAll('[data-ir-formulario]').forEach(function (b) { b.classList.toggle('reg-pulso', completas); });
-        const aviso = document.querySelector('[data-ir-panel="formulario"]');
-        if (aviso) aviso.classList.toggle('reg-pulso', completas && !esPc.matches);
-        fotosCompletasAntes = completas;
+        document.querySelectorAll('[data-abrir-formulario], [data-ir-formulario]').forEach(function (b) { b.classList.toggle('reg-pulso', completas && !hayDatos()); });
         return total;
     }
     // Abrir la sesión sin salir del registro (HU-LIMS-38).
@@ -808,6 +855,7 @@
                   if (cuerpo) cuerpo.remove();
                   tarjeta.removeAttribute('open');
                   actualizarTerminar();
+                  pintarResumen();
               })
               .catch(function () { botonSesion.disabled = false; caja.textContent = 'Sin conexión: intenta de nuevo.'; caja.classList.remove('hidden'); });
         });
@@ -901,37 +949,144 @@
         asist.querySelectorAll('label').forEach(function (l) { l.addEventListener('click', function () { slotForzado = null; }); });
     }
 
-    function mostrarPanel(nombre) {
-        document.querySelectorAll('[data-panel]').forEach(function (p) {
-            if (p.dataset.panel === nombre) p.setAttribute('data-activo', ''); else p.removeAttribute('data-activo');
-        });
-        document.querySelectorAll('[data-ir-panel]').forEach(function (b) {
-            b.setAttribute('aria-selected', b.dataset.irPanel === nombre ? 'true' : 'false');
-        });
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Formulario en modal a pantalla completa y resumen junto a las fotos (HU-LIMS-39).
+    const modalForm = document.querySelector('[data-modal-formulario]');
+    const resumenCuerpo = document.querySelector('[data-resumen-cuerpo]');
+    const codigoClienteOficial = raiz.dataset.codigoCliente || '';
+    let guardadoAuto = null;
+    function valorDe(nombre) {
+        const e = document.querySelector('[name="' + nombre + '"]');
+        if (!e) return '';
+        if (e.tagName === 'SELECT') return e.value ? e.selectedOptions[0].text.trim() : '';
+        return e.value.trim();
     }
-    document.querySelectorAll('[data-ir-panel]').forEach(function (b) {
-        b.addEventListener('click', function () { mostrarPanel(b.dataset.irPanel); });
-    });
-    document.querySelectorAll('[data-ir-formulario]').forEach(function (b) {
-        b.addEventListener('click', function () { mostrarPanel('formulario'); });
+    function fechaLegible(iso) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+        return m ? m[3] + '/' + m[2] + '/' + m[1] : (iso || '');
+    }
+    function marcados(nombre) {
+        return Array.from(document.querySelectorAll('[name="' + nombre + '"]:checked')).map(function (c) {
+            return c.closest('label') ? c.closest('label').textContent.trim() : c.value;
+        });
+    }
+    function gruposResumen() {
+        const g = [];
+        const fcUnidad = valorDe('muestra-fc_unidad');
+        g.push({ t: 'Cliente y probeta', filas: [
+            ['Código de cliente', codigoClienteOficial],
+            ['ID de la muestra (del cliente)', valorDe('muestra-codigo_cliente')],
+            ['Elemento estructural', valorDe('muestra-elemento_estructural')],
+            ["f'c de diseño", valorDe('muestra-fc_diseno') ? valorDe('muestra-fc_diseno') + ' ' + (fcUnidad || 'kg/cm²') : ''],
+            ['Fabricación', fechaLegible(valorDe('muestra-fecha_fabricacion'))],
+            ['Edad (días)', valorDe('muestra-edad_ensayo_dias')],
+        ] });
+        const sesionTxt = document.querySelector('[data-sesion-resumen]');
+        g.push({ t: 'Condiciones y equipos', filas: [['Sesión', sesionAbierta && sesionTxt ? sesionTxt.textContent.replace(/Sesión abierta:.*$/, '').trim() : '']] });
+        const medidas = Array.from(document.querySelectorAll('[data-medida]')).map(function (i) {
+            const et = i.closest('label').querySelector('span').textContent.trim();
+            return [et, i.value.trim()];
+        });
+        g.push({ t: 'Medidas y carga', filas: [['Fecha de ensayo', fechaLegible(valorDe('fecha_ensayo'))]].concat(medidas) });
+        const verif = marcados('verif_perpendicularidad').concat([]);
+        const vd = document.querySelector('[data-verif-diametro]');
+        g.push({ t: 'Rotura y verificaciones', filas: [
+            ['Tipo de fractura', valorDe('tipo_fractura')],
+            ['Diámetro (≤ 2 %)', vd && vd.textContent.trim() !== '—' ? vd.textContent.trim() : ''],
+            ['Perpendicularidad', marcados('verif_perpendicularidad').join(', ')],
+            ['Planitud', marcados('verif_planitud').join(', ')],
+            ['Defectos', marcados('tipos_defecto').concat(valorDe('defectos') ? [valorDe('defectos')] : []).join(' · ')],
+            ['Video del ensayo', document.querySelector('[name="video_grabado"]:checked') ? 'Sí' : ''],
+        ] });
+        if (esCompresion) {
+            const r = function (k) { const e = document.querySelector('[data-r="' + k + '"]'); return e ? e.textContent.trim() : ''; };
+            g.push({ t: 'Resultado preliminar', filas: [
+                ['Resistencia', r('kgcm2') && r('kgcm2') !== '—' ? r('kgcm2') + ' kg/cm² · ' + r('mpa') + ' MPa' : ''],
+                ["% de f'c", r('porcentaje') && r('porcentaje') !== '—' ? r('porcentaje') + ' %' : ''],
+            ] });
+        }
+        const datos = Array.from(document.querySelectorAll('[data-dato]')).map(function (i) {
+            const v = i.tagName === 'SELECT' ? (i.value ? i.selectedOptions[0].text.trim() : '') : i.value.trim();
+            return [i.dataset.etiqueta, v];
+        });
+        const notas = document.getElementById('resumen');
+        if (notas) datos.push(['Resumen o notas', notas.value.trim()]);
+        datos.push(['Observaciones', valorDe('observaciones')]);
+        g.push({ t: 'Resultados del servicio', filas: datos });
+        return g;
+    }
+    function hayDatos() {
+        return gruposResumen().some(function (gr) {
+            return gr.filas.some(function (f) { return f[1] && !(gr.t === 'Cliente y probeta' && f[0] === 'Código de cliente') && !(f[0] === 'Fecha de ensayo'); });
+        });
+    }
+    function pintarResumen() {
+        if (!resumenCuerpo) return;
+        resumenCuerpo.textContent = '';
+        let alguno = false;
+        gruposResumen().forEach(function (gr) {
+            // En compresión se ve todo (para ver qué falta); en los demás solo lo llenado.
+            const filas = gr.filas.filter(function (f) { return esCompresion || f[1]; });
+            if (!filas.length) return;
+            const caja = document.createElement('div');
+            caja.className = 'rg-grupo';
+            const h = document.createElement('h3'); h.textContent = gr.t; caja.appendChild(h);
+            const dl = document.createElement('dl');
+            filas.forEach(function (f) {
+                if (f[1]) alguno = true;
+                const fila = document.createElement('div');
+                const dt = document.createElement('dt'); dt.textContent = f[0];
+                const dd = document.createElement('dd'); dd.textContent = f[1] || '—';
+                if (!f[1]) dd.className = 'rg-vacio';
+                fila.appendChild(dt); fila.appendChild(dd); dl.appendChild(fila);
+            });
+            caja.appendChild(dl);
+            resumenCuerpo.appendChild(caja);
+        });
+        if (!hayDatos()) {
+            const p = document.createElement('p');
+            p.className = 'rg-resumen__vacio';
+            p.textContent = 'Aún no hay datos. Pulsa «Llenar formulario»: lo que llenes queda aquí, junto a las fotos.';
+            resumenCuerpo.prepend(p);
+        }
+        document.querySelectorAll('[data-texto-abrir-formulario]').forEach(function (e) { e.textContent = hayDatos() ? 'Editar formulario' : 'Llenar formulario'; });
+        const est = document.querySelector('[data-resumen-estado]');
+        if (est) est.textContent = hayDatos() ? 'Lo llenado hasta ahora. Pulsa «Editar formulario» para completar o corregir.' : 'Se agregan aquí cuando pulses «Listo» en el formulario.';
+    }
+    function abrirFormulario() {
+        if (!modalForm) return;
+        modalForm.hidden = false;
+        const cuerpo = modalForm.querySelector('.rg-modal__cuerpo');
+        if (cuerpo) cuerpo.scrollTop = 0;
+        if (window.lucide) lucide.createIcons();
+    }
+    function cerrarFormulario() {
+        if (!modalForm || modalForm.hidden) return;
+        modalForm.hidden = true;
+        if (guardadoAuto) guardadoAuto.guardarYa();
+        pintarResumen();
+        actualizarTerminar();
+    }
+    document.querySelectorAll('[data-abrir-formulario], [data-ir-formulario]').forEach(function (b) { b.addEventListener('click', abrirFormulario); });
+    document.querySelectorAll('[data-cerrar-formulario]').forEach(function (b) { b.addEventListener('click', cerrarFormulario); });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && modalForm && !modalForm.hidden && !modal.classList.contains('abierto')) cerrarFormulario();
     });
     if (panelFotos) {
         new MutationObserver(function () { contarFotos(); actualizarTerminar(); })
             .observe(panelFotos, { attributes: true, attributeFilter: ['data-estado'], subtree: true });
     }
-    // En celular y tablet se empieza por las fotos; si ya están las 6, por el formulario.
-    mostrarPanel(contarFotos() >= 6 ? 'formulario' : 'fotos');
-    window.scrollTo(0, 0);
+    contarFotos();
 
     // Guardado automático (HU-LIMS-26): lo escrito se manda al servidor al salir de cada campo.
     if (window.AutoGuardado) {
-        AutoGuardado.iniciar({
+        guardadoAuto = AutoGuardado.iniciar({
             form: document.getElementById('form-registro'),
             indicador: document.querySelector('[data-autoguardado]'),
         });
     }
     actualizarTerminar();
+    pintarResumen();
+    if (window.lucide) lucide.createIcons();
 })();
 </script>
 {% endif %}

@@ -321,6 +321,7 @@ def registrar_ensayo_compresion(request, detalle_id):
         ]
     url_sesion = reverse('proyectos:abrir_sesion_ensayo') + (f'?tecnico={a_nombre_de.pk}' if a_nombre_de else '')
     return render(request, 'proyectos/compresion_registro.html', {
+        'codigo_cliente_oficial': detalle.solicitud.cotizacion.cliente.codigo_confidencial,
         'form_sesion': form_sesion, 'campos_equipo': campos_equipo, 'campos_comprobacion': campos_comprobacion,
         'faltan_tipos_sesion': faltan_tipos, 'url_sesion_ajax': url_sesion,
         'sesion_resumen': _resumen_sesion(sesion) if sesion else (_resumen_sesion(ensayo.sesion) if ensayo is not None and ensayo.sesion else ''),

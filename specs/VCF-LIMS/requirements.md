@@ -475,6 +475,21 @@ HU-LIMS-38. La sesión sigue siendo necesaria en compresión (trazabilidad de eq
 | REQ-LIMS-179 | HU-LIMS-38 | EL SISTEMA DEBE mostrar al empezar y mientras se llena una lista de requisitos para terminar (fecha, sesión, medidas, fractura y verificaciones, datos del servicio y fotos, con su avance) que cambia de estado al cumplirse. | sí (navegador) | [Validado con usuario] |
 | REQ-LIMS-180 | HU-LIMS-38 | EL SISTEMA DEBE quitar los botones de cámara y galería de cada recuadro de foto; para cambiar una foto ya subida, EL SISTEMA DEBE ofrecer «Repetir esta foto», que usa el mismo control guiado. | sí | [Validado con usuario] |
 
+## 2u. Formulario en modal y resumen junto a las fotos (v22)
+
+Pedido del Gerente (2026-11-26): al 100 % de zoom las tarjetas del formulario no caben; el formulario debe abrirse en un modal
+a pantalla completa desde un botón «Llenar formulario» (en cualquier dispositivo) y, al pulsar «Listo», lo llenado debe quedar
+resumido junto a las fotos, con «Editar formulario» para completar o corregir. El código del cliente viene de la cotización y
+no se edita. HU-LIMS-39.
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-181 | HU-LIMS-39 | CUANDO la persona pulse «Llenar formulario» (o «Editar formulario»), EL SISTEMA DEBE abrir el formulario completo en un modal a pantalla completa, con las secciones repartidas en columnas según el ancho, sin perder lo ya escrito. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-182 | HU-LIMS-39 | CUANDO se cierre el modal con «Listo», EL SISTEMA DEBE guardar lo escrito y mostrar un resumen de los datos llenados (cliente y probeta, condiciones y equipos, medidas, rotura y verificaciones, resultado preliminar, datos del servicio) en el panel junto a las fotos. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-183 | HU-LIMS-39 | DONDE el ensayo no sea de compresión, EL SISTEMA DEBE resumir solo lo llenado; DONDE sea de compresión, EL SISTEMA DEBE mostrar todas las filas para ver qué falta. | sí | [Propuesto] |
+| REQ-LIMS-184 | HU-LIMS-39 | EL SISTEMA DEBE tomar el código del cliente de la cotización (cliente de la solicitud), mostrarlo en el formulario y el resumen como solo lectura y no permitir editarlo; la identificación de cada muestra que da el cliente sigue siendo editable y se rotula «ID de la muestra (del cliente)». | sí | [Validado con usuario] |
+| REQ-LIMS-185 | HU-LIMS-39 | DONDE el dispositivo sea celular o tablet, EL SISTEMA DEBE mostrar primero las fotos guiadas y un botón «Llenar formulario» siempre visible. | sí (navegador) | [Validado con usuario] |
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -509,6 +524,7 @@ HU-LIMS-38. La sesión sigue siendo necesaria en compresión (trazabilidad de eq
 | HU-LIMS-36 | Registro único de resultados para todos los ensayos | REQ-LIMS-163 a 170 |
 | HU-LIMS-37 | Formulario completo y fotos guiadas para cualquier dispositivo | REQ-LIMS-171 a 175 |
 | HU-LIMS-38 | Registro en pantalla completa con la sesión integrada | REQ-LIMS-176 a 180 |
+| HU-LIMS-39 | Formulario en modal y resumen junto a las fotos | REQ-LIMS-181 a 185 |
 
 ## 4. Preguntas abiertas
 
@@ -544,3 +560,4 @@ HU-LIMS-38. La sesión sigue siendo necesaria en compresión (trazabilidad de eq
 | v19 | 2026-11-25 | Claude (DLF) | Registro único para todos los ensayos, 6 fotos y formulario por servicio: REQ-LIMS-163 a 170 (HU-LIMS-36) |
 | v20 | 2026-11-25 | Claude (DLF) | Formulario FOR-009 completo para todos y asistente de fotos: REQ-LIMS-171 a 175 (HU-LIMS-37) |
 | v21 | 2026-11-25 | Claude (DLF) | Registro en pantalla completa con la sesión integrada y requisitos: REQ-LIMS-176 a 180 (HU-LIMS-38) |
+| v22 | 2026-11-26 | Claude (DLF) | Formulario en modal, resumen junto a las fotos y código de cliente de la cotización: REQ-LIMS-181 a 185 (HU-LIMS-39) |

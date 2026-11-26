@@ -41,6 +41,7 @@ class DatosProbetaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         _estilar(self)
         self.fields['fc_diseno'].label = "f'c (kg/cm²)"
+        self.fields['codigo_cliente'].label = "ID de la muestra (del cliente)"
         self.fields['fecha_fabricacion'].label = "Fabricación"
         self.fields['edad_ensayo_dias'].label = "Edad (días)"
 

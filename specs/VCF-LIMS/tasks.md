@@ -50,6 +50,7 @@
 | T91 | Registro único: 6 fotos para todos, pantalla con panel de fotos y formulario (PC a dos columnas, celular por pasos), formulario por servicio (`PlantillaFormulario`, `formularios_ensayo.py`), revisión e informe leen los datos | 163-170 | `proyectos/test_formulario_ensayo.py`, `test_galeria_fotos.py` + navegador | [x] |
 | T92 | FOR-009 completo para todos los ensayos (`_aplicar_todo`), asistente de fotos con cámara/adjuntador único y grupos plegables | 171-175 | `proyectos/test_formulario_ensayo.py` + navegador PC y móvil | [x] |
 | T93 | Registro a pantalla completa en columnas, sesión de ensayo integrada (apertura por AJAX), requisitos para terminar y fotos sin botones por recuadro | 176-180 | `proyectos/test_formulario_ensayo.py` + navegador | [x] |
+| T94 | Formulario FOR-009 en modal a pantalla completa (columnas), resumen en vivo junto a las fotos, código de cliente de la cotización como solo lectura | 181-185 | `proyectos/test_formulario_ensayo.py` (FormularioEnModalTests) + navegador 100 %, 1280 y móvil | [x] |
 
 ## Historial
 
@@ -78,3 +79,4 @@
 | v20 | 2026-11-25 | Claude (DLF) | T91: registro único de resultados para todos los ensayos |
 | v21 | 2026-11-25 | Claude (DLF) | T92: FOR-009 completo y asistente de fotos |
 | v22 | 2026-11-25 | Claude (DLF) | T93: registro a pantalla completa con la sesión integrada |
+| v23 | 2026-11-26 | Claude (DLF) | T94: formulario en modal y resumen junto a las fotos |

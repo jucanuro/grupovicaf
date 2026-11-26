@@ -174,11 +174,11 @@ class FlujoRealCompresionTests(CompresionBase):
     def test_el_formulario_sigue_el_orden_del_laboratorio(self):
         self.client.force_login(self.user_tec)
         html = self.client.get(self.url_registro(self.mia)).content.decode()
-        # Formulario a la izquierda (datos, medidas, carga, rotura) y las 6 fotos en su panel, en orden de toma.
-        orden = ['data-datos-cliente', 'data-medidas', 'data-paso-carga', 'name="carga_kn"', 'data-preliminar',
-                 'data-paso-rotura', 'name="tipo_fractura"',
-                 'data-slot="antes"', 'data-slot="antes_pizarra"', 'data-slot="durante"', 'data-slot="carga"',
-                 'data-slot="despues"', 'data-slot="despues_pizarra"']
+        # Fotos en el orden de toma (panel junto al resumen) y el formulario en el modal, en el orden del formato.
+        orden = ['data-slot="antes"', 'data-slot="antes_pizarra"', 'data-slot="durante"', 'data-slot="carga"',
+                 'data-slot="despues"', 'data-slot="despues_pizarra"',
+                 'data-datos-cliente', 'data-medidas', 'data-paso-carga', 'name="carga_kn"', 'data-preliminar',
+                 'data-paso-rotura', 'name="tipo_fractura"']
         posiciones = [html.index(x) for x in orden]
         self.assertEqual(posiciones, sorted(posiciones))
         self.assertIn('4. Durante el ensayo: lectura del equipo', html)

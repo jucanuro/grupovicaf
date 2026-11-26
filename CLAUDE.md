@@ -181,8 +181,11 @@ admin); `ResultadoEnsayo.crear_para(detalle)` copia esa lista a `esquema` y lo r
 (`campo='dato:<clave>'`). Sin plantilla se usa el formulario básico (resumen). El FOR-009 completo (datos del cliente, medidas,
 verificaciones, defectos, carga, fractura) se muestra y guarda en TODO ensayo (`_aplicar_todo`); solo en compresión es
 obligatorio. Las fotos se suben con un asistente (`[data-asistente]`): un solo botón dice cuál foto sigue; en celular
-«Tomar foto», en PC «Cargar fotos» (varias, en orden) y cámara del equipo; los 3 grupos son `<details>` plegables. El registro es una pantalla completa (`.rs-completo.rg-completo`) con el formulario
-en columnas, la sesión de ensayo integrada (`_sesion_en_registro.html`; se abre por AJAX contra `abrir_sesion_ensayo` con
+«Tomar foto», en PC «Cargar fotos» (varias, en orden) y cámara del equipo; los 3 grupos son `<details>` plegables. El registro es una pantalla completa (`.rs-completo.rg-completo`): arriba requisitos, y en el centro un resumen en vivo
+de lo llenado (`[data-resumen-cuerpo]`, armado por JS desde los campos) junto al panel de fotos; el formulario completo va en un
+modal a pantalla completa (`[data-modal-formulario]`, columnas CSS) que se abre con «Llenar/Editar formulario» y se cierra con «Listo».
+El código del cliente sale de la cotización (`codigo_cliente_oficial`, solo lectura); `muestra-codigo_cliente` es el ID de la muestra.
+Antes de esto el formulario iba en columnas, la sesión de ensayo integrada (`_sesion_en_registro.html`; se abre por AJAX contra `abrir_sesion_ensayo` con
 `X-Requested-With`, sus campos usan `form="form-sesion"`), una lista de requisitos arriba y las fotos sin botones por recuadro
 («Repetir esta foto» usa el asistente). Ya no se sube hoja de cálculo; el
 campo `hoja_calculo` y su descarga solo sirven a ensayos viejos.
