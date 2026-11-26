@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+from correo.permisos import puede_entrar_correo
 from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
@@ -168,6 +169,7 @@ def calendario_dashboard(request):
     )
 
     context = {
+        'puede_correo': puede_entrar_correo(request.user),
         'datos_calendario': {
             'calendarios': calendarios,
             'trabajadores': trabajadores,
