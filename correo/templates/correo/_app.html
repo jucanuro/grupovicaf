@@ -44,7 +44,7 @@
         {% puede_administrar_correo request.user as administra %}
         {% if administra %}<a class="boton-icono ic-turquesa" href="{% url 'admin_cuentas' %}" aria-label="Administrar cuentas" title="Administrar cuentas y accesos">{% include 'correo/_iconos.html' with nombre='usuarios' %}</a>{% endif %}
         <a class="boton-icono ic-rosa" href="{% url 'firmas' %}" aria-label="Firmas" title="Firmas">{% include 'correo/_iconos.html' with nombre='firma' %}</a>
-        <a class="boton-icono ic-naranja" href="{% url_calendario_lab %}" target="_blank" rel="noopener" aria-label="Calendario de actividades (abre en otra pestaña)" title="Calendario de actividades (abre en otra pestaña)">{% include 'correo/_iconos.html' with nombre='calendario' %}</a>
+        <a class="boton-icono ic-naranja" href="{% url_calendario_lab %}" aria-label="Calendario de actividades" title="Calendario de actividades">{% include 'correo/_iconos.html' with nombre='calendario' %}</a>
         <a class="boton-icono ic-verde" href="{% url_dashboard_lab %}" target="_blank" rel="noopener" aria-label="Dashboard del sistema LIMS (abre en otra pestaña)" title="Dashboard del LIMS (abre en otra pestaña)">{% include 'correo/_iconos.html' with nombre='dashboard' %}</a>
         <a class="boton-icono ic-indigo" href="{{ url_inicio_lab }}" aria-label="Volver al inicio de la plataforma" title="Inicio">{% include 'correo/_iconos.html' with nombre='sistema' %}</a>
         <form method="post" action="{% url 'salir' %}">{% csrf_token %}

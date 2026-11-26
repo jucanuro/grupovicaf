@@ -74,7 +74,7 @@
                 <kbd>/</kbd>
             </label>
             <a class="vc-btn2" href="{% url 'actividades:gantt_dashboard' %}">≡ Gantt</a>
-            {% if puede_correo %}<a class="vc-btn2 vc-btn2--icono" href="{% url 'correo:abrir' %}" target="_blank" rel="noopener" title="Abrir mi correo en otra pestaña" aria-label="Abrir mi correo en otra pestaña" data-abrir-correo>✉ Correo</a>{% endif %}
+            {% if puede_correo %}<a class="vc-btn2 vc-btn2--icono" href="{% url 'correo:abrir' %}" title="Abrir mi correo" aria-label="Abrir mi correo" data-abrir-correo>✉ Correo</a>{% endif %}
         </div>
         <div id="fullcalendar" class="vc-fc"></div>
     </section>
