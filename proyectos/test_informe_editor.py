@@ -110,10 +110,17 @@ class EditorInformeTests(CompresionBase):
         borrador = BorradorInforme.objects.get(solicitud=self.solicitud)
         usados = bloques_usados(borrador.contenido)
         for d in (self.mia, self.ajena, self.proctor):
-            self.assertIn(f'resultados:{d.pk}', usados)
-            self.assertIn(f'fotos:{d.pk}', usados)
+            self.assertIn(f'resultados:{d.pk}', usados)  # las fotos van dentro de la hoja de resultados
         self.assertIn('caratula', usados)
+        self.assertIn('notas', usados)
         self.assertIn('firmas', usados)
+        # Estructura del informe oficial: carátula, notas y firma en la primera hoja; luego una hoja por ensayo.
+        self.assertEqual(usados[:3], ['caratula', 'notas', 'firmas'])
+        html = r.context['bloques_html']
+        self.assertIn('VCF-LAB-FOR-064', html['caratula'])
+        self.assertIn('INFORMACIÓN DEL CLIENTE', html['caratula'])
+        self.assertIn('VCF-LAB-FOR-039', html[f'resultados:{self.mia.pk}'])
+        self.assertIn('EJECUCIÓN DEL MÉTODO', html[f'resultados:{self.mia.pk}'])
         self.assertEqual(bloques_faltantes(borrador.contenido, self.solicitud), [])
         self.assertEqual(borrador.versiones.count(), 1)
         # El bloque del Proctor muestra su resumen; el editor no expone datos de otra solicitud.
@@ -229,7 +236,8 @@ class EditorInformeTests(CompresionBase):
         url = reverse('proyectos:revision_compresion_lista')
         r = self.client.get(url + '?vista=por_emitir')
         self.assertContains(r, self.url_editor)
-        self.assertContains(r, 'Informe por emitir')
+        self.assertContains(r, 'Sin firmar')
+        self.assertNotContains(r, 'data-vista="todas"')
         self.assertNotContains(self.client.get(url), self.url_editor)
 
 

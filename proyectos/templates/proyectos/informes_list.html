@@ -1,294 +1,111 @@
 {% extends "base_vicafpro.html" %}
 {% load static %}
+{% block title %}Informes | VICAF LIMS{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/informes_lista.css' %}">{% endblock %}
+
 {% block content %}
-
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap');
-    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-    .bg-vicaf-engine {
-        position: fixed; inset: 0; z-index: -1; background-color: #f8fafc;
-        background-image: linear-gradient(rgba(226, 232, 240, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(226, 232, 240, 0.5) 1px, transparent 1px);
-        background-size: 40px 40px;
-    }
-    .filter-btn-active { @apply bg-slate-900 text-white shadow-md scale-105; }
-    .filter-btn-inactive { @apply bg-white text-slate-500 border-slate-200 hover:bg-slate-50; }
-    .status-pill { @apply px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter; }
-    .tooltip-pinned { pointer-events: auto !important; }
-</style>
-
 <div class="bg-vicaf-engine"></div>
 
-<div class="max-w-full mx-auto p-4 relative z-10 space-y-4 flex flex-col">
-    
+<div class="inf-pagina relative z-10">
     <div class="command-header" data-command-header>
         <div class="command-header__backdrop" data-command-backdrop></div>
-
-        <div class="command-header__toolbar">
-            <button type="button"
-                    class="command-header__trigger"
-                    data-command-toggle
-                    aria-label="Abrir panel de informes">
-                <i data-lucide="panel-top-open" class="w-4 h-4"></i>
-                <span class="command-header__trigger-label">Panel</span>
-            </button>
-
-            <a href="{% url 'proyectos:gestionar_informe' %}"
-            class="command-header__action">
-                <i data-lucide="plus" class="w-3.5 h-3.5 text-emerald-300"></i>
-                Emitir Nuevo
-            </a>
-        </div>
-
+        <div class="command-header__toolbar"></div>
         <div class="command-header__panel" data-command-panel>
-            <div class="command-header__card relative px-5 py-4 sm:px-6 sm:py-5">
+            <div class="command-header__card relative px-5 py-4 sm:px-6 sm:py-4">
                 <div class="command-header__glow"></div>
-
-                <div class="relative flex flex-col gap-5">
-                    <!-- Cabecera del panel -->
-                    <div class="flex items-start justify-between gap-4">
-                        <div class="flex items-center gap-4 min-w-0">
-                            <div class="w-11 h-11 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-md flex-shrink-0">
-                                <i data-lucide="shield-check" class="w-5 h-5 text-blue-400"></i>
-                            </div>
-
-                            <div class="command-header__title-wrap">
-                                <h1 class="command-header__title truncate">
-                                    Gestión de Informes
-                                </h1>
-                                <p class="command-header__subtitle truncate">
-                                    Panel de control, filtros y métricas operativas
-                                </p>
-                            </div>
+                <div class="relative flex flex-col gap-4">
+                    <div class="flex items-center gap-4 min-w-0">
+                        <div class="w-11 h-11 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-md flex-shrink-0">
+                            <i data-lucide="shield-check" class="w-5 h-5 text-blue-400"></i>
                         </div>
-
-                        <button type="button"
-                                class="command-header__close"
-                                data-command-close
-                                aria-label="Cerrar panel">
-                            <i data-lucide="x" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-
-                    <!-- Métricas -->
-                    <div class="command-header__fila grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                        <div class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm flex items-center justify-between">
-                            <div>
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Informes</p>
-                                <p class="text-2xl font-extrabold text-slate-900">{{ informes.count }}</p>
-                            </div>
-                            <div class="w-10 h-10 bg-slate-50 text-slate-600 rounded-xl flex items-center justify-center border border-slate-100">
-                                <i data-lucide="files" class="w-5 h-5"></i>
-                            </div>
-                        </div>
-
-                        <div class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm flex items-center justify-between">
-                            <div>
-                                <p class="text-[10px] font-black text-amber-500 uppercase tracking-widest">Pendientes Entrega</p>
-                                <p class="text-2xl font-extrabold text-slate-900" id="count-pending">0</p>
-                            </div>
-                            <div class="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center border border-amber-100">
-                                <i data-lucide="clock" class="w-5 h-5"></i>
-                            </div>
-                        </div>
-
-                        <div class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm flex items-center justify-between border-l-4 border-l-emerald-500">
-                            <div>
-                                <p class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Confirmados</p>
-                                <p class="text-2xl font-extrabold text-slate-900" id="count-delivered">0</p>
-                            </div>
-                            <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
-                                <i data-lucide="check-circle" class="w-5 h-5"></i>
-                            </div>
-                        </div>
-
-                        <div class="bg-slate-900 p-4 rounded-2xl shadow-lg flex items-center justify-between">
-                            <div>
-                                <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest underline decoration-blue-500/50">Tasa de Entrega</p>
-                                <p class="text-2xl font-extrabold text-white" id="delivery-rate">0%</p>
-                            </div>
-                            <div class="w-10 h-10 bg-white/10 text-white rounded-xl flex items-center justify-center">
-                                <i data-lucide="trending-up" class="w-5 h-5"></i>
-                            </div>
+                        <div class="command-header__title-wrap">
+                            <h1 class="command-header__title truncate">Informes</h1>
+                            <p class="command-header__subtitle truncate">Informes emitidos por el sistema, con QR de validación</p>
                         </div>
                     </div>
-
-                    <!-- Filtros y búsqueda -->
-                    <div class="command-header__fila flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-                        <div class="flex items-center gap-4 flex-wrap">
-                            <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200 flex-wrap">
-                                <a href="?status=todos"
-                                class="px-4 py-2 rounded-lg text-[10px] font-bold transition-all {% if not request.GET.status or request.GET.status == 'todos' %}filter-btn-active{% else %}filter-btn-inactive{% endif %}">
-                                    TODOS
-                                </a>
-                                <a href="?status=pendiente"
-                                class="px-4 py-2 rounded-lg text-[10px] font-bold transition-all {% if request.GET.status == 'pendiente' %}filter-btn-active{% else %}filter-btn-inactive{% endif %}">
-                                    PENDIENTES
-                                </a>
-                                <a href="?status=entregado"
-                                class="px-4 py-2 rounded-lg text-[10px] font-bold transition-all {% if request.GET.status == 'entregado' %}filter-btn-active{% else %}filter-btn-inactive{% endif %}">
-                                    ENTREGADOS
-                                </a>
-                            </div>
+                    <form method="GET" class="command-header__fila w-full">
+                        {% if estado %}<input type="hidden" name="estado" value="{{ estado }}">{% endif %}
+                        <div class="command-header__search max-w-md">
+                            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 mr-2"></i>
+                            <input type="text" name="q" data-lista-buscador value="{{ query|default:'' }}"
+                                   class="bg-transparent border-none outline-none text-xs font-semibold text-slate-700 w-full"
+                                   placeholder="Buscar informe, solicitud o cliente...">
                         </div>
-
-                        <div class="flex items-center gap-3 flex-1 xl:max-w-xl xl:justify-end">
-                            <form method="GET"
-                                class="command-header__search w-full xl:max-w-sm">
-                                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 mr-2"></i>
-                                <input type="text"
-                                    name="q"
-                                    data-lista-buscador
-                                    value="{{ query|default:'' }}"
-                                    value="{{ query|default:'' }}"
-                                    class="bg-transparent border-none outline-none text-xs font-semibold text-slate-700 w-full"
-                                    placeholder="Buscar informe o cliente...">
-                            </form>
-                        </div>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 
+    <section class="inf-metricas" data-metricas>
+        <div class="inf-m"><span class="inf-m__ico"><i data-lucide="files" class="w-4 h-4"></i></span><div><small>Emitidos</small><b>{{ n_total }}</b></div></div>
+        <div class="inf-m inf-m--amb"><span class="inf-m__ico"><i data-lucide="send" class="w-4 h-4"></i></span><div><small>Sin enviar</small><b>{{ n_sin_enviar }}</b></div></div>
+        <div class="inf-m inf-m--ok"><span class="inf-m__ico"><i data-lucide="check-circle-2" class="w-4 h-4"></i></span><div><small>Enviados al cliente</small><b>{{ n_enviados }}</b></div></div>
+        <div class="inf-m inf-m--osc"><span class="inf-m__ico"><i data-lucide="trending-up" class="w-4 h-4"></i></span><div><small>Tasa de envío</small><b>{{ tasa_envio }}%</b></div></div>
+    </section>
+
+    <nav class="inf-tabs" aria-label="Estado de envío">
+        <a href="?{% if query %}q={{ query|urlencode }}{% endif %}" class="inf-tab {% if not estado %}inf-tab--on{% endif %}">Todos <em>{{ n_total }}</em></a>
+        {% if n_sin_enviar %}<a href="?estado=sin_enviar{% if query %}&q={{ query|urlencode }}{% endif %}" class="inf-tab inf-tab--amb {% if estado == 'sin_enviar' %}inf-tab--on{% endif %}" data-estado="sin_enviar">Sin enviar <em>{{ n_sin_enviar }}</em></a>{% endif %}
+        {% if n_enviados %}<a href="?estado=enviados{% if query %}&q={{ query|urlencode }}{% endif %}" class="inf-tab inf-tab--ok {% if estado == 'enviados' %}inf-tab--on{% endif %}" data-estado="enviados">Enviados <em>{{ n_enviados }}</em></a>{% endif %}
+    </nav>
+
     {% url 'proyectos:lista_informes' as url_sin_filtro %}{% include 'proyectos/includes/filtro_proyecto.html' %}
-    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden"
-         data-lista-contenedor data-lista-url="{% url 'proyectos:lista_informes' %}{% if filtro_proyecto %}?proyecto={{ filtro_proyecto.pk }}{% endif %}">
-        <div class="overflow-x-auto">
-            <table class="w-full border-collapse">
-                <thead class="bg-slate-50 border-b border-slate-200">
-                    <tr>
-                        <th class="py-3 px-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Identificación / Cliente</th>
-                        <th class="py-3 px-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">OTE Origen</th>
-                        <th class="py-3 px-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado Workflow</th>
-                        <th class="py-3 px-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Descargas</th>
-                        <th class="py-3 px-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="informes-body">
-                    {% for informe in informes %}
-                    <tr class="group border-b border-slate-50 last:border-0 hover:bg-blue-50/30 transition-colors" data-delivered="{% if informe.descargas_count > 0 %}true{% else %}false{% endif %}">
-                        <td class="py-3 px-6">
-                            <div class="info-trigger-zone flex items-center gap-3 cursor-pointer relative" 
-                                 data-cliente="{{ informe.solicitud.cotizacion.cliente.razon_social }}"
-                                 data-celular="{{ informe.solicitud.cotizacion.cliente.celular_contacto|default:'' }}">
-                                <div class="w-9 h-9 flex-shrink-0 bg-white border border-slate-200 rounded-lg flex items-center justify-center group-hover:border-blue-500 shadow-sm transition-all">
-                                    <i data-lucide="file-text" class="w-4 h-4 text-slate-400 group-hover:text-blue-600"></i>
-                                </div>
-                                <div class="flex flex-col leading-tight">
-                                    <span class="text-[13px] font-bold text-slate-800 font-mono">{{ informe.codigo_informe }}</span>
-                                    <span class="text-[9px] text-slate-500 font-semibold uppercase tracking-tighter">{{ informe.solicitud.cotizacion.cliente.razon_social|truncatechars:35 }}</span>
-                                </div>
-
-                                <div class="company-tooltip invisible opacity-0 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 scale-95 w-[400px] bg-slate-900/98 backdrop-blur-xl rounded-2xl p-6 shadow-[0_0_0_100vw_rgba(15,23,42,0.4),0_25px_50px_-12px_rgba(0,0,0,0.8)] z-[9999] border border-white/20 pointer-events-none transition-all duration-300">
-                                    <div class="space-y-4">
-                                        <div class="flex justify-between items-start border-b border-white/10 pb-3">
-                                            <div>
-                                                <p class="text-[8px] font-black text-blue-400 uppercase tracking-widest">Detalle de Certificación</p>
-                                                <p class="text-base font-bold text-white font-mono">{{ informe.codigo_informe }}</p>
-                                                <p class="text-[10px] text-slate-400">UUID: {{ informe.slug_validacion }}</p>
-                                            </div>
-                                            <button class="close-tooltip-btn hidden p-1 text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
-                                        </div>
-                                        <div class="grid grid-cols-2 gap-4">
-                                            <div class="space-y-3">
-                                                <div class="bg-white/5 p-2 rounded-lg">
-                                                    <p class="text-[7px] text-slate-500 uppercase font-black">OTE Referencia</p>
-                                                    <p class="text-[11px] text-white font-mono">{{ informe.solicitud.cotizacion.codigo_cotizacion }}</p>
-                                                </div>
-                                                <div class="bg-white/5 p-2 rounded-lg">
-                                                    <p class="text-[7px] text-slate-500 uppercase font-black">Responsable Firma</p>
-                                                    <p class="text-[10px] text-blue-300 font-bold">{{ informe.responsable_firma.nombre_completo }}</p>
-                                                </div>
-                                            </div>
-                                            <div class="bg-white rounded-xl p-2 flex flex-col items-center justify-center">
-                                                {% if informe.qr_code %}
-                                                    <img src="{{ informe.qr_code.url }}" class="w-20 h-20">
-                                                    <p class="text-[6px] text-slate-900 font-black mt-1 uppercase text-center">QR DE SEGURIDAD ACTIVADO</p>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
-
-                        <td class="py-2 px-4">
-                            <span class="text-[11px] font-mono font-bold text-slate-600">{{ informe.solicitud.cotizacion.codigo_cotizacion }}</span>
-                        </td>
-
-                        <td class="py-2 px-4">
-                            <div class="flex items-center justify-center gap-1.5">
-                                <div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 border border-emerald-200" title="Informe Emitido">
-                                    <i data-lucide="check" class="w-3 h-3"></i>
-                                </div>
-                                <div class="w-4 h-0.5 bg-emerald-200"></div>
-                                <div class="w-6 h-6 rounded-full {% if informe.qr_code %}bg-blue-100 text-blue-600 border-blue-200{% else %}bg-slate-100 text-slate-300 border-slate-200{% endif %} flex items-center justify-center" title="QR Generado">
-                                    <i data-lucide="qr-code" class="w-3 h-3"></i>
-                                </div>
-                                <div class="w-4 h-0.5 {% if informe.descargas_count > 0 %}bg-blue-200{% else %}bg-slate-200{% endif %}"></div>
-                                <div class="w-6 h-6 rounded-full {% if informe.descargas_count > 0 %}bg-purple-100 text-purple-600 border-purple-200 animate-pulse{% else %}bg-slate-100 text-slate-300 border-slate-200{% endif %} flex items-center justify-center" title="Compartido con Cliente">
-                                    <i data-lucide="send" class="w-3 h-3"></i>
-                                </div>
-                            </div>
-                        </td>
-
-                        <td class="py-2 px-4 text-center">
-                            <div class="inline-flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-md">
-                                <i data-lucide="download-cloud" class="w-3 h-3 text-slate-400"></i>
-                                <span class="text-xs font-black text-slate-700">{{ informe.descargas_count }}</span>
-                            </div>
-                        </td>
-
-                        <td class="py-2 px-6 text-right">
-                            <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
-                                <button onclick="sendWhatsApp('{{ informe.codigo_informe }}', '{{ request.build_absolute_uri }}{{ informe.archivo_pdf.url }}', '{{ informe.solicitud.cotizacion.cliente.razon_social }}', '{{ informe.solicitud.cotizacion.cliente.celular_contacto|default:'' }}')" 
-                                        class="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-200" title="Enviar por WhatsApp">
-                                    <i data-lucide="message-circle" class="w-4 h-4"></i>
-                                </button>
-                                
-                                <button onclick="shareReport('{{ informe.codigo_informe }}', '{{ request.build_absolute_uri }}{{ informe.archivo_pdf.url }}')" 
-                                        class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors" title="Compartir Link">
-                                    <i data-lucide="share-2" class="w-4 h-4"></i>
-                                </button>
-
-                                <a href="{{ informe.archivo_pdf.url }}" target="_blank" class="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors" title="Previsualizar">
-                                    <i data-lucide="eye" class="w-4 h-4"></i>
-                                </a>
-
-                                <a href="{% url 'proyectos:gestionar_informe' %}?solicitud_id={{ informe.solicitud.id }}" 
-                                class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
-                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="5" class="py-20 text-center">
-                            <div class="max-w-xs mx-auto">
-                                <i data-lucide="layers" class="w-12 h-12 text-slate-200 mx-auto mb-4"></i>
-                                <p class="text-sm text-slate-500 font-bold uppercase">No hay registros</p>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <footer class="py-4 px-6 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
-            <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest italic">Vicaf Engine Certification v3.0 // Status: Online</span>
-        </footer>
+    <div class="inf-lista" data-lista-contenedor data-lista-url="{% url 'proyectos:lista_informes' %}{% if filtro_proyecto %}?proyecto={{ filtro_proyecto.pk }}{% endif %}">
+        {% for informe in informes %}
+        {% with cli=informe.solicitud.cotizacion.cliente %}
+        <article class="inf-fila" data-informe="{{ informe.codigo_informe }}">
+            <span class="inf-ico"><i data-lucide="file-check-2" class="w-4 h-4"></i></span>
+            <div class="inf-main">
+                <b>{{ informe.codigo_informe }}</b>
+                <span>{{ cli.razon_social|default:"Cliente" }}</span>
+                <small>{{ informe.solicitud.codigo_solicitud }} · COT {{ informe.solicitud.cotizacion.codigo_cotizacion|default:informe.solicitud.cotizacion.numero_oferta }}</small>
+            </div>
+            <div class="inf-fecha"><small>Emitido</small>{{ informe.fecha_emision|date:"d/m/Y H:i" }}<small>Firma: {{ informe.responsable_firma.nombre_completo|default:"—" }}</small></div>
+            <div class="inf-pasos" title="Emitido → Enviado → Descargado por el cliente">
+                <span class="inf-p inf-p--ok"><i data-lucide="check" class="w-3 h-3"></i> Emitido</span>
+                <span class="inf-p {% if informe.estado_envio == 'enviado' %}inf-p--ok{% endif %}"><i data-lucide="send" class="w-3 h-3"></i> {% if informe.estado_envio == 'enviado' %}Enviado {{ informe.fecha_envio|date:"d/m" }}{% else %}Sin enviar{% endif %}</span>
+                <span class="inf-p {% if informe.descargas_count %}inf-p--ok{% endif %}"><i data-lucide="download-cloud" class="w-3 h-3"></i> {{ informe.descargas_count }}</span>
+            </div>
+            <div class="inf-acc">
+                {% if informe.pdf_estado == 'listo' or informe.archivo_pdf %}
+                <a href="{% url 'proyectos:pdf_informe_compresion' informe.pk %}" target="_blank" rel="noopener" class="inf-b" title="Ver el informe en PDF"><i data-lucide="eye" class="w-3.5 h-3.5"></i><span>Ver</span></a>
+                <a href="{% url 'proyectos:descargar_pdf_informe' informe.pk %}" class="inf-b" title="Descargar el PDF"><i data-lucide="download" class="w-3.5 h-3.5"></i></a>
+                {% elif informe.pdf_estado == 'generando' %}<span class="inf-b inf-b--esp">Generando PDF…</span>
+                {% elif informe.pdf_estado == 'error' %}<span class="inf-b inf-b--err" title="{{ informe.pdf_error }}">Error al generar</span>{% endif %}
+                <button type="button" class="inf-b inf-b--wa" title="Enviar por WhatsApp" data-whatsapp data-codigo="{{ informe.codigo_informe }}" data-celular="{{ cli.celular_contacto|default:'' }}" data-enlace="{{ request.scheme }}://{{ request.get_host }}{% url 'proyectos:validar_informe_publico' informe.slug_validacion %}"><i data-lucide="message-circle" class="w-3.5 h-3.5"></i></button>
+                <button type="button" class="inf-b" title="Copiar el enlace de validación (QR)" data-copiar data-enlace="{{ request.scheme }}://{{ request.get_host }}{% url 'proyectos:validar_informe_publico' informe.slug_validacion %}"><i data-lucide="link-2" class="w-3.5 h-3.5"></i></button>
+                <a href="{% url 'proyectos:revision_compresion' informe.solicitud_id %}" class="inf-b" title="Abrir la solicitud: envío por correo y resultados"><i data-lucide="folder-open" class="w-3.5 h-3.5"></i></a>
+            </div>
+        </article>
+        {% endwith %}
+        {% empty %}
+        <p class="inf-vacio"><i data-lucide="layers" class="w-10 h-10"></i>Aún no hay informes emitidos. Se emiten desde «Revisión de resultados» → Sin firmar.</p>
+        {% endfor %}
     </div>
 </div>
-
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-    // El filtrado en vivo lo maneja static/js/lista_buscador.js.
-    document.addEventListener('DOMContentLoaded', () => {
-        if (typeof lucide !== 'undefined') lucide.createIcons();
+(function () {
+    function telefono(t) { var n = (t || '').replace(/\D/g, ''); return n.length === 9 ? '51' + n : n; }
+    document.addEventListener('click', function (e) {
+        var wa = e.target.closest('[data-whatsapp]');
+        if (wa) {
+            var texto = 'Grupo VICAF: su informe ' + wa.dataset.codigo + ' está listo. Valídelo aquí: ' + wa.dataset.enlace;
+            var num = telefono(wa.dataset.celular);
+            window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(texto), '_blank', 'noopener');
+            return;
+        }
+        var cp = e.target.closest('[data-copiar]');
+        if (cp && navigator.clipboard) {
+            navigator.clipboard.writeText(cp.dataset.enlace).then(function () {
+                cp.classList.add('inf-b--ok'); setTimeout(function () { cp.classList.remove('inf-b--ok'); }, 1500);
+            });
+        }
     });
+    if (window.lucide) lucide.createIcons();
+})();
 </script>
 {% endblock %}

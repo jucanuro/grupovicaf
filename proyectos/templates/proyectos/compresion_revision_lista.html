@@ -2,10 +2,10 @@
 {% load static %}
 {% block title %}Revisión de resultados | VICAF LIMS{% endblock %}
 
-{% block extra_css %}<link rel="stylesheet" href="{% static 'css/ensayos.css' %}">{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/ensayos.css' %}"><link rel="stylesheet" href="{% static 'css/resultados_lista.css' %}">{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 py-5 space-y-4">
+<div class="max-w-6xl mx-auto px-4 py-5 space-y-4">
     <div class="flex items-center justify-between gap-3">
         <div class="v-cabecera min-w-0">
             <div class="v-cabecera__icono"><i data-lucide="clipboard-check"></i>
@@ -17,10 +17,11 @@
         </div>
     </div>
 
-    <nav class="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl text-sm font-semibold" aria-label="Filtro">
-        <a href="?vista=por_revisar" class="text-center py-2 rounded-lg {% if vista == 'por_revisar' %}bg-white shadow text-slate-900{% else %}text-slate-500{% endif %}">Por revisar</a>
-        <a href="?vista=por_emitir" class="text-center py-2 rounded-lg {% if vista == 'por_emitir' %}bg-white shadow text-slate-900{% else %}text-slate-500{% endif %}">Por emitir</a>
-        <a href="?vista=todas" class="text-center py-2 rounded-lg {% if vista == 'todas' %}bg-white shadow text-slate-900{% else %}text-slate-500{% endif %}">Todas</a>
+    <nav class="rv-tabs" aria-label="Etapas de la revisión">
+        <a href="?vista=por_revisar" class="rv-tab {% if vista == 'por_revisar' %}rv-tab--on{% endif %}" data-vista="por_revisar">
+            <i data-lucide="search-check" class="w-4 h-4"></i><span>Por revisar</span><em>{{ n_por_revisar }}</em></a>
+        <a href="?vista=sin_firmar" class="rv-tab rv-tab--firma {% if vista == 'sin_firmar' %}rv-tab--on{% endif %}" data-vista="sin_firmar">
+            <i data-lucide="pen-line" class="w-4 h-4"></i><span>Sin firmar</span><em>{{ n_sin_firmar }}</em></a>
     </nav>
 
     {% if puede_exportar %}
@@ -35,31 +36,38 @@
     </form>
     {% endif %}
 
-    <ul class="space-y-3">
+    <div class="rv-lista" data-lista-revision>
         {% for s in solicitudes %}
-        <li>
-            <a href="{% if s.por_emitir %}{% url 'proyectos:editor_informe' s.pk %}{% else %}{% url 'proyectos:revision_compresion' s.pk %}{% endif %}" {% if s.por_emitir %}data-abrir-editor {% endif %}class="block v-tarjeta p-4 hover:border-blue-300 hover:shadow-md transition">
-                <div class="flex items-start justify-between gap-3">
-                    <div class="min-w-0">
-                        <p class="font-mono font-bold text-slate-900">{{ s.codigo_solicitud }}</p>
-                        <p class="text-xs text-slate-500">{{ s.terminadas }} de {{ s.total }} terminadas · {{ s.aprobadas }} aprobadas</p>
-                        {% if s.estado_plazo %}<p class="text-xs font-semibold {% if s.estado_plazo == 'vencido' %}text-red-700{% elif s.estado_plazo == 'hoy' %}text-amber-700{% else %}text-slate-600{% endif %}" data-plazo="{{ s.estado_plazo }}">Entregar al cliente {% if s.estado_plazo == 'hoy' %}hoy{% else %}hasta el {{ s.plazo|date:"D d/m" }}{% endif %}{% if s.estado_plazo == 'vencido' %} (vencido){% endif %}</p>{% endif %}
-                    </div>
-                    {% if s.emitido %}
-                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-green-100 text-green-700 flex-shrink-0">Emitido {{ s.informe.codigo_informe }}</span>
-                    {% elif s.por_emitir %}
-                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-blue-100 text-blue-700 flex-shrink-0">Informe por emitir</span>
-                    {% elif s.terminadas == s.total %}
-                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-violet-100 text-violet-700 flex-shrink-0">Lista para revisar</span>
-                    {% else %}
-                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-slate-100 text-slate-600 flex-shrink-0">En ensayo</span>
-                    {% endif %}
-                </div>
-            </a>
-        </li>
+        <a href="{% if s.por_emitir %}{% url 'proyectos:editor_informe' s.pk %}{% else %}{% url 'proyectos:revision_compresion' s.pk %}{% endif %}" {% if s.por_emitir %}data-abrir-editor {% endif %}class="rv-fila {% if s.por_emitir %}rv-fila--firma{% endif %}">
+            <span class="rv-ico"><i data-lucide="{% if s.por_emitir %}pen-line{% else %}clipboard-check{% endif %}" class="w-4 h-4"></i></span>
+            <span class="rv-main"><b>{{ s.codigo_solicitud }}</b><small>{{ s.cotizacion.cliente.razon_social|default:"" }}</small></span>
+            <span class="rv-avance"><span class="rv-barra"><i style="width: {{ s.avance }}%"></i></span>{{ s.terminadas }} de {{ s.total }} terminadas · {{ s.aprobadas }} aprobadas</span>
+            <span class="rv-plazo">{% if s.estado_plazo %}<small class="{% if s.estado_plazo == 'vencido' %}rv-rojo{% elif s.estado_plazo == 'hoy' %}rv-ambar{% endif %}">{{ s.plazo|date:"d/m/Y" }}</small>{% endif %}</span>
+            <span class="rv-estado">
+                {% if s.por_emitir %}<em class="rl-chip rl-chip--morado">Sin firmar</em>
+                {% elif s.terminadas == s.total %}<em class="rl-chip rl-chip--morado">Lista para revisar</em>
+                {% else %}<em class="rl-chip rl-chip--amb">En ensayo</em>{% endif %}
+            </span>
+            <i data-lucide="chevron-right" class="w-4 h-4 rr__go"></i>
+        </a>
         {% empty %}
-        <li class="text-center text-sm text-slate-500 bg-white border border-dashed border-slate-300 rounded-2xl p-8">{% if vista == 'por_emitir' %}No hay informes por emitir.{% else %}No hay solicitudes con resultados por revisar.{% endif %}</li>
+        <p class="text-center text-sm text-slate-500 bg-white border border-dashed border-slate-300 rounded-2xl p-8">{% if vista == 'sin_firmar' %}No hay informes sin firmar. Los emitidos están en «Informes».{% else %}No hay ensayos por revisar.{% endif %}</p>
         {% endfor %}
-    </ul>
+    </div>
+    <style>
+        .rv-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+        .rv-tab { display: flex; align-items: center; gap: .5rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; padding: .6rem .9rem; font-weight: 800; font-size: .85rem; color: #64748b; }
+        .rv-tab em { margin-left: auto; font-style: normal; font-size: .72rem; background: #f1f5f9; border-radius: 99px; padding: .05rem .6rem; }
+        .rv-tab--on { color: #fff; border-color: transparent; background: linear-gradient(135deg, #7c3aed, #5b21b6); box-shadow: 0 12px 22px -14px rgba(91, 33, 182, .9); }
+        .rv-tab--on em { background: rgba(255, 255, 255, .25); color: #fff; }
+        .rv-lista { background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; overflow: hidden; }
+        .rv-fila { display: grid; grid-template-columns: 2.1rem minmax(0, 1.4fr) minmax(0, 1.5fr) 5rem 8rem 1rem; align-items: center; gap: .8rem; padding: .55rem .85rem; border-bottom: 1px solid #f1f5f9; border-left: 3px solid #a78bfa; }
+        .rv-fila:last-child { border-bottom: 0; } .rv-fila:hover { background: #f5f3ff; } .rv-fila--firma { border-left-color: #7c3aed; background: #faf5ff; }
+        .rv-ico { width: 2rem; height: 2rem; border-radius: .65rem; background: #ede9fe; color: #6d28d9; display: flex; align-items: center; justify-content: center; }
+        .rv-main { display: grid; min-width: 0; } .rv-main b { font-family: ui-monospace, Menlo, monospace; font-size: .86rem; color: #0f172a; } .rv-main small { font-size: .68rem; color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: uppercase; }
+        .rv-avance { display: grid; gap: .25rem; font-size: .68rem; color: #64748b; font-weight: 600; } .rv-barra { display: block; height: .25rem; background: #e2e8f0; border-radius: 99px; overflow: hidden; } .rv-barra i { display: block; height: 100%; background: linear-gradient(90deg, #a78bfa, #7c3aed); }
+        .rv-plazo small { font-size: .7rem; font-weight: 700; color: #64748b; } .rv-rojo { color: #b91c1c !important; } .rv-ambar { color: #b45309 !important; }
+        @media (max-width: 899px) { .rv-fila { grid-template-columns: 2rem minmax(0, 1fr) auto; } .rv-avance, .rv-plazo { grid-column: 2; } .rv-estado { grid-column: 3; grid-row: 1; } .rr__go { display: none; } }
+    </style>
 </div>
 {% endblock %}

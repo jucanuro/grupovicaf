@@ -57,6 +57,7 @@
 | T98 | Lista de resultados en filas con pestañas separadas y conteos; se elimina el formulario «Datos de probetas» (ubicación del proyecto pasa al registro) | 206-208 | `proyectos/test_autoguardado.py`, `test_compresion.py` + navegador 1850 y móvil | [x] |
 | T99 | Lista de solicitudes con conteo de ensayos, botón verde «Registrar» / ámbar «En proceso · %», pestañas por etapa y orden; pantalla de la solicitud con grupos | 209-212 | `proyectos/test_programa.py` + navegador 1850 y móvil | [x] |
 | T100 | Revisión por ensayo: `revisar_ensayo` (registro de solo lectura), `marcas_revision` (migración 0015), `marcar_revision`, devolver con marcas, marcas en rojo para el técnico; entradas desde la revisión y la lista de terminados | 213-217 | `proyectos/test_informe_compresion.py` + navegador 1850 | [x] |
+| T101 | PDF del informe con el diseño oficial (FOR-064 + FOR-039), QR siempre presente y cortes de página; revisión con pestañas Por revisar / Sin firmar; pantalla de informes rehecha; se elimina la emisión manual | 217-221 | `proyectos/test_informe_editor.py` + PDF renderizado y navegador | [x] |
 
 ## Historial
 
@@ -92,3 +93,4 @@
 | v27 | 2026-11-26 | Claude (DLF) | T98: lista de resultados en filas y sin datos de probetas |
 | v28 | 2026-11-26 | Claude (DLF) | T99: solicitudes con avance y pestañas por etapa |
 | v29 | 2026-11-26 | Claude (DLF) | T100: revisión por ensayo con marcas en rojo |
+| v30 | 2026-11-26 | Claude (DLF) | T101: informe con diseño oficial y QR, revisión e informes |

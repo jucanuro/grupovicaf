@@ -16,7 +16,9 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import escape
 
-from .informe_compresion import ANEXOS, FRACTURAS, NOTAS, NOTAS_ITEMS, _negocio, _uri, lineas_resultados
+from .informe_compresion import (
+    ANEXOS, FORMATO_CARATULA, FORMATO_PROBETA, FRACTURAS, NOTAS, NOTAS_ITEMS, _negocio, _uri, lineas_resultados,
+)
 from .models import FotoEnsayo, Proyecto, ResultadoEnsayo, SesionEnsayo
 
 # --- Bloques de datos ---------------------------------------------------------
@@ -73,25 +75,12 @@ def _hay_sesiones(lineas):
 
 
 def documento_inicial(solicitud):
-    """Borrador con la estructura del modelo de informe del laboratorio."""
+    """Borrador con la estructura del informe del laboratorio (VCF-LAB-FOR-064): la carátula con
+    notas, anexos, QR y firma en la primera hoja, y después una hoja por ensayo (FOR-039)."""
     lineas = list(lineas_resultados(solicitud))
-    contenido = [
-        _titulo(1, 'Informe de ensayo'),
-        _bloque(BLOQUE_CARATULA),
-        _titulo(2, 'Resultados'),
-    ]
+    contenido = [_bloque(BLOQUE_CARATULA), _bloque(BLOQUE_NOTAS), _bloque(BLOQUE_FIRMAS)]
     for d in lineas:
-        contenido.append(_titulo(3, f"{d.muestra.codigo_laboratorio} · {d.descripcion_ensayo or d.norma}"))
         contenido.append(_bloque(BLOQUE_RESULTADOS, d.pk))
-        contenido.append(_bloque(BLOQUE_FOTOS, d.pk))
-    contenido += [
-        _titulo(2, 'Observaciones'),
-        _parrafo(),
-        _titulo(2, 'Conclusiones'),
-        _parrafo(),
-        _bloque(BLOQUE_NOTAS),
-        _bloque(BLOQUE_FIRMAS),
-    ]
     return {'type': 'doc', 'content': contenido}
 
 
@@ -296,7 +285,24 @@ def datos_informe(solicitud, modo=MODO_WEB, informe=None, firmante=None, lineas=
             'sesion': sesion,
             'equipos': sesion.equipos_usados() if sesion else [],
             'fractura': dict(FRACTURAS).get(e.tipo_fractura) if e is not None and e.tipo_fractura else '',
+            'ejecutor': (e.tecnico.nombre_completo if e is not None and e.tecnico_id else ''),
         }
+        # Registro fotográfico del formato: lectura del equipo, antes y después del ensayo.
+        fotos_por_tipo = {}
+        if e is not None:
+            for f in e.fotos.all():
+                src = _uri(f.imagen) if modo == MODO_PDF else reverse('proyectos:foto_compresion', args=[f.pk])
+                fotos_por_tipo.setdefault(f.tipo, {'src': src, 'etiqueta': f.get_tipo_display()})
+        por_linea[str(d.pk)].update({
+            'foto_carga': fotos_por_tipo.get(FotoEnsayo.TIPO_CARGA),
+            'fotos_antes': [fotos_por_tipo[t] for t in (FotoEnsayo.TIPO_ANTES, FotoEnsayo.TIPO_ANTES_PIZARRA) if t in fotos_por_tipo],
+            'fotos_despues': [fotos_por_tipo[t] for t in (FotoEnsayo.TIPO_DESPUES, FotoEnsayo.TIPO_DESPUES_PIZARRA) if t in fotos_por_tipo],
+        })
+
+    total_lineas = len(por_linea)
+    for n, linea in enumerate(por_linea.values(), 1):
+        linea['n'] = n
+        linea['pagina'] = f"{n:02d} de {total_lineas:02d}"
 
     etiquetas = ETIQUETAS_EQUIPO
     metodos = {}
@@ -326,7 +332,30 @@ def datos_informe(solicitud, modo=MODO_WEB, informe=None, firmante=None, lineas=
                 if firmante.firma_electronica else ''
             ),
         }
+    ahora = timezone.localdate()
+    emision = timezone.localtime(informe.fecha_emision).date() if informe else None
     return {
+        'formato_caratula': FORMATO_CARATULA,
+        'formato_probeta': FORMATO_PROBETA,
+        'fecha_emision': emision,
+        'fecha_solicitud': solicitud.fecha_solicitud,
+        'negocio': {
+            'direccion': (f"{negocio.direccion_calle} - {negocio.direccion_localidad} - Perú" if negocio
+                          else "Jr. Los Topacios N° 440 - Cajamarca - Perú"),
+            'telefono': (negocio.telefono if negocio else '+51 964 326 364'),
+            'correo': (negocio.correo if negocio else 'informes@grupovicaf.com'),
+            'localidad': (negocio.direccion_localidad if negocio else 'Cajamarca'),
+        },
+        'acreditacion': (getattr(negocio, 'acreditacion_codigo', '') or 'LE-230') if negocio else 'LE-230',
+        'logo': '',
+        'inacal': '',
+        'items': [
+            {'n': v['n'], 'lab': v['muestra'].codigo_laboratorio, 'cliente': v['muestra'].codigo_cliente or '-',
+             'fc': v['muestra'].fc_diseno, 'fabricacion': v['muestra'].fecha_fabricacion,
+             'material': v['muestra'].material or '-', 'tipo': v['muestra'].tipo_probeta or '-'}
+            for v in por_linea.values()
+        ],
+        'fracturas': FRACTURAS,
         'solicitud': solicitud,
         'informe': informe,
         'cliente': {
@@ -335,6 +364,8 @@ def datos_informe(solicitud, modo=MODO_WEB, informe=None, firmante=None, lineas=
             'direccion': cliente.direccion or '-',
             'contacto': cotizacion.persona_contacto or cliente.persona_contacto or '-',
             'correo': cotizacion.correo_contacto or cliente.correo_contacto or '-',
+            'celular': getattr(cliente, 'celular_contacto', '') or '-',
+            'cargo': getattr(cliente, 'cargo_contacto', '') or '-',
         },
         'proyecto': (proyecto.nombre_proyecto if proyecto else '') or cotizacion.proyecto_asociado or '-',
         'ubicacion': getattr(recepcion, 'ubicacion_informe', '') or '-',
@@ -459,18 +490,25 @@ def html_informe(borrador, modo=MODO_WEB, informe=None, firmante=None):
     """Página completa del informe (vista previa o PDF)."""
     solicitud = borrador.solicitud
     datos = datos_informe(solicitud, modo, informe=informe, firmante=firmante)
+    estaticos = Path(settings.BASE_DIR) / 'static' / 'img'
     if modo == MODO_PDF:
-        logo = (Path(settings.BASE_DIR) / 'static' / 'img' / 'LogoF.png').as_uri()
+        datos['logo'] = (estaticos / 'LogoF.png').as_uri()
+        # El sello de INACAL se usa si se coloca en static/img/inacal.png; si no, va un recuadro de texto.
+        datos['inacal'] = (estaticos / 'inacal.png').as_uri() if (estaticos / 'inacal.png').exists() else ''
+        # El QR de validación debe estar siempre: si el archivo faltara en el disco, se vuelve a dibujar.
+        if informe is not None and (not informe.qr_code or not informe.qr_code.storage.exists(informe.qr_code.name)):
+            informe.generar_qr_validacion()
+            informe.save(update_fields=['qr_code'])
         datos['qr'] = _uri(informe.qr_code) if informe and informe.qr_code else ''
     else:
-        logo = settings.STATIC_URL + 'img/LogoF.png'
+        datos['logo'] = settings.STATIC_URL + 'img/LogoF.png'
+        datos['inacal'] = settings.STATIC_URL + 'img/inacal.png' if (estaticos / 'inacal.png').exists() else ''
     cuerpo = render_documento(validar_contenido(borrador.contenido), datos)
     return render_to_string('proyectos/informe_editor_pdf.html', {
         'cuerpo': cuerpo,
         'datos': datos,
         'informe': informe,
         'negocio': _negocio(),
-        'logo': logo,
         'modo': modo,
     })
 

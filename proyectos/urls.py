@@ -65,8 +65,6 @@ urlpatterns = [
 
     # --- INFORMES FINALES Y CERTIFICACIÓN ---
     path('informes/', views.lista_informes_finales, name='lista_informes'),
-    path('informe/gestionar/', views.gestionar_informe_final, name='gestionar_informe'),
-    path('informe/gestionar/<int:solicitud_id>/', views.gestionar_informe_final, name='gestionar_informe'),
     path('informe/<int:informe_id>/descargar/', views.descargar_pdf_informe, name='descargar_pdf_informe'),
     path('v/<slug:slug_validacion>/', views.validar_informe_publico, name='validar_informe_publico'),
 ]

@@ -1319,118 +1319,40 @@ def generar_pdf_ensayo(request, solicitud_id):
 @permiso_requerido('informes.ver')
 def lista_informes_finales(request):
     query = request.GET.get('q', '').strip()
+    estado = request.GET.get('estado', '')
 
-    informes = InformeFinal.objects.select_related(
-        'solicitud__cotizacion__cliente'
+    base = InformeFinal.objects.select_related(
+        'solicitud__cotizacion__cliente', 'responsable_firma'
     ).order_by('-fecha_emision')
-
+    filtro_proyecto = proyecto_de_filtro(request)
+    base = filtrar_por_proyecto(base, filtro_proyecto, 'solicitud__cotizacion_id')
     if query:
-        informes = informes.filter(
+        base = base.filter(
             Q(codigo_informe__icontains=query) |
             Q(solicitud__codigo_solicitud__icontains=query) |
             Q(solicitud__cotizacion__cliente__razon_social__icontains=query)
         ).distinct()
 
-    filtro_proyecto = proyecto_de_filtro(request)
-    informes = filtrar_por_proyecto(informes, filtro_proyecto, 'solicitud__cotizacion_id')
+    total = base.count()
+    n_enviados = base.filter(estado_envio='enviado').count()
+    n_sin_enviar = total - n_enviados
+    if estado == 'sin_enviar':
+        informes = base.filter(estado_envio='pendiente')
+    elif estado == 'enviados':
+        informes = base.filter(estado_envio='enviado')
+    else:
+        estado, informes = '', base
 
     return render(request, 'proyectos/informes_list.html', {
         'informes': informes,
+        'estado': estado,
+        'n_total': total,
+        'n_enviados': n_enviados,
+        'n_sin_enviar': n_sin_enviar,
+        'tasa_envio': round(n_enviados * 100 / total) if total else 0,
         'filtro_proyecto': filtro_proyecto,
         'query': query,
         'header_search': {'id': 'buscar-informes', 'placeholder': 'Buscar informe por código o cliente...'},
-    })
-
-
-@login_required
-def gestionar_informe_final(request, solicitud_id=None):
-    if request.method == 'GET':
-        if not trabajador_tiene_permiso(request.user, 'informes.ver'):
-            return HttpResponseForbidden("No tienes permiso para ver informes.")
-
-    solicitud = None
-    informe = None
-
-    status_filter = request.GET.get('status')
-    query = request.GET.get('q')
-
-    pendientes = SolicitudEnsayo.objects.filter(
-        estado='finalizado',
-        informe_final__isnull=True
-    ).select_related('cotizacion__cliente')
-
-    if solicitud_id:
-        solicitud = get_object_or_404(SolicitudEnsayo, id=solicitud_id)
-        informe = InformeFinal.objects.filter(solicitud=solicitud).first()
-
-    trabajadores = TrabajadorProfile.objects.all()
-
-    if request.method == 'POST':
-        archivo = request.FILES.get('archivo_pdf')
-        responsable_id = request.POST.get('responsable_firma')
-        sid = solicitud_id or request.POST.get('solicitud_id')
-
-        if not sid:
-            messages.error(request, "Debe seleccionar un ensayo válido.")
-            return redirect('proyectos:lista_informes')
-
-        solicitud_actual = get_object_or_404(SolicitudEnsayo, id=sid)
-        informe_actual = InformeFinal.objects.filter(solicitud=solicitud_actual).first()
-
-        if informe_actual:
-            if not trabajador_tiene_permiso(request.user, 'informes.editar'):
-                return HttpResponseForbidden("No tienes permiso para editar informes.")
-        else:
-            if not trabajador_tiene_permiso(request.user, 'informes.crear'):
-                return HttpResponseForbidden("No tienes permiso para crear informes.")
-
-        try:
-            if informe_actual:
-                informe_actual.responsable_firma_id = responsable_id
-
-                if archivo:
-                    informe_actual.archivo_pdf = archivo
-                    informe_actual.save()
-                    procesar_informe_final.delay(informe_actual.id)
-                    messages.success(
-                        request,
-                        f"Informe {informe_actual.codigo_informe} actualizado. "
-                        "El estampado del QR y la notificación al responsable se están procesando."
-                    )
-                else:
-                    informe_actual.save()
-                    messages.success(request, f"Informe {informe_actual.codigo_informe} actualizado.")
-            else:
-                if not archivo:
-                    messages.error(request, "El archivo PDF es obligatorio para nuevos informes.")
-                    return render(request, 'proyectos/informes_form.html', locals())
-
-                nuevo = InformeFinal.objects.create(
-                    solicitud=solicitud_actual,
-                    archivo_pdf=archivo,
-                    responsable_firma_id=responsable_id
-                )
-
-                procesar_informe_final.delay(nuevo.id)
-                messages.success(
-                    request,
-                    f"Informe {nuevo.codigo_informe} generado con éxito. "
-                    "El estampado del QR y la notificación al responsable se están procesando."
-                )
-
-            return redirect('proyectos:lista_informes')
-
-        except Exception as e:
-            logger.exception("Error al procesar el informe final")
-            messages.error(request, f"Error al procesar el informe: {e}")
-
-    return render(request, 'proyectos/informes_form.html', {
-        'solicitud': solicitud,
-        'informe': informe,
-        'pendientes': pendientes,
-        'trabajadores': trabajadores,
-        'status_filter': status_filter,
-        'query': query
     })
 
 

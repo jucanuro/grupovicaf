@@ -190,6 +190,14 @@ Antes de esto el formulario iba en columnas, la sesión de ensayo integrada (`_s
 («Repetir esta foto» usa el asistente). Ya no se sube hoja de cálculo; el
 campo `hoja_calculo` y su descarga solo sirven a ensayos viejos.
 
+**Informe con el diseño oficial (HU-LIMS-46).** Los bloques del editor dibujan el formato del laboratorio: `caratula` = VCF-LAB-FOR-064
+(secciones 1–5), `notas` = secciones 6–7, `firmas` = QR + «Informe autorizado por», y `resultados` = una hoja FOR-039 por ensayo con su registro
+fotográfico, esquema de fracturas, equipamiento y firma (`informe_bloques/`, estilos `.fmt-*` en `informe_hoja.css`, cabecera común en
+`_formato_cab.html`; el bloque `fotos` quedó incluido en `resultados`). `documento_inicial` arma carátula + notas + firma y luego una hoja por línea;
+los borradores viejos siguen funcionando. El sello de INACAL se toma de `static/img/inacal.png` si existe. `html_informe` regenera el QR si su archivo falta. Los informes ya
+emitidos no se rehacen (su HTML está congelado). «Revisión de resultados» tiene solo «Por revisar» y «Sin firmar» (`?vista=sin_firmar`); lo emitido
+se ve en «Informes» (`informes_lista.css`), que ya no tiene emisión manual (se eliminó `gestionar_informe`).
+
 **Revisión por ensayo con marcas (HU-LIMS-45).** Quien tiene `informes.aprobar` abre un ensayo terminado en `/proyectos/resultados/<id>/revisar/`
 (`revisar_ensayo` → `_registrar(revision=True)`: la pantalla del registro en solo lectura, «En revisión»). En la hoja (`static/js/hoja_resumen.js`) toca un dato,
 el video, los defectos o, en el panel de fotos, «Marcar como mal»: queda en rojo con un comentario opcional y se guarda en

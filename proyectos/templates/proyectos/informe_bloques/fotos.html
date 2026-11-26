@@ -1,5 +1,7 @@
 <div class="bloque">
-{% if linea.fotos %}
+{% if linea.es_compresion %}
+{% if datos.modo != 'pdf' %}<p class="bloque--vacio" style="font-style:normal;color:#64748b">El registro fotográfico de {{ linea.muestra.codigo_laboratorio }} va dentro de su hoja de resultados.</p>{% endif %}
+{% elif linea.fotos %}
 <div class="fotos">
   {% for f in linea.fotos %}
   <figure><img src="{{ f.src }}" alt="{{ f.etiqueta }}"{% if f.ancho and f.alto %} width="{{ f.ancho }}" height="{{ f.alto }}"{% endif %}><figcaption>{{ f.etiqueta }}</figcaption></figure>

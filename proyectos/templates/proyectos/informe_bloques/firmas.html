@@ -1,13 +1,12 @@
-<div class="bloque firmas">
+<div class="bloque firmas fmt fmt-firmas">
+  <div class="qr">{% if datos.qr %}<p><b><i>Verifica el documento online:</i></b></p><img src="{{ datos.qr }}" alt="QR de validación"><p class="qr-nota">Valide este informe escaneando el código QR.</p>{% endif %}</div>
   <div class="firma">
+    <p class="firma-t"><b>INFORME AUTORIZADO POR:</b></p>
     {% if datos.firma %}
       {% if datos.firma.imagen %}<img src="{{ datos.firma.imagen }}" alt="Firma">{% endif %}
-      <div class="linea"><b>{{ datos.firma.nombre }}</b><br>{{ datos.firma.cargo }}</div>
+      <div class="linea"><b>GRUPO VICAF SAC</b><br>{{ datos.firma.nombre }}<br>{{ datos.firma.cargo }}</div>
     {% else %}
       <div class="linea pendiente">Firma de quien emite el informe</div>
     {% endif %}
   </div>
-  {% if datos.qr %}
-  <div class="qr"><img src="{{ datos.qr }}" alt="QR de validación"><p>Valide este informe escaneando el código QR.</p></div>
-  {% endif %}
 </div>

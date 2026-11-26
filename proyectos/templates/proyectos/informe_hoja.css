@@ -31,3 +31,68 @@
 .hoja .firmas .qr img { width: 64pt; height: 64pt; }
 .hoja .notas { font-size: 7.5pt; color: #333; }
 .hoja .notas li { margin-bottom: 1pt; }
+
+/* Cortes de página: nada se parte a la mitad (se usa también en la vista previa; solo importa al imprimir). */
+.hoja h1, .hoja h2, .hoja h3 { break-after: avoid; page-break-after: avoid; }
+.hoja table { break-inside: auto; }
+.hoja thead { display: table-header-group; }
+.hoja tr, .hoja td, .hoja th, .hoja li { break-inside: avoid; page-break-inside: avoid; }
+.hoja .kv, .hoja .tabla-compacta { break-inside: avoid; page-break-inside: avoid; }
+.hoja figure { break-inside: avoid; page-break-inside: avoid; }
+.hoja .fotos { break-inside: avoid; page-break-inside: avoid; }
+.hoja .firmas { break-inside: avoid; page-break-inside: avoid; break-before: auto; }
+.hoja .notas, .hoja p { orphans: 3; widows: 3; }
+.hoja .firmas .qr { width: 34%; }
+.hoja .firmas .qr img { width: 72pt; height: 72pt; }
+
+/* ===== Formatos del laboratorio (VCF-LAB-FOR-064 / FOR-039) ===== */
+.hoja .fmt { font-family: Arial, "DejaVu Sans", sans-serif; font-size: 7.6pt; line-height: 1.25; color: #111; }
+.hoja .fmt table { border-collapse: collapse; width: 100%; margin: 0; }
+.hoja .fmt td, .hoja .fmt th { border: 0.5pt solid #9aa5b1; padding: 1.6pt 3pt; vertical-align: middle; font-size: 7.4pt; }
+.hoja .fmt th { background: #f1f4f8; text-align: left; font-weight: 700; }
+.hoja .fmt .c { text-align: center; }
+.hoja .fmt-probeta { break-before: page; page-break-before: always; }
+.hoja .fmt-caratula { break-before: auto; }
+.hoja .fmt-cab { border: 0.75pt solid #6b7a8c !important; margin-bottom: 0 !important; }
+.hoja .fmt-cab td { border: 0 !important; padding: 3pt 5pt !important; }
+.hoja .fmt-cab__logo { width: 24%; } .hoja .fmt-cab__logo img { height: 30pt; }
+.hoja .fmt-cab__tit { text-align: center; } .hoja .fmt-cab__tit b { display: block; font-size: 9.4pt; color: #0b1f3a; line-height: 1.2; }
+.hoja .fmt-cab__tit span { display: block; font-size: 7.6pt; font-weight: 700; margin-top: 3pt; }
+.hoja .fmt-cab__inacal { width: 22%; text-align: center; } .hoja .fmt-cab__inacal img { height: 34pt; }
+.hoja .fmt-cab__inacal div { border: 0.75pt solid #7c3aa0; border-radius: 4pt; padding: 2pt 3pt; color: #5b2a86; }
+.hoja .fmt-cab__inacal b { display: block; font-size: 10pt; } .hoja .fmt-cab__inacal small { display: block; font-size: 5.6pt; }
+.hoja .fmt-doc { border: 0.75pt solid #6b7a8c; border-top: 0; margin: 0 !important; padding: 2pt 4pt; text-align: center; font-size: 6.6pt; font-weight: 700; }
+.hoja .fmt-codigo { margin-top: 3pt !important; } .hoja .fmt-codigo td { border: 0 !important; padding: 2pt 3pt !important; }
+.hoja .fmt-codigo__v { width: 52%; } .hoja .fmt-codigo__t { text-align: right; font-weight: 700; font-size: 7.4pt !important; width: 20%; }
+.hoja .fmt-codigo__c, .hoja .fmt-naranja { background: #f5a31a !important; color: #fff; font-weight: 700; text-align: center; font-size: 8pt !important; border: 0.5pt solid #d98a0b !important; }
+.hoja .fmt-sec { margin: 3.2pt 0 1.5pt !important; padding: 1.6pt 4pt; background: #eef2f8; color: #1f3b66; font-weight: 700; font-size: 7.6pt; border-bottom: 0.75pt solid #9db0cc; }
+.hoja .fmt-dos > tbody > tr > td { border: 0 !important; vertical-align: top; width: 50%; padding: 0 3pt 0 0 !important; }
+.hoja .fmt-kv th { background: transparent; border: 0; width: 28%; padding: 1.6pt 2pt; } .hoja .fmt-kv td { border: 0; padding: 1.6pt 2pt; } .hoja .fmt-kv td:nth-child(2) { width: 3%; }
+.hoja .fmt-tiempo th { background: #f1f4f8; width: 28%; } .hoja .fmt-tiempo td { text-align: center; width: 22%; }
+.hoja .fmt-tabla th { text-align: center; } .hoja .fmt-tabla-t { text-align: center; font-weight: 700; margin: 3pt 0 1pt !important; font-size: 7.4pt; }
+.hoja .fmt-lista { margin: 2pt 0 2pt 0; padding-left: 12pt; font-size: 7.4pt; list-style: disc; } .hoja .fmt-lista li { margin: 0 0 1pt; }
+.hoja .fmt-nota-t { font-size: 6.8pt; margin: 2pt 0 !important; font-weight: 700; }
+.hoja .fmt-notas { margin-top: 2pt; } .hoja .fmt-notas__cols td { border: 0 !important; vertical-align: bottom; padding: 0 !important; } .hoja .fmt-nc1 { width: 66%; } .hoja .fmt-nc2 { width: 34%; padding-left: 6pt !important; }
+.hoja .fmt-notas__cols ul { margin: 2pt 0; padding-left: 9pt; list-style: disc; font-size: 6.6pt; line-height: 1.25; }
+.hoja .fmt-reemplazo th { font-size: 6.4pt !important; } .hoja .fmt-anexos { font-size: 6.8pt; }
+.hoja .fmt-firmas { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 8pt !important; }
+.hoja .fmt-firmas .qr { text-align: left; width: 40%; } .hoja .fmt-firmas .qr p { margin: 0; font-size: 7pt; } .hoja .fmt-firmas .qr img { width: 92pt; height: 92pt; display: block; margin: 2pt 0; }
+.hoja .fmt-firmas .qr-nota { font-size: 6pt !important; color: #475569; }
+.hoja .fmt-firmas .firma { width: 46%; text-align: center; } .hoja .fmt-firmas .firma img { height: 44pt; } .hoja .fmt-firmas .firma-t { font-size: 7.4pt; margin: 0 0 2pt; }
+.hoja .fmt-firmas .linea { border-top: 0; font-size: 7pt; }
+.hoja .fmt-dc td, .hoja .fmt-dc th { padding: 1pt 3pt !important; } .hoja .fmt-dc th { width: 13%; } .hoja .fmt-dc td { width: 37%; }
+.hoja .fmt-ejec > tbody > tr > td { border: 0 !important; vertical-align: top; padding: 0 !important; }
+.hoja .fmt-ejec__izq { width: 54%; padding-right: 4pt !important; } .hoja .fmt-ejec__der { width: 46%; }
+.hoja .fmt-sub { background: #eef2f8 !important; text-align: center; color: #1f3b66; font-size: 7.4pt !important; }
+.hoja .fmt-datos td { font-size: 7pt; padding: 0.5pt 3pt; }
+.hoja .fmt-fotos td { padding: 2pt; } .hoja .fmt-carga { height: 38pt; width: auto; margin-top: 2pt; }
+.hoja .fmt-pares table td { border: 0 !important; width: 50%; padding: 1pt !important; } .hoja .fmt-pares img { height: 60pt; width: auto; max-width: 100%; margin: 1pt; border: 0.5pt solid #9aa5b1; display: block; margin-left: auto; margin-right: auto; }
+.hoja .fmt-defectos { margin-top: 3pt !important; } .hoja .fmt-defectos td { padding: 3pt 4pt; }
+.hoja .fmt .fmt-fract { table-layout: fixed; width: 100% !important; } .hoja .fmt-fract svg { width: 26px; height: 36px; } .hoja .fmt-fract td { border: 0 !important; text-align: center; vertical-align: top; width: 16.6%; font-size: 5.4pt; padding: 1pt 2pt !important; } .hoja .fmt-fract b { display: block; font-size: 6.4pt; } .hoja .fmt-fract span { display: block; line-height: 1.15; }
+.hoja .fmt-fract--on { background: #fff3d6; outline: 0.75pt solid #f5a31a; }
+.hoja .fmt-obs { margin: 2pt 0 !important; font-size: 7.4pt; min-height: 10pt; }
+.hoja .fmt-equipos th { background: transparent; border: 0; border-bottom: 0.5pt solid #cbd5e1; width: 19%; white-space: nowrap; font-size: 7pt; } .hoja .fmt-equipos td { border: 0; border-bottom: 0.5pt solid #cbd5e1; font-size: 7pt; }
+.hoja .fmt-autoriza { text-align: right; margin-top: 3pt; padding-right: 8pt; break-inside: avoid; } .hoja .fmt-autoriza p { margin: 0; font-size: 7.4pt; } .hoja .fmt-autoriza img { height: 32pt; } .hoja .fmt-autoriza .linea { display: inline-block; text-align: center; font-size: 6.8pt; border: 0; }
+.hoja .fmt-kv2 th { text-align: left; width: 40%; }
+.hoja .fmt-general .fotos { display: block; } .hoja .fmt-general .fotos figure { display: inline-block; width: 32%; vertical-align: top; margin: 0 0.5% 4pt; text-align: center; } .hoja .fmt-general .fotos img { height: 90pt; width: 100%; object-fit: contain; display: block; } .hoja .fmt-general .fotos figcaption { font-size: 6.4pt; }
+.hoja .fmt, .hoja .fmt-probeta { orphans: 3; widows: 3; }

@@ -1,9 +1,13 @@
-<div class="bloque notas">
-{% if datos.hay_compresion %}
-<ol>{% for n in datos.notas_items %}<li>{{ n }}</li>{% endfor %}</ol>
-{% endif %}
-<p><b>Notas</b></p>
-<ul>{% for n in datos.notas %}<li>{{ n }}</li>{% endfor %}</ul>
-<p><b>Anexos</b></p>
-<ul>{% for n in datos.anexos %}<li>{{ n }}</li>{% endfor %}</ul>
+<div class="bloque fmt fmt-notas">
+<p class="fmt-sec">6. NOTAS</p>
+<table class="fmt-notas__cols"><tr><td class="fmt-nc1">
+  <ul>{% for n in datos.notas %}<li>{{ n }}</li>{% endfor %}</ul>
+  </td><td class="fmt-nc2">
+  <table class="fmt-tabla fmt-reemplazo">
+    <tr><th>Código de informe al que reemplaza</th><td class="c">-</td></tr>
+    <tr><th>Motivo del reemplazo de informe</th><td class="c">-</td></tr>
+  </table>
+  </td></tr></table>
+<p class="fmt-sec">7. ANEXOS</p>
+<ul class="fmt-lista fmt-anexos">{% for n in datos.anexos %}<li>{{ n }}</li>{% endfor %}</ul>
 </div>

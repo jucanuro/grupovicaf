@@ -525,6 +525,7 @@ redistribuye por secciones; el modal de la sesión debe ser más grande con los 
 | HU-LIMS-43 | Lista de resultados en filas con pestañas separadas y sin formulario de datos de probetas | REQ-LIMS-206 a 208 |
 | HU-LIMS-44 | Solicitudes con avance en el botón, pestañas por etapa y ensayos ordenados | REQ-LIMS-209 a 212 |
 | HU-LIMS-45 | Revisión por ensayo con datos y fotos marcados en rojo | REQ-LIMS-213 a 217 |
+| HU-LIMS-46 | Informe final con diseño oficial, QR, revisión e informes | REQ-LIMS-217 a 221 |
 | REQ-LIMS-204 | HU-LIMS-42 | EL SISTEMA DEBE mostrar la lista de recepciones con filas compactas (fecha y hora juntas, cliente con inicial, proyecto y cotización, muestras) y botones de acción siempre visibles. | sí (navegador) | [Validado con usuario] |
 | REQ-LIMS-205 | HU-LIMS-42 | EL SISTEMA DEBE mostrar el detalle de la recepción con textos e iconos pequeños, datos de cliente, procedencia y responsable en una franja, y la tabla de muestras completa sin scroll horizontal. | sí (navegador) | [Validado con usuario] |
 | REQ-LIMS-206 | HU-LIMS-43 | EL SISTEMA DEBE mostrar los resultados de ensayo como una lista de filas, con las pestañas Pendientes y Terminados separadas, cada una con su conteo (y lo que falta), sin mezclar sus ensayos. | sí (navegador) | [Validado con usuario] |
@@ -538,6 +539,11 @@ redistribuye por secciones; el modal de la sesión debe ser más grande con los 
 | REQ-LIMS-214 | HU-LIMS-45 | CUANDO el revisor toque un dato de la hoja, el video, los defectos o una foto, EL SISTEMA DEBE marcarlo en rojo con un comentario opcional y guardar las marcas del ensayo. | sí (navegador) | [Propuesto] |
 | REQ-LIMS-215 | HU-LIMS-45 | CUANDO el revisor devuelva el ensayo, EL SISTEMA DEBE pasarlo a «en registro» con sus marcas y un comentario general (que se arma solo si no se escribió); SI quien revisa ejecutó el ensayo, ENTONCES EL SISTEMA NO DEBE permitir devolverlo. | sí | [Propuesto] |
 | REQ-LIMS-216 | HU-LIMS-45 | MIENTRAS el ensayo esté devuelto, EL SISTEMA DEBE mostrar al técnico el aviso con el número de datos marcados y pintar en rojo, con el comentario del revisor, cada dato marcado en la hoja, el formulario, el menú de secciones y las fotos; CUANDO el técnico vuelva a terminar el ensayo, EL SISTEMA DEBE limpiar las marcas. | sí | [Propuesto] |
+| REQ-LIMS-217 | HU-LIMS-46 | EL SISTEMA DEBE generar el PDF del informe con el diseño oficial del laboratorio: una carátula (VCF-LAB-FOR-064: cliente, proyecto, línea de tiempo, ítems, métodos, notas, anexos, QR y firma) y una hoja por ensayo de compresión (VCF-LAB-FOR-039: datos, resultados, registro fotográfico, fracturas típicas, observaciones, equipamiento y firma). | sí (PDF) | [Validado con usuario] |
+| REQ-LIMS-218 | HU-LIMS-46 | EL SISTEMA DEBE incluir siempre en el PDF emitido el código QR de validación (si su archivo faltara, volver a dibujarlo) junto a la firma. | sí | [Validado con usuario] |
+| REQ-LIMS-219 | HU-LIMS-46 | EL SISTEMA DEBE evitar que tablas, filas, fotos y firmas se corten entre páginas, y que «Fin del informe» quede solo en una hoja. | sí (PDF) | [Validado con usuario] |
+| REQ-LIMS-220 | HU-LIMS-46 | EL SISTEMA DEBE mostrar en «Revisión de resultados» solo las pestañas «Por revisar» y «Sin firmar» (aprobados sin emitir), con conteo; lo emitido se ve en «Informes». | sí | [Validado con usuario] |
+| REQ-LIMS-221 | HU-LIMS-46 | EL SISTEMA DEBE mostrar en «Informes» los informes emitidos con su estado (emitido, enviado, descargas), métricas, pestañas Sin enviar / Enviados y acciones siempre visibles (ver, descargar, WhatsApp, copiar enlace de validación, abrir la solicitud); NO DEBE ofrecer la emisión manual de informes por carga de PDF. | sí | [Propuesto] |
 | REQ-LIMS-217 | HU-LIMS-45 | EL SISTEMA DEBE mantener la aprobación de resultados por solicitud en la pantalla de revisión, una vez que todos los ensayos estén terminados. | sí | [Validado con usuario] |
 
 ## 3. Trazabilidad HU → REQ
@@ -620,3 +626,4 @@ redistribuye por secciones; el modal de la sesión debe ser más grande con los 
 | v26 | 2026-11-26 | Claude (DLF) | Lista de resultados en filas y sin formulario de datos de probetas: REQ-LIMS-206 a 208 (HU-LIMS-43) |
 | v27 | 2026-11-26 | Claude (DLF) | Solicitudes con avance, pestañas por etapa y ensayos ordenados: REQ-LIMS-209 a 212 (HU-LIMS-44) |
 | v28 | 2026-11-26 | Claude (DLF) | Revisión por ensayo con marcas en rojo: REQ-LIMS-213 a 217 (HU-LIMS-45) |
+| v29 | 2026-11-26 | Claude (DLF) | Informe final con diseño oficial y QR, revisión por etapas e informes: REQ-LIMS-217 a 221 (HU-LIMS-46) |

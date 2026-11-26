@@ -65,14 +65,25 @@ def revision_compresion_lista(request):
         s.por_emitir = s.aprobadas == s.total and not s.emitido
         s.plazo = plazo_probeta(c['ultima_fecha'])
         s.estado_plazo = estado_plazo(s.plazo, entregado=s.emitido)
-    filtro = request.GET.get('vista', 'por_revisar')
-    if filtro == 'por_revisar':
-        solicitudes = [s for s in solicitudes if s.aprobadas < s.total]
-    elif filtro == 'por_emitir':
-        solicitudes = [s for s in solicitudes if s.por_emitir]
+    # Solo hay dos etapas aquí: lo que falta revisar y lo ya aprobado que falta firmar (emitir).
+    # Lo emitido pasa a «Informes».
+    por_revisar = [s for s in solicitudes if s.aprobadas < s.total]
+    sin_firmar = [s for s in solicitudes if s.por_emitir]
+    pedido = request.GET.get('vista', '')
+    if pedido in ('sin_firmar', 'por_emitir'):
+        filtro = 'sin_firmar'
+    elif pedido == 'por_revisar':
+        filtro = 'por_revisar'
+    else:
+        filtro = 'por_revisar'
+    solicitudes = sin_firmar if filtro == 'sin_firmar' else por_revisar
+    for s in solicitudes:
+        s.avance = round(s.terminadas * 100 / s.total) if s.total else 0
     return render(request, 'proyectos/compresion_revision_lista.html', {
         'solicitudes': solicitudes,
         'vista': filtro,
+        'n_por_revisar': len(por_revisar),
+        'n_sin_firmar': len(sin_firmar),
         'puede_exportar': trabajador_tiene_permiso(request.user, PERMISO_EXPORTAR),
     })
 
