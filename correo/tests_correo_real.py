@@ -207,6 +207,36 @@ class RecepcionTests(BasePlataforma):
         call_command('deduplicar_correo', '--aplicar', stdout=StringIO())
         self.assertEqual(list(Mensaje.objects.filter(message_id='<rep@x>').values_list('pk', flat=True)), [primero.pk])
 
+    def test_correo_en_asiatico_con_dkim_va_a_no_deseado_salvo_confianza(self):
+        from .models import ReglaPermitido
+        firma = {'DKIM-Signature': 'v=1; d=estafa.example; s=x; b=y'}
+        with self.settings(CORREO_FILTRAR_SUPLANTACION=True):
+            [j] = self.recibir(eml(de='生命 <a@estafa.example>', message_id='<j1@x>', asunto='保障プランのご案内',
+                                   texto='お客様のご契約に追加いただける保障をご案内しております。', cabeceras=firma))
+            self.assertEqual(j.carpeta.tipo, 'spam')
+            [es] = self.recibir(eml(de='Ana <ana@cliente.example>', message_id='<j2@x>', cabeceras=firma,
+                                    texto='Hola, adjunto el requerimiento (ご確認ください). Saludos cordiales.'))
+            self.assertEqual(es.carpeta.tipo, 'entrada')  # unas pocas letras no bastan
+            ReglaPermitido.objects.create(tipo='dominio', valor='proveedor.jp')
+            [ok] = self.recibir(eml(de='Tanaka <t@proveedor.jp>', message_id='<j3@x>', asunto='見積のご案内',
+                                    texto='見積書を添付します。よろしくお願いします。', cabeceras=firma))
+            self.assertEqual(ok.carpeta.tipo, 'entrada')
+
+    def test_comando_mueve_asiaticos_ya_recibidos_a_no_deseado(self):
+        from io import StringIO
+        from django.core.management import call_command
+        m = crear_mensaje(self.informes, 'entrada', de='x@estafa.example', asunto='保障プランのご案内',
+                          texto='お客様のご契約に追加いただける保障をご案内しております。')
+        ok = crear_mensaje(self.informes, 'entrada', de='ana@cliente.example', asunto='Consulta', texto='Hola')
+        call_command('mover_asiaticos_a_spam', stdout=StringIO())
+        m.refresh_from_db()
+        self.assertEqual(m.carpeta.tipo, 'entrada')  # solo informa
+        call_command('mover_asiaticos_a_spam', '--aplicar', stdout=StringIO())
+        m.refresh_from_db()
+        ok.refresh_from_db()
+        self.assertEqual(m.carpeta.tipo, 'spam')
+        self.assertEqual(ok.carpeta.tipo, 'entrada')
+
     def test_marcado_como_spam_va_a_no_deseado(self):
         [m] = self.recibir(eml(cabeceras={'X-Spam-Flag': 'YES'}))
         self.assertEqual(m.carpeta.tipo, 'spam')

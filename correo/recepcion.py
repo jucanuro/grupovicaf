@@ -161,8 +161,12 @@ def _puntaje_phishing(msg, remitente, html='', texto='', adjuntos=()):
         puntos += 2
     if not _tiene_dkim(msg):
         puntos += 1
-    if _fraccion_cjk(_texto(msg.get('Subject')) + ' ' + remitente['nombre']) > 0.3:
-        puntos += 1
+    # Chino/japonés/coreano en el asunto, el nombre o el cuerpo: aquí nadie escribe así (+2 solo basta
+    # para No deseado; los clientes y remitentes de confianza se salvan antes de llegar aquí).
+    texto_visible = re.sub(r'<[^>]+>', ' ', texto or html or '')[:4000]
+    if (_fraccion_cjk(_texto(msg.get('Subject')) + ' ' + remitente['nombre']) > 0.3
+            or _fraccion_cjk(texto_visible) > 0.3):
+        puntos += 2
     contenido = f'{_texto(msg.get("Subject"))} {texto} {html}'
     # Plantilla de spam sin rellenar: {{EMAIL}}, %%nombre%%…
     if _PLANTILLA.search(contenido):
