@@ -307,13 +307,26 @@ def datos_informe(solicitud, modo=MODO_WEB, informe=None, firmante=None, lineas=
                 src = _uri(f.imagen) if modo == MODO_PDF else reverse('proyectos:foto_compresion', args=[f.pk])
                 fotos_por_tipo.setdefault(f.tipo, {'src': src, 'etiqueta': f.get_tipo_display()})
         if e is not None:
+            # Todo ensayo lleva el FOR-009 completo: si los cálculos no se guardaron (ensayos que no son
+            # compresión), se calculan aquí con las medidas registradas; si faltan datos, quedan en «-».
+            calc = e
+            if e.resistencia_kgcm2 is None:
+                try:
+                    calc = e.calcular()
+                except Exception:  # DatosInsuficientes u otros datos incompletos
+                    calc = None
+            edad = e.edad_dias
+            if edad is None and e.fecha_ensayo and d.muestra.fecha_fabricacion:
+                edad = (e.fecha_ensayo - d.muestra.fecha_fabricacion).days
+            por_linea[str(d.pk)]['edad'] = edad
             por_linea[str(d.pk)]['v'] = {
                 'masa': _num(e.masa_g, 0, True), 'd1': _num(e.d1), 'd2': _num(e.d2),
                 'l1': _num(e.l1), 'l2': _num(e.l2), 'l3': _num(e.l3),
-                'diametro': _num(e.diametro_prom), 'longitud': _num(e.longitud_prom),
-                'area': _num(e.area, 2, True), 'ld': _num(e.relacion_ld), 'factor': _num(e.factor),
-                'carga': _num(e.carga_kn), 'mpa': _num(e.resistencia_mpa, 1), 'kgcm2': _num(e.resistencia_kgcm2, 1),
-                'porcentaje': _num(e.porcentaje, 0), 'densidad': _num(e.densidad, 0, True),
+                'diametro': _num(getattr(calc, 'diametro_prom', None)), 'longitud': _num(getattr(calc, 'longitud_prom', None)),
+                'area': _num(getattr(calc, 'area', None), 2, True), 'ld': _num(getattr(calc, 'relacion_ld', None)),
+                'factor': _num(getattr(calc, 'factor', None)), 'carga': _num(e.carga_kn),
+                'mpa': _num(getattr(calc, 'resistencia_mpa', None), 1), 'kgcm2': _num(getattr(calc, 'resistencia_kgcm2', None), 1),
+                'porcentaje': _num(getattr(calc, 'porcentaje', None), 0), 'densidad': _num(getattr(calc, 'densidad', None), 0, True),
             }
         if sesion is not None:
             por_linea[str(d.pk)]['amb'] = {

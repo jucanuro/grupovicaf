@@ -128,3 +128,4 @@
 .hoja .pr-t th, .hoja .pr-t td { padding-top: 2.4pt !important; padding-bottom: 2.4pt !important; }
 .hoja .pr-ej td, .hoja .pr-ej th { padding-top: 2.1pt !important; padding-bottom: 2.1pt !important; }
 .hoja .pr-id td { padding-top: 7pt !important; padding-bottom: 7pt !important; }
+.hoja .pr-texto-c { white-space: pre-line; }
