@@ -1173,11 +1173,13 @@ def cambiar_estado_solicitud(request, pk, nuevo_estado):
 
 
 ETAPAS_SOLICITUD = [
+    ('iniciar', 'Por iniciar'),
     ('registrar', 'Por registrar'),
     ('proceso', 'En proceso'),
-    ('iniciar', 'Por iniciar'),
     ('terminados', 'Terminados'),
 ]
+# Orden de la lista: primero lo que falta registrar y lo que está en proceso, luego lo por iniciar.
+ORDEN_ETAPAS_LISTA = {'registrar': 0, 'proceso': 1, 'iniciar': 2, 'terminados': 3}
 
 
 def _etapa_solicitud(s):
@@ -1226,7 +1228,7 @@ def lista_solicitudes(request):
     solicitudes = filtrar_por_proyecto(solicitudes, filtro_proyecto)
 
     lista = list(solicitudes)
-    orden = {clave: n for n, (clave, _) in enumerate(ETAPAS_SOLICITUD)}
+    orden = ORDEN_ETAPAS_LISTA
     for s in lista:
         s.etapa = _etapa_solicitud(s)
         s.avance = round(s.n_terminados * 100 / s.n_ensayos) if s.n_ensayos else 0
@@ -1237,7 +1239,8 @@ def lista_solicitudes(request):
         lista = [s for s in lista if s.etapa == etapa]
     else:
         etapa = ''
-    tabs = [{'clave': clave, 'texto': texto, 'n': conteo[clave]} for clave, texto in ETAPAS_SOLICITUD]
+    # Solo se muestran las pestañas que tienen solicitudes.
+    tabs = [{'clave': clave, 'texto': texto, 'n': conteo[clave]} for clave, texto in ETAPAS_SOLICITUD if conteo[clave]]
 
     placeholder = 'Buscar por N° solicitud, cliente o cotización...' if ve_todos else 'Buscar por N° solicitud, código de cliente o cotización...'
     return render(request, 'proyectos/ensayos_list.html', {

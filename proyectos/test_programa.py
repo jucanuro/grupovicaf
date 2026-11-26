@@ -511,10 +511,13 @@ class ListaYPdfSolicitudTests(AvanceMixin, TestCase):
         SolicitudEnsayo.objects.filter(pk=proc.pk).update(estado='proceso')
         resp = self.client.get(reverse('proyectos:lista_solicitudes'))
         conteo = {t['clave']: t['n'] for t in resp.context['tabs']}
-        self.assertEqual((conteo['iniciar'], conteo['registrar'], conteo['proceso'], conteo['terminados']), (1, 1, 0, 0))
+        self.assertEqual(conteo, {'iniciar': 1, 'registrar': 1})  # las vacías no salen
         resp = self.client.get(reverse('proyectos:lista_solicitudes') + '?etapa=iniciar')
         self.assertEqual([x.pk for x in resp.context['solicitudes']], [pen.pk])
+        # Solo salen las pestañas con solicitudes; «Todas» va al final.
         self.assertContains(resp, 'data-etapa="registrar"')
+        self.assertNotContains(resp, 'data-etapa="terminados"')
+        self.assertEqual([t['clave'] for t in resp.context['tabs']], ['iniciar', 'registrar'])
 
     def test_el_boton_es_ambar_con_porcentaje_cuando_ya_hay_resultados(self):
         from proyectos.models import DetalleSolicitudEnsayo, ResultadoEnsayo
