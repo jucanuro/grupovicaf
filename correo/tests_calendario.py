@@ -39,10 +39,10 @@ class CalendarioLateralTests(BasePlataforma):
 
 @override_settings(ROOT_URLCONF='grupovicaf.urls_lab', SITE_ROLE='lab')
 class IconoDashboardTests(BasePlataforma):
-    def test_la_barra_enlaza_al_dashboard_del_lims_en_otra_pestana(self):
+    def test_la_barra_enlaza_al_dashboard_del_lims_en_la_misma_pestana(self):
         self.entrar(self.gestor)
         html = self.client.get(ruta('bandeja'), HTTP_HOST=HOST).content.decode()
-        self.assertIn('aria-label="Dashboard del sistema LIMS (abre en otra pestaña)"', html)
+        self.assertIn('aria-label="Dashboard del sistema LIMS"', html)
         enlace = html.split('aria-label="Dashboard del sistema LIMS')[0].rsplit('<a ', 1)[1]
         self.assertIn('/dashboard/', enlace)
-        self.assertIn('target="_blank"', enlace)
+        self.assertNotIn('target="_blank"', enlace)

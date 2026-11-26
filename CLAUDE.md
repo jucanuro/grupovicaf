@@ -320,7 +320,7 @@ el PDF antiguo (`informe_compresion_pdf.html`, `generar_informe_compresion`)
 solo queda para regenerar informes emitidos antes del editor. Excel con openpyxl (`informes.exportar`); envío al cliente con
 `enviar_informe_cliente`.
 
-**Calendario ↔ correo (HU-LIMS-49).** El calendario del LIMS trae «✉ Correo» (`data-abrir-correo`, solo si `puede_entrar_correo`) que abre `correo:abrir` — el correo con la sesión actual — en la misma pestaña (hay iconos para ir y volver); el icono de calendario de la barra del correo también. La barra superior del LIMS (`cabecera_base.html`) trae el mismo acceso como icono celeste de correo junto a Cotizaciones/Muestras/Ensayos (`puede_ver_correo` en `permisos_usuario`).
+**Calendario ↔ correo (HU-LIMS-49).** El icono de dashboard del correo también abre en la misma pestaña. El calendario del LIMS trae «✉ Correo» (`data-abrir-correo`, solo si `puede_entrar_correo`) que abre `correo:abrir` — el correo con la sesión actual — en la misma pestaña (hay iconos para ir y volver); el icono de calendario de la barra del correo también. La barra superior del LIMS (`cabecera_base.html`) trae el mismo acceso como icono celeste de correo junto a Cotizaciones/Muestras/Ensayos (`puede_ver_correo` en `permisos_usuario`).
 
 **Calendario (HU-LIMS-21).** `CalendarioCategoria` es el «calendario»: de
 equipo (con `CalendarioMiembro` que ve o ve y crea; sin miembros lo ven todos)
