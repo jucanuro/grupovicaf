@@ -528,6 +528,7 @@ redistribuye por secciones; el modal de la sesión debe ser más grande con los 
 | HU-LIMS-46 | Informe final con diseño oficial, QR, revisión e informes | REQ-LIMS-217 a 222 |
 | HU-LIMS-47 | Revisión a pantalla completa y envío inteligente por correo o WhatsApp | REQ-LIMS-223 a 227 |
 | HU-LIMS-48 | Añadir ensayos extra a la solicitud con buscador del catálogo | REQ-LIMS-228 a 231 |
+| HU-LIMS-49 | Calendario y correo se abren entre sí en otra pestaña | REQ-LIMS-232 |
 | REQ-LIMS-204 | HU-LIMS-42 | EL SISTEMA DEBE mostrar la lista de recepciones con filas compactas (fecha y hora juntas, cliente con inicial, proyecto y cotización, muestras) y botones de acción siempre visibles. | sí (navegador) | [Validado con usuario] |
 | REQ-LIMS-205 | HU-LIMS-42 | EL SISTEMA DEBE mostrar el detalle de la recepción con textos e iconos pequeños, datos de cliente, procedencia y responsable en una franja, y la tabla de muestras completa sin scroll horizontal. | sí (navegador) | [Validado con usuario] |
 | REQ-LIMS-206 | HU-LIMS-43 | EL SISTEMA DEBE mostrar los resultados de ensayo como una lista de filas, con las pestañas Pendientes y Terminados separadas, cada una con su conteo (y lo que falta), sin mezclar sus ensayos. | sí (navegador) | [Validado con usuario] |
@@ -555,6 +556,7 @@ redistribuye por secciones; el modal de la sesión debe ser más grande con los 
 | REQ-LIMS-229 | HU-LIMS-48 | EL SISTEMA DEBE permitir elegir el ensayo de la fila nueva con un buscador del catálogo (nombre, código, norma o método) que muestre el código, la norma y si está acreditado. | sí | [Validado con usuario] |
 | REQ-LIMS-230 | HU-LIMS-48 | CUANDO se guarde una fila con un ensayo que la cotización no traía, EL SISTEMA DEBE crear su línea en la cotización dentro del grupo «Ensayos adicionales» con precio 0 (o usar la línea existente si el servicio ya estaba en la oferta) y las líneas de la solicitud por muestra; SI quien guarda no tiene permiso para editar ensayos, ENTONCES EL SISTEMA DEBE omitir esas filas. | sí | [Propuesto] |
 | REQ-LIMS-231 | HU-LIMS-48 | DONDE se añada un ensayo extra, EL SISTEMA DEBE ofrecer «Registrar incidencia» con el detalle ya escrito, para dejar constancia de que fue un ensayo adicional. | sí (navegador) | [Propuesto] |
+| REQ-LIMS-232 | HU-LIMS-49 | DONDE la persona pueda entrar al correo, EL SISTEMA DEBE mostrar en el calendario del LIMS un icono «Correo» que abra su correo, con la sesión ya iniciada, en otra pestaña; y EL SISTEMA DEBE abrir en otra pestaña el calendario desde el icono de la barra del correo. | sí | [Validado con usuario] |
 | REQ-LIMS-221 | HU-LIMS-46 | EL SISTEMA DEBE mostrar en «Informes» los informes emitidos con su estado (emitido, enviado, descargas), métricas, pestañas Sin enviar / Enviados y acciones siempre visibles (ver, descargar, WhatsApp, copiar enlace de validación, abrir la solicitud); NO DEBE ofrecer la emisión manual de informes por carga de PDF. | sí | [Propuesto] |
 | REQ-LIMS-217 | HU-LIMS-45 | EL SISTEMA DEBE mantener la aprobación de resultados por solicitud en la pantalla de revisión, una vez que todos los ensayos estén terminados. | sí | [Validado con usuario] |
 
@@ -641,3 +643,4 @@ redistribuye por secciones; el modal de la sesión debe ser más grande con los 
 | v29 | 2026-11-26 | Claude (DLF) | Informe final con diseño oficial y QR, revisión por etapas e informes: REQ-LIMS-217 a 221 (HU-LIMS-46) |
 | v30 | 2026-11-26 | Claude (DLF) | Revisión a pantalla completa y envío inteligente: REQ-LIMS-223 a 227 (HU-LIMS-47) |
 | v31 | 2026-11-26 | Claude (DLF) | Añadir ensayos extra a la solicitud: REQ-LIMS-228 a 231 (HU-LIMS-48) |
+| v32 | 2026-11-26 | Claude (DLF) | Calendario y correo en otra pestaña: REQ-LIMS-232 (HU-LIMS-49) |

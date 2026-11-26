@@ -59,6 +59,8 @@ class GuardarActividadTest(TestCase):
         html = self.client.get(reverse('actividades:calendario_dashboard')).content.decode()
         self.assertIn('const CSRF_TOKEN = ', html)
         self.assertNotIn("getCookie('csrftoken')", html)
+        # El icono de correo solo sale a quien puede entrar al módulo de correo (aquí no tiene acceso).
+        self.assertNotIn('data-abrir-correo', html)
         self.assertIn('novalidate', html)
 
     def test_guarda_con_el_token_de_la_pagina_y_csrf_activo(self):

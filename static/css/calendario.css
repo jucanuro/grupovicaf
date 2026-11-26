@@ -349,3 +349,4 @@ html.dark .vc-resumen { background: #111827; }
     /* 16 px evita el zoom automático de iOS al enfocar un campo. */
     .vc-in, .vc-tags input, .vc-pop-titulo { font-size: 16px; }
 }
+.vc-btn2--icono { display: inline-flex; align-items: center; gap: .3rem; }
