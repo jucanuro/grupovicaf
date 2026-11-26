@@ -493,6 +493,52 @@ class ListaYPdfSolicitudTests(AvanceMixin, TestCase):
         self.client.post(reverse('proyectos:crear_solicitud'), datos)
         return SolicitudEnsayo.objects.get(cotizacion=proyecto.cot_)
 
+    def _datos_con_extra(self, proyecto, muestras, servicio_pk):
+        hoy = date.today().isoformat()
+        return {
+            'cotizacion': proyecto.cot_.pk, 'fecha_solicitud': hoy, 'fecha_entrega_programada': hoy,
+            'muestra_id[]': [muestras[0].pk], 'servicio_id[]': [f'x{servicio_pk}'],
+            'norma[]': ['ASTM C136'], 'metodo[]': [''],
+            'tecnico_id[]': [self.perfil.pk], 'entrega_detalle[]': [hoy],
+        }
+
+    def test_anadir_ensayo_extra_crea_su_linea_en_la_cotizacion_y_en_la_solicitud(self):
+        """HU-LIMS-48: un ensayo que la cotización no traía se agrega a la solicitud (y a la oferta sin precio)."""
+        from servicios.models import CotizacionDetalle, Servicio
+        proyecto = self._proyecto(1)
+        _, muestras = self._recepcion(proyecto, 1)
+        if not hasattr(self, '_jefe_pdf'):
+            self._jefe_pdf, self.perfil = crear_trabajador('jefe.pdf', rol_con_permisos('Jefe pdf', 'ensayos.ver', 'ensayos.crear', 'ensayos.editar'))
+            self.client.force_login(self._jefe_pdf)
+        servicio = Servicio.objects.exclude(
+            pk=proyecto.cot_.detalle_.servicio_id).first() or Servicio.objects.create(
+            codigo_facturacion='EXTRA-1', nombre='Ensayo extra de prueba', precio_base=Decimal('50.00'))
+        antes = CotizacionDetalle.objects.filter(grupo__cotizacion=proyecto.cot_).count()
+        self.client.post(reverse('proyectos:crear_solicitud'), self._datos_con_extra(proyecto, muestras, servicio.pk))
+        sol = SolicitudEnsayo.objects.get(cotizacion=proyecto.cot_)
+        linea = sol.detalles.get()
+        self.assertEqual(linea.servicio_cotizado.servicio_id, servicio.pk)
+        self.assertEqual(linea.servicio_cotizado.precio_unitario, Decimal('0.00'))
+        self.assertEqual(linea.servicio_cotizado.grupo.nombre_grupo, 'Ensayos adicionales (agregados en la solicitud)')
+        self.assertEqual(linea.descripcion_ensayo, servicio.nombre)
+        self.assertEqual(CotizacionDetalle.objects.filter(grupo__cotizacion=proyecto.cot_).count(), antes + 1)
+        # Si el servicio ya está en la oferta, se usa su misma línea (no se duplica).
+        sol.detalles.all().delete()
+        datos = self._datos_con_extra(proyecto, muestras, proyecto.cot_.detalle_.servicio_id)
+        self.client.post(reverse('proyectos:editar_solicitud', args=[sol.pk]), datos)
+        self.assertEqual(sol.detalles.get().servicio_cotizado_id, proyecto.cot_.detalle_.pk)
+
+    def test_buscar_servicios_del_catalogo(self):
+        from servicios.models import Servicio
+        self._solicitud()
+        s = Servicio.objects.create(codigo_facturacion='BUS-9', nombre='Contenido de humedad del suelo', precio_base=Decimal('10'))
+        r = self.client.get(reverse('proyectos:api_buscar_servicios') + '?q=humedad suelo')
+        self.assertEqual([x['id'] for x in r.json()['resultados']], [s.pk])
+        # Sin texto trae el catálogo para poder elegir sin escribir.
+        todos = self.client.get(reverse('proyectos:api_buscar_servicios')).json()['resultados']
+        self.assertIn(s.pk, [r['id'] for r in todos])
+        self.assertEqual(self.client.get(reverse('proyectos:api_buscar_servicios') + '?q=zzzz').json(), {'resultados': []})
+
     def test_la_lista_pone_primero_lo_que_falta_registrar_y_ultimo_lo_finalizado(self):
         fin = self._solicitud()
         pen = self._solicitud()

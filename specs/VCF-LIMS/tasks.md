@@ -59,6 +59,7 @@
 | T100 | Revisión por ensayo: `revisar_ensayo` (registro de solo lectura), `marcas_revision` (migración 0015), `marcar_revision`, devolver con marcas, marcas en rojo para el técnico; entradas desde la revisión y la lista de terminados | 213-217 | `proyectos/test_informe_compresion.py` + navegador 1850 | [x] |
 | T101 | PDF del informe con el diseño oficial (FOR-064 + FOR-039), QR siempre presente y cortes de página; revisión con pestañas Por revisar / Sin firmar; pantalla de informes rehecha; se elimina la emisión manual | 217-221 | `proyectos/test_informe_editor.py` + PDF renderizado y navegador | [x] |
 | T102 | Revisión de solicitud a pantalla completa (`revision.css`), pantalla de envío (`enviar_informe`, `envio_informe.py`: correo inteligente y WhatsApp), `InformeFinal.canal_envio` y `mensaje_envio` (migración 0016) | 223-227 | `proyectos/test_informe_compresion.py` + navegador 1850 y móvil | [x] |
+| T103 | «Añadir ensayo» en la solicitud: `api_buscar_servicios`, filas extra con buscador (`solicitud_ensayo.js`), línea «Ensayos adicionales» en la cotización (`_detalle_adicional`, ids `x<pk>`) | 228-231 | `proyectos/test_programa.py` + navegador 1850 | [x] |
 
 ## Historial
 
@@ -96,3 +97,4 @@
 | v29 | 2026-11-26 | Claude (DLF) | T100: revisión por ensayo con marcas en rojo |
 | v30 | 2026-11-26 | Claude (DLF) | T101: informe con diseño oficial y QR, revisión e informes |
 | v31 | 2026-11-26 | Claude (DLF) | T102: revisión a pantalla completa y envío inteligente |
+| v32 | 2026-11-26 | Claude (DLF) | T103: añadir ensayos extra a la solicitud |

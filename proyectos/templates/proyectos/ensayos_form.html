@@ -160,6 +160,12 @@
                     </div>
                     <div class="flex-1 overflow-y-auto pb-40">
                         <div id="se-filas" class="divide-y divide-slate-100"></div>
+                        <div id="se-extra" class="hidden px-4 py-3 border-t border-dashed border-slate-200 bg-slate-50/70">
+                            <button type="button" id="se-extra-agregar" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-blue-300 bg-white hover:bg-blue-50 text-blue-700 text-[11px] font-black uppercase tracking-wide">
+                                <i data-lucide="plus" class="w-4 h-4"></i> Añadir ensayo
+                            </button>
+                            <p class="text-[11px] text-slate-500 mt-1.5">Suma ensayos que el cliente no tenía cotizados: busca el ensayo, elige muestras, técnico y entrega. Se agregan a la oferta sin precio (puedes seguir añadiendo mientras no guardes la solicitud).</p>
+                        </div>
                         <div id="se-vacio" class="py-6 text-center">
                             <i data-lucide="clipboard-list" class="w-9 h-9 mx-auto text-slate-200 mb-2"></i>
                             <p class="text-sm font-bold text-slate-600" id="se-vacio-texto">Elige una cotización para cargar sus ensayos.</p>
@@ -223,10 +229,11 @@
 <script>
     window.SolicitudEnsayoConfig = {
         detalleUrl: "{% url 'proyectos:api_cotizacion_detalles' 0 %}",
+        serviciosUrl: "{% url 'proyectos:api_buscar_servicios' %}",
         esEdicion: {% if solicitud %}true{% else %}false{% endif %}
     };
 </script>
-<script src="{% static 'js/solicitud_ensayo.js' %}?v=6"></script>
+<script src="{% static 'js/solicitud_ensayo.js' %}?v=10"></script>
 <script>
     if (window.BorradorLocal) {
         BorradorLocal.iniciar({

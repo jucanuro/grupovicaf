@@ -11,6 +11,7 @@ urlpatterns = [
     # --- PROYECTOS Y API ---
     path('pendientes/', views.lista_proyectos_pendientes, name='lista_proyectos_pendientes'),
     path('api/cotizacion-detalles/<int:cotizacion_id>/', views.api_obtener_detalles_cotizacion, name='api_cotizacion_detalles'),
+    path('api/servicios/', views.api_buscar_servicios, name='api_buscar_servicios'),
     path('tipo-muestra/crear-ajax/', views.crear_tipo_muestra_ajax, name='crear_tipo_muestra_ajax'),
 
     # --- RECEPCIÓN DE MUESTRAS ---

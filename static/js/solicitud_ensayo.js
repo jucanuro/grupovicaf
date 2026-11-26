@@ -58,7 +58,7 @@
         return {
             cotizacion: $('id_cotizacion').value,
             fecha: $('fecha_solicitud').value, plazo: $('dias_plazo').value, entrega: $('fecha_entrega_programada').value,
-            filas: filas.map(function (f) { return { id: f.id, sel: f.sel, tecnico: f.tecnico, fecha: f.fecha }; }),
+            filas: filas.map(function (f) { return f.extra ? { extra: true, servicioPk: f.servicioPk, nombre: f.nombre, norma: f.norma, metodo: f.metodo, sel: f.sel, tecnico: f.tecnico, fecha: f.fecha } : { id: f.id, sel: f.sel, tecnico: f.tecnico, fecha: f.fecha }; }),
             incidencias: incidencias,
         };
     }
@@ -72,6 +72,11 @@
     function aplicarEstado(e) {
         if (!e) return;
         (e.filas || []).forEach(function (g) {
+            if (g.extra) {
+                var ex = nuevaExtra(); ex.servicioPk = g.servicioPk || null; ex.nombre = g.nombre || ''; ex.norma = g.norma || ''; ex.metodo = g.metodo || '';
+                ex.sel = (g.sel || []).filter(function (id) { return muestraPorId(id); }); ex.tecnico = g.tecnico || ''; ex.fecha = g.fecha || '';
+                filas.push(ex); return;
+            }
             var f = filas.find(function (x) { return String(x.id) === String(g.id); });
             if (!f) return;
             f.sel = (g.sel || []).filter(function (id) { return muestraPorId(id); });
@@ -204,19 +209,119 @@
         select.value = valor || '';
     }
 
-    function completa(f) { return f.sel.length > 0 && f.tecnico && f.fecha; }
-    function parcial(f) { return !completa(f) && (f.sel.length > 0 || f.tecnico || f.fecha); }
+    function completa(f) { return f.sel.length > 0 && f.tecnico && f.fecha && (!f.extra || !!f.servicioPk); }
+    function parcial(f) { return !completa(f) && (f.extra ? (!!f.servicioPk || !!f.tecnico) : (f.sel.length > 0 || f.tecnico || f.fecha)); }
+
+    /* Ensayos adicionales (HU-LIMS-48): filas que el cliente no tenía en la cotización, con buscador del catálogo. */
+    var contadorExtra = 0;
+    function nuevaExtra() {
+        contadorExtra += 1;
+        return { id: 'x' + contadorExtra, extra: true, uid: contadorExtra, servicioPk: null, nombre: '', norma: '', metodo: '',
+                 sel: muestras.length === 1 ? [muestras[0].id] : [], tecnico: '', fecha: $('fecha_entrega_programada').value || '' };
+    }
+
+    function crearBuscador(f, tr) {
+        var c = el('div', 'min-w-0 relative');
+        var temporizador = null, panelRef = null;
+        function pintar() {
+            c.textContent = '';
+            if (panelRef) { panelRef.remove(); panelRef = null; }
+            if (f.servicioPk) {
+                var fila = el('div', 'flex items-start gap-2');
+                var tx = el('div', 'min-w-0 flex-1');
+                tx.appendChild(el('p', 'text-sm font-black text-slate-800 leading-tight', f.nombre));
+                tx.appendChild(el('p', 'text-[11px] font-mono text-blue-600 mt-0.5 break-words', [f.norma, f.metodo].filter(Boolean).join(' · ') || 'Sin norma'));
+                tx.appendChild(el('p', 'text-[10px] font-black uppercase text-violet-700 mt-0.5', 'Adicional · fuera de la cotización'));
+                var inc = el('button', 'mt-1 text-[10px] font-black uppercase text-slate-500 underline hover:text-blue-700', 'Registrar incidencia');
+                inc.type = 'button';
+                inc.addEventListener('click', function () {
+                    incidencias.push({ detalle: 'Ensayo adicional agregado: ' + f.nombre + (f.norma ? ' (' + f.norma + ')' : '') + '.', fecha: ahoraLocal(), cliente: '', responsable: '', autorizada: false });
+                    incAbierta = incidencias.length - 1; pintarIncidencias(); cambio();
+                });
+                tx.appendChild(inc);
+                fila.appendChild(tx);
+                var cambiar = el('button', 'p-1.5 rounded-lg text-slate-400 hover:text-blue-600'); cambiar.type = 'button'; cambiar.title = 'Cambiar de ensayo'; cambiar.setAttribute('aria-label', 'Cambiar de ensayo');
+                var i1 = document.createElement('i'); i1.setAttribute('data-lucide', 'pencil'); i1.className = 'w-4 h-4'; cambiar.appendChild(i1);
+                cambiar.addEventListener('click', function () { f.servicioPk = null; f.nombre = ''; f.norma = ''; f.metodo = ''; pintar(); estadoFila(tr, f); cambio(); });
+                fila.appendChild(cambiar);
+                fila.appendChild(botonQuitar());
+                c.appendChild(fila);
+            } else {
+                var caja = el('div', 'flex items-center gap-2');
+                var inp = el('input', 'se-campo flex-1'); inp.type = 'search'; inp.placeholder = 'Elige o busca un ensayo…'; inp.autocomplete = 'off';
+                inp.setAttribute('aria-label', 'Buscar ensayo');
+                caja.appendChild(inp); caja.appendChild(botonQuitar());
+                c.appendChild(caja);
+                var panel = el('div', 'fixed z-[9995] hidden bg-white border border-slate-200 rounded-xl shadow-2xl overflow-y-auto');
+                document.body.appendChild(panel); panelRef = panel;      // en el body: así «fixed» se mide contra la pantalla
+                // El panel es fijo: se abre hacia abajo o hacia arriba, donde haya más sitio, para ver la lista completa.
+                function ubicar() {
+                    var r = inp.getBoundingClientRect();
+                    var abajo = window.innerHeight - r.bottom - 12, arriba = r.top - 12;
+                    var hacia = abajo >= 300 || abajo >= arriba ? 'abajo' : 'arriba';
+                    var alto = Math.max(160, Math.min(hacia === 'abajo' ? abajo : arriba, 420));
+                    panel.style.left = r.left + 'px'; panel.style.width = Math.max(r.width, 360) + 'px'; panel.style.maxHeight = alto + 'px';
+                    if (hacia === 'abajo') { panel.style.top = (r.bottom + 4) + 'px'; panel.style.bottom = 'auto'; }
+                    else { panel.style.bottom = (window.innerHeight - r.top + 4) + 'px'; panel.style.top = 'auto'; }
+                }
+                var cerrarAlMover = function () { panel.classList.add('hidden'); };
+                window.addEventListener('resize', cerrarAlMover);
+                function buscar() {
+                    var q = inp.value.trim();
+                    fetch(cfg.serviciosUrl + '?q=' + encodeURIComponent(q), { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                        .then(function (r) { return r.json(); })
+                        .then(function (d) {
+                            panel.textContent = ''; panel.classList.remove('hidden'); ubicar();
+                            var lista = d.resultados || [];
+                            if (!lista.length) { panel.appendChild(el('p', 'px-3 py-3 text-xs text-slate-500', q ? 'Sin resultados para «' + q + '».' : 'El catálogo no tiene ensayos.')); return; }
+                            lista.forEach(function (r) {
+                                var b = el('button', 'block w-full text-left px-3 py-2 hover:bg-blue-50 border-b border-slate-50'); b.type = 'button';
+                                b.appendChild(el('span', 'block text-xs font-black text-slate-800', r.nombre));
+                                b.appendChild(el('span', 'block text-[11px] font-mono text-blue-600', [r.codigo, r.norma, r.metodo].filter(Boolean).join(' · ') + (r.acreditado ? ' · Acreditado' : '')));
+                                b.addEventListener('click', function () {
+                                    f.servicioPk = r.id; f.nombre = r.nombre; f.norma = r.norma || ''; f.metodo = r.metodo || '';
+                                    pintar(); estadoFila(tr, f); cambio();
+                                });
+                                panel.appendChild(b);
+                            });
+                        }).catch(function () { panel.textContent = ''; panel.classList.remove('hidden'); panel.appendChild(el('p', 'px-3 py-3 text-xs text-rose-600', 'No se pudo buscar. Intenta de nuevo.')); });
+                }
+                inp.addEventListener('input', function () { clearTimeout(temporizador); temporizador = setTimeout(buscar, 250); });
+                inp.addEventListener('focus', buscar);      // al entrar se ve la lista de servicios, sin escribir
+                inp.addEventListener('click', buscar);
+                inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') panel.classList.add('hidden'); });
+                var zona = document.getElementById('se-filas'); zona = zona && zona.parentNode;
+                if (zona) zona.addEventListener('scroll', cerrarAlMover, { passive: true });
+                document.addEventListener('click', function cerrarFuera(e) {
+                    if (!c.isConnected) { panel.remove(); document.removeEventListener('click', cerrarFuera); return; }
+                    if (!c.contains(e.target) && !panel.contains(e.target)) panel.classList.add('hidden');
+                });
+                setTimeout(function () { inp.focus(); }, 0);
+            }
+            icono();
+        }
+        function botonQuitar() {
+            var q = el('button', 'p-1.5 rounded-lg text-slate-400 hover:text-rose-600'); q.type = 'button'; q.title = 'Quitar este ensayo adicional'; q.setAttribute('aria-label', q.title);
+            var ic = document.createElement('i'); ic.setAttribute('data-lucide', 'trash-2'); ic.className = 'w-4 h-4'; q.appendChild(ic);
+            q.addEventListener('click', function () { if (panelRef) { panelRef.remove(); panelRef = null; } filas = filas.filter(function (x) { return x !== f; }); pintarFilas(); cambio(); });
+            return q;
+        }
+        pintar();
+        return c;
+    }
 
     function pintarFilas() {
         var cont = $('se-filas');
         cont.textContent = '';
         var hay = filas.length > 0;
         $('se-vacio').classList.toggle('hidden', hay || cargando);
+        if (!hay && !cargando && cargadaId) $('se-vacio').classList.remove('hidden');
         $('se-cabecera').classList.toggle('hidden', !hay);
         if (hay) $('se-cabecera').classList.add('xl:grid'); else $('se-cabecera').classList.remove('xl:grid');
         $('se-masivo').classList.toggle('hidden', !hay);
         $('se-masivo').classList.toggle('flex', hay);
         filas.forEach(function (f) { cont.appendChild(crearFila(f)); });
+        $('se-extra').classList.toggle('hidden', !cargadaId || cargando || !muestras.length);
         icono();
     }
 
@@ -230,10 +335,15 @@
         tr.dataset.id = f.id;
         estadoFila(tr, f);
 
-        var c1 = el('div', 'min-w-0');
-        c1.appendChild(el('p', 'text-sm font-black text-slate-800 leading-tight', f.nombre));
-        var sub = [f.norma, f.metodo].filter(Boolean).join(' · ');
-        c1.appendChild(el('p', 'text-[11px] font-mono text-blue-600 mt-0.5 break-words', sub || 'Sin norma'));
+        var c1;
+        if (f.extra) {
+            c1 = crearBuscador(f, tr);
+        } else {
+            c1 = el('div', 'min-w-0');
+            c1.appendChild(el('p', 'text-sm font-black text-slate-800 leading-tight', f.nombre));
+            var sub = [f.norma, f.metodo].filter(Boolean).join(' · ');
+            c1.appendChild(el('p', 'text-[11px] font-mono text-blue-600 mt-0.5 break-words', sub || 'Sin norma'));
+        }
         tr.appendChild(c1);
 
         var c2 = el('div', 'relative');
@@ -315,6 +425,13 @@
 
     function refrescarFilas() { Array.prototype.forEach.call($('se-filas').children, function (tr) { if (tr._refrescar) tr._refrescar(); }); }
 
+    $('se-extra-agregar').addEventListener('click', function () {
+        filas.push(nuevaExtra());
+        pintarFilas(); cambio();
+        var ultima = $('se-filas').lastElementChild;
+        if (ultima && ultima.scrollIntoView) ultima.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+
     $('se-aplicar-todos').addEventListener('click', function () {
         var t = $('se-tec-todos').value, d = $('se-fecha-todos').value || $('fecha_entrega_programada').value;
         filas.forEach(function (f) { if (t) f.tecnico = t; if (d) f.fecha = d; });
@@ -370,7 +487,7 @@
         visibles.forEach(function (f) {
             var ok = completa(f);
             var fila = el('div', 'px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1 ' + (ok ? 'se-fila-lista' : 'se-fila-parcial'));
-            fila.appendChild(el('span', 'text-sm font-black text-slate-800 min-w-[220px] flex-1', f.nombre));
+            fila.appendChild(el('span', 'text-sm font-black text-slate-800 min-w-[220px] flex-1', f.nombre || 'Ensayo adicional'));
             var t = tecnicos.find(function (x) { return String(x.id) === String(f.tecnico); });
             [f.sel.length + ' muestra' + (f.sel.length === 1 ? '' : 's'), t ? t.nombre : 'Sin técnico', f.fecha || 'Sin fecha'].forEach(function (x, i) {
                 fila.appendChild(el('span', 'text-xs font-semibold ' + (i === 1 && !t || i === 2 && !f.fecha || i === 0 && !f.sel.length ? 'text-amber-700' : 'text-slate-600'), x));
@@ -390,7 +507,7 @@
         if (incompletos.length) {
             ev.preventDefault();
             abrirModal();
-            $('se-estado').textContent = 'Completa o vacía: ' + incompletos.map(function (f) { return f.nombre; }).join(' · ');
+            $('se-estado').textContent = 'Completa o vacía: ' + incompletos.map(function (f) { return f.nombre || 'Ensayo adicional'; }).join(' · ');
             $('se-estado').className = 'text-xs font-bold text-rose-700';
             var tr = $('se-filas').querySelector('[data-id="' + incompletos[0].id + '"]');
             if (tr && tr.scrollIntoView) tr.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -399,7 +516,7 @@
         filas.filter(completa).forEach(function (f) {
             f.sel.forEach(function (mid) {
                 envio.appendChild(oculto('muestra_id[]', mid));
-                envio.appendChild(oculto('servicio_id[]', f.id));
+                envio.appendChild(oculto('servicio_id[]', f.extra ? 'x' + f.servicioPk : f.id));
                 envio.appendChild(oculto('norma[]', f.norma));
                 envio.appendChild(oculto('metodo[]', f.metodo));
                 envio.appendChild(oculto('tecnico_id[]', f.tecnico));

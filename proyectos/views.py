@@ -603,6 +603,56 @@ def generar_y_enviar_whatsapp(request, recepcion_id):
         return JsonResponse({'ok': False, 'message': 'Error interno del servidor.'}, status=500)
 
 
+GRUPO_ENSAYOS_ADICIONALES = 'Ensayos adicionales (agregados en la solicitud)'
+
+
+@login_required
+@permiso_requerido('ensayos.ver')
+def api_buscar_servicios(request):
+    """Catálogo de ensayos para «Añadir ensayo» en la solicitud (HU-LIMS-48): busca por nombre, código o norma."""
+    q = (request.GET.get('q') or '').strip()
+    filtro = Q()
+    for palabra in q.split()[:5]:
+        filtro &= (Q(nombre__icontains=palabra) | Q(codigo_facturacion__icontains=palabra)
+                   | Q(norma__codigo__icontains=palabra) | Q(metodo__codigo__icontains=palabra))
+    # Sin texto se trae el catálogo (por orden alfabético) para poder elegir sin escribir; con texto, solo lo que coincide.
+    servicios = Servicio.objects.filter(filtro).select_related('norma', 'metodo').order_by('nombre')[:60]
+    return JsonResponse({'resultados': [
+        {'id': sv.pk, 'nombre': sv.nombre, 'codigo': sv.codigo_facturacion,
+         'norma': sv.norma.codigo if sv.norma_id else '', 'metodo': sv.metodo.codigo if sv.metodo_id else '',
+         'acreditado': bool(sv.esta_acreditado)}
+        for sv in servicios
+    ]})
+
+
+def _detalle_adicional(cotizacion, servicio_pk, cache):
+    """Línea de la cotización para un ensayo que el cliente no tenía cotizado.
+
+    Si el servicio ya está en la oferta se usa esa línea. Si no, se agrega a un grupo «Ensayos
+    adicionales» con precio 0: queda a la vista en la cotización para que se le ponga precio después,
+    y la solicitud puede apuntar a una línea como cualquier otro ensayo.
+    """
+    if servicio_pk in cache:
+        return cache[servicio_pk]
+    servicio = Servicio.objects.filter(pk=servicio_pk).select_related('norma', 'metodo').first()
+    detalle = None
+    if servicio is not None:
+        detalle = CotizacionDetalle.objects.filter(grupo__cotizacion=cotizacion, servicio=servicio).first()
+        if detalle is None:
+            grupo = CotizacionGrupo.objects.filter(cotizacion=cotizacion, nombre_grupo=GRUPO_ENSAYOS_ADICIONALES).first()
+            if grupo is None:
+                orden = (CotizacionGrupo.objects.filter(cotizacion=cotizacion).aggregate(m=Max('orden'))['m'] or 0) + 1
+                grupo = CotizacionGrupo.objects.create(
+                    cotizacion=cotizacion, nombre_grupo=GRUPO_ENSAYOS_ADICIONALES, orden=orden)
+            detalle = CotizacionDetalle.objects.create(
+                grupo=grupo, servicio=servicio,
+                descripcion_especifica='Ensayo adicional agregado al registrar la solicitud de ensayo (sin precio en la oferta).',
+                unidad_medida=servicio.unidad_base or 'Ensayo', cantidad=1, precio_unitario=Decimal('0.00'),
+            )
+    cache[servicio_pk] = detalle
+    return detalle
+
+
 @login_required
 @permiso_requerido('ensayos.ver')
 def api_obtener_detalles_cotizacion(request, cotizacion_id):
@@ -833,7 +883,7 @@ def gestionar_solicitud_ensayo(request, pk=None):
                 tecnicos_ids = request.POST.getlist('tecnico_id[]')
                 entregas_det = request.POST.getlist('entrega_detalle[]')
 
-                ids_serv = [s for s in servicios_ids if s.strip()]
+                ids_serv = [s for s in servicios_ids if s.strip().isdigit()]  # «x<pk>» = ensayo adicional
                 serv_map = {
                     str(c.id): c
                     for c in CotizacionDetalle.objects.filter(
@@ -856,6 +906,8 @@ def gestionar_solicitud_ensayo(request, pk=None):
 
                 ensayos_list = []
                 omitidas = 0
+                cotizacion_obj = get_object_or_404(Cotizacion, pk=cotizacion_id)
+                extras_cache = {}
 
                 total_filas = max(
                     len(muestras_ids),
@@ -877,9 +929,10 @@ def gestionar_solicitud_ensayo(request, pk=None):
                         omitidas += 1
                         continue
 
+                    es_extra = s_id.lower().startswith('x')
                     try:
                         m_id_int = int(m_id)
-                        s_id_int = int(s_id)
+                        s_id_int = int(s_id[1:] if es_extra else s_id)
                     except ValueError:
                         omitidas += 1
                         continue
@@ -888,10 +941,23 @@ def gestionar_solicitud_ensayo(request, pk=None):
                         omitidas += 1
                         continue
 
+                    if es_extra:
+                        # Ensayo que no venía en la cotización (HU-LIMS-48): se busca o crea su línea.
+                        if not trabajador_tiene_permiso(request.user, 'ensayos.editar'):
+                            omitidas += 1
+                            continue
+                        cot_det = _detalle_adicional(cotizacion_obj, s_id_int, extras_cache)
+                        if not cot_det:
+                            omitidas += 1
+                            continue
+                        s_id_int = cot_det.pk
+                        s_id = str(cot_det.pk)
+                        serv_map[s_id] = cot_det
+                    else:
+                        cot_det = serv_map.get(s_id)
+
                     if (m_id_int, s_id_int) in lineas_ya_guardadas:
                         continue
-
-                    cot_det = serv_map.get(s_id)
 
                     if not cot_det:
                         omitidas += 1

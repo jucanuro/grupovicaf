@@ -190,6 +190,11 @@ Antes de esto el formulario iba en columnas, la sesión de ensayo integrada (`_s
 («Repetir esta foto» usa el asistente). Ya no se sube hoja de cálculo; el
 campo `hoja_calculo` y su descarga solo sirven a ensayos viejos.
 
+**Ensayos extra en la solicitud (HU-LIMS-48).** En el modal «Asignar ensayos», «Añadir ensayo» agrega filas (`f.extra`, ids `x<n>`) con un
+buscador del catálogo (`api_buscar_servicios`, `/proyectos/api/servicios/?q=`). Al guardar, el JS manda `servicio_id[] = 'x<Servicio.pk>'`; el servidor
+(`_detalle_adicional`) usa la línea de la cotización si el servicio ya estaba o crea una en el grupo «Ensayos adicionales (agregados en la solicitud)» con
+precio 0 (la oferta queda a la vista para ponerle precio) y requiere `ensayos.editar`. Las filas extra entran también en el borrador local.
+
 **Envío inteligente del informe (HU-LIMS-47).** «Enviar al cliente» (en `revision_compresion` y en Informes) abre `/proyectos/informe/<id>/enviar/`:
 correo o WhatsApp. El correo (`proyectos/envio_informe.py`) busca en las bandejas del usuario el pedido del cliente (por su correo y por el código de
 solicitud/cotización en el asunto), prepara en el módulo de correo una **respuesta** a ese hilo con el PDF y el enlace de validación (Para: el contacto;
