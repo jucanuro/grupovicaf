@@ -518,6 +518,9 @@ redistribuye por secciones; el modal de la sesión debe ser más grande con los 
 | REQ-LIMS-197 | HU-LIMS-41 | EL SISTEMA DEBE mostrar el resumen como una hoja tipo FOR-009 en texto (encabezado con registro y método, código de cliente, T/HR inicial y final, tabla de resultados, evidencia multimedia, equipamiento, tipos de defecto, comprobación funcional, resultado preliminar y firmas), con «—» en lo no llenado. | sí (navegador) | [Validado con usuario] |
 | REQ-LIMS-198 | HU-LIMS-41 | CUANDO se carguen o tomen varias fotos, EL SISTEMA DEBE subir 2 de «antes», seguir con las 2 de «durante» y luego las 2 de «después», sin repetir un mismo recuadro. | sí | [Validado con usuario] |
 | REQ-LIMS-199 | HU-LIMS-41 | EL SISTEMA DEBE abrir la sesión de ensayo en un modal casi a pantalla completa, con cada equipo y su «+» en una fila de controles grandes. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-200 | HU-LIMS-41 | EL SISTEMA DEBE mostrar el modal de la sesión sin scroll en PC, con condiciones iniciales en una fila, equipos en dos subcolumnas y comprobación funcional con letra pequeña. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-201 | HU-LIMS-41 | CUANDO se abra un ensayo terminado, EL SISTEMA DEBE mostrar el contador de fotos con las registradas y la hoja de resumen con todos los datos guardados. | sí | [Validado con usuario] |
+| REQ-LIMS-202 | HU-LIMS-41 | EL SISTEMA DEBE presentar «Ensayos en curso» como tarjetas con código, ensayo, solicitud, entrega y avance de fotos. | sí (navegador) | [Validado con usuario] |
 
 ## 3. Trazabilidad HU → REQ
 
@@ -555,7 +558,7 @@ redistribuye por secciones; el modal de la sesión debe ser más grande con los 
 | HU-LIMS-38 | Registro en pantalla completa con la sesión integrada | REQ-LIMS-176 a 180 |
 | HU-LIMS-39 | Formulario en modal y resumen junto a las fotos | REQ-LIMS-181 a 185 |
 | HU-LIMS-40 | Modal sobre todo, video, equipos y fotos tipo escáner | REQ-LIMS-186 a 194 |
-| HU-LIMS-41 | Formulario por secciones, hoja de resumen FOR-009, fotos de a dos y sesión grande | REQ-LIMS-195 a 199 |
+| HU-LIMS-41 | Formulario por secciones, hoja de resumen FOR-009, fotos de a dos y sesión grande | REQ-LIMS-195 a 202 |
 
 ## 4. Preguntas abiertas
 
@@ -593,4 +596,4 @@ redistribuye por secciones; el modal de la sesión debe ser más grande con los 
 | v21 | 2026-11-25 | Claude (DLF) | Registro en pantalla completa con la sesión integrada y requisitos: REQ-LIMS-176 a 180 (HU-LIMS-38) |
 | v22 | 2026-11-26 | Claude (DLF) | Formulario en modal, resumen junto a las fotos y código de cliente de la cotización: REQ-LIMS-181 a 185 (HU-LIMS-39) |
 | v23 | 2026-11-26 | Claude (DLF) | Modal sobre todo el sistema, video, equipos con «+», fotos tipo escáner y resumen moderno: REQ-LIMS-186 a 194 (HU-LIMS-40) |
-| v24 | 2026-11-26 | Claude (DLF) | Formulario por secciones, hoja de resumen tipo FOR-009, fotos de a dos y sesión grande: REQ-LIMS-195 a 199 (HU-LIMS-41) |
+| v24 | 2026-11-26 | Claude (DLF) | Formulario por secciones, hoja de resumen tipo FOR-009, fotos de a dos y sesión grande: REQ-LIMS-195 a 202 (HU-LIMS-41) |

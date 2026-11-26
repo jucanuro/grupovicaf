@@ -387,3 +387,9 @@ class RegistroSeccionesTests(CompresionBase):
         self.assertEqual(hoja['registro'], self.mia.solicitud.codigo_solicitud)
         self.assertEqual(hoja['norma'], self.mia.norma)
         self.assertIn('id="hoja-estatica"', resp.content.decode())
+
+    def test_ensayo_terminado_cuenta_las_fotos_y_carga_la_hoja(self):
+        from proyectos.models import ResultadoEnsayo
+        html = self.client.get(self.url_registro(self.mia)).content.decode()
+        self.assertIn('data-fotos-contador>0<', html)
+        self.assertIn('hoja_resumen.js', html)

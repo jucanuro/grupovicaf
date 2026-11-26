@@ -62,17 +62,44 @@
     </section>
 
     {% if en_curso %}
-    <section class="v-tarjeta p-4 border-blue-200 bg-blue-50/60" data-continuar>
-        <p class="font-bold text-slate-800">Ensayos en curso</p>
-        <p class="text-xs text-slate-600 mt-0.5">Lo que escribiste quedó guardado. Entra y continúa donde lo dejaste.</p>
-        <div class="mt-2 flex flex-wrap gap-2">
+    <section class="curso" data-continuar>
+        <div class="curso__cab">
+            <span class="curso__icono"><i data-lucide="pencil-line" class="w-4 h-4"></i></span>
+            <div>
+                <p class="curso__titulo">Ensayos en curso <span class="curso__n">{{ en_curso|length }}</span></p>
+                <p class="curso__sub">Lo que escribiste quedó guardado. Entra y continúa donde lo dejaste.</p>
+            </div>
+        </div>
+        <div class="curso__grid">
             {% for d in en_curso %}
-            <a href="{% url 'proyectos:registrar_compresion' d.pk %}" class="v-btn v-btn--primario v-btn--sm" data-continuar-enlace>
-                <i data-lucide="play"></i> Continuar {{ d.muestra.codigo_laboratorio }}
+            <a href="{% url 'proyectos:registrar_compresion' d.pk %}" class="curso__item" data-continuar-enlace>
+                <span class="curso__cod">{{ d.muestra.codigo_laboratorio }}</span>
+                <span class="curso__ens">{% if d.plantilla == 'compresion' %}Compresión de probeta{% else %}{{ d.descripcion_ensayo|default:d.norma }}{% endif %}</span>
+                <span class="curso__meta">{{ d.solicitud.codigo_solicitud }} · entrega {{ d.fecha_entrega_programada|date:"d/m" }}</span>
+                <span class="curso__barra"><i style="width: {% widthratio d.n_fotos 6 100 %}%"></i></span>
+                <span class="curso__pie"><span>{{ d.n_fotos }}/6 fotos</span><b>Continuar <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></b></span>
             </a>
             {% endfor %}
         </div>
     </section>
+    <style>
+        .curso { background: linear-gradient(135deg, #eff6ff, #f8fafc 60%); border: 1px solid #bfdbfe; border-radius: 1.2rem; padding: 1rem 1.1rem 1.1rem; }
+        .curso__cab { display: flex; gap: .7rem; align-items: center; margin-bottom: .8rem; }
+        .curso__icono { width: 2.2rem; height: 2.2rem; border-radius: .8rem; background: linear-gradient(135deg, #2563eb, #1e40af); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px -8px rgba(37,99,235,.8); flex-shrink: 0; }
+        .curso__titulo { font-weight: 800; color: #0f172a; font-size: 1.02rem; display: flex; align-items: center; gap: .4rem; }
+        .curso__n { font-size: .68rem; background: #2563eb; color: #fff; border-radius: 99px; padding: .05rem .5rem; }
+        .curso__sub { font-size: .74rem; color: #64748b; }
+        .curso__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); gap: .65rem; }
+        .curso__item { display: flex; flex-direction: column; gap: .15rem; background: #fff; border: 1px solid #e2e8f0; border-left: 4px solid #2563eb; border-radius: .9rem; padding: .7rem .8rem; transition: transform .12s, box-shadow .12s, border-color .12s; min-width: 0; }
+        .curso__item:hover { transform: translateY(-2px); box-shadow: 0 12px 22px -14px rgba(30,64,175,.6); border-color: #93c5fd; border-left-color: #2563eb; }
+        .curso__cod { font-family: ui-monospace, Menlo, monospace; font-weight: 800; font-size: .92rem; color: #0f172a; overflow-wrap: anywhere; }
+        .curso__ens { font-size: .78rem; font-weight: 600; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .curso__meta { font-size: .68rem; color: #94a3b8; }
+        .curso__barra { display: block; height: .3rem; background: #e2e8f0; border-radius: 99px; overflow: hidden; margin-top: .35rem; }
+        .curso__barra > i { display: block; height: 100%; background: linear-gradient(90deg, #38bdf8, #2563eb); border-radius: 99px; }
+        .curso__pie { display: flex; justify-content: space-between; align-items: center; font-size: .7rem; color: #64748b; margin-top: .15rem; }
+        .curso__pie b { color: #1d4ed8; display: inline-flex; align-items: center; gap: .2rem; }
+    </style>
     {% endif %}
 
     <ul class="space-y-3" data-lista-compresion>

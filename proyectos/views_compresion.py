@@ -329,6 +329,7 @@ def registrar_ensayo_compresion(request, detalle_id):
         'form_sesion': form_sesion, 'campos_equipo': campos_equipo,
         'campo_usos': form_sesion['neopreno_usos'] if form_sesion else None, 'campos_comprobacion': campos_comprobacion,
         'faltan_tipos_sesion': faltan_tipos, 'url_sesion_ajax': url_sesion,
+        'fotos_contadas': sum(1 for sl in slots if sl['foto']),
         'hoja_estatica': {
             'recepcion': f"{detalle.muestra.recepcion.fecha_recepcion:%d/%m/%Y}" if detalle.muestra.recepcion_id else '',
             'testigo': detalle.muestra.nro_item, 'registro': detalle.solicitud.codigo_solicitud,
