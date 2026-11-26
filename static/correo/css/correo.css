@@ -1082,8 +1082,8 @@ a.mini-cal__dia--hoy:hover { background: #F25C2F; filter: brightness(.95); }
 .resultado-cot strong, .resultado-cot span { color: var(--tinta); }
 
 /* ---- Iconos de la barra superior con color propio ---- */
-.barra--app .boton-icono { --ic: var(--tinta-2); --ic-fondo: var(--hover); color: var(--ic); }
-.barra--app .boton-icono:hover { background: var(--ic-fondo); color: var(--ic); }
+.barra--app .boton-icono { color: var(--ic, var(--tinta-2)); }
+.barra--app .boton-icono:hover { background: var(--ic-fondo, var(--hover)); color: var(--ic, var(--tinta)); }
 .barra--app .boton-icono svg { stroke-width: 2.1; }
 .ic-azul { --ic: #2563EB; --ic-fondo: #DBEAFE; }
 .ic-violeta { --ic: #7C3AED; --ic-fondo: #EDE9FE; }
