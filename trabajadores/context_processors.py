@@ -30,4 +30,8 @@ def permisos_usuario(request):
 
     permisos['total_modulos_visibles'] = sum(1 for value in permisos.values() if value is True)
 
+    # Acceso directo al correo en la barra superior (no cuenta como módulo del sistema).
+    from correo.permisos import puede_entrar_correo
+    permisos['puede_ver_correo'] = puede_entrar_correo(user)
+
     return permisos

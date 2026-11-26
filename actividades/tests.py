@@ -61,6 +61,7 @@ class GuardarActividadTest(TestCase):
         self.assertNotIn("getCookie('csrftoken')", html)
         # El icono de correo solo sale a quien puede entrar al módulo de correo (aquí no tiene acceso).
         self.assertNotIn('data-abrir-correo', html)
+        self.assertNotIn('data-abrir-correo-cabecera', html)
         self.assertIn('novalidate', html)
 
     def test_guarda_con_el_token_de_la_pagina_y_csrf_activo(self):

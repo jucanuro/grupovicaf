@@ -257,6 +257,7 @@ html.dark .hover\:bg-emerald-100:not(.tema-claro *):hover { background-color: rg
 html.dark .hover\:bg-emerald-600:not(.tema-claro *):hover { background-color: rgb(5 150 105); }
 html.dark .hover\:bg-emerald-700:not(.tema-claro *):hover { background-color: rgb(4 120 87); }
 html.dark .hover\:bg-sky-50:not(.tema-claro *):hover { background-color: rgb(14 165 233 / 0.12); }
+html.dark .hover\:bg-sky-100:not(.tema-claro *):hover { background-color: rgb(14 165 233 / 0.18); }
 html.dark .hover\:bg-blue-50\/30:not(.tema-claro *):hover { background-color: rgb(59 130 246 / 0.036); }
 html.dark .hover\:bg-blue-50\/40:not(.tema-claro *):hover { background-color: rgb(59 130 246 / 0.048); }
 html.dark .hover\:bg-blue-50\/50:not(.tema-claro *):hover { background-color: rgb(59 130 246 / 0.06); }
