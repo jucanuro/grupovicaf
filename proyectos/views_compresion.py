@@ -6,8 +6,9 @@ propio todavía. Al terminar la última línea la solicitud queda finalizada sol
 (``SolicitudEnsayo.sincronizar_estado``).
 
 
-- HU-LIMS-11: la recepción completa los datos FOR-004 de cada probeta
-  (ID del cliente, elemento, f'c, fabricación, edad) en ``datos_probetas``.
+- HU-LIMS-11: los datos FOR-004 de cada probeta (ID del cliente, elemento, f'c,
+  fabricación, edad) se copian en el registro de cada ensayo (el formulario aparte de la
+  recepción se eliminó, HU-LIMS-43).
 - HU-LIMS-12/13: el técnico abre una sesión de ensayo (T/HR inicial y los seis
   equipos con calibración vigente), registra masa, diámetros, longitudes,
   carga y tipo de fractura de cada probeta, y cierra la sesión con T/HR final.
@@ -49,7 +50,6 @@ from .models import (
 logger = logging.getLogger(__name__)
 
 PERMISO_REGISTRAR = 'ensayos.registrar'
-PERMISO_DATOS_PROBETA = 'muestras.editar'
 PERMISO_EQUIPOS_VER = 'equipos.ver'
 PERMISO_EQUIPOS_EDITAR = 'equipos.editar'
 
@@ -146,14 +146,23 @@ def _fecha_minima(detalle):
 @permiso_requerido(PERMISO_REGISTRAR)
 def mis_ensayos_compresion(request):
     vista = request.GET.get('vista', 'pendientes')
-    detalles = (
-        _detalles_visibles(request.user)
-        .select_related('muestra', 'solicitud', 'resultado', 'tecnico_asignado')
-        .annotate(n_fotos=Count('resultado__fotos'))
-        .order_by('fecha_entrega_programada', 'muestra__codigo_laboratorio')
-    )
+    base = _detalles_visibles(request.user)
+    filtro_recepcion = request.GET.get('recepcion', '')
+    if filtro_recepcion.isdigit():
+        base = base.filter(muestra__recepcion_id=int(filtro_recepcion))
+    else:
+        filtro_recepcion = ''
     terminado = Q(resultado__estado__in=ResultadoEnsayo.ESTADOS_CERRADOS)
-    detalles = detalles.filter(terminado) if vista == 'terminados' else detalles.exclude(terminado)
+    n_terminados = base.filter(terminado).count()
+    n_pendientes = base.exclude(terminado).count()
+    detalles = (
+        base.select_related('muestra', 'solicitud', 'resultado', 'tecnico_asignado')
+        .annotate(n_fotos=Count('resultado__fotos'))
+    )
+    if vista == 'terminados':
+        detalles = detalles.filter(terminado).order_by('-resultado__terminado_en', '-fecha_entrega_programada', 'muestra__codigo_laboratorio')
+    else:
+        detalles = detalles.exclude(terminado).order_by('fecha_entrega_programada', 'muestra__codigo_laboratorio')
 
     detalles = list(detalles.select_related('servicio_cotizado__servicio')[:200])
     for d in detalles:
@@ -162,11 +171,19 @@ def mis_ensayos_compresion(request):
         d.total_fotos = FotoEnsayo.total_requerido(d.plantilla)
         # «En curso»: ya hay algo guardado (también por el guardado automático) y falta terminar.
         d.en_curso = bool(e and not e.terminado and not e.observacion_revision)
+        # Pendientes se agrupan por fecha de entrega; los terminados, por el día en que se terminaron.
+        d.fecha_grupo = d.fecha_entrega_programada
+        if vista == 'terminados' and e and e.terminado_en:
+            d.fecha_grupo = timezone.localtime(e.terminado_en).date()
     en_curso = [d for d in detalles if d.en_curso] if vista != 'terminados' else []
     sesion = SesionEnsayo.abierta_de(_perfil(request.user))
     return render(request, 'proyectos/compresion_lista.html', {
         'detalles': detalles,
         'en_curso': en_curso,
+        'n_en_curso': len(en_curso),
+        'n_pendientes': n_pendientes,
+        'n_terminados': n_terminados,
+        'filtro_recepcion': filtro_recepcion,
         'vista': vista,
         'hoy': timezone.localdate(),
         'sesion': sesion,
@@ -720,6 +737,13 @@ def _aplicar_datos_cliente(request, detalle, ensayo):
         return "Datos de la probeta: " + " ".join(errores)
     form.save()
     trazabilidad.anotar_cambios(ensayo, muestra, antes, trazabilidad.CAMPOS_MUESTRA, request.user, prefijo='probeta:')
+    # Ubicación del proyecto (va al informe; si se deja vacía, el informe usa la procedencia).
+    if 'ubicacion_proyecto' in request.POST and muestra.recepcion_id:
+        nueva = request.POST.get('ubicacion_proyecto', '').strip()[:255]
+        recepcion = muestra.recepcion
+        if nueva != (recepcion.ubicacion_proyecto or ''):
+            recepcion.ubicacion_proyecto = nueva
+            recepcion.save(update_fields=['ubicacion_proyecto'])
     return None
 
 
@@ -1177,49 +1201,6 @@ def cerrar_sesion_ensayo(request):
     n = sesion.ensayos.count()
     messages.success(request, f"Sesión cerrada con {n} probeta{'s' if n != 1 else ''} terminada{'s' if n != 1 else ''}.")
     return redirect(volver)
-
-
-# --- Datos FOR-004 de las probetas, en recepción (HU-LIMS-11) -------------
-
-@login_required
-@permiso_requerido(PERMISO_DATOS_PROBETA)
-def datos_probetas_recepcion(request, recepcion_id):
-    recepcion = get_object_or_404(RecepcionMuestra.objects.select_related('cotizacion'), pk=recepcion_id)
-    muestras = list(
-        MuestraDetalle.objects.filter(recepcion=recepcion).select_related('tipo_muestra').order_by('nro_item', 'pk')
-    )
-    # Probetas de compresión primero; el resto (suelos, etc.) también se puede llenar.
-    ids_compresion = set(
-        DetalleSolicitudEnsayo.objects.filter(FILTRO_COMPRESION, muestra__recepcion=recepcion)
-        .values_list('muestra_id', flat=True)
-    )
-
-    def formulario(m):
-        inicial = {}
-        if m.fecha_fabricacion is None and recepcion.fecha_fabricacion:
-            inicial['fecha_fabricacion'] = recepcion.fecha_fabricacion
-        return DatosProbetaForm(request.POST or None, instance=m, prefix=f'm{m.pk}', initial=inicial)
-
-    filas = [{'muestra': m, 'form': formulario(m), 'compresion': m.pk in ids_compresion} for m in muestras]
-    ubicacion = (request.POST.get('ubicacion_proyecto') if request.method == 'POST' else recepcion.ubicacion_proyecto) or ''
-
-    if request.method == 'POST':
-        if all(f['form'].is_valid() for f in filas):
-            with transaction.atomic():
-                recepcion.ubicacion_proyecto = ubicacion.strip()[:255]
-                recepcion.save(update_fields=['ubicacion_proyecto'])
-                for f in filas:
-                    f['form'].save()
-            messages.success(request, "Datos de las probetas guardados.")
-            return redirect('proyectos:datos_probetas', recepcion_id=recepcion.pk)
-        messages.error(request, "Revisa los datos marcados en rojo.")
-
-    return render(request, 'proyectos/compresion_datos_probetas.html', {
-        'recepcion': recepcion,
-        'filas': sorted(filas, key=lambda f: not f['compresion']),
-        'ubicacion': ubicacion,
-        'hay_agrupadas': any(f['muestra'].cantidad > 1 for f in filas if f['compresion']),
-    })
 
 
 # --- Equipos (HU-LIMS-12) ---------------------------------------------------

@@ -272,6 +272,7 @@
         .rg-modal .text-sm, .rg-modal fieldset .py-1\.5 { font-size: .84rem !important; }
         .rg-modal .v-paso { width: 1.5rem; height: 1.5rem; font-size: .75rem; }
     }
+    .rg-ancho2 { grid-column: 1 / -1; }
     /* Sesión: modal grande */
     .rg-mini__caja--ancha { width: min(96vw, 90rem); height: min(92vh, 62rem); max-height: none; display: flex; flex-direction: column; padding: 1.1rem 1.4rem; overflow: hidden; }
     .rg-mini__caja--ancha .rg-mini__cab h3 { font-size: 1.15rem; }
@@ -546,6 +547,7 @@
                 <dt class="text-slate-500">Elemento</dt><dd class="font-semibold text-slate-800">{{ muestra.elemento_estructural|default:"—" }}</dd>
                 <dt class="text-slate-500">f'c de diseño</dt><dd class="font-semibold text-slate-800">{% if muestra.fc_diseno %}{{ muestra.fc_diseno|floatformat:0 }} kg/cm²{% else %}—{% endif %}</dd>
                 <dt class="text-slate-500">Moldeo</dt><dd class="font-semibold text-slate-800">{{ muestra.fecha_fabricacion|date:"d/m/Y"|default:"—" }}</dd>
+                <dt class="text-slate-500">Ubicación</dt><dd class="font-semibold text-slate-800">{{ muestra.recepcion.ubicacion_proyecto|default:"—" }}</dd>
                 <dt class="text-slate-500">Edad</dt><dd class="font-semibold text-slate-800">{% if muestra.edad_ensayo_dias is not None %}{{ muestra.edad_ensayo_dias }} días{% else %}—{% endif %}</dd>
             </dl>
             {% else %}
@@ -556,6 +558,10 @@
                     {{ campo }}
                 </label>
                 {% endfor %}
+                <label class="v-campo block col-span-2 rg-ancho2">
+                    <span class="v-etiqueta">Ubicación del proyecto <span class="font-normal text-slate-400">(opcional; si queda vacía, el informe usa la procedencia)</span></span>
+                    <input type="text" name="ubicacion_proyecto" maxlength="255" value="{{ muestra.recepcion.ubicacion_proyecto|default:'' }}" class="w-full">
+                </label>
             </div>
             {% endif %}
             </div>

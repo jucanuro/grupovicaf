@@ -190,6 +190,11 @@ Antes de esto el formulario iba en columnas, la sesión de ensayo integrada (`_s
 («Repetir esta foto» usa el asistente). Ya no se sube hoja de cálculo; el
 campo `hoja_calculo` y su descarga solo sirven a ensayos viejos.
 
+**Lista de resultados en filas (HU-LIMS-43).** `compresion_lista.html` + `static/css/resultados_lista.css`: pestañas separadas
+Pendientes / Terminados con su conteo («faltan N», «N en curso») y una lista de filas (`.rr`) agrupada por fecha de entrega
+(pendientes) o por el día en que se terminaron (terminados, más recientes primero); ya no hay tarjetas de «en curso» aparte.
+`?recepcion=<id>` filtra por recepción. «Datos de probetas» ya no existe: quedó fuera el botón, la vista y la ruta.
+
 **Formulario por secciones y hoja de resumen (HU-LIMS-41).** El formulario del registro ya no usa columnas CSS (causaban scroll
 horizontal): `.rg-marco` = menú lateral `.rg-rail` (`[data-ir-sec]`) + secciones `.rg-sec[data-sec=cliente|medidas|rotura]`, una visible
 a la vez en PC; bajo 900 px se apilan todas (solo scroll vertical). El resumen de la pantalla es una hoja tipo FOR-009 armada en JS
@@ -264,8 +269,8 @@ si no encuentra nada claro deja el marco centrado). Sin las 6 fotos y la fecha n
 Las fotos van a `ENSAYOS_FOTOS_DIR` (privado, nunca MEDIA_ROOT; en prod debe
 existir, ser escribible por el servicio y entrar en el backup) y se sirven
 por una vista con sesión. Permiso `ensayos.registrar`.
-Medidas y cálculos (HU-LIMS-11 a 13): recepción llena los datos FOR-004 de
-cada probeta (`/proyectos/recepcion/<id>/probetas/`, permiso `muestras.editar`);
+Medidas y cálculos (HU-LIMS-11 a 13): el formulario aparte de datos FOR-004 de la recepción se eliminó (HU-LIMS-43): esos datos y la
+ubicación del proyecto se copian en el registro de cada ensayo;
 el técnico abre una `SesionEnsayo` (T/HR y los 6 equipos con calibración
 vigente; `Equipo` en `/proyectos/equipos/`, permisos `equipos.ver`/`equipos.editar`)
 y registra masa, D1-D2, L1-L3, carga y fractura. Como en el formato de registro en papel

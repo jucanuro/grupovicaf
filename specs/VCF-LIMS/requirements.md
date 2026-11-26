@@ -522,8 +522,12 @@ redistribuye por secciones; el modal de la sesión debe ser más grande con los 
 | REQ-LIMS-201 | HU-LIMS-41 | CUANDO se abra un ensayo terminado, EL SISTEMA DEBE mostrar el contador de fotos con las registradas y la hoja de resumen con todos los datos guardados. | sí | [Validado con usuario] |
 | REQ-LIMS-202 | HU-LIMS-41 | EL SISTEMA DEBE presentar «Ensayos en curso» como tarjetas con código, ensayo, solicitud, entrega y avance de fotos. | sí (navegador) | [Validado con usuario] |
 | REQ-LIMS-203 | HU-LIMS-42 | EL SISTEMA DEBE mostrar en la lista de resultados, a pantalla completa, los ensayos en curso a la izquierda uno bajo otro y a la derecha los resultados por registrar agrupados y ordenados por fecha de entrega, marcando el atraso. | sí (navegador) | [Validado con usuario] |
+| HU-LIMS-43 | Lista de resultados en filas con pestañas separadas y sin formulario de datos de probetas | REQ-LIMS-206 a 208 |
 | REQ-LIMS-204 | HU-LIMS-42 | EL SISTEMA DEBE mostrar la lista de recepciones con filas compactas (fecha y hora juntas, cliente con inicial, proyecto y cotización, muestras) y botones de acción siempre visibles. | sí (navegador) | [Validado con usuario] |
 | REQ-LIMS-205 | HU-LIMS-42 | EL SISTEMA DEBE mostrar el detalle de la recepción con textos e iconos pequeños, datos de cliente, procedencia y responsable en una franja, y la tabla de muestras completa sin scroll horizontal. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-206 | HU-LIMS-43 | EL SISTEMA DEBE mostrar los resultados de ensayo como una lista de filas, con las pestañas Pendientes y Terminados separadas, cada una con su conteo (y lo que falta), sin mezclar sus ensayos. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-207 | HU-LIMS-43 | EL SISTEMA DEBE ordenar los pendientes por fecha de entrega y los terminados por la fecha en que se terminaron (más recientes primero), uno debajo de otro, agrupados por día. | sí | [Validado con usuario] |
+| REQ-LIMS-208 | HU-LIMS-43 | EL SISTEMA NO DEBE ofrecer el formulario «Datos de las probetas» de la recepción; EL SISTEMA DEBE capturar esos datos y la ubicación del proyecto en el registro de cada ensayo. | sí | [Validado con usuario] |
 
 ## 3. Trazabilidad HU → REQ
 
@@ -602,3 +606,4 @@ redistribuye por secciones; el modal de la sesión debe ser más grande con los 
 | v23 | 2026-11-26 | Claude (DLF) | Modal sobre todo el sistema, video, equipos con «+», fotos tipo escáner y resumen moderno: REQ-LIMS-186 a 194 (HU-LIMS-40) |
 | v24 | 2026-11-26 | Claude (DLF) | Formulario por secciones, hoja de resumen tipo FOR-009, fotos de a dos y sesión grande: REQ-LIMS-195 a 202 (HU-LIMS-41) |
 | v25 | 2026-11-26 | Claude (DLF) | Lista de resultados dividida y recepciones compactas: REQ-LIMS-203 a 205 (HU-LIMS-42) |
+| v26 | 2026-11-26 | Claude (DLF) | Lista de resultados en filas y sin formulario de datos de probetas: REQ-LIMS-206 a 208 (HU-LIMS-43) |

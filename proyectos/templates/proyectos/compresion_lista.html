@@ -7,16 +7,34 @@
 {% block content %}
 <div class="rl-pagina">
     <div class="v-cabecera rl-cab">
-        <div class="v-cabecera__icono"><i data-lucide="camera"></i>
-        </div>
+        <div class="v-cabecera__icono"><i data-lucide="camera"></i></div>
         <div class="min-w-0">
             <h1 class="text-lg font-bold text-slate-800 leading-tight">Resultados de ensayo</h1>
-            <p class="text-xs text-slate-500">Datos, fotos y hoja de cada ensayo que tienes asignado</p>
+            <p class="text-xs text-slate-500">Datos, fotos y formulario de cada ensayo que tienes asignado</p>
         </div>
     </div>
 
-    <aside class="rl-aside">
-    <section class="v-tarjeta p-4" {% if sesion %}style="border-color:#6ee7b7; box-shadow:0 0 0 4px #ecfdf5"{% endif %} data-sesion>
+    <div class="rl-main">
+    <nav class="rl-tabs" aria-label="Filtro">
+        <a href="?vista=pendientes{% if filtro_recepcion %}&recepcion={{ filtro_recepcion }}{% endif %}" class="rl-tab {% if vista != 'terminados' %}rl-tab--on{% endif %}">
+            <i data-lucide="clock-3" class="w-4 h-4"></i>
+            <span class="rl-tab__t">Pendientes</span><em class="rl-tab__n">{{ n_pendientes }}</em>
+            {% if n_pendientes %}<small>{% if n_en_curso %}{{ n_en_curso }} en curso · {% endif %}faltan {{ n_pendientes }}</small>{% else %}<small>Todo al día</small>{% endif %}
+        </a>
+        <a href="?vista=terminados{% if filtro_recepcion %}&recepcion={{ filtro_recepcion }}{% endif %}" class="rl-tab {% if vista == 'terminados' %}rl-tab--on rl-tab--ok{% endif %}">
+            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+            <span class="rl-tab__t">Terminados</span><em class="rl-tab__n">{{ n_terminados }}</em>
+            <small>{% if n_terminados %}más recientes primero{% else %}aún ninguno{% endif %}</small>
+        </a>
+    </nav>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="rounded-xl px-4 py-3 text-sm {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-green-50 text-green-700 border border-green-200{% endif %}" role="status">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <section class="v-tarjeta p-4 rl-sesion" {% if sesion %}style="border-color:#6ee7b7; box-shadow:0 0 0 4px #ecfdf5"{% endif %} data-sesion>
         {% if sesion %}
         <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
@@ -49,88 +67,33 @@
         {% endif %}
     </section>
 
-    {% if en_curso %}
-    <section class="curso" data-continuar>
-        <div class="curso__cab">
-            <span class="curso__icono"><i data-lucide="pencil-line" class="w-4 h-4"></i></span>
-            <div>
-                <p class="curso__titulo">Ensayos en curso <span class="curso__n">{{ en_curso|length }}</span></p>
-                <p class="curso__sub">Lo que escribiste quedó guardado. Entra y continúa donde lo dejaste.</p>
-            </div>
-        </div>
-        <div class="curso__lista">
-            {% for d in en_curso %}
-            <a href="{% url 'proyectos:registrar_compresion' d.pk %}" class="curso__item" data-continuar-enlace>
-                <span class="curso__cod">{{ d.muestra.codigo_laboratorio }}</span>
-                <span class="curso__ens">{% if d.plantilla == 'compresion' %}Compresión de probeta{% else %}{{ d.descripcion_ensayo|default:d.norma }}{% endif %}</span>
-                <span class="curso__meta">{{ d.solicitud.codigo_solicitud }} · entrega {{ d.fecha_entrega_programada|date:"d/m" }}</span>
-                <span class="curso__barra"><i style="width: {% widthratio d.n_fotos 6 100 %}%"></i></span>
-                <span class="curso__pie"><span>{{ d.n_fotos }}/6 fotos</span><b>Continuar <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></b></span>
-            </a>
-            {% endfor %}
-        </div>
-    </section>
-    <style>
-        .curso { background: linear-gradient(135deg, #eff6ff, #f8fafc 60%); border: 1px solid #bfdbfe; border-radius: 1.2rem; padding: 1rem 1.1rem 1.1rem; }
-        .curso__cab { display: flex; gap: .7rem; align-items: center; margin-bottom: .8rem; }
-        .curso__icono { width: 2.2rem; height: 2.2rem; border-radius: .8rem; background: linear-gradient(135deg, #2563eb, #1e40af); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px -8px rgba(37,99,235,.8); flex-shrink: 0; }
-        .curso__titulo { font-weight: 800; color: #0f172a; font-size: 1.02rem; display: flex; align-items: center; gap: .4rem; }
-        .curso__n { font-size: .68rem; background: #2563eb; color: #fff; border-radius: 99px; padding: .05rem .5rem; }
-        .curso__sub { font-size: .74rem; color: #64748b; }
-        .curso__grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: .5rem; }
-        .curso__item { display: flex; flex-direction: column; gap: .15rem; background: #fff; border: 1px solid #e2e8f0; border-left: 4px solid #2563eb; border-radius: .9rem; padding: .7rem .8rem; transition: transform .12s, box-shadow .12s, border-color .12s; min-width: 0; }
-        .curso__item:hover { transform: translateY(-2px); box-shadow: 0 12px 22px -14px rgba(30,64,175,.6); border-color: #93c5fd; border-left-color: #2563eb; }
-        .curso__cod { font-family: ui-monospace, Menlo, monospace; font-weight: 800; font-size: .92rem; color: #0f172a; overflow-wrap: anywhere; }
-        .curso__ens { font-size: .78rem; font-weight: 600; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .curso__meta { font-size: .68rem; color: #94a3b8; }
-        .curso__barra { display: block; height: .3rem; background: #e2e8f0; border-radius: 99px; overflow: hidden; margin-top: .35rem; }
-        .curso__barra > i { display: block; height: 100%; background: linear-gradient(90deg, #38bdf8, #2563eb); border-radius: 99px; }
-        .curso__pie { display: flex; justify-content: space-between; align-items: center; font-size: .7rem; color: #64748b; margin-top: .15rem; }
-        .curso__pie b { color: #1d4ed8; display: inline-flex; align-items: center; gap: .2rem; }
-    </style>
-    {% endif %}
+    {% if en_curso %}<p class="rl-curso" data-continuar><i data-lucide="pencil-line" class="w-3.5 h-3.5"></i> Tienes <b>{{ en_curso|length }}</b> ensayo{{ en_curso|length|pluralize }} en curso: sigue donde lo dejaste.</p>{% endif %}
 
-    </aside>
-    <div class="rl-main">
-    <nav class="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl text-sm font-semibold" aria-label="Filtro">
-        <a href="?vista=pendientes"
-           class="text-center py-2 rounded-lg {% if vista != 'terminados' %}bg-white shadow text-slate-900{% else %}text-slate-500{% endif %}">Pendientes</a>
-        <a href="?vista=terminados"
-           class="text-center py-2 rounded-lg {% if vista == 'terminados' %}bg-white shadow text-slate-900{% else %}text-slate-500{% endif %}">Terminados</a>
-    </nav>
-
-    {% if messages %}
-        {% for message in messages %}
-        <div class="rounded-xl px-4 py-3 text-sm {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-green-50 text-green-700 border border-green-200{% endif %}" role="status">{{ message }}</div>
-        {% endfor %}
-    {% endif %}
-
-    <div data-lista-compresion class="rl-fechas">
-        {% regroup detalles by fecha_entrega_programada as por_fecha %}
+    <div data-lista-compresion class="rl-lista">
+        {% regroup detalles by fecha_grupo as por_fecha %}
         {% for grupo in por_fecha %}
         <section class="rl-dia">
             <h2 class="rl-dia__t {% if grupo.grouper < hoy and vista != 'terminados' %}rl-dia__t--atraso{% endif %}">
-                <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                <i data-lucide="{% if vista == 'terminados' %}check-circle-2{% else %}calendar{% endif %}" class="w-3.5 h-3.5"></i>
                 {% if grupo.grouper == hoy %}Hoy · {% elif grupo.grouper < hoy and vista != 'terminados' %}Atrasado · {% endif %}{{ grupo.grouper|date:"D d/m/Y" }}
                 <span>{{ grupo.list|length }}</span>
             </h2>
-            <div class="rl-dia__grid">
+            <div class="rl-filas">
             {% for d in grupo.list %}{% with e=d.resultado %}
-                <a href="{% url 'proyectos:registrar_compresion' d.pk %}" class="rl-fila">
-                    <span class="rl-fila__ico"><i data-lucide="{% if d.plantilla == 'compresion' %}hammer{% else %}flask-conical{% endif %}" class="w-4 h-4"></i></span>
-                    <span class="rl-fila__txt">
-                        <b data-codigo>{{ d.muestra.codigo_laboratorio }}</b>
-                        <span>{% if d.plantilla == 'compresion' %}Compresión de probeta{% else %}{{ d.descripcion_ensayo|default:d.norma }}{% endif %}</span>
-                        <small>{{ d.solicitud.codigo_solicitud }} · {{ d.norma }}</small>
-                    </span>
-                    <span class="rl-fila__der">
+                <a href="{% url 'proyectos:registrar_compresion' d.pk %}" class="rr {% if d.en_curso %}rr--curso{% endif %} {% if e and e.terminado %}rr--ok{% endif %}"{% if d.en_curso %} data-continuar-enlace{% endif %}>
+                    <span class="rr__ico"><i data-lucide="{% if d.plantilla == 'compresion' %}hammer{% else %}flask-conical{% endif %}" class="w-4 h-4"></i></span>
+                    <span class="rr__main"><b data-codigo>{{ d.muestra.codigo_laboratorio }}</b><span>{% if d.plantilla == 'compresion' %}Compresión de probeta{% else %}{{ d.descripcion_ensayo|default:d.norma }}{% endif %}</span></span>
+                    <span class="rr__sol">{{ d.solicitud.codigo_solicitud }}<small>{{ d.norma }}</small></span>
+                    <span class="rr__fecha"><small>Entrega</small>{{ d.fecha_entrega_programada|date:"d/m/Y" }}</span>
+                    <span class="rr__fotos {% if d.n_fotos >= d.total_fotos %}rr__fotos--ok{% endif %}"><span class="rr__barra"><i style="width: {% widthratio d.n_fotos d.total_fotos 100 %}%"></i></span>{{ d.n_fotos }}/{{ d.total_fotos }} fotos</span>
+                    <span class="rr__estado">
                         {% if e and e.terminado %}<em class="rl-chip rl-chip--ok">Terminado</em>
                         {% elif e and e.observacion_revision %}<em class="rl-chip rl-chip--amb">Devuelta</em>
                         {% elif d.en_curso %}<em class="rl-chip rl-chip--azul" data-en-curso>En curso · Continuar</em>
                         {% elif d.fecha_entrega_programada < hoy %}<em class="rl-chip rl-chip--rojo">Atrasado</em>
                         {% else %}<em class="rl-chip rl-chip--amb">Pendiente</em>{% endif %}
-                        <small class="{% if d.n_fotos >= d.total_fotos %}rl-ok{% endif %}"><i data-lucide="image" class="w-3 h-3"></i> {{ d.n_fotos }}/{{ d.total_fotos }}</small>
                     </span>
+                    <i data-lucide="chevron-right" class="w-4 h-4 rr__go"></i>
                 </a>
             {% endwith %}{% endfor %}
             </div>

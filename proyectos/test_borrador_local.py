@@ -47,11 +47,6 @@ class BorradorLocalPantallasTests(AvanceMixin, TestCase):
         self.assertContains(r, "'se-estado-borrador': 'estado_borrador'")
         self.assertContains(r, 'id="estado_borrador"')
 
-    def test_datos_de_probetas(self):
-        """REQ-LIMS-114."""
-        r = self.client.get(reverse('proyectos:datos_probetas', args=[self.recepcion.pk]))
-        self.assertConBorrador(r, 'data-form-probetas')
-
     def test_el_modulo_no_guarda_nada_en_el_servidor(self):
         """REQ-LIMS-115: el borrador vive en el equipo; no crea cotizaciones ni gasta números de oferta."""
         from servicios.models import Cotizacion

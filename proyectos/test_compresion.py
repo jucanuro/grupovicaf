@@ -468,54 +468,6 @@ class SesionTests(CompresionBase):
         self.assertIsNone(SesionEnsayo.abierta_de(self.tecnico))
 
 
-class DatosProbetaTests(CompresionBase):
-
-    def setUp(self):
-        super().setUp()
-        rol = rol_con_permisos('Recepción', 'muestras.ver', 'muestras.editar')
-        self.user_rec, _ = crear_trabajador('recepcion', rol)
-        self.url = reverse('proyectos:datos_probetas', args=[self.recepcion.pk])
-
-    def test_solo_con_muestras_editar(self):
-        self.client.force_login(self.user_tec)
-        self.assertEqual(self.client.get(self.url).status_code, 403)
-
-    def test_guarda_datos_for004_y_ubicacion(self):
-        self.client.force_login(self.user_rec)
-        r = self.client.get(self.url)
-        self.assertEqual(r.status_code, 200)
-        m = self.mia.muestra
-        datos = {'ubicacion_proyecto': 'Jr. Ejemplo 123, Cajamarca'}
-        for muestra in MuestraDetalle.objects.filter(recepcion=self.recepcion):
-            p = f'm{muestra.pk}-'
-            datos.update({
-                p + 'codigo_cliente': 'P-01', p + 'elemento_estructural': 'Zapata Z-1',
-                p + 'fc_diseno': '280', p + 'fecha_fabricacion': (date.today() - timedelta(days=7)).isoformat(),
-                p + 'edad_ensayo_dias': '7', p + 'material': 'Concreto', p + 'tipo_probeta': 'Cilíndrica',
-            })
-        r = self.client.post(self.url, datos)
-        self.assertRedirects(r, self.url, fetch_redirect_response=False)
-        m.refresh_from_db()
-        self.assertEqual(m.codigo_cliente, 'P-01')
-        self.assertEqual(m.fc_diseno, Decimal('280'))
-        self.assertEqual(m.fecha_ensayo_solicitada, date.today())
-        self.recepcion.refresh_from_db()
-        self.assertEqual(self.recepcion.ubicacion_informe, 'Jr. Ejemplo 123, Cajamarca')
-
-    def test_rechaza_fabricacion_futura(self):
-        self.client.force_login(self.user_rec)
-        m = self.mia.muestra
-        r = self.client.post(self.url, {f'm{m.pk}-fecha_fabricacion': (date.today() + timedelta(days=1)).isoformat()})
-        self.assertEqual(r.status_code, 200)
-        m.refresh_from_db()
-        self.assertNotEqual(m.fecha_fabricacion, date.today() + timedelta(days=1))
-
-    def test_avisa_si_un_item_de_compresion_agrupa_varias_probetas(self):
-        MuestraDetalle.objects.filter(pk=self.mia.muestra_id).update(cantidad=3)
-        self.client.force_login(self.user_rec)
-        self.assertContains(self.client.get(self.url), 'cantidad mayor que 1')
-
-
 class EquiposTests(CompresionBase):
 
     def test_lista_y_edicion_segun_permiso(self):

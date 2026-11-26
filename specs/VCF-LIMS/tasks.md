@@ -54,6 +54,7 @@
 | T95 | Registro por encima del sistema, formulario compacto en columnas, Guardar/Terminar bajo las fotos, video con casilla (`subir_video_ensayo`), alta rápida de equipos (`crear_equipo_ajax`), fotos tipo escáner, aviso de fotos de antes y resumen moderno; nginx admite 320 MB | 186-194 | `proyectos/test_formulario_ensayo.py` (VideoEquiposYDistribucionTests) + navegador 1600, tablet y móvil | [x] |
 | T96 | Formulario por secciones con menú lateral (sin scroll en PC, vertical en celular), resumen como hoja FOR-009 (`hoja_estatica`, `_datos_sesion`), fotos de a dos (carrera al cerrar el recorte) y modal de sesión grande, hoja en ensayo terminado y tarjetas de ensayos en curso | 195-202 | `proyectos/test_formulario_ensayo.py` (RegistroSeccionesTests) + navegador 1600, 1366, tablet y móvil | [x] |
 | T97 | Lista de resultados con en curso a la izquierda y por registrar por fecha a la derecha (`resultados_lista.css`), lista de recepciones y detalle de recepción compactos | 203-205 | `proyectos/test_compresion.py` + navegador 1850 y móvil | [x] |
+| T98 | Lista de resultados en filas con pestañas separadas y conteos; se elimina el formulario «Datos de probetas» (ubicación del proyecto pasa al registro) | 206-208 | `proyectos/test_autoguardado.py`, `test_compresion.py` + navegador 1850 y móvil | [x] |
 
 ## Historial
 
@@ -86,3 +87,4 @@
 | v24 | 2026-11-26 | Claude (DLF) | T95: modal sobre todo, video, equipos, escáner y resumen moderno |
 | v25 | 2026-11-26 | Claude (DLF) | T96: formulario por secciones, hoja de resumen y sesión grande |
 | v26 | 2026-11-26 | Claude (DLF) | T97: lista de resultados dividida y recepciones compactas |
+| v27 | 2026-11-26 | Claude (DLF) | T98: lista de resultados en filas y sin datos de probetas |

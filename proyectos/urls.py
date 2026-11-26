@@ -45,7 +45,6 @@ urlpatterns = [
     path('resultados/<int:detalle_id>/hoja/', views_compresion.hoja_resultado, name='hoja_resultado'),
     # Rutas anteriores de compresión: redirigen a «Resultados de ensayo».
     re_path(r'^compresion/(?P<resto>.*)$', views_compresion.redirigir_compresion),
-    path('recepcion/<int:recepcion_id>/probetas/', views_compresion.datos_probetas_recepcion, name='datos_probetas'),
     path('equipos/', views_compresion.lista_equipos, name='lista_equipos'),
     path('equipos/nuevo/', views_compresion.editar_equipo, name='crear_equipo'),
     path('equipos/nuevo/ajax/', views_compresion.crear_equipo_ajax, name='crear_equipo_ajax'),
