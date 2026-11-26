@@ -312,7 +312,7 @@ def registrar_ensayo_compresion(request, detalle_id):
         form_sesion = AbrirSesionForm(initial={'fecha': timezone.localdate()})
         for campo in form_sesion.fields.values():
             campo.widget.attrs['form'] = 'form-sesion'
-        campos_equipo = [form_sesion[c] for c, _ in SesionEnsayo.EQUIPOS + SesionEnsayo.ACCESORIOS] + [form_sesion['neopreno_usos']]
+        campos_equipo = [(form_sesion[c], tipo) for c, tipo in SesionEnsayo.EQUIPOS + SesionEnsayo.ACCESORIOS]
         campos_comprobacion = form_sesion.campos_comprobacion()
         faltan_tipos = [
             etiqueta for campo, tipo in SesionEnsayo.EQUIPOS + SesionEnsayo.ACCESORIOS
@@ -322,7 +322,12 @@ def registrar_ensayo_compresion(request, detalle_id):
     url_sesion = reverse('proyectos:abrir_sesion_ensayo') + (f'?tecnico={a_nombre_de.pk}' if a_nombre_de else '')
     return render(request, 'proyectos/compresion_registro.html', {
         'codigo_cliente_oficial': detalle.solicitud.cotizacion.cliente.codigo_confidencial,
-        'form_sesion': form_sesion, 'campos_equipo': campos_equipo, 'campos_comprobacion': campos_comprobacion,
+        'puede_crear_equipo': trabajador_tiene_permiso(request.user, PERMISO_EQUIPOS_EDITAR),
+        'tipos_equipo': Equipo.TIPOS,
+        'video_url': reverse('proyectos:video_ensayo', args=[detalle.pk]) if ensayo is not None and ensayo.video_archivo else '',
+        'video_nombre': (ensayo.video_archivo.name.rsplit('/', 1)[-1] if ensayo is not None and ensayo.video_archivo else ''),
+        'form_sesion': form_sesion, 'campos_equipo': campos_equipo,
+        'campo_usos': form_sesion['neopreno_usos'] if form_sesion else None, 'campos_comprobacion': campos_comprobacion,
         'faltan_tipos_sesion': faltan_tipos, 'url_sesion_ajax': url_sesion,
         'sesion_resumen': _resumen_sesion(sesion) if sesion else (_resumen_sesion(ensayo.sesion) if ensayo is not None and ensayo.sesion else ''),
         'campos_formulario': campos_formulario,
@@ -669,6 +674,10 @@ def _cerrar_linea(request, detalle, ensayo, sesion=None, ejecutor=None):
     if terminadas == total:
         texto += " La solicitud quedó finalizada y pasa a revisión."
     messages.success(request, texto)
+
+
+EXTENSIONES_VIDEO = ('.mp4', '.mov', '.m4v', '.webm', '.3gp', '.avi')
+VIDEO_MAXIMO = 300 * 1024 * 1024
 
 
 EXTENSIONES_HOJA = ('.xlsx', '.xls', '.ods', '.csv', '.pdf', '.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif')
@@ -1341,3 +1350,80 @@ def programa_medidas(request, fecha, cliente_id):
     hoy = timezone.localdate()
     return _medidas_en_lote(request, lineas, pantalla, f'Programa del {fecha_programa:%d/%m/%Y}',
                             fecha_inicial=min(fecha_programa, hoy))
+
+
+# --- Video del ensayo y alta de equipos desde el registro (HU-LIMS-40) ---------
+
+@login_required
+@require_POST
+def subir_video_ensayo(request, detalle_id):
+    """Guarda el video del ensayo (FOR-009: «Grabación de video») en la carpeta privada."""
+    if not trabajador_tiene_permiso(request.user, PERMISO_REGISTRAR):
+        return JsonResponse({'ok': False, 'error': 'No tienes permiso para registrar ensayos.'}, status=403)
+    detalle = _detalle_o_404(request.user, detalle_id)
+    archivo = request.FILES.get('video')
+    if not archivo:
+        return JsonResponse({'ok': False, 'error': 'No llegó ningún video.'}, status=400)
+    if not archivo.name.lower().endswith(EXTENSIONES_VIDEO):
+        return JsonResponse({'ok': False, 'error': 'El video debe ser MP4, MOV, M4V, WEBM, 3GP o AVI.'}, status=400)
+    if archivo.size > VIDEO_MAXIMO:
+        return JsonResponse({'ok': False, 'error': 'El video pesa más de 300 MB.'}, status=400)
+    with transaction.atomic():
+        ensayo = ResultadoEnsayo.objects.filter(detalle=detalle).select_for_update().first() or ResultadoEnsayo.crear_para(detalle)
+        if ensayo.terminado:
+            return JsonResponse({'ok': False, 'error': 'El ensayo ya está terminado.'}, status=409)
+        anterior = ensayo.video_archivo.name if ensayo.video_archivo else None
+        ensayo.video_archivo.save(archivo.name, archivo, save=False)
+        ensayo.video_grabado = True
+        ensayo.save(update_fields=['video_archivo', 'video_grabado', 'actualizado_en'])
+        if anterior:
+            from .models import CambioResultado
+            CambioResultado.objects.create(
+                resultado=ensayo, campo='video', etiqueta='Video del ensayo',
+                anterior='video anterior', nuevo=archivo.name[:255], usuario=request.user,
+            )
+            try:
+                ensayo.video_archivo.storage.delete(anterior)
+            except OSError:
+                logger.warning("No se pudo borrar el video reemplazado %s", anterior)
+    return JsonResponse({
+        'ok': True, 'nombre': archivo.name, 'mb': round(archivo.size / 1048576, 1),
+        'url': reverse('proyectos:video_ensayo', args=[detalle.pk]),
+    })
+
+
+@login_required
+def video_ensayo(request, detalle_id):
+    """Descarga el video desde la carpeta privada, solo a quien ve la línea o revisa."""
+    revisor = trabajador_tiene_permiso(request.user, 'informes.ver') or trabajador_tiene_permiso(
+        request.user, 'informes.aprobar'
+    )
+    if revisor:
+        detalle = get_object_or_404(DetalleSolicitudEnsayo.objects.select_related('muestra'), pk=detalle_id)
+    elif trabajador_tiene_permiso(request.user, PERMISO_REGISTRAR):
+        detalle = get_object_or_404(_detalles_visibles(request.user).select_related('muestra'), pk=detalle_id)
+    else:
+        detalle = None
+    ensayo = _ensayo_de(detalle) if detalle else None
+    if ensayo is None or not ensayo.video_archivo:
+        raise Http404("Video no encontrado.")
+    try:
+        archivo = ensayo.video_archivo.open('rb')
+    except FileNotFoundError:
+        raise Http404("El video ya no está disponible.")
+    extension = ensayo.video_archivo.name[ensayo.video_archivo.name.rfind('.'):]
+    return FileResponse(archivo, as_attachment=True, filename=f"{detalle.muestra.codigo_laboratorio}{extension}")
+
+
+@login_required
+@require_POST
+@permiso_requerido(PERMISO_EQUIPOS_EDITAR)
+def crear_equipo_ajax(request):
+    """Alta rápida de un equipo desde el registro (mini-modal «+»), sin salir de la pantalla."""
+    form = EquipoForm(request.POST)
+    if not form.is_valid():
+        errores = [f"{form.fields[c].label}: {e}" if c in form.fields else str(e)
+                   for c, lista in form.errors.items() for e in lista]
+        return JsonResponse({'ok': False, 'errores': errores}, status=400)
+    equipo = form.save()
+    return JsonResponse({'ok': True, 'equipo': {'id': equipo.pk, 'etiqueta': str(equipo), 'tipo': equipo.tipo}})

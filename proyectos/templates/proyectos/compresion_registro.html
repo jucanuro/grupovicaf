@@ -131,6 +131,104 @@
                     background: rgba(15,23,42,.65); padding: .05rem .4rem; border-radius: .4rem; }
     .galeria-zona { border: 2px dashed #cbd5e1; border-radius: 1rem; padding: 1.1rem; text-align: center; background: #f8fafc; transition: border-color .15s, background .15s; }
     .galeria-zona.arrastrando { border-color: #2563eb; background: #eff6ff; }
+    /* Modal por encima de todo, compacto y sin scroll (HU-LIMS-40) */
+    .rg-completo { z-index: 9000; }
+    .rg-modal { z-index: 9500; }
+    .rg-modal__barra { padding: .5rem 1rem; }
+    .rg-modal__barra h2 { font-size: .9rem; }
+    .rg-modal__barra p { font-size: .68rem; }
+    .rg-modal__barra .v-btn { min-height: 2.1rem; padding: 0 1rem; font-size: .82rem; }
+    .rg-modal__cuerpo { column-width: auto; column-count: 1; column-gap: .8rem; padding: .7rem .9rem 1rem; }
+    @media (min-width: 760px) { .rg-modal__cuerpo { column-count: 2; } }
+    @media (min-width: 1150px) { .rg-modal__cuerpo { column-count: 3; } }
+    @media (min-width: 1500px) { .rg-modal__cuerpo { column-count: 4; } }
+    .rg-modal__cuerpo > * { break-inside: avoid; margin-bottom: .8rem; }
+    .rg-modal .v-tarjeta, .rg-modal .v-tarjeta { border-radius: .85rem; }
+    .rg-modal .v-tarjeta__cab { padding: .55rem .75rem .1rem; gap: .5rem; }
+    .rg-modal .v-tarjeta__cuerpo { padding: .4rem .75rem .7rem; }
+    .rg-modal .v-tarjeta__cab h2 { font-size: .8rem; }
+    .rg-modal .v-tarjeta__cab p { font-size: .62rem; line-height: 1.25; }
+    .rg-modal .v-paso, .rg-mini .v-paso { width: 1.25rem; height: 1.25rem; font-size: .62rem; }
+    .rg-modal .v-etiqueta, .rg-mini .v-etiqueta { font-size: .64rem; margin-bottom: .12rem; font-weight: 700; letter-spacing: .01em; }
+    .rg-modal .v-campo input, .rg-modal .v-campo select, .rg-modal .v-campo textarea,
+    .rg-mini .v-campo input, .rg-mini .v-campo select, .rg-mini .v-campo textarea { min-height: 0; padding: .28rem .5rem; font-size: .78rem; border-radius: .5rem; }
+    .rg-modal .v-campo input[type=radio], .rg-modal .v-campo input[type=checkbox], .rg-modal .v-opcion input,
+    .rg-mini .v-campo input[type=radio], .rg-mini .v-opcion input { width: .9rem; height: .9rem; }
+    .rg-modal .v-opcion, .rg-mini .v-opcion { font-size: .72rem; gap: .25rem; }
+    .rg-modal .gap-3 { gap: .45rem !important; }
+    .rg-modal .space-y-3 > * + * { margin-top: .45rem !important; }
+    .rg-modal .text-sm, .rg-modal fieldset .py-1\.5 { font-size: .74rem !important; }
+    .rg-modal .v-campo[data-unidad]::after, .rg-mini .v-campo[data-unidad]::after { font-size: .68rem; }
+    .rg-fijos { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-bottom: .5rem; }
+    .rg-fijos > div { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: .6rem; padding: .3rem .5rem; }
+    .rg-fijos span { display: block; font-size: .58rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #94a3b8; }
+    .rg-fijos b { display: block; font-family: ui-monospace, Menlo, monospace; font-size: .76rem; color: #0f172a; overflow-wrap: anywhere; }
+    .rg-sesion-barra { column-span: all; display: flex; align-items: center; gap: .6rem; background: #fff; border: 1px solid #e2e8f0; border-radius: .85rem; padding: .45rem .7rem; }
+    .rg-sesion-barra__icono { width: 1.7rem; height: 1.7rem; border-radius: .6rem; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .rg-sesion-barra__titulo { font-weight: 800; font-size: .8rem; color: #0f172a; }
+    .rg-sesion-barra__titulo small { font-weight: 600; color: #64748b; }
+    .rg-sesion-barra__texto { font-size: .68rem; color: #64748b; }
+    .rg-sesion-barra__texto b { color: #15803d; }
+    .rg-video__subida { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-top: .35rem; }
+    .rg-video__subida .v-btn { min-height: 1.9rem; font-size: .72rem; padding: 0 .7rem; }
+    .rg-video__estado { font-size: .72rem; color: #475569; }
+    .rg-video__barra { display: block; width: 100%; height: .3rem; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+    .rg-video__barra > span { display: block; height: 100%; width: 0; background: #2563eb; transition: width .2s; }
+    .rg-mini { position: fixed; inset: 0; z-index: 9700; background: rgba(15, 23, 42, .55); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .rg-mini[hidden] { display: none; }
+    .rg-mini__caja { background: #fff; border-radius: 1rem; box-shadow: 0 30px 60px -20px rgba(15, 23, 42, .6); width: min(30rem, 100%); max-height: calc(100vh - 2rem); overflow: auto; padding: .85rem 1rem; }
+    .rg-mini__caja--ancha { width: min(64rem, 100%); }
+    .rg-mini--alto { z-index: 9800; }
+    .rg-mini__cab { display: flex; justify-content: space-between; gap: .8rem; margin-bottom: .6rem; }
+    .rg-mini__cab h3 { font-weight: 800; font-size: .92rem; color: #0f172a; }
+    .rg-mini__cab p { font-size: .72rem; color: #64748b; margin-top: .1rem; }
+    .rg-mini__x { width: 1.8rem; height: 1.8rem; border-radius: .6rem; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; color: #64748b; flex-shrink: 0; }
+    .rg-mini__pie { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-top: .7rem; flex-wrap: wrap; }
+    .rg-mini__pie p { font-size: .68rem; color: #64748b; }
+    .rg-mini__pie > div { display: flex; gap: .4rem; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
+    @media (max-width: 639px) { .rg-mini__pie > div { width: 100%; } .rg-mini__pie > div .v-btn { flex: 1; padding: 0 .5rem; } .rg-mini { padding: .5rem; align-items: flex-end; } .rg-mini__caja { border-radius: 1rem 1rem .6rem .6rem; } }
+    .rg-mini__error { font-size: .76rem; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: .6rem; padding: .4rem .6rem; margin-top: .6rem; }
+    .rg-sesion-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .9rem; align-items: start; }
+    .rg-sesion-grid h4 { font-size: .66rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #64748b; margin-bottom: .35rem; }
+    .rg-sesion-grid label { display: block; margin-bottom: .4rem; }
+    .rg-equipo { display: flex; gap: .3rem; align-items: stretch; }
+    .rg-equipo .v-campo { flex: 1; min-width: 0; }
+    .rg-mas { width: 1.8rem; border-radius: .5rem; border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; font-weight: 800; font-size: 1.05rem; line-height: 1; flex-shrink: 0; }
+    .rg-mas:hover { background: #dbeafe; }
+    .rg-comp__equipo { font-size: .6rem; font-weight: 800; text-transform: uppercase; color: #64748b; margin: .35rem 0 .1rem; }
+    .rg-comp__fila { display: flex; justify-content: space-between; gap: .6rem; font-size: .7rem; padding: .15rem 0; border-bottom: 1px solid #f1f5f9; }
+    .rg-acciones { background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; padding: .7rem .8rem; margin-top: .8rem; display: grid; gap: .4rem; }
+    .rg-acciones__estado { font-size: .68rem; font-weight: 700; color: #64748b; }
+    .rg-acciones__faltan { font-size: .72rem; color: #475569; }
+    .rg-acciones__nota { font-size: .74rem; color: #64748b; }
+    .rg-acciones__botones { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+    /* Resumen moderno (HU-LIMS-40) */
+    .rg-resumen { border: 0; background: transparent; }
+    .rg-resumen__cab { border: 0; padding: 0 0 .6rem; }
+    .rg-resumen__cab h2 { font-size: .95rem; }
+    .rg-hero { display: flex; align-items: center; gap: 1.2rem; flex-wrap: wrap; padding: .8rem 1rem; border-radius: 1rem; color: #fff;
+               background: radial-gradient(120% 140% at 0% 0%, #2563eb 0%, #1e3a8a 45%, #0f172a 100%); }
+    .rg-hero__dato small { display: block; font-size: .6rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #bfdbfe; }
+    .rg-hero__dato b { font-family: ui-monospace, Menlo, monospace; font-size: 1.5rem; line-height: 1.1; }
+    .rg-hero__dato span { font-size: .72rem; color: #bfdbfe; margin-left: .25rem; }
+    .rg-hero__progreso { margin-left: auto; min-width: 9rem; }
+    .rg-hero__progreso small { font-size: .68rem; color: #bfdbfe; }
+    .rg-hero__progreso i { display: block; height: .35rem; border-radius: 99px; background: rgba(255,255,255,.2); margin-top: .25rem; overflow: hidden; }
+    .rg-hero__progreso i > em { display: block; height: 100%; background: #34d399; border-radius: 99px; transition: width .3s; }
+    .rg-resumen__cuerpo { display: block; padding: .6rem 0 0; }
+    .rg-grupo { margin-bottom: .75rem; }
+    .rg-grupo h3 { display: flex; align-items: center; gap: .4rem; font-size: .66rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #475569; margin-bottom: .3rem; }
+    .rg-grupo h3::before { content: ''; width: .5rem; height: .5rem; border-radius: 99px; background: var(--c, #3b82f6); }
+    .rg-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.3rem, 1fr)); gap: .4rem; }
+    .rg-tile { background: #fff; border: 1px solid #e2e8f0; border-left: 3px solid var(--c, #3b82f6); border-radius: .65rem; padding: .35rem .55rem; }
+    .rg-tile span { display: block; font-size: .58rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #94a3b8; }
+    .rg-tile b { display: block; font-size: .85rem; color: #0f172a; overflow-wrap: anywhere; font-weight: 700; }
+    .rg-tile[data-vacio] { background: #f8fafc; border-style: dashed; border-left-style: dashed; border-left-color: #cbd5e1; }
+    .rg-tile[data-vacio] b { color: #cbd5e1; font-weight: 600; }
+    .rg-resumen__vacio { font-size: .85rem; color: #64748b; background: #fff; border: 1px dashed #cbd5e1; border-radius: .8rem; padding: .8rem 1rem; margin-bottom: .7rem; }
+    .rg-requisitos { padding: .5rem .75rem; }
+    .rg-req { font-size: .72rem; padding: .2rem .55rem; }
+    .rg-completo .rs-barra { padding-top: .5rem; padding-bottom: .5rem; }
 </style>
 {% endblock %}
 
@@ -140,6 +238,7 @@
      data-sesion="{% if sesion or sesion_ensayo %}1{% else %}0{% endif %}"
      data-solo-lectura="{% if solo_lectura %}1{% else %}0{% endif %}"
      data-codigo-cliente="{{ codigo_cliente_oficial }}"
+     data-codigo-lab="{{ detalle.muestra.codigo_laboratorio }}"
      data-subir-url="{% url 'proyectos:subir_foto_compresion' detalle.pk 'TIPO' %}"
      data-sesion-url="{{ url_sesion_ajax }}"
      data-lado-maximo="{{ lado_maximo }}">
@@ -228,8 +327,7 @@
                                 <i data-lucide="images"></i> <span data-asist-texto2>Elegir de la galería</span>
                                 <input type="file" accept="image/*" multiple class="sr-only" data-asist-archivos>
                             </label>
-                            <button type="button" class="v-btn v-btn--secundario hidden" data-asist-webcam><i data-lucide="video"></i> Usar la cámara del equipo</button>
-                        </div>
+                            </div>
                     </div>
                     {% endif %}
                     <details class="grupo-fotos" data-grupo-fotos="antes">
@@ -269,13 +367,25 @@
                         </div>
                     </div>
                     {% endif %}
-                    {% if not solo_lectura %}
-                    <button type="button" class="v-btn v-btn--primario v-btn--block solo-movil" data-ir-formulario>
-                        <i data-lucide="clipboard-pen"></i> Llenar formulario
-                    </button>
-                    {% endif %}
                 </div>
             </section>
+                    <div class="rg-acciones" data-acciones>
+                        {% if solo_lectura %}
+                            {% if ve_todos and not ensayo.aprobado %}
+                            <p class="rg-acciones__nota">Reabrir devuelve el ensayo al técnico para corregirlo.</p>
+                            <button type="submit" form="form-registro" name="accion" value="reabrir" class="v-btn v-btn--secundario v-btn--sm"><i data-lucide="rotate-ccw"></i> Reabrir para corrección</button>
+                            {% else %}
+                            <p class="rg-acciones__nota">Ensayo terminado. Si hay que corregirlo, pide al supervisor que lo reabra.</p>
+                            {% endif %}
+                        {% else %}
+                            <p class="rg-acciones__estado" data-autoguardado role="status" aria-live="polite">Lo que escribas se guarda solo.</p>
+                            <p class="rg-acciones__faltan" data-faltan></p>
+                            <div class="rg-acciones__botones">
+                                <button type="submit" form="form-registro" name="accion" value="guardar" class="v-btn v-btn--secundario v-btn--sm"><i data-lucide="save"></i> Guardar</button>
+                                <button type="submit" form="form-registro" name="accion" value="terminar" data-terminar class="v-btn v-btn--exito v-btn--sm"><i data-lucide="circle-check"></i> Terminar</button>
+                            </div>
+                        {% endif %}
+                    </div>
         </aside>
     </div>
 
@@ -297,13 +407,13 @@
                 <div><h2>Datos del cliente</h2><p>El código del cliente viene de la cotización. Copia del formato la identificación de la muestra, f&#39;c, fecha de moldeo y edad.</p></div>
             </div>
             <div class="v-tarjeta__cuerpo">
-            <div class="flex items-center justify-between gap-3 rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 mb-3" data-codigo-cliente-oficial>
-                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Código de cliente</span>
-                <span class="font-mono font-bold text-slate-900 flex items-center gap-1.5"><i data-lucide="lock" class="w-3.5 h-3.5 text-slate-400"></i>{{ codigo_cliente_oficial }}</span>
+            <div class="rg-fijos">
+                <div data-codigo-cliente-oficial><span>Código de cliente</span><b>{{ codigo_cliente_oficial }}</b></div>
+                <div data-id-laboratorio><span>ID de laboratorio</span><b>{{ detalle.muestra.codigo_laboratorio }}</b></div>
             </div>
             {% if solo_lectura %}
             <dl class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
-                <dt class="text-slate-500">ID de la muestra</dt><dd class="font-semibold text-slate-800 break-all">{{ muestra.codigo_cliente|default:"—" }}</dd>
+                <dt class="text-slate-500">ID de la muestra (cliente)</dt><dd class="font-semibold text-slate-800 break-all">{{ muestra.codigo_cliente|default:"—" }}</dd>
                 <dt class="text-slate-500">Elemento</dt><dd class="font-semibold text-slate-800">{{ muestra.elemento_estructural|default:"—" }}</dd>
                 <dt class="text-slate-500">f'c de diseño</dt><dd class="font-semibold text-slate-800">{% if muestra.fc_diseno %}{{ muestra.fc_diseno|floatformat:0 }} kg/cm²{% else %}—{% endif %}</dd>
                 <dt class="text-slate-500">Moldeo</dt><dd class="font-semibold text-slate-800">{{ muestra.fecha_fabricacion|date:"d/m/Y"|default:"—" }}</dd>
@@ -433,10 +543,22 @@
                         {% for n in fracturas %}<option value="{{ n }}" {% if ensayo.tipo_fractura == n %}selected{% endif %}>Tipo {{ n }}</option>{% endfor %}
                     </select>
                 </label>
-            <label class="inline-flex items-center gap-2 text-sm">
-                <input type="checkbox" name="video_grabado" value="1" {% if ensayo.video_grabado %}checked{% endif %} {% if solo_lectura %}disabled{% endif %}>
-                Se grabó video del ensayo
-            </label>
+            <div class="rg-video" data-video>
+                <label class="inline-flex items-center gap-2 text-sm">
+                    <input type="checkbox" name="video_grabado" value="1" data-video-marca {% if ensayo.video_grabado or video_url %}checked{% endif %} {% if solo_lectura %}disabled{% endif %}>
+                    Se grabó video del ensayo
+                </label>
+                <div class="rg-video__subida {% if not ensayo.video_grabado and not video_url %}hidden{% endif %}" data-video-bloque>
+                    {% if not solo_lectura %}
+                    <label class="v-btn v-btn--secundario v-btn--sm" data-video-boton>
+                        <i data-lucide="video"></i> <span data-video-texto>{% if video_url %}Cambiar video{% else %}Subir video{% endif %}</span>
+                        <input type="file" accept="video/*,.mp4,.mov,.m4v,.webm,.3gp" class="sr-only" data-video-archivo data-video-url-subida="{% url 'proyectos:subir_video_ensayo' detalle.pk %}">
+                    </label>
+                    {% endif %}
+                    <span class="rg-video__estado" data-video-estado>{% if video_url %}<a href="{{ video_url }}" class="underline text-blue-700">✓ {{ video_nombre }}</a>{% elif ensayo.video_grabado %}Aún sin archivo{% endif %}</span>
+                    <span class="rg-video__barra hidden" data-video-barra><span></span></span>
+                </div>
+            </div>
             <label class="v-campo block">
                 <span class="v-etiqueta">Observaciones</span>
                 <textarea name="observaciones" rows="2" {% if solo_lectura %}disabled{% endif %}
@@ -488,27 +610,23 @@
 
             </div>
         </div>
-        <div class="v-barra">
-            {% if solo_lectura %}
-                {% if ve_todos and not ensayo.aprobado %}
-                <p class="v-barra__nota">Reabrir devuelve el ensayo al técnico para corregirlo.</p>
-                <div class="v-barra__fila">
-                    <button type="submit" name="accion" value="reabrir" class="v-btn v-btn--secundario"><i data-lucide="rotate-ccw"></i> Reabrir para corrección</button>
-                </div>
-                {% else %}
-                <p class="v-barra__nota">Ensayo terminado. Si hay que corregirlo, pide al supervisor que lo reabra.</p>
-                {% endif %}
-            {% else %}
-                <p class="text-[11px] font-semibold text-slate-500" data-autoguardado role="status" aria-live="polite">Lo que escribas se guarda solo.</p>
-                <p class="v-barra__nota" data-faltan></p>
-                <div class="v-barra__fila">
-                    <button type="submit" name="accion" value="guardar" class="v-btn v-btn--secundario"><i data-lucide="save"></i> Guardar</button>
-                    <button type="submit" name="accion" value="terminar" data-terminar class="v-btn v-btn--exito"><i data-lucide="circle-check"></i> Terminar</button>
-                </div>
-            {% endif %}
-        </div>
     </form>
     <form id="form-sesion" method="post" action="{{ url_sesion_ajax }}" hidden>{% csrf_token %}</form>
+    {% if not solo_lectura %}
+    <div class="rg-mini" data-minimodal="antes" role="dialog" aria-modal="true" aria-labelledby="rg-mini-antes-t" hidden>
+        <div class="rg-mini__caja">
+            <div class="rg-mini__cab"><div><h3 id="rg-mini-antes-t">Antes del primer resultado</h3>
+                <p>Toma las <b>2 fotos de antes</b> del ensayo, con la probeta lista. Después sigues con el formulario y las fotos de durante y después.</p></div></div>
+            <div class="rg-mini__pie">
+                <span></span>
+                <div>
+                    <button type="button" class="v-btn v-btn--secundario v-btn--sm" data-formulario-igual>Llenar formulario igual</button>
+                    <button type="button" class="v-btn v-btn--primario v-btn--sm" data-tomar-antes><i data-lucide="camera"></i> Tomar fotos de antes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
     </div>
 </div>
 
@@ -544,6 +662,8 @@
     const urlSesion = raiz.dataset.sesionUrl;
     let sesionAbierta = raiz.dataset.sesion === '1';
     document.body.classList.add('rs-abierto');
+    // Por encima de todo el sistema (como el detalle de la cotización): la pantalla cuelga directamente del <body>.
+    document.body.appendChild(raiz);
     const ladoMaximo = parseInt(raiz.dataset.ladoMaximo, 10) || 1600;
     const csrf = document.querySelector('#form-registro [name=csrfmiddlewaretoken]').value;
     const modal = document.getElementById('recorte-modal');
@@ -832,6 +952,118 @@
         document.querySelectorAll('[data-abrir-formulario], [data-ir-formulario]').forEach(function (b) { b.classList.toggle('reg-pulso', completas && !hayDatos()); });
         return total;
     }
+    // Mini-modales (HU-LIMS-40): sesión, equipo nuevo y aviso de las fotos de antes.
+    function abrirMini(nombre) {
+        const m = document.querySelector('[data-minimodal="' + nombre + '"]');
+        if (!m) return;
+        m.hidden = false;
+        if (window.lucide) lucide.createIcons();
+        const primero = m.querySelector('input, select, button.v-btn--primario');
+        if (primero) setTimeout(function () { primero.focus(); }, 30);
+    }
+    function cerrarMini(m) { if (m) m.hidden = true; }
+    document.querySelectorAll('[data-abrir-minimodal]').forEach(function (b) {
+        b.addEventListener('click', function () { abrirMini(b.dataset.abrirMinimodal); });
+    });
+    document.querySelectorAll('[data-minimodal]').forEach(function (m) {
+        m.addEventListener('click', function (e) {
+            if (e.target === m || e.target.closest('[data-cerrar-minimodal]')) cerrarMini(m);
+        });
+    });
+    // Equipo nuevo con «+» sin salir de la sesión.
+    let campoEquipoDestino = null;
+    document.querySelectorAll('[data-nuevo-equipo]').forEach(function (b) {
+        b.addEventListener('click', function () {
+            campoEquipoDestino = b.dataset.campo;
+            const mini = document.querySelector('[data-minimodal="equipo"]');
+            mini.querySelector('[data-eq="tipo"]').value = b.dataset.nuevoEquipo;
+            mini.querySelector('[data-equipo-error]').classList.add('hidden');
+            abrirMini('equipo');
+        });
+    });
+    const botonEquipo = document.querySelector('[data-guardar-equipo]');
+    if (botonEquipo) {
+        botonEquipo.addEventListener('click', function () {
+            const mini = document.querySelector('[data-minimodal="equipo"]');
+            const caja = mini.querySelector('[data-equipo-error]');
+            const datos = new FormData();
+            mini.querySelectorAll('[data-eq]').forEach(function (c) { datos.append(c.dataset.eq, c.value); });
+            datos.append('activo', 'on');
+            caja.classList.add('hidden');
+            botonEquipo.disabled = true;
+            fetch('{% url "proyectos:crear_equipo_ajax" %}', {
+                method: 'POST', body: datos, credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrf },
+            }).then(function (r) { return r.json().catch(function () { return { ok: false, errores: ['Respuesta inesperada (' + r.status + ').'] }; }); })
+              .then(function (res) {
+                  botonEquipo.disabled = false;
+                  if (!res.ok) { caja.textContent = (res.errores || ['No se pudo registrar el equipo.']).join(' · '); caja.classList.remove('hidden'); return; }
+                  // Se agrega a la lista de su tipo y queda elegido en el campo desde donde se pidió.
+                  document.querySelectorAll('[data-nuevo-equipo="' + res.equipo.tipo + '"]').forEach(function (b) {
+                      const sel = document.querySelector('[name="' + b.dataset.campo + '"]');
+                      if (!sel) return;
+                      const op = document.createElement('option');
+                      op.value = res.equipo.id; op.textContent = res.equipo.etiqueta;
+                      sel.appendChild(op);
+                      if (b.dataset.campo === campoEquipoDestino) sel.value = res.equipo.id;
+                  });
+                  mini.querySelectorAll('[data-eq]').forEach(function (c) { if (c.tagName === 'INPUT') c.value = ''; });
+                  cerrarMini(mini);
+              })
+              .catch(function () { botonEquipo.disabled = false; caja.textContent = 'Sin conexión: intenta de nuevo.'; caja.classList.remove('hidden'); });
+        });
+    }
+
+    // Video del ensayo (FOR-009): la casilla habilita la subida.
+    const videoMarca = document.querySelector('[data-video-marca]');
+    const videoBloque = document.querySelector('[data-video-bloque]');
+    const videoEntrada = document.querySelector('[data-video-archivo]');
+    if (videoMarca && videoBloque) {
+        videoMarca.addEventListener('change', function () { videoBloque.classList.toggle('hidden', !videoMarca.checked); });
+    }
+    if (videoEntrada) {
+        videoEntrada.addEventListener('change', function () {
+            const archivo = videoEntrada.files && videoEntrada.files[0];
+            videoEntrada.value = '';
+            if (!archivo) return;
+            const estado = document.querySelector('[data-video-estado]');
+            const barra = document.querySelector('[data-video-barra]');
+            const texto = document.querySelector('[data-video-texto]');
+            const datos = new FormData();
+            datos.append('video', archivo, archivo.name);
+            const x = new XMLHttpRequest();
+            x.open('POST', videoEntrada.dataset.videoUrlSubida);
+            x.setRequestHeader('X-CSRFToken', csrf);
+            x.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            barra.classList.remove('hidden'); barra.firstElementChild.style.width = '0%';
+            estado.textContent = 'Subiendo ' + archivo.name + '…';
+            x.upload.onprogress = function (e) {
+                if (e.lengthComputable) {
+                    const pct = Math.round(e.loaded / e.total * 100);
+                    barra.firstElementChild.style.width = pct + '%';
+                    estado.textContent = 'Subiendo… ' + pct + ' %';
+                }
+            };
+            x.onload = function () {
+                barra.classList.add('hidden');
+                let res = {};
+                try { res = JSON.parse(x.responseText); } catch (e) { res = { ok: false, error: 'Respuesta inesperada (' + x.status + ').' }; }
+                if (res.ok) {
+                    estado.innerHTML = '';
+                    const a = document.createElement('a');
+                    a.href = res.url; a.className = 'underline text-blue-700'; a.textContent = '✓ ' + res.nombre + ' (' + res.mb + ' MB)';
+                    estado.appendChild(a);
+                    texto.textContent = 'Cambiar video';
+                    pintarResumen();
+                } else {
+                    estado.textContent = res.error || 'No se pudo subir el video.';
+                }
+            };
+            x.onerror = function () { barra.classList.add('hidden'); estado.textContent = 'Se cortó la conexión. Intenta de nuevo.'; };
+            x.send(datos);
+        });
+    }
+
     // Abrir la sesión sin salir del registro (HU-LIMS-38).
     const botonSesion = document.querySelector('[data-abrir-sesion]');
     if (botonSesion) {
@@ -849,11 +1081,11 @@
                   if (!res.ok) { caja.textContent = (res.errores || ['No se pudo abrir la sesión.']).join(' · '); caja.classList.remove('hidden'); return; }
                   sesionAbierta = true;
                   const tarjeta = document.querySelector('[data-sesion-card]');
-                  tarjeta.querySelector('[data-sesion-resumen]').innerHTML = '';
                   tarjeta.querySelector('[data-sesion-resumen]').textContent = res.resumen + ' Sesión abierta: este ensayo la usa al terminar.';
-                  const cuerpo = tarjeta.querySelector('[data-sesion-formulario]');
-                  if (cuerpo) cuerpo.remove();
-                  tarjeta.removeAttribute('open');
+                  const abrirBtn = tarjeta.querySelector('[data-abrir-minimodal="sesion"]');
+                  if (abrirBtn) abrirBtn.remove();
+                  const mini = document.querySelector('[data-minimodal="sesion"]');
+                  if (mini) mini.remove();
                   actualizarTerminar();
                   pintarResumen();
               })
@@ -895,16 +1127,14 @@
         sub.textContent = 'Foto ' + (hechas + 1) + ' de 6 · ' + NOMBRES_GRUPO[grupo.dataset.grupoFotos] + ' (' + n + ' de 2)';
         const principal = asist.querySelector('[data-asist-principal]');
         const secundario = asist.querySelector('[data-asist-secundario]');
-        const webcam = asist.querySelector('[data-asist-webcam]');
         if (tactil) {
             principal.classList.remove('hidden');
             asist.querySelector('[data-asist-texto2]').textContent = 'Elegir de la galería';
         } else {
-            // PC: se cargan archivos (varios a la vez, en orden); si hay cámara en el equipo, también.
+            // PC: solo se cargan archivos (varios a la vez, en orden).
             principal.classList.add('hidden');
             secundario.classList.remove('v-btn--secundario'); secundario.classList.add('v-btn--primario', 'v-btn--grande');
             asist.querySelector('[data-asist-texto2]').textContent = 'Cargar foto' + (6 - hechas > 1 ? 's' : '');
-            webcam.classList.toggle('hidden', !(window.CamaraFoto && CamaraFoto.disponible()));
         }
     }
     function encolar(archivos) {
@@ -918,8 +1148,45 @@
         const slot = siguienteSlot();
         if (!slot) { cola.length = 0; return; }
         slotForzado = null;
-        abrirRecorte(slot, cola.shift());
+        procesarArchivo(slot, cola.shift());
     }
+    // Como un escáner: detecta la probeta o el display, centra el encuadre y sube la foto sin pedir recorte.
+    // Si no detecta nada claro, abre el recorte manual. «Ajustar encuadre» lo reabre con la foto original.
+    function procesarArchivo(slot, archivo) {
+        const [an, al] = slot.dataset.proporcion.split('/').map(Number);
+        const url = URL.createObjectURL(archivo);
+        const img = new Image();
+        img.onload = function () {
+            let sug = null;
+            try { sug = window.CentradoFoto && CentradoFoto.sugerir(img, an / al, img.naturalWidth, img.naturalHeight); } catch (e) { sug = null; }
+            if (!sug) { URL.revokeObjectURL(url); abrirRecorte(slot, archivo); return; }
+            const escala = Math.min(1, ladoMaximo / Math.max(sug.width, sug.height));
+            const lienzo = document.createElement('canvas');
+            lienzo.width = Math.max(1, Math.round(sug.width * escala));
+            lienzo.height = Math.max(1, Math.round(sug.height * escala));
+            const ctx = lienzo.getContext('2d');
+            ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, lienzo.width, lienzo.height);
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, sug.x, sug.y, sug.width, sug.height, 0, 0, lienzo.width, lienzo.height);
+            URL.revokeObjectURL(url);
+            lienzo.toBlob(function (blob) {
+                if (!blob) { abrirRecorte(slot, archivo); return; }
+                slot._original = archivo;
+                const aj = slot.querySelector('[data-ajustar]');
+                if (aj) aj.classList.remove('hidden');
+                subir(slot, blob);
+                procesarCola();
+            }, 'image/jpeg', 0.88);
+        };
+        img.onerror = function () { URL.revokeObjectURL(url); abrirRecorte(slot, archivo); };
+        img.src = url;
+    }
+    document.querySelectorAll('[data-ajustar]').forEach(function (b) {
+        b.addEventListener('click', function () {
+            const slot = b.closest('[data-slot]');
+            if (slot._original) abrirRecorte(slot, slot._original);
+        });
+    });
     document.querySelectorAll('[data-repetir]').forEach(function (b) {
         b.addEventListener('click', function () {
             slotForzado = b.closest('[data-slot]');
@@ -934,15 +1201,6 @@
                 const archivos = Array.from(entrada.files || []);
                 entrada.value = '';
                 encolar(archivos);
-            });
-        });
-        asist.querySelector('[data-asist-webcam]').addEventListener('click', function () {
-            const sig = siguienteSlot();
-            if (!sig || !window.CamaraFoto) return;
-            CamaraFoto.abrir({
-                varias: false, titulo: etiquetas[sig.dataset.slot],
-                alTomar: function (blob) { encolar([new File([blob], 'foto.jpg', { type: 'image/jpeg' })]); },
-                alFallar: function (mensaje) { mostrarError(sig, mensaje, false); },
             });
         });
         modal.querySelector('[data-cancelar]').addEventListener('click', function () { cola.length = 0; slotForzado = null; });
@@ -974,6 +1232,7 @@
         const fcUnidad = valorDe('muestra-fc_unidad');
         g.push({ t: 'Cliente y probeta', filas: [
             ['Código de cliente', codigoClienteOficial],
+            ['ID de laboratorio', raiz.dataset.codigoLab || ''],
             ['ID de la muestra (del cliente)', valorDe('muestra-codigo_cliente')],
             ['Elemento estructural', valorDe('muestra-elemento_estructural')],
             ["f'c de diseño", valorDe('muestra-fc_diseno') ? valorDe('muestra-fc_diseno') + ' ' + (fcUnidad || 'kg/cm²') : ''],
@@ -995,7 +1254,7 @@
             ['Perpendicularidad', marcados('verif_perpendicularidad').join(', ')],
             ['Planitud', marcados('verif_planitud').join(', ')],
             ['Defectos', marcados('tipos_defecto').concat(valorDe('defectos') ? [valorDe('defectos')] : []).join(' · ')],
-            ['Video del ensayo', document.querySelector('[name="video_grabado"]:checked') ? 'Sí' : ''],
+            ['Video del ensayo', document.querySelector('[data-video-estado] a') ? 'Subido' : (document.querySelector('[name="video_grabado"]:checked') ? 'Marcado, sin archivo' : '')],
         ] });
         if (esCompresion) {
             const r = function (k) { const e = document.querySelector('[data-r="' + k + '"]'); return e ? e.textContent.trim() : ''; };
@@ -1016,44 +1275,86 @@
     }
     function hayDatos() {
         return gruposResumen().some(function (gr) {
-            return gr.filas.some(function (f) { return f[1] && !(gr.t === 'Cliente y probeta' && f[0] === 'Código de cliente') && !(f[0] === 'Fecha de ensayo'); });
+            return gr.filas.some(function (f) { return f[1] && !(gr.t === 'Cliente y probeta' && (f[0] === 'Código de cliente' || f[0] === 'ID de laboratorio')) && !(f[0] === 'Fecha de ensayo'); });
         });
+    }
+    const COLORES = {
+        'Cliente y probeta': '#3b82f6', 'Condiciones y equipos': '#8b5cf6', 'Medidas y carga': '#0ea5e9',
+        'Rotura y verificaciones': '#f59e0b', 'Resultado preliminar': '#10b981', 'Resultados del servicio': '#ec4899',
+    };
+    function elemento(tag, clase, texto) {
+        const e = document.createElement(tag);
+        if (clase) e.className = clase;
+        if (texto != null) e.textContent = texto;
+        return e;
     }
     function pintarResumen() {
         if (!resumenCuerpo) return;
         resumenCuerpo.textContent = '';
-        let alguno = false;
-        gruposResumen().forEach(function (gr) {
+        const grupos = gruposResumen();
+        const esFija = function (gr, f) { return gr.t === 'Cliente y probeta' && (f[0] === 'Código de cliente' || f[0] === 'ID de laboratorio'); };
+        let llenas = 0, total = 0;
+        grupos.forEach(function (gr) {
+            gr.filas.forEach(function (f) {
+                if (esFija(gr, f) || (!esCompresion && !f[1])) return;
+                total += 1; if (f[1]) llenas += 1;
+            });
+        });
+        const r = function (k) { const e = document.querySelector('[data-r="' + k + '"]'); return e ? e.textContent.trim() : ''; };
+        const hero = elemento('div', 'rg-hero');
+        if (esCompresion && r('kgcm2') && r('kgcm2') !== '—') {
+            const d1 = elemento('div', 'rg-hero__dato'); d1.appendChild(elemento('small', '', 'Resistencia'));
+            const b1 = elemento('b', '', r('kgcm2')); d1.appendChild(b1); d1.appendChild(elemento('span', '', 'kg/cm²'));
+            const d2 = elemento('div', 'rg-hero__dato'); d2.appendChild(elemento('small', '', "% de f'c"));
+            d2.appendChild(elemento('b', '', r('porcentaje') && r('porcentaje') !== '—' ? r('porcentaje') + ' %' : '—'));
+            hero.appendChild(d1); hero.appendChild(d2);
+        } else {
+            const d1 = elemento('div', 'rg-hero__dato'); d1.appendChild(elemento('small', '', 'Datos registrados'));
+            d1.appendChild(elemento('b', '', String(llenas))); d1.appendChild(elemento('span', '', esCompresion ? 'de ' + total : 'campos'));
+            hero.appendChild(d1);
+        }
+        const prog = elemento('div', 'rg-hero__progreso');
+        prog.appendChild(elemento('small', '', esCompresion ? llenas + ' de ' + total + ' datos' : 'Formulario'));
+        const barra = elemento('i'); const em = elemento('em'); em.style.width = (total ? Math.round(llenas / total * 100) : 0) + '%'; barra.appendChild(em); prog.appendChild(barra);
+        hero.appendChild(prog);
+        resumenCuerpo.appendChild(hero);
+        if (!hayDatos()) {
+            resumenCuerpo.appendChild(elemento('p', 'rg-resumen__vacio', 'Aún no hay datos. Pulsa «Llenar formulario»: lo que llenes se resume aquí, junto a las fotos.'));
+        }
+        grupos.forEach(function (gr) {
             // En compresión se ve todo (para ver qué falta); en los demás solo lo llenado.
             const filas = gr.filas.filter(function (f) { return esCompresion || f[1]; });
             if (!filas.length) return;
-            const caja = document.createElement('div');
-            caja.className = 'rg-grupo';
-            const h = document.createElement('h3'); h.textContent = gr.t; caja.appendChild(h);
-            const dl = document.createElement('dl');
+            const caja = elemento('div', 'rg-grupo');
+            caja.style.setProperty('--c', COLORES[gr.t] || '#3b82f6');
+            caja.appendChild(elemento('h3', '', gr.t));
+            const tiles = elemento('div', 'rg-tiles');
             filas.forEach(function (f) {
-                if (f[1]) alguno = true;
-                const fila = document.createElement('div');
-                const dt = document.createElement('dt'); dt.textContent = f[0];
-                const dd = document.createElement('dd'); dd.textContent = f[1] || '—';
-                if (!f[1]) dd.className = 'rg-vacio';
-                fila.appendChild(dt); fila.appendChild(dd); dl.appendChild(fila);
+                const t = elemento('div', 'rg-tile');
+                if (!f[1]) t.setAttribute('data-vacio', '');
+                t.appendChild(elemento('span', '', f[0]));
+                t.appendChild(elemento('b', '', f[1] || '—'));
+                tiles.appendChild(t);
             });
-            caja.appendChild(dl);
+            caja.appendChild(tiles);
             resumenCuerpo.appendChild(caja);
         });
-        if (!hayDatos()) {
-            const p = document.createElement('p');
-            p.className = 'rg-resumen__vacio';
-            p.textContent = 'Aún no hay datos. Pulsa «Llenar formulario»: lo que llenes queda aquí, junto a las fotos.';
-            resumenCuerpo.prepend(p);
-        }
         document.querySelectorAll('[data-texto-abrir-formulario]').forEach(function (e) { e.textContent = hayDatos() ? 'Editar formulario' : 'Llenar formulario'; });
         const est = document.querySelector('[data-resumen-estado]');
         if (est) est.textContent = hayDatos() ? 'Lo llenado hasta ahora. Pulsa «Editar formulario» para completar o corregir.' : 'Se agregan aquí cuando pulses «Listo» en el formulario.';
     }
-    function abrirFormulario() {
+    function antesCompletas() {
+        return Array.from(document.querySelectorAll('[data-slot="antes"], [data-slot="antes_pizarra"]'))
+            .every(function (sl) { return sl.querySelector('[data-marco]').dataset.estado === 'ok'; });
+    }
+    function abrirFormulario(forzar) {
         if (!modalForm) return;
+        // En celular y tablet, antes del primer resultado se piden las 2 fotos de antes (se puede seguir sin ellas).
+        if (forzar !== true && tactil && !antesCompletas() && !sessionStorage.getItem('reg-aviso-antes-' + location.pathname)) {
+            sessionStorage.setItem('reg-aviso-antes-' + location.pathname, '1');
+            abrirMini('antes');
+            return;
+        }
         modalForm.hidden = false;
         const cuerpo = modalForm.querySelector('.rg-modal__cuerpo');
         if (cuerpo) cuerpo.scrollTop = 0;
@@ -1066,10 +1367,21 @@
         pintarResumen();
         actualizarTerminar();
     }
-    document.querySelectorAll('[data-abrir-formulario], [data-ir-formulario]').forEach(function (b) { b.addEventListener('click', abrirFormulario); });
+    document.querySelectorAll('[data-abrir-formulario], [data-ir-formulario]').forEach(function (b) { b.addEventListener('click', function () { abrirFormulario(); }); });
+    document.querySelectorAll('[data-formulario-igual]').forEach(function (b) { b.addEventListener('click', function () { cerrarMini(b.closest('[data-minimodal]')); abrirFormulario(true); }); });
+    document.querySelectorAll('[data-tomar-antes]').forEach(function (b) {
+        b.addEventListener('click', function () {
+            cerrarMini(b.closest('[data-minimodal]'));
+            const entrada = asist && asist.querySelector('[data-asist-camara]');
+            if (entrada) entrada.click();
+        });
+    });
     document.querySelectorAll('[data-cerrar-formulario]').forEach(function (b) { b.addEventListener('click', cerrarFormulario); });
     document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && modalForm && !modalForm.hidden && !modal.classList.contains('abierto')) cerrarFormulario();
+        if (e.key !== 'Escape' || modal.classList.contains('abierto')) return;
+        const mini = Array.from(document.querySelectorAll('[data-minimodal]')).find(function (m) { return !m.hidden; });
+        if (mini) { cerrarMini(mini); return; }
+        if (modalForm && !modalForm.hidden) cerrarFormulario();
     });
     if (panelFotos) {
         new MutationObserver(function () { contarFotos(); actualizarTerminar(); })

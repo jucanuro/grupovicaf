@@ -193,9 +193,12 @@ class FormularioCompletoParaTodosTests(CompresionBase):
     def test_el_panel_de_fotos_trae_el_asistente_y_grupos_plegables(self):
         html = self.client.get(self.url_registro(self.proctor)).content.decode()
         for marca in ('data-asistente', 'data-asist-camara', 'capture="environment"', 'data-asist-archivos',
-                      'class="grupo-fotos"', 'data-asist-webcam'):
+                      'class="grupo-fotos"'):
             self.assertIn(marca, html)
         self.assertEqual(html.count('class="grupo-fotos"'), 3)
+        # En PC no hay «cámara del equipo»: las fotos se cargan como archivos.
+        self.assertNotIn('data-asist-webcam', html)
+        self.assertNotIn('Usar la cámara del equipo', html)
 
 
 class RegistroPantallaCompletaTests(CompresionBase):
@@ -276,3 +279,88 @@ class FormularioEnModalTests(CompresionBase):
         self.assertIn(f'data-codigo-cliente="{codigo}"', html)
         self.assertNotIn('name="codigo_cliente_oficial"', html)
         self.assertIn('ID de la muestra (del cliente)', html)
+
+
+class VideoEquiposYDistribucionTests(CompresionBase):
+    """HU-LIMS-40: video con casilla, alta rápida de equipos y distribución del registro."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user_tec)
+
+    def video(self, nombre='prueba.mp4', tam=2048):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        return SimpleUploadedFile(nombre, b'\x00\x00\x00\x18ftypmp42' + b'0' * tam, content_type='video/mp4')
+
+    def test_sube_el_video_y_marca_que_se_grabo(self):
+        r = self.client.post(reverse('proyectos:subir_video_ensayo', args=[self.mia.pk]), {'video': self.video()})
+        self.assertEqual(r.status_code, 200, r.content)
+        e = ResultadoEnsayo.objects.get(detalle=self.mia)
+        self.assertTrue(e.video_archivo)
+        self.assertTrue(e.video_grabado)
+        self.assertTrue(r.json()['url'].endswith('/video/'))
+
+    def test_rechaza_otros_formatos_de_video(self):
+        r = self.client.post(reverse('proyectos:subir_video_ensayo', args=[self.mia.pk]), {'video': self.video('virus.exe')})
+        self.assertEqual(r.status_code, 400)
+        self.assertFalse(ResultadoEnsayo.objects.filter(detalle=self.mia, video_archivo__gt='').exists())
+
+    def test_reemplazar_el_video_queda_en_la_trazabilidad(self):
+        url = reverse('proyectos:subir_video_ensayo', args=[self.mia.pk])
+        self.client.post(url, {'video': self.video('a.mp4')})
+        self.client.post(url, {'video': self.video('b.mp4')})
+        self.assertTrue(CambioResultado.objects.filter(resultado__detalle=self.mia, campo='video').exists())
+
+    def test_el_video_solo_lo_baja_quien_ve_la_linea(self):
+        self.client.post(reverse('proyectos:subir_video_ensayo', args=[self.mia.pk]), {'video': self.video()})
+        url = reverse('proyectos:video_ensayo', args=[self.mia.pk])
+        self.assertEqual(self.client.get(url).status_code, 200)
+        self.client.force_login(self.user_otro)
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_la_casilla_de_video_habilita_la_subida_en_la_pantalla(self):
+        html = self.client.get(self.url_registro(self.mia)).content.decode()
+        for marca in ('data-video-marca', 'data-video-bloque', 'data-video-archivo', 'accept="video/*'):
+            self.assertIn(marca, html)
+
+    def test_alta_rapida_de_un_equipo_con_permiso(self):
+        from proyectos.models import Equipo
+        from trabajadores.testing import crear_trabajador, rol_con_permisos
+        user, _ = crear_trabajador('jefeeq', rol_con_permisos('Jefe eq', 'ensayos.ver', 'ensayos.registrar', 'equipos.editar'))
+        self.client.force_login(user)
+        r = self.client.post(reverse('proyectos:crear_equipo_ajax'), {
+            'codigo': 'VCF-EQ-NUEVO-001', 'nombre': 'Balanza nueva', 'tipo': Equipo.TIPOS[0][0], 'activo': 'on',
+            'vence_calibracion': (date.today() + timedelta(days=200)).isoformat(),
+        })
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertTrue(r.json()['ok'])
+        self.assertTrue(Equipo.objects.filter(codigo='VCF-EQ-NUEVO-001').exists())
+        malo = self.client.post(reverse('proyectos:crear_equipo_ajax'), {'codigo': '', 'nombre': '', 'tipo': 'xx'})
+        self.assertEqual(malo.status_code, 400)
+        self.assertTrue(malo.json()['errores'])
+
+    def test_sin_permiso_no_se_crean_equipos_ni_aparece_el_mas(self):
+        r = self.client.post(reverse('proyectos:crear_equipo_ajax'), {'codigo': 'X', 'nombre': 'X', 'tipo': 'PRC'})
+        self.assertEqual(r.status_code, 403)
+        self.assertNotIn('class="rg-mas"', self.client.get(self.url_registro(self.mia)).content.decode())
+
+    def test_con_permiso_aparece_el_mas_y_el_minimodal_de_equipo(self):
+        from trabajadores.testing import crear_trabajador, rol_con_permisos
+        user, _ = crear_trabajador('jefeeq3', rol_con_permisos('Jefe eq3', 'ensayos.ver', 'ensayos.ver_todos', 'ensayos.registrar', 'equipos.editar'))
+        self.client.force_login(user)
+        html = self.client.get(self.url_registro(self.mia)).content.decode()
+        for marca in ('class="rg-mas"', 'data-minimodal="equipo"', 'data-guardar-equipo'):
+            self.assertIn(marca, html)
+
+    def test_guardar_y_terminar_van_bajo_las_fotos_y_el_id_de_laboratorio_es_fijo(self):
+        html = self.client.get(self.url_registro(self.mia)).content.decode()
+        self.assertLess(html.index('id="panel-fotos"'), html.index('data-acciones'))
+        self.assertIn('form="form-registro" name="accion" value="terminar"', html)
+        self.assertIn('data-id-laboratorio', html)
+        self.assertIn(self.mia.muestra.codigo_laboratorio, html)
+
+    def test_la_sesion_va_en_un_minimodal_y_hay_aviso_de_fotos_de_antes(self):
+        html = self.client.get(self.url_registro(self.mia)).content.decode()
+        for marca in ('data-minimodal="sesion"', 'data-abrir-minimodal="sesion"', 'data-minimodal="antes"',
+                      'data-tomar-antes', 'data-formulario-igual', 'data-ajustar'):
+            self.assertIn(marca, html)

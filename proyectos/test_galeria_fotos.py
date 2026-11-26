@@ -22,7 +22,7 @@ class FotosDelEnsayoGeneralTests(CompresionBase):
                  'data-slot="carga"', 'data-slot="despues"', 'data-slot="despues_pizarra"']
         posiciones = [html.index(x) for x in orden]
         self.assertEqual(posiciones, sorted(posiciones))
-        self.assertEqual(html.count('data-slot='), 6)
+        self.assertEqual(html.count('data-proporcion="'), 6)
 
     def test_la_galeria_libre_ya_no_se_admite(self):
         self.client.force_login(self.user_tec)

@@ -15,6 +15,9 @@
     <p class="text-[11px] text-red-600 mt-1 hidden" data-error></p>
     {% if not solo_lectura %}
     <button type="button" class="hidden mt-1.5 v-btn v-btn--peligro v-btn--sm v-btn--block" data-reintentar>Reintentar envío</button>
-    <button type="button" class="mt-1.5 text-xs font-bold text-blue-700 underline {% if not s.foto %}hidden{% endif %}" data-repetir>Repetir esta foto</button>
+    <div class="mt-1 flex gap-3">
+        <button type="button" class="text-[11px] font-bold text-blue-700 underline {% if not s.foto %}hidden{% endif %}" data-repetir>Repetir esta foto</button>
+        <button type="button" class="text-[11px] font-bold text-slate-500 underline hidden" data-ajustar>Ajustar encuadre</button>
+    </div>
     {% endif %}
 </div>

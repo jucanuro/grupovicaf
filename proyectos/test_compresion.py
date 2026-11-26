@@ -343,7 +343,7 @@ class TerminarTests(CompresionBase):
         self.client.force_login(self.user_tec)
         r = self.client.get(self.url_registro(self.mia))
         self.assertEqual(r.status_code, 200)
-        self.assertContains(r, 'data-slot=', count=6)
+        self.assertContains(r, 'data-proporcion="', count=6)
         self.assertContains(r, 'aspect-ratio: 18 / 7')
         self.assertNotContains(r, 'Constructora Secreta')
 

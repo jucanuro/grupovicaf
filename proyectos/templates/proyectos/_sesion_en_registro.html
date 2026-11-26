@@ -1,60 +1,100 @@
-{# Condiciones ambientales, equipos y comprobación dentro del mismo formulario (HU-LIMS-38). #}
+{# Condiciones ambientales, equipos y comprobación: barra en el formulario + mini-modal (HU-LIMS-38/40). #}
 {% if sesion_resumen or form_sesion %}
-<details class="v-tarjeta rg-ancho" data-sesion-card {% if es_compresion and not sesion_resumen %}open{% endif %}>
-    <summary class="v-tarjeta__cab" style="cursor:pointer; list-style:none">
-        <span class="v-paso"><i data-lucide="flask-conical" class="w-4 h-4"></i></span>
-        <div>
-            <h2>Condiciones y equipos{% if not es_compresion %} <span class="font-normal text-slate-500">(opcional en este ensayo)</span>{% endif %}</h2>
-            <p data-sesion-resumen>{% if sesion_resumen %}{{ sesion_resumen }} <b class="text-green-700">Sesión abierta: este ensayo la usa al terminar.</b>{% elif es_compresion %}{% if a_nombre_de %}{{ a_nombre_de.nombre_completo }} no tiene sesión abierta. Ábrela aquí con los datos de su formato.{% else %}No tienes sesión abierta. Ábrela aquí: se abre una vez al día y vale para todas las probetas que termines.{% endif %}{% else %}Si usaste equipos o condiciones del formato, ábrela aquí; si no, déjala así.{% endif %}</p>
-        </div>
-        <i data-lucide="chevron-down" class="w-4 h-4 ml-auto text-slate-400 flex-shrink-0"></i>
-    </summary>
+<div class="rg-ancho rg-sesion-barra" data-sesion-card>
+    <span class="rg-sesion-barra__icono"><i data-lucide="flask-conical" class="w-4 h-4"></i></span>
+    <div class="min-w-0 flex-1">
+        <p class="rg-sesion-barra__titulo">Condiciones y equipos{% if not es_compresion %} <small>(opcional en este ensayo)</small>{% endif %}</p>
+        <p class="rg-sesion-barra__texto" data-sesion-resumen>{% if sesion_resumen %}{{ sesion_resumen }} <b>Sesión abierta: este ensayo la usa al terminar.</b>{% elif es_compresion %}{% if a_nombre_de %}{{ a_nombre_de.nombre_completo }} no tiene sesión abierta.{% else %}No tienes sesión abierta.{% endif %} Ábrela una vez al día: vale para todas las probetas.{% else %}Si usaste equipos o condiciones del formato, ábrela; si no, déjala así.{% endif %}</p>
+    </div>
     {% if form_sesion %}
-    <div class="v-tarjeta__cuerpo" data-sesion-formulario>
-        {% if faltan_tipos_sesion %}
-        <div class="v-aviso v-aviso--ambar mb-3" role="note">
-            <i data-lucide="triangle-alert"></i>
-            <span>No hay equipo vigente de: {{ faltan_tipos_sesion|join:", " }}. Avisa al supervisor.</span>
+    <button type="button" class="v-btn v-btn--primario v-btn--sm" data-abrir-minimodal="sesion"><i data-lucide="play"></i> Abrir sesión</button>
+    {% endif %}
+</div>
+{% if form_sesion %}
+<div class="rg-mini" data-minimodal="sesion" role="dialog" aria-modal="true" aria-labelledby="rg-mini-sesion-t" hidden>
+    <div class="rg-mini__caja rg-mini__caja--ancha" data-sesion-formulario>
+        <div class="rg-mini__cab">
+            <div><h3 id="rg-mini-sesion-t">Abrir sesión de ensayo</h3><p>Condiciones al empezar y equipos. Vale para todas las probetas que termines en esta sesión.</p></div>
+            <button type="button" class="rg-mini__x" data-cerrar-minimodal aria-label="Cerrar"><i data-lucide="x" class="w-4 h-4"></i></button>
         </div>
+        {% if faltan_tipos_sesion %}
+        <div class="v-aviso v-aviso--ambar mb-2" role="note"><i data-lucide="triangle-alert"></i><span>No hay equipo vigente de: {{ faltan_tipos_sesion|join:", " }}. {% if puede_crear_equipo %}Regístralo con «+».{% else %}Avisa al supervisor.{% endif %}</span></div>
         {% endif %}
         <div class="rg-sesion-grid">
             <div>
-                <h3 class="text-sm font-bold text-slate-700 mb-2">Condiciones iniciales</h3>
-                <div class="grid grid-cols-1 gap-3">
-                    <label><span class="v-etiqueta">Fecha de ensayo</span><span class="v-campo block">{{ form_sesion.fecha }}</span></label>
-                    <div class="grid grid-cols-2 gap-3">
-                        <label><span class="v-etiqueta">Temperatura</span><span class="v-campo block" data-unidad="°C">{{ form_sesion.temperatura_inicial }}</span></label>
-                        <label><span class="v-etiqueta">Humedad relativa</span><span class="v-campo block" data-unidad="%">{{ form_sesion.humedad_inicial }}</span></label>
-                    </div>
+                <h4>Condiciones iniciales</h4>
+                <label><span class="v-etiqueta">Fecha de ensayo</span><span class="v-campo block">{{ form_sesion.fecha }}</span></label>
+                <div class="grid grid-cols-2 gap-2">
+                    <label><span class="v-etiqueta">Temperatura</span><span class="v-campo block" data-unidad="°C">{{ form_sesion.temperatura_inicial }}</span></label>
+                    <label><span class="v-etiqueta">Humedad rel.</span><span class="v-campo block" data-unidad="%">{{ form_sesion.humedad_inicial }}</span></label>
                 </div>
             </div>
             <div>
-                <h3 class="text-sm font-bold text-slate-700 mb-2">Equipos empleados</h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {% for campo in campos_equipo %}
-                    <label><span class="v-etiqueta">{{ campo.label }}</span><span class="v-campo block">{{ campo }}</span></label>
+                <h4>Equipos empleados</h4>
+                <div class="grid grid-cols-2 gap-2">
+                    {% for campo, tipo in campos_equipo %}
+                    <div>
+                        <span class="v-etiqueta">{{ campo.label }}</span>
+                        <div class="rg-equipo">
+                            <span class="v-campo block">{{ campo }}</span>
+                            {% if puede_crear_equipo %}<button type="button" class="rg-mas" data-nuevo-equipo="{{ tipo }}" data-campo="{{ campo.html_name }}" title="Registrar un equipo nuevo" aria-label="Registrar {{ campo.label }} nuevo">+</button>{% endif %}
+                        </div>
+                    </div>
                     {% endfor %}
+                    <label><span class="v-etiqueta">{{ campo_usos.label }}</span><span class="v-campo block">{{ campo_usos }}</span></label>
                 </div>
             </div>
             <div data-comprobacion>
-                <h3 class="text-sm font-bold text-slate-700 mb-2">Comprobación funcional</h3>
-                <div class="divide-y divide-slate-100">
+                <h4>Comprobación funcional</h4>
+                <div class="rg-comp">
                     {% for campo in campos_comprobacion %}
-                    {% ifchanged campo.field.equipo %}<p class="pt-2 pb-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">{{ campo.field.equipo }}</p>{% endifchanged %}
-                    <div class="py-1.5 flex items-center justify-between gap-3 text-sm">
+                    {% ifchanged campo.field.equipo %}<p class="rg-comp__equipo">{{ campo.field.equipo }}</p>{% endifchanged %}
+                    <div class="rg-comp__fila">
                         <span>{{ campo.label }}</span>
-                        <span class="flex gap-3 flex-shrink-0">{% for opcion in campo %}<label class="v-opcion">{{ opcion.tag }} {{ opcion.choice_label }}</label>{% endfor %}</span>
+                        <span class="flex gap-2 flex-shrink-0">{% for opcion in campo %}<label class="v-opcion">{{ opcion.tag }} {{ opcion.choice_label }}</label>{% endfor %}</span>
                     </div>
                     {% endfor %}
                 </div>
             </div>
         </div>
-        <p class="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2 mt-3 hidden" data-sesion-error role="alert"></p>
-        <div class="mt-3 flex items-center justify-between gap-3">
-            <p class="text-[11px] text-slate-500">Al cerrar la sesión registrarás la temperatura y la humedad finales.</p>
-            <button type="button" class="v-btn v-btn--primario" data-abrir-sesion><i data-lucide="play"></i> Abrir sesión</button>
+        <p class="rg-mini__error hidden" data-sesion-error role="alert"></p>
+        <div class="rg-mini__pie">
+            <p>Al cerrar la sesión registrarás la temperatura y la humedad finales.</p>
+            <div>
+                <button type="button" class="v-btn v-btn--secundario v-btn--sm" data-cerrar-minimodal>Cancelar</button>
+                <button type="button" class="v-btn v-btn--primario v-btn--sm" data-abrir-sesion><i data-lucide="play"></i> Abrir sesión</button>
+            </div>
         </div>
     </div>
-    {% endif %}
-</details>
+</div>
+{% if puede_crear_equipo %}
+<div class="rg-mini rg-mini--alto" data-minimodal="equipo" role="dialog" aria-modal="true" aria-labelledby="rg-mini-equipo-t" hidden>
+    <div class="rg-mini__caja">
+        <div class="rg-mini__cab">
+            <div><h3 id="rg-mini-equipo-t">Registrar equipo</h3><p>Queda disponible en la lista y en el módulo de equipos.</p></div>
+            <button type="button" class="rg-mini__x" data-cerrar-minimodal aria-label="Cerrar"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <div class="grid grid-cols-2 gap-2" data-equipo-campos>
+            <label><span class="v-etiqueta">Código interno</span><span class="v-campo block"><input type="text" data-eq="codigo" maxlength="40" placeholder="VCF-EQ-…"></span></label>
+            <label><span class="v-etiqueta">Tipo</span><span class="v-campo block"><select data-eq="tipo">{% for cod, nom in tipos_equipo %}<option value="{{ cod }}">{{ nom }}</option>{% endfor %}</select></span></label>
+            <label class="col-span-2"><span class="v-etiqueta">Nombre</span><span class="v-campo block"><input type="text" data-eq="nombre" maxlength="120"></span></label>
+            <label><span class="v-etiqueta">Marca</span><span class="v-campo block"><input type="text" data-eq="marca" maxlength="80"></span></label>
+            <label><span class="v-etiqueta">Modelo</span><span class="v-campo block"><input type="text" data-eq="modelo" maxlength="80"></span></label>
+            <label><span class="v-etiqueta">N.º de serie</span><span class="v-campo block"><input type="text" data-eq="serie" maxlength="80"></span></label>
+            <label><span class="v-etiqueta">N.º de certificado</span><span class="v-campo block"><input type="text" data-eq="certificado" maxlength="80"></span></label>
+            <label><span class="v-etiqueta">Calibración</span><span class="v-campo block"><input type="date" data-eq="fecha_calibracion"></span></label>
+            <label><span class="v-etiqueta">Vence</span><span class="v-campo block"><input type="date" data-eq="vence_calibracion"></span></label>
+        </div>
+        <p class="rg-mini__error hidden" data-equipo-error role="alert"></p>
+        <div class="rg-mini__pie">
+            <p>Los equipos con la calibración vencida no se pueden elegir.</p>
+            <div>
+                <button type="button" class="v-btn v-btn--secundario v-btn--sm" data-cerrar-minimodal>Cancelar</button>
+                <button type="button" class="v-btn v-btn--primario v-btn--sm" data-guardar-equipo><i data-lucide="plus"></i> Registrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
 {% endif %}

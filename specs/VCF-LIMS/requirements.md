@@ -490,6 +490,26 @@ no se edita. HU-LIMS-39.
 | REQ-LIMS-184 | HU-LIMS-39 | EL SISTEMA DEBE tomar el código del cliente de la cotización (cliente de la solicitud), mostrarlo en el formulario y el resumen como solo lectura y no permitir editarlo; la identificación de cada muestra que da el cliente sigue siendo editable y se rotula «ID de la muestra (del cliente)». | sí | [Validado con usuario] |
 | REQ-LIMS-185 | HU-LIMS-39 | DONDE el dispositivo sea celular o tablet, EL SISTEMA DEBE mostrar primero las fotos guiadas y un botón «Llenar formulario» siempre visible. | sí (navegador) | [Validado con usuario] |
 
+## 2v. Modal sobre todo el sistema, video, equipos y fotos tipo escáner (v23)
+
+Pedido del Gerente (2026-11-26): el modal debe cubrir todo el sistema como el detalle de la cotización, con una distribución
+compacta que no obligue a hacer scroll; Guardar y Terminar bajo las fotos; ID de laboratorio ya conocido; la casilla de video debe
+habilitar su subida; en la sesión, un «+» para registrar equipos sin cambiar de pantalla; las fotos deben centrarse solas como
+un escáner (en PC solo se cargan; en celular, cámara y galería) y, en celular y tablet, avisar antes del primer resultado que se
+tomen las 2 fotos de antes; el resumen debe verse moderno. HU-LIMS-40.
+
+| ID | HU | Requisito (EARS) | Verificable | Origen |
+|---|---|---|---|---|
+| REQ-LIMS-186 | HU-LIMS-40 | EL SISTEMA DEBE mostrar el registro y su formulario en pantallas que cubran todo el sistema (por encima de la barra superior y el menú), con el formulario repartido en columnas según el ancho y tipografía y controles compactos, de modo que a 1600 px de ancho quepa sin scroll. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-187 | HU-LIMS-40 | EL SISTEMA DEBE mostrar los botones Guardar y Terminar debajo del panel de fotos, con el estado del guardado automático y lo que falta. | sí | [Validado con usuario] |
+| REQ-LIMS-188 | HU-LIMS-40 | EL SISTEMA DEBE traer el ID de laboratorio de la muestra y mostrarlo como dato fijo en el formulario y el resumen. | sí | [Validado con usuario] |
+| REQ-LIMS-189 | HU-LIMS-40 | CUANDO se marque «Se grabó video del ensayo», EL SISTEMA DEBE habilitar la subida del video (MP4, MOV, M4V, WEBM, 3GP o AVI, hasta 300 MB) a la carpeta privada, con barra de avance, descarga solo para quien ve la línea y trazabilidad si se reemplaza. | sí | [Validado con usuario] |
+| REQ-LIMS-190 | HU-LIMS-40 | DONDE la persona tenga permiso de editar equipos, EL SISTEMA DEBE mostrar un «+» junto a cada equipo de la sesión que abra un mini-modal para registrarlo y dejarlo elegido sin salir de la pantalla. | sí | [Validado con usuario] |
+| REQ-LIMS-191 | HU-LIMS-40 | CUANDO se cargue o tome una foto, EL SISTEMA DEBE detectar el objeto (probeta o display), centrar el encuadre y subirla sin pedir recorte; SI no detecta nada claro, ENTONCES EL SISTEMA DEBE abrir el recorte manual, y siempre ofrecer «Ajustar encuadre». | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-192 | HU-LIMS-40 | DONDE el equipo sea PC, EL SISTEMA DEBE ofrecer solo «Cargar fotos» (varias, en orden); DONDE sea celular o tablet, EL SISTEMA DEBE ofrecer «Tomar foto» y «Elegir de la galería». | sí | [Validado con usuario] |
+| REQ-LIMS-193 | HU-LIMS-40 | DONDE sea celular o tablet y falten las 2 fotos de antes, EL SISTEMA DEBE avisar al abrir el formulario por primera vez que se tomen primero, permitiendo continuar sin ellas. | sí | [Validado con usuario] |
+| REQ-LIMS-194 | HU-LIMS-40 | EL SISTEMA DEBE mostrar el resumen de lo llenado con un encabezado de resistencia o de datos registrados con su avance y los datos en fichas de color por grupo. | sí (navegador) | [Validado con usuario] |
+
 ## 3. Trazabilidad HU → REQ
 
 | HU | Descripción | REQ |
@@ -525,6 +545,7 @@ no se edita. HU-LIMS-39.
 | HU-LIMS-37 | Formulario completo y fotos guiadas para cualquier dispositivo | REQ-LIMS-171 a 175 |
 | HU-LIMS-38 | Registro en pantalla completa con la sesión integrada | REQ-LIMS-176 a 180 |
 | HU-LIMS-39 | Formulario en modal y resumen junto a las fotos | REQ-LIMS-181 a 185 |
+| HU-LIMS-40 | Modal sobre todo, video, equipos y fotos tipo escáner | REQ-LIMS-186 a 194 |
 
 ## 4. Preguntas abiertas
 
@@ -561,3 +582,4 @@ no se edita. HU-LIMS-39.
 | v20 | 2026-11-25 | Claude (DLF) | Formulario FOR-009 completo para todos y asistente de fotos: REQ-LIMS-171 a 175 (HU-LIMS-37) |
 | v21 | 2026-11-25 | Claude (DLF) | Registro en pantalla completa con la sesión integrada y requisitos: REQ-LIMS-176 a 180 (HU-LIMS-38) |
 | v22 | 2026-11-26 | Claude (DLF) | Formulario en modal, resumen junto a las fotos y código de cliente de la cotización: REQ-LIMS-181 a 185 (HU-LIMS-39) |
+| v23 | 2026-11-26 | Claude (DLF) | Modal sobre todo el sistema, video, equipos con «+», fotos tipo escáner y resumen moderno: REQ-LIMS-186 a 194 (HU-LIMS-40) |

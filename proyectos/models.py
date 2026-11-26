@@ -563,6 +563,11 @@ def ruta_foto_ensayo(instance, filename):
     return f"compresion/{timezone.now():%Y/%m}/{uuid.uuid4().hex}.jpg"
 
 
+def ruta_video_ensayo(instance, filename):
+    extension = os.path.splitext(filename)[1].lower()[:6]
+    return f"videos/{timezone.now():%Y/%m}/{uuid.uuid4().hex}{extension}"
+
+
 def ruta_hoja_ensayo(instance, filename):
     extension = os.path.splitext(filename)[1].lower()[:6]
     return f"hojas/{timezone.now():%Y/%m}/{uuid.uuid4().hex}{extension}"
@@ -817,6 +822,10 @@ class ResultadoEnsayo(models.Model):
     hoja_calculo = models.FileField(
         storage=_almacen_fotos_ensayo, upload_to=ruta_hoja_ensayo, blank=True,
         verbose_name="Hoja de cálculo",
+    )
+    video_archivo = models.FileField(
+        storage=_almacen_fotos_ensayo, upload_to=ruta_video_ensayo, blank=True,
+        verbose_name="Video del ensayo",
     )
     fecha_ensayo = models.DateField(null=True, blank=True, verbose_name="Fecha de ensayo")
     observaciones = models.TextField(blank=True, default='', verbose_name="Observaciones")

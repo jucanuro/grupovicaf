@@ -190,6 +190,14 @@ Antes de esto el formulario iba en columnas, la sesión de ensayo integrada (`_s
 («Repetir esta foto» usa el asistente). Ya no se sube hoja de cálculo; el
 campo `hoja_calculo` y su descarga solo sirven a ensayos viejos.
 
+**Registro compacto, video y equipos (HU-LIMS-40).** La pantalla del registro cuelga del `<body>` (JS la reubica) para quedar por
+encima de todo el sistema; el formulario va en columnas CSS compactas dentro del modal. Guardar/Terminar viven bajo las fotos con
+`form="form-registro"`. El video (`ResultadoEnsayo.video_archivo`, 300 MB, carpeta privada) se sube por XHR a
+`subir_video_ensayo` y se baja por `video_ensayo`; nginx del host `laboratorio.` admite 320 MB (`deploy/nginx/grupovicaf.conf`:
+hay que recargar nginx al desplegar). Los equipos se dan de alta desde la sesión con `crear_equipo_ajax` (permiso
+`equipos.editar`). Las fotos se centran solas (`CentradoFoto.sugerir`) y se suben sin recorte; si no detecta nada, abre el recorte.
+En PC solo se cargan archivos; en celular y tablet hay cámara y galería y, al abrir el formulario sin las 2 fotos de antes, un aviso.
+
 **Panel de pantalla (HU-LIMS-29).** El «panel» (título, búsqueda, filtros y acciones)
 de las 25 pantallas con `data-command-header` va siempre visible arriba: no hay
 botón «Panel» ni X. El CSS está al final del `<style>` de `base_vicafpro.html`; una
