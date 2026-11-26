@@ -107,87 +107,47 @@
          data-lista-contenedor data-lista-url="{% url 'proyectos:lista_recepciones' %}{% if filtro_proyecto %}?proyecto={{ filtro_proyecto.pk }}{% endif %}">
         
         <!-- DESKTOP -->
-        <div class="hidden md:block overflow-x-auto">
-            <table class="w-full border-collapse table-compact">
-                <thead class="bg-slate-50 border-b border-slate-200">
+        <div class="hidden md:block">
+            <table class="w-full border-collapse rc-tabla">
+                <thead>
                     <tr>
-                        <th class="py-3 px-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest border-r border-slate-100 w-16">ID</th>
-                        <th class="py-3 px-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest border-r border-slate-100 w-24">Fecha</th>
-                        <th class="py-3 px-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest border-r border-slate-100 w-20">Hora</th>
-                        <th class="py-3 px-6 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest border-r border-slate-100">Cliente / Razón Social</th>
-                        <th class="py-3 px-6 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest border-r border-slate-100">Proyecto & Cotización</th>
-                        <th class="py-3 px-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest border-r border-slate-100 w-20">Muestras</th>
-                        <th class="py-3 px-6 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest">Acciones</th>
+                        <th class="w-20">ID</th>
+                        <th class="w-40">Recibida</th>
+                        <th>Cliente</th>
+                        <th class="w-80">Proyecto y cotización</th>
+                        <th class="w-28 text-center">Muestras</th>
+                        <th class="w-32 text-right">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for recepcion in recepciones %}
-                    <tr class="group border-b border-slate-50 last:border-0 hover:bg-blue-50/50 transition-all">
-                        <td class="px-4 text-center border-r border-slate-50">
-                            <span class="font-mono text-[11px] font-black text-slate-400 group-hover:text-blue-600 transition-colors">
-                                #{{ recepcion.id|stringformat:"03d" }}
+                    <tr>
+                        <td><span class="rc-id">#{{ recepcion.id|stringformat:"03d" }}</span></td>
+                        <td>
+                            <span class="rc-fecha"><i data-lucide="calendar" class="w-3 h-3"></i> {{ recepcion.fecha_recepcion|date:"d/m/Y" }}</span>
+                            <span class="rc-hora"><i data-lucide="clock" class="w-3 h-3"></i> {{ recepcion.fecha_recepcion|date:"H:i" }}</span>
+                        </td>
+                        <td>
+                            <span class="rc-cliente">
+                                <span class="rc-ini">{% if recepcion.cotizacion.cliente.razon_social %}{{ recepcion.cotizacion.cliente.razon_social|slice:":1" }}{% else %}C{% endif %}</span>
+                                <b>{% if recepcion.cotizacion.cliente.razon_social %}{{ recepcion.cotizacion.cliente.razon_social }}{% else %}{{ recepcion.cotizacion.cliente }}{% endif %}</b>
                             </span>
                         </td>
-
-                        <td class="px-4 text-center border-r border-slate-50">
-                            <span class="text-[10px] font-extrabold text-slate-700 uppercase tracking-tight">
-                                {{ recepcion.fecha_recepcion|date:"d M Y" }}
-                            </span>
-                        </td>
-
-                        <td class="px-4 text-center border-r border-slate-50">
-                            <span class="text-[10px] font-mono text-slate-500 font-medium bg-slate-100 px-1.5 py-0.5 rounded">
-                                {{ recepcion.fecha_recepcion|date:"H:i" }}
-                            </span>
-                        </td>
-
-                        <td class="px-6 border-r border-slate-50">
-                            <div class="flex flex-col truncate max-w-[350px]">
-                                <span class="text-[12px] font-bold text-slate-800 uppercase leading-none truncate">
-                                    {% if recepcion.cotizacion.cliente.razon_social %}
-                                        {{ recepcion.cotizacion.cliente.razon_social }}
-                                    {% else %}
-                                        {{ recepcion.cotizacion.cliente }}
-                                    {% endif %}
-                                </span>
-                            </div>
-                        </td>
-
-                        <td class="px-6 border-r border-slate-50">
+                        <td>
                             {% with proyecto=recepcion.cotizacion.proyecto_set.first %}
-                            <div class="flex items-center gap-2">
-                                <span class="text-[9px] font-black text-white bg-slate-800 px-1.5 py-0.5 rounded shadow-sm">
-                                    {{ proyecto.codigo_proyecto|default:"S/P" }}
-                                </span>
-                                <span class="text-[10px] font-mono text-slate-400 font-bold">
-                                    COT-{{ recepcion.cotizacion.codigo_cotizacion|default:recepcion.id }}
-                                </span>
-                            </div>
+                            <span class="rc-proy"><i data-lucide="folder-kanban" class="w-3 h-3"></i> {{ proyecto.codigo_proyecto|default:"S/P" }}</span>
+                            <span class="rc-cot"><i data-lucide="file-text" class="w-3 h-3"></i> COT-{{ recepcion.cotizacion.codigo_cotizacion|default:recepcion.id }}</span>
                             {% endwith %}
                         </td>
-
-                        <td class="px-4 text-center border-r border-slate-50">
-                            <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 text-blue-600 text-[11px] font-black border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                                {{ recepcion.muestras.count }}
-                            </span>
-                        </td>
-
-                        <td class="px-6 text-right">
-                            <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
-                                <a href="{% url 'proyectos:lista_muestras_recepcion' recepcion.id %}" 
-                                   class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-colors" title="Ver Muestras">
-                                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-                                </a>
-                                <a href="{% url 'proyectos:editar_recepcion' recepcion.id %}" 
-                                   class="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-100 rounded-lg transition-colors" title="Configurar">
-                                    <i data-lucide="settings-2" class="w-3.5 h-3.5"></i>
-                                </a>
-                            </div>
-                        </td>
+                        <td class="text-center"><span class="rc-n"><i data-lucide="flask-conical" class="w-3 h-3"></i> {{ recepcion.muestras.count }}</span></td>
+                        <td class="text-right"><div class="rc-acc">
+                            <a href="{% url 'proyectos:lista_muestras_recepcion' recepcion.id %}" class="rc-btn rc-btn--ver" title="Ver Muestras"><i data-lucide="eye" class="w-3.5 h-3.5"></i><span>Ver</span></a>
+                            <a href="{% url 'proyectos:editar_recepcion' recepcion.id %}" class="rc-btn rc-btn--ed" title="Configurar" aria-label="Configurar"><i data-lucide="settings-2" class="w-3.5 h-3.5"></i></a>
+                        </div></td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="py-12 text-center bg-slate-50/50">
+                        <td colspan="6" class="py-12 text-center">
                             <i data-lucide="database-zap" class="w-10 h-10 mx-auto text-slate-200 mb-2"></i>
                             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No existen registros en la base de datos</p>
                         </td>
@@ -196,6 +156,24 @@
                 </tbody>
             </table>
         </div>
+        <style>
+            .rc-tabla thead th { text-align: left; padding: .55rem .9rem; font-size: .62rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #64748b; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+            .rc-tabla thead th.text-center { text-align: center; } .rc-tabla thead th.text-right { text-align: right; }
+            .rc-tabla tbody tr { border-bottom: 1px solid #f1f5f9; transition: background .12s; } .rc-tabla tbody tr:hover { background: #f0f7ff; }
+            .rc-tabla td { padding: .45rem .9rem; vertical-align: middle; }
+            .rc-id { font-family: ui-monospace, Menlo, monospace; font-size: .74rem; font-weight: 800; color: #2563eb; background: #eff6ff; border-radius: .5rem; padding: .15rem .5rem; }
+            .rc-fecha, .rc-hora, .rc-proy, .rc-cot { display: flex; align-items: center; gap: .3rem; }
+            .rc-fecha { font-size: .74rem; font-weight: 700; color: #1e293b; } .rc-hora { font-size: .66rem; color: #94a3b8; font-family: ui-monospace, Menlo, monospace; }
+            .rc-cliente { display: flex; align-items: center; gap: .6rem; min-width: 0; }
+            .rc-cliente b { font-size: .78rem; color: #0f172a; font-weight: 700; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .rc-ini { width: 1.9rem; height: 1.9rem; border-radius: .6rem; background: linear-gradient(135deg, #1e293b, #475569); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 800; flex-shrink: 0; }
+            .rc-proy { font-family: ui-monospace, Menlo, monospace; font-size: .72rem; font-weight: 800; color: #0f172a; } .rc-cot { font-size: .66rem; color: #64748b; font-family: ui-monospace, Menlo, monospace; }
+            .rc-proy svg, .rc-cot svg, .rc-fecha svg, .rc-hora svg { color: #94a3b8; flex-shrink: 0; }
+            .rc-n { display: inline-flex; align-items: center; gap: .3rem; font-size: .74rem; font-weight: 800; color: #1d4ed8; background: #eff6ff; border: 1px solid #dbeafe; border-radius: 99px; padding: .15rem .6rem; }
+            .rc-acc { display: flex; justify-content: flex-end; gap: .3rem; flex-wrap: nowrap; } .rc-btn { white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: .3rem; height: 1.9rem; padding: 0 .55rem; border-radius: .6rem; font-size: .72rem; font-weight: 700; border: 1px solid transparent; transition: all .12s; }
+            .rc-btn--ver { background: #eff6ff; color: #1d4ed8; border-color: #dbeafe; } .rc-btn--ver:hover { background: #2563eb; color: #fff; }
+            .rc-btn--ed { background: #f8fafc; color: #64748b; border-color: #e2e8f0; width: 1.9rem; justify-content: center; padding: 0; } .rc-btn--ed:hover { background: #fef3c7; color: #b45309; border-color: #fde68a; }
+        </style>
 
         <!-- MOBILE -->
         <div class="block md:hidden bg-gradient-to-b from-slate-50 to-white p-3 space-y-3">

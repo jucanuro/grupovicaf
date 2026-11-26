@@ -2,11 +2,11 @@
 {% load static %}
 {% block title %}Resultados de ensayo | VICAF LIMS{% endblock %}
 
-{% block extra_css %}<link rel="stylesheet" href="{% static 'css/ensayos.css' %}">{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/ensayos.css' %}"><link rel="stylesheet" href="{% static 'css/resultados_lista.css' %}">{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 py-5 space-y-4">
-    <div class="v-cabecera">
+<div class="rl-pagina">
+    <div class="v-cabecera rl-cab">
         <div class="v-cabecera__icono"><i data-lucide="camera"></i>
         </div>
         <div class="min-w-0">
@@ -15,19 +15,7 @@
         </div>
     </div>
 
-    <nav class="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl text-sm font-semibold" aria-label="Filtro">
-        <a href="?vista=pendientes"
-           class="text-center py-2 rounded-lg {% if vista != 'terminados' %}bg-white shadow text-slate-900{% else %}text-slate-500{% endif %}">Pendientes</a>
-        <a href="?vista=terminados"
-           class="text-center py-2 rounded-lg {% if vista == 'terminados' %}bg-white shadow text-slate-900{% else %}text-slate-500{% endif %}">Terminados</a>
-    </nav>
-
-    {% if messages %}
-        {% for message in messages %}
-        <div class="rounded-xl px-4 py-3 text-sm {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-green-50 text-green-700 border border-green-200{% endif %}" role="status">{{ message }}</div>
-        {% endfor %}
-    {% endif %}
-
+    <aside class="rl-aside">
     <section class="v-tarjeta p-4" {% if sesion %}style="border-color:#6ee7b7; box-shadow:0 0 0 4px #ecfdf5"{% endif %} data-sesion>
         {% if sesion %}
         <div class="flex items-start justify-between gap-3">
@@ -70,7 +58,7 @@
                 <p class="curso__sub">Lo que escribiste quedó guardado. Entra y continúa donde lo dejaste.</p>
             </div>
         </div>
-        <div class="curso__grid">
+        <div class="curso__lista">
             {% for d in en_curso %}
             <a href="{% url 'proyectos:registrar_compresion' d.pk %}" class="curso__item" data-continuar-enlace>
                 <span class="curso__cod">{{ d.muestra.codigo_laboratorio }}</span>
@@ -89,7 +77,7 @@
         .curso__titulo { font-weight: 800; color: #0f172a; font-size: 1.02rem; display: flex; align-items: center; gap: .4rem; }
         .curso__n { font-size: .68rem; background: #2563eb; color: #fff; border-radius: 99px; padding: .05rem .5rem; }
         .curso__sub { font-size: .74rem; color: #64748b; }
-        .curso__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); gap: .65rem; }
+        .curso__grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: .5rem; }
         .curso__item { display: flex; flex-direction: column; gap: .15rem; background: #fff; border: 1px solid #e2e8f0; border-left: 4px solid #2563eb; border-radius: .9rem; padding: .7rem .8rem; transition: transform .12s, box-shadow .12s, border-color .12s; min-width: 0; }
         .curso__item:hover { transform: translateY(-2px); box-shadow: 0 12px 22px -14px rgba(30,64,175,.6); border-color: #93c5fd; border-left-color: #2563eb; }
         .curso__cod { font-family: ui-monospace, Menlo, monospace; font-weight: 800; font-size: .92rem; color: #0f172a; overflow-wrap: anywhere; }
@@ -102,44 +90,57 @@
     </style>
     {% endif %}
 
-    <ul class="space-y-3" data-lista-compresion>
-        {% for d in detalles %}
-        {% with e=d.resultado %}
-        <li>
-            <a href="{% url 'proyectos:registrar_compresion' d.pk %}"
-               class="block v-tarjeta p-4 active:bg-slate-50 hover:border-blue-300 hover:shadow-md transition">
-                <div class="flex items-start justify-between gap-3">
-                    <div class="min-w-0">
-                        <p class="font-mono font-bold text-slate-900 break-all" data-codigo>{{ d.muestra.codigo_laboratorio }}</p>
-                        <p class="text-xs text-slate-500 mt-0.5">{{ d.solicitud.codigo_solicitud }} · {{ d.norma }}</p>
-                        <p class="text-xs text-slate-700 font-semibold mt-0.5 truncate">{% if d.plantilla == 'compresion' %}Compresión de probeta{% else %}{{ d.descripcion_ensayo|default:d.norma }}{% endif %}</p>
-                    </div>
-                    {% if e and e.terminado %}
-                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-green-100 text-green-700 flex-shrink-0">Terminado</span>
-                    {% elif e and e.observacion_revision %}
-                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-800 flex-shrink-0">Devuelta</span>
-                    {% elif d.en_curso %}
-                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-blue-100 text-blue-700 flex-shrink-0" data-en-curso>En curso · Continuar</span>
-                    {% elif d.fecha_entrega_programada < hoy %}
-                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-red-100 text-red-700 flex-shrink-0">Atrasado</span>
-                    {% else %}
-                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-700 flex-shrink-0">Pendiente</span>
-                    {% endif %}
-                </div>
-                <div class="mt-3 flex items-center justify-between text-xs text-slate-600">
-                    <span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Entrega {{ d.fecha_entrega_programada|date:"d/m/Y" }}</span>
-                    <span class="flex items-center gap-1 font-semibold {% if d.n_fotos >= d.total_fotos %}text-green-700{% endif %}">
-                        <i data-lucide="image" class="w-3.5 h-3.5"></i> {% if d.plantilla == 'compresion' %}{{ d.n_fotos }}/{{ d.total_fotos }} fotos{% else %}{{ d.n_fotos }} foto{{ d.n_fotos|pluralize }}{% endif %}
-                    </span>
-                </div>
-            </a>
-        </li>
-        {% endwith %}
-        {% empty %}
-        <li class="text-center text-sm text-slate-500 bg-white border border-dashed border-slate-300 rounded-2xl p-8">
-            {% if vista == 'terminados' %}Aún no hay ensayos terminados.{% else %}No tienes ensayos pendientes.{% endif %}
-        </li>
+    </aside>
+    <div class="rl-main">
+    <nav class="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl text-sm font-semibold" aria-label="Filtro">
+        <a href="?vista=pendientes"
+           class="text-center py-2 rounded-lg {% if vista != 'terminados' %}bg-white shadow text-slate-900{% else %}text-slate-500{% endif %}">Pendientes</a>
+        <a href="?vista=terminados"
+           class="text-center py-2 rounded-lg {% if vista == 'terminados' %}bg-white shadow text-slate-900{% else %}text-slate-500{% endif %}">Terminados</a>
+    </nav>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="rounded-xl px-4 py-3 text-sm {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-green-50 text-green-700 border border-green-200{% endif %}" role="status">{{ message }}</div>
         {% endfor %}
-    </ul>
+    {% endif %}
+
+    <div data-lista-compresion class="rl-fechas">
+        {% regroup detalles by fecha_entrega_programada as por_fecha %}
+        {% for grupo in por_fecha %}
+        <section class="rl-dia">
+            <h2 class="rl-dia__t {% if grupo.grouper < hoy and vista != 'terminados' %}rl-dia__t--atraso{% endif %}">
+                <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                {% if grupo.grouper == hoy %}Hoy · {% elif grupo.grouper < hoy and vista != 'terminados' %}Atrasado · {% endif %}{{ grupo.grouper|date:"D d/m/Y" }}
+                <span>{{ grupo.list|length }}</span>
+            </h2>
+            <div class="rl-dia__grid">
+            {% for d in grupo.list %}{% with e=d.resultado %}
+                <a href="{% url 'proyectos:registrar_compresion' d.pk %}" class="rl-fila">
+                    <span class="rl-fila__ico"><i data-lucide="{% if d.plantilla == 'compresion' %}hammer{% else %}flask-conical{% endif %}" class="w-4 h-4"></i></span>
+                    <span class="rl-fila__txt">
+                        <b data-codigo>{{ d.muestra.codigo_laboratorio }}</b>
+                        <span>{% if d.plantilla == 'compresion' %}Compresión de probeta{% else %}{{ d.descripcion_ensayo|default:d.norma }}{% endif %}</span>
+                        <small>{{ d.solicitud.codigo_solicitud }} · {{ d.norma }}</small>
+                    </span>
+                    <span class="rl-fila__der">
+                        {% if e and e.terminado %}<em class="rl-chip rl-chip--ok">Terminado</em>
+                        {% elif e and e.observacion_revision %}<em class="rl-chip rl-chip--amb">Devuelta</em>
+                        {% elif d.en_curso %}<em class="rl-chip rl-chip--azul" data-en-curso>En curso · Continuar</em>
+                        {% elif d.fecha_entrega_programada < hoy %}<em class="rl-chip rl-chip--rojo">Atrasado</em>
+                        {% else %}<em class="rl-chip rl-chip--amb">Pendiente</em>{% endif %}
+                        <small class="{% if d.n_fotos >= d.total_fotos %}rl-ok{% endif %}"><i data-lucide="image" class="w-3 h-3"></i> {{ d.n_fotos }}/{{ d.total_fotos }}</small>
+                    </span>
+                </a>
+            {% endwith %}{% endfor %}
+            </div>
+        </section>
+        {% empty %}
+        <p class="text-center text-sm text-slate-500 bg-white border border-dashed border-slate-300 rounded-2xl p-8">
+            {% if vista == 'terminados' %}Aún no hay ensayos terminados.{% else %}No tienes ensayos pendientes.{% endif %}
+        </p>
+        {% endfor %}
+    </div>
+    </div>
 </div>
 {% endblock %}

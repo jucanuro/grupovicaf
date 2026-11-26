@@ -521,6 +521,9 @@ redistribuye por secciones; el modal de la sesión debe ser más grande con los 
 | REQ-LIMS-200 | HU-LIMS-41 | EL SISTEMA DEBE mostrar el modal de la sesión sin scroll en PC, con condiciones iniciales en una fila, equipos en dos subcolumnas y comprobación funcional con letra pequeña. | sí (navegador) | [Validado con usuario] |
 | REQ-LIMS-201 | HU-LIMS-41 | CUANDO se abra un ensayo terminado, EL SISTEMA DEBE mostrar el contador de fotos con las registradas y la hoja de resumen con todos los datos guardados. | sí | [Validado con usuario] |
 | REQ-LIMS-202 | HU-LIMS-41 | EL SISTEMA DEBE presentar «Ensayos en curso» como tarjetas con código, ensayo, solicitud, entrega y avance de fotos. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-203 | HU-LIMS-42 | EL SISTEMA DEBE mostrar en la lista de resultados, a pantalla completa, los ensayos en curso a la izquierda uno bajo otro y a la derecha los resultados por registrar agrupados y ordenados por fecha de entrega, marcando el atraso. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-204 | HU-LIMS-42 | EL SISTEMA DEBE mostrar la lista de recepciones con filas compactas (fecha y hora juntas, cliente con inicial, proyecto y cotización, muestras) y botones de acción siempre visibles. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-205 | HU-LIMS-42 | EL SISTEMA DEBE mostrar el detalle de la recepción con textos e iconos pequeños, datos de cliente, procedencia y responsable en una franja, y la tabla de muestras completa sin scroll horizontal. | sí (navegador) | [Validado con usuario] |
 
 ## 3. Trazabilidad HU → REQ
 
@@ -559,6 +562,7 @@ redistribuye por secciones; el modal de la sesión debe ser más grande con los 
 | HU-LIMS-39 | Formulario en modal y resumen junto a las fotos | REQ-LIMS-181 a 185 |
 | HU-LIMS-40 | Modal sobre todo, video, equipos y fotos tipo escáner | REQ-LIMS-186 a 194 |
 | HU-LIMS-41 | Formulario por secciones, hoja de resumen FOR-009, fotos de a dos y sesión grande | REQ-LIMS-195 a 202 |
+| HU-LIMS-42 | Lista de resultados dividida, lista de recepciones y detalle de recepción compactos | REQ-LIMS-203 a 205 |
 
 ## 4. Preguntas abiertas
 
@@ -597,3 +601,4 @@ redistribuye por secciones; el modal de la sesión debe ser más grande con los 
 | v22 | 2026-11-26 | Claude (DLF) | Formulario en modal, resumen junto a las fotos y código de cliente de la cotización: REQ-LIMS-181 a 185 (HU-LIMS-39) |
 | v23 | 2026-11-26 | Claude (DLF) | Modal sobre todo el sistema, video, equipos con «+», fotos tipo escáner y resumen moderno: REQ-LIMS-186 a 194 (HU-LIMS-40) |
 | v24 | 2026-11-26 | Claude (DLF) | Formulario por secciones, hoja de resumen tipo FOR-009, fotos de a dos y sesión grande: REQ-LIMS-195 a 202 (HU-LIMS-41) |
+| v25 | 2026-11-26 | Claude (DLF) | Lista de resultados dividida y recepciones compactas: REQ-LIMS-203 a 205 (HU-LIMS-42) |
