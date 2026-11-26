@@ -1183,13 +1183,13 @@ ORDEN_ETAPAS_LISTA = {'registrar': 0, 'proceso': 1, 'iniciar': 2, 'terminados': 
 
 
 def _etapa_solicitud(s):
-    """Etapa según lo registrado: por iniciar, por registrar (en marcha y sin ningún
-    resultado), en proceso (ya hay resultados) o terminados."""
+    """Etapa según lo registrado: por iniciar, por registrar (en marcha y sin ningún ensayo
+    registrado, o sea terminado), en proceso (al menos uno registrado) o terminados."""
     if s.estado == 'finalizado':
         return 'terminados'
     if s.estado == 'pendiente':
         return 'iniciar'
-    return 'proceso' if s.n_registrados else 'registrar'
+    return 'proceso' if s.n_terminados else 'registrar'
 
 
 @login_required

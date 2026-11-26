@@ -216,7 +216,7 @@
                         </td>
                         
                         <td class="px-6 py-4 text-center">
-                            <span class="se-ens"><span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-900 text-white text-[10px] font-bold shadow-sm ring-4 ring-slate-50">{{ s.n_ensayos }}</span><small>ensayo{{ s.n_ensayos|pluralize }}{% if s.n_registrados %} · {{ s.n_registrados }} reg.{% endif %}</small></span>
+                            <span class="se-ens"><span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-900 text-white text-[10px] font-bold shadow-sm ring-4 ring-slate-50">{{ s.n_ensayos }}</span><small>ensayo{{ s.n_ensayos|pluralize }}{% if s.n_terminados %} · {{ s.n_terminados }} reg.{% endif %}</small></span>
                         </td>
 
                         <td class="px-6 py-4 text-center">
@@ -229,7 +229,7 @@
                                         </button>
                                     </form>
                                 {% elif s.estado == 'proceso' %}
-                                    {% if s.n_registrados %}
+                                    {% if s.n_terminados %}
                                     <a href="{% url 'proyectos:resultados_solicitud' s.pk %}" class="accion-estado accion-estado--proceso" title="En proceso: {{ s.n_terminados }} de {{ s.n_ensayos }} ensayos terminados" aria-label="En proceso, {{ s.avance }} por ciento" data-registrar-resultados data-en-proceso>
                                         <i data-lucide="loader" class="w-4 h-4"></i> En proceso <span class="accion-estado__pct">{{ s.avance }}%</span>
                                     </a>
@@ -319,7 +319,7 @@
 
                             <div class="rounded-xl bg-slate-50 border border-slate-200 p-2.5">
                                 <p class="text-[8px] uppercase font-black tracking-[0.16em] text-slate-400 mb-1">Ensayos</p>
-                                <p class="text-[12px] font-black text-slate-700">{{ s.n_ensayos }} <span class="text-[9px] text-slate-400 font-bold">{% if s.n_registrados %}· {{ s.n_registrados }} registrado{{ s.n_registrados|pluralize }}{% endif %}</span></p>
+                                <p class="text-[12px] font-black text-slate-700">{{ s.n_ensayos }} <span class="text-[9px] text-slate-400 font-bold">{% if s.n_terminados %}· {{ s.n_terminados }} registrado{{ s.n_terminados|pluralize }}{% endif %}</span></p>
                             </div>
                         </div>
                     </div>
@@ -333,7 +333,7 @@
                                 </button>
                             </form>
                         {% elif s.estado == 'proceso' %}
-                            {% if s.n_registrados %}
+                            {% if s.n_terminados %}
                             <a href="{% url 'proyectos:resultados_solicitud' s.pk %}" class="accion-estado accion-estado--proceso w-full justify-center" title="En proceso: {{ s.n_terminados }} de {{ s.n_ensayos }} ensayos terminados" aria-label="En proceso, {{ s.avance }} por ciento" data-registrar-resultados data-en-proceso>
                                 <i data-lucide="loader" class="w-4 h-4"></i> En proceso <span class="accion-estado__pct">{{ s.avance }}%</span>
                             </a>

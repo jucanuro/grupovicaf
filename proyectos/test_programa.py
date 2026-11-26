@@ -527,7 +527,11 @@ class ListaYPdfSolicitudTests(AvanceMixin, TestCase):
         self.assertContains(r, 'accion-estado--registrar')
         self.assertNotContains(r, 'data-en-proceso')
         d = proc.detalles.first()
-        ResultadoEnsayo.crear_para(d)
+        e = ResultadoEnsayo.crear_para(d)
+        # Un ensayo a medias (borrador) aún no cuenta como registrado: sigue en «Por registrar».
+        r = self.client.get(reverse('proyectos:lista_solicitudes'))
+        self.assertNotContains(r, 'data-en-proceso')
+        ResultadoEnsayo.objects.filter(pk=e.pk).update(estado=ResultadoEnsayo.ESTADO_TERMINADO)
         r = self.client.get(reverse('proyectos:lista_solicitudes'))
         self.assertContains(r, 'data-en-proceso')
         self.assertContains(r, 'accion-estado__pct')
