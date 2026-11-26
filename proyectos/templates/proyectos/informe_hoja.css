@@ -58,7 +58,7 @@
 .hoja .fc { border: 0.75pt solid #000; }
 .hoja .fc td { border: 0.75pt solid #000; }
 .hoja .fc-logo { width: 106pt; text-align: center !important; padding: 2pt !important; } .hoja .fc-logo img { width: 96pt; height: auto; }
-.hoja .fc-inacal { width: 106pt; text-align: center !important; padding: 1pt !important; } .hoja .fc-inacal img { width: 70pt; height: auto; }
+.hoja .fc-inacal { width: 106pt; text-align: center !important; padding: 1pt !important; } .hoja .fc-inacal img { width: 98pt; height: auto; }
 .hoja .fc-tit { text-align: center !important; font-weight: 700; font-size: 8.9pt; line-height: 1.2; padding: 3pt 10pt !important; }
 .hoja .fc-tit--oscuro { background: #243776 !important; color: #fff; font-size: 7.4pt; padding: 6pt 8pt !important; }
 .hoja .fc-sub { text-align: center !important; font-weight: 700; font-size: 7pt; padding: 3pt 30pt !important; }
@@ -111,8 +111,8 @@
 .hoja .pr-id th, .hoja .pr-id td, .hoja .pr-tl th, .hoja .pr-tl td { text-align: center; }
 .hoja .pr-id td { padding: 7pt 4pt !important; }
 .hoja .pr-ej td, .hoja .pr-ej th { padding: 2.1pt 5pt !important; }
-.hoja .pr-carga img { width: 112pt; height: 44pt; object-fit: cover; }
-.hoja .pr-fotos { vertical-align: middle !important; padding: 2pt !important; } .hoja .pr-fotos img { height: 92pt; width: auto; max-width: 48%; margin: 0 1pt; object-fit: cover; }
+.hoja .pr-carga img { width: 130pt; height: 46pt; object-fit: contain; }
+.hoja .pr-fotos { vertical-align: middle !important; padding: 2pt !important; } .hoja .pr-fotos img { width: 47%; height: 92pt; margin: 0 1pt; object-fit: contain; vertical-align: middle; }
 .hoja .pr-def { vertical-align: top !important; }
 .hoja .pr-fract { margin-top: 3pt !important; }
 .hoja .pr-th-izq { text-align: left !important; padding-left: 9pt !important; }
@@ -124,7 +124,7 @@
 .hoja .pr-autoriza p { font-weight: 700; margin-right: 18pt !important; } .hoja .pr-autoriza img { height: 38pt; width: auto; }
 .hoja .pr-autoriza .cv-firma__pie { text-align: center; }
 .hoja .pr-res th { width: 55%; } .hoja .pr-texto { margin: 3pt 9pt !important; white-space: pre-line; }
-.hoja .pr-galeria td { width: 33.3%; vertical-align: top; } .hoja .pr-galeria img { height: 90pt; width: auto; max-width: 100%; display: block; margin: 0 auto 2pt; } .hoja .pr-galeria span { font-size: 5.5pt; }
+.hoja .pr-galeria td { width: 33.3%; vertical-align: top; } .hoja .pr-galeria img { height: 90pt; width: 100%; object-fit: contain; display: block; margin: 0 auto 2pt; } .hoja .pr-galeria span { font-size: 5.5pt; }
 .hoja .pr-t th, .hoja .pr-t td { padding-top: 2.4pt !important; padding-bottom: 2.4pt !important; }
 .hoja .pr-ej td, .hoja .pr-ej th { padding-top: 2.1pt !important; padding-bottom: 2.1pt !important; }
 .hoja .pr-id td { padding-top: 7pt !important; padding-bottom: 7pt !important; }
