@@ -102,3 +102,12 @@ def url_calendario_lab(context):
 
     from correo.enlaces import url_lab
     return url_lab(context['request'], reverse('actividades:calendario_dashboard', urlconf='grupovicaf.urls_lab'))
+
+
+@register.simple_tag(takes_context=True)
+def url_dashboard_lab(context):
+    """Enlace al dashboard del LIMS (otro host: laboratorio.)."""
+    from django.urls import reverse
+
+    from correo.enlaces import url_lab
+    return url_lab(context['request'], reverse('dashboard', urlconf='grupovicaf.urls_lab'))
