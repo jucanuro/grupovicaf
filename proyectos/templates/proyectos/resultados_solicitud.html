@@ -3,7 +3,7 @@
 {% block title %}Resultados {{ solicitud.codigo_solicitud }} | VICAF LIMS{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/ensayos.css' %}?v=20261125c">
+<link rel="stylesheet" href="{% static 'css/ensayos.css' %}?v=20261126a">
 {% endblock %}
 
 {% block content %}
@@ -131,7 +131,14 @@
                 <a href="{% url 'proyectos:medidas_solicitud' solicitud.pk %}" class="v-btn v-btn--secundario v-btn--sm mt-2" data-medir-todas><i data-lucide="ruler"></i> Medir y pesar todas primero</a>
                 {% endif %}
             </div>
+            <div class="rs-resumen-grupos" data-resumen-grupos>
+                <span><b>{{ detalles|length }}</b> ensayo{{ detalles|length|pluralize }}</span>
+                {% if resumen_grupos.proceso %}<span class="rs-g rs-g--ambar">{{ resumen_grupos.proceso }} en proceso</span>{% endif %}
+                {% if resumen_grupos.registrar %}<span class="rs-g rs-g--verde">{{ resumen_grupos.registrar }} por registrar</span>{% endif %}
+                {% if resumen_grupos.terminado %}<span class="rs-g rs-g--gris">{{ resumen_grupos.terminado }} terminado{{ resumen_grupos.terminado|pluralize }}</span>{% endif %}
+            </div>
             {% for d in detalles %}
+            {% ifchanged d.grupo %}<p class="rs-grupo rs-grupo--{{ d.grupo }}">{{ d.grupo_texto }}</p>{% endifchanged %}
             <div class="rs-linea" data-linea="{{ d.pk }}">
                 <div class="rs-linea__info">
                     <p class="rs-codigo">{{ d.muestra.codigo_laboratorio }}</p>

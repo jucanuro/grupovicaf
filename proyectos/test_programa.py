@@ -493,7 +493,7 @@ class ListaYPdfSolicitudTests(AvanceMixin, TestCase):
         self.client.post(reverse('proyectos:crear_solicitud'), datos)
         return SolicitudEnsayo.objects.get(cotizacion=proyecto.cot_)
 
-    def test_la_lista_pone_primero_lo_pendiente_y_ultimo_lo_finalizado(self):
+    def test_la_lista_pone_primero_lo_que_falta_registrar_y_ultimo_lo_finalizado(self):
         fin = self._solicitud()
         pen = self._solicitud()
         proc = self._solicitud()
@@ -501,7 +501,33 @@ class ListaYPdfSolicitudTests(AvanceMixin, TestCase):
         SolicitudEnsayo.objects.filter(pk=proc.pk).update(estado='proceso')
         resp = self.client.get(reverse('proyectos:lista_solicitudes'))
         estados = [x.estado for x in resp.context['solicitudes']]
-        self.assertEqual(estados, ['pendiente', 'proceso', 'finalizado'])
+        # Por registrar (en marcha, sin resultados), por iniciar y al final lo terminado.
+        self.assertEqual(estados, ['proceso', 'pendiente', 'finalizado'])
+        self.assertEqual([x.etapa for x in resp.context['solicitudes']], ['registrar', 'iniciar', 'terminados'])
+
+    def test_las_pestanas_filtran_por_etapa_y_cuentan(self):
+        pen = self._solicitud()
+        proc = self._solicitud()
+        SolicitudEnsayo.objects.filter(pk=proc.pk).update(estado='proceso')
+        resp = self.client.get(reverse('proyectos:lista_solicitudes'))
+        conteo = {t['clave']: t['n'] for t in resp.context['tabs']}
+        self.assertEqual((conteo['iniciar'], conteo['registrar'], conteo['proceso'], conteo['terminados']), (1, 1, 0, 0))
+        resp = self.client.get(reverse('proyectos:lista_solicitudes') + '?etapa=iniciar')
+        self.assertEqual([x.pk for x in resp.context['solicitudes']], [pen.pk])
+        self.assertContains(resp, 'data-etapa="registrar"')
+
+    def test_el_boton_es_ambar_con_porcentaje_cuando_ya_hay_resultados(self):
+        from proyectos.models import DetalleSolicitudEnsayo, ResultadoEnsayo
+        proc = self._solicitud()
+        SolicitudEnsayo.objects.filter(pk=proc.pk).update(estado='proceso')
+        r = self.client.get(reverse('proyectos:lista_solicitudes'))
+        self.assertContains(r, 'accion-estado--registrar')
+        self.assertNotContains(r, 'data-en-proceso')
+        d = proc.detalles.first()
+        ResultadoEnsayo.crear_para(d)
+        r = self.client.get(reverse('proyectos:lista_solicitudes'))
+        self.assertContains(r, 'data-en-proceso')
+        self.assertContains(r, 'accion-estado__pct')
 
     def test_el_boton_de_cada_estado_es_el_destacado(self):
         pen = self._solicitud()

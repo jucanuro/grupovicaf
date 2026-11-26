@@ -441,10 +441,22 @@ def resultados_solicitud(request, solicitud_id):
         if e and e.observacion_revision and not e.terminado:
             d.estado_texto, d.estado_color = 'Devuelto', 'rojo'
         d.a_nombre = bool(d.tecnico_asignado and d.tecnico_asignado.user_id != request.user.pk)
+        # Grupos de la lista: lo que está en proceso, lo que falta registrar y, al final, lo terminado.
+        if e and e.terminado:
+            d.grupo, d.grupo_texto, d.grupo_orden = 'terminado', 'Terminados', 2
+        elif e:
+            d.grupo, d.grupo_texto, d.grupo_orden = 'proceso', 'En proceso', 0
+        else:
+            d.grupo, d.grupo_texto, d.grupo_orden = 'registrar', 'Por registrar', 1
         if d.plantilla == ResultadoEnsayo.PLANTILLA_COMPRESION and not (e and e.terminado):
             ejecutor = _ejecutor(request.user, d)
             if ejecutor is not None:
                 tecnicos[ejecutor.pk] = ejecutor
+
+    propias.sort(key=lambda d: (d.grupo_orden, d.muestra.codigo_laboratorio, d.pk))
+    resumen_grupos = {
+        g: sum(1 for d in propias if d.grupo == g) for g in ('proceso', 'registrar', 'terminado')
+    }
 
     sesiones = []
     for t in tecnicos.values():
@@ -491,6 +503,7 @@ def resultados_solicitud(request, solicitud_id):
     return render(request, 'proyectos/resultados_solicitud.html', {
         'solicitud': solicitud,
         'detalles': propias,
+        'resumen_grupos': resumen_grupos,
         'ocultas': len(todas) - len(propias),
         'pasos': pasos,
         'paso_actual': actual['n'] if actual else None,

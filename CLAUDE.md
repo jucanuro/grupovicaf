@@ -190,6 +190,11 @@ Antes de esto el formulario iba en columnas, la sesión de ensayo integrada (`_s
 («Repetir esta foto» usa el asistente). Ya no se sube hoja de cálculo; el
 campo `hoja_calculo` y su descarga solo sirven a ensayos viejos.
 
+**Solicitudes por etapa (HU-LIMS-44).** `lista_solicitudes` calcula la etapa de cada una (`_etapa_solicitud`): por iniciar (pendiente),
+por registrar (en marcha sin ningún `ResultadoEnsayo`), en proceso (con resultados) y terminados; pestañas con conteo (`?etapa=`), orden
+registrar → proceso → iniciar → terminados, botón verde «Registrar» o ámbar «En proceso · N %» (terminados / ensayos). La pantalla
+`resultados_solicitud` agrupa las líneas: en proceso, por registrar, terminados (`d.grupo`).
+
 **Lista de resultados en filas (HU-LIMS-43).** `compresion_lista.html` + `static/css/resultados_lista.css`: pestañas separadas
 Pendientes / Terminados con su conteo («faltan N», «N en curso») y una lista de filas (`.rr`) agrupada por fecha de entrega
 (pendientes) o por el día en que se terminaron (terminados, más recientes primero); ya no hay tarjetas de «en curso» aparte.

@@ -42,6 +42,7 @@ from .models import (
     DetalleSolicitudEnsayo,
     IncidenciaSolicitud,
     InformeFinal,
+    ResultadoEnsayo,
 )
 
 from servicios.models import (
@@ -1171,22 +1172,41 @@ def cambiar_estado_solicitud(request, pk, nuevo_estado):
     return redirect('proyectos:lista_solicitudes')
 
 
+ETAPAS_SOLICITUD = [
+    ('registrar', 'Por registrar'),
+    ('proceso', 'En proceso'),
+    ('iniciar', 'Por iniciar'),
+    ('terminados', 'Terminados'),
+]
+
+
+def _etapa_solicitud(s):
+    """Etapa según lo registrado: por iniciar, por registrar (en marcha y sin ningún
+    resultado), en proceso (ya hay resultados) o terminados."""
+    if s.estado == 'finalizado':
+        return 'terminados'
+    if s.estado == 'pendiente':
+        return 'iniciar'
+    return 'proceso' if s.n_registrados else 'registrar'
+
+
 @login_required
 @permiso_requerido('ensayos.ver')
 def lista_solicitudes(request):
-    # Primero lo que falta empezar (pendiente), luego lo que está en proceso y al final lo
-    # finalizado; dentro de cada grupo, lo que vence antes va arriba.
-    solicitudes = SolicitudEnsayo.objects.prefetch_related('detalles').select_related(
+    # Primero lo que falta registrar, luego lo que está en proceso, lo que falta iniciar y al
+    # final lo terminado; dentro de cada etapa, lo que vence antes va arriba.
+    solicitudes = SolicitudEnsayo.objects.select_related(
         'cotizacion__cliente',
         'elaborado_por'
     ).annotate(
-        prioridad=Case(
-            When(estado='pendiente', then=Value(0)),
-            When(estado='proceso', then=Value(1)),
-            default=Value(2),
-            output_field=IntegerField(),
+        n_ensayos=Count('detalles', distinct=True),
+        n_registrados=Count('detalles__resultado', distinct=True),
+        n_terminados=Count(
+            'detalles__resultado',
+            filter=Q(detalles__resultado__estado__in=ResultadoEnsayo.ESTADOS_CERRADOS),
+            distinct=True,
         ),
-    ).all().order_by('prioridad', F('fecha_entrega_programada').asc(nulls_last=True), '-id')
+    ).all().order_by(F('fecha_entrega_programada').asc(nulls_last=True), '-id')
 
     ve_todos = ve_todos_los_ensayos(request.user)
     if not ve_todos:
@@ -1205,9 +1225,26 @@ def lista_solicitudes(request):
     filtro_proyecto = proyecto_de_filtro(request)
     solicitudes = filtrar_por_proyecto(solicitudes, filtro_proyecto)
 
+    lista = list(solicitudes)
+    orden = {clave: n for n, (clave, _) in enumerate(ETAPAS_SOLICITUD)}
+    for s in lista:
+        s.etapa = _etapa_solicitud(s)
+        s.avance = round(s.n_terminados * 100 / s.n_ensayos) if s.n_ensayos else 0
+    lista.sort(key=lambda s: orden[s.etapa])
+    conteo = {clave: sum(1 for s in lista if s.etapa == clave) for clave, _ in ETAPAS_SOLICITUD}
+    etapa = request.GET.get('etapa', '')
+    if etapa in orden:
+        lista = [s for s in lista if s.etapa == etapa]
+    else:
+        etapa = ''
+    tabs = [{'clave': clave, 'texto': texto, 'n': conteo[clave]} for clave, texto in ETAPAS_SOLICITUD]
+
     placeholder = 'Buscar por N° solicitud, cliente o cotización...' if ve_todos else 'Buscar por N° solicitud, código de cliente o cotización...'
     return render(request, 'proyectos/ensayos_list.html', {
-        'solicitudes': solicitudes,
+        'solicitudes': lista,
+        'etapa': etapa,
+        'tabs': tabs,
+        'n_total': sum(conteo.values()),
         'q': q,
         'query': q,
         'ocultar_cliente': not ve_todos,
