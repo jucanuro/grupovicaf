@@ -364,3 +364,26 @@ class VideoEquiposYDistribucionTests(CompresionBase):
         for marca in ('data-minimodal="sesion"', 'data-abrir-minimodal="sesion"', 'data-minimodal="antes"',
                       'data-tomar-antes', 'data-formulario-igual', 'data-ajustar'):
             self.assertIn(marca, html)
+
+
+class RegistroSeccionesTests(CompresionBase):
+    """HU-LIMS-41: formulario por secciones, hoja de resumen con datos del servidor."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user_tec)
+
+    def test_el_formulario_tiene_tres_secciones_con_menu_lateral(self):
+        html = self.client.get(self.url_registro(self.mia)).content.decode()
+        for sec in ('cliente', 'medidas', 'rotura'):
+            self.assertIn('data-sec="%s"' % sec, html)
+            self.assertIn('data-ir-sec="%s"' % sec, html)
+        self.assertIn('class="rg-rail"', html)
+        self.assertNotIn('column-count', html)
+
+    def test_la_hoja_lleva_los_datos_fijos_del_servidor(self):
+        resp = self.client.get(self.url_registro(self.mia))
+        hoja = resp.context['hoja_estatica']
+        self.assertEqual(hoja['registro'], self.mia.solicitud.codigo_solicitud)
+        self.assertEqual(hoja['norma'], self.mia.norma)
+        self.assertIn('id="hoja-estatica"', resp.content.decode())

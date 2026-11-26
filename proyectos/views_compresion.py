@@ -329,6 +329,13 @@ def registrar_ensayo_compresion(request, detalle_id):
         'form_sesion': form_sesion, 'campos_equipo': campos_equipo,
         'campo_usos': form_sesion['neopreno_usos'] if form_sesion else None, 'campos_comprobacion': campos_comprobacion,
         'faltan_tipos_sesion': faltan_tipos, 'url_sesion_ajax': url_sesion,
+        'hoja_estatica': {
+            'recepcion': f"{detalle.muestra.recepcion.fecha_recepcion:%d/%m/%Y}" if detalle.muestra.recepcion_id else '',
+            'testigo': detalle.muestra.nro_item, 'registro': detalle.solicitud.codigo_solicitud,
+            'tecnico': detalle.tecnico_asignado.nombre_completo if detalle.tecnico_asignado_id else '',
+            'ensayo': detalle.descripcion_ensayo, 'norma': detalle.norma,
+            'sesion': _datos_sesion(sesion or (ensayo.sesion if ensayo is not None else None)),
+        },
         'sesion_resumen': _resumen_sesion(sesion) if sesion else (_resumen_sesion(ensayo.sesion) if ensayo is not None and ensayo.sesion else ''),
         'campos_formulario': campos_formulario,
         'instrucciones_formulario': esquema.get('instrucciones', ''),
@@ -1074,6 +1081,23 @@ def foto_compresion(request, foto_id):
 
 # --- Sesión de ensayo (HU-LIMS-12/13) -------------------------------------
 
+def _datos_sesion(sesion):
+    """Datos de la sesión para dibujar la hoja (FOR-009) en el resumen del registro."""
+    if sesion is None:
+        return None
+
+    def num(v, dec):
+        return f"{v:.{dec}f}".replace('.', ',') if v is not None else ''
+    items = sesion.comprobacion_items()
+    return {
+        'fecha': f"{sesion.fecha:%d/%m/%Y}",
+        't_ini': num(sesion.temperatura_inicial, 1), 'hr_ini': num(sesion.humedad_inicial, 0),
+        't_fin': num(sesion.temperatura_final, 1), 'hr_fin': num(sesion.humedad_final, 0),
+        'equipos': [{'etiqueta': e, 'codigo': c} for e, c in sesion.equipos_usados()],
+        'comprobacion': [{'equipo': i['equipo'], 'pregunta': i['pregunta'], 'conforme': i['conforme']} for i in items],
+    }
+
+
 def _resumen_sesion(sesion):
     """Texto corto de la sesión abierta, para mostrarlo en el registro sin recargar."""
     return (f"Sesión del {sesion.fecha:%d/%m/%Y} · {sesion.temperatura_inicial:.1f} °C · "
@@ -1110,7 +1134,7 @@ def abrir_sesion_ensayo(request):
         sesion.registrada_por = propio if a_nombre_de else None
         sesion.save()
         if ajax:
-            return JsonResponse({'ok': True, 'resumen': _resumen_sesion(sesion)})
+            return JsonResponse({'ok': True, 'resumen': _resumen_sesion(sesion), 'datos': _datos_sesion(sesion)})
         quien = f" de {perfil.nombre_completo}" if a_nombre_de else ""
         messages.success(request, f"Sesión{quien} abierta. Ya se pueden terminar probetas con fecha "
                                   f"{sesion.fecha:%d/%m/%Y}.")

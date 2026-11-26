@@ -56,10 +56,7 @@
     .rg-modal__barra { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 1.25rem; background: #0f172a; color: #fff; flex-shrink: 0; }
     .rg-modal__barra h2 { font-weight: 800; font-size: 1rem; }
     .rg-modal__barra p { font-size: .75rem; color: #cbd5e1; }
-    .rg-modal__cuerpo { flex: 1; min-height: 0; overflow-y: auto; padding: 1rem 1.25rem 2rem; column-width: 23rem; column-gap: 1rem; }
-    .rg-modal__cuerpo > .v-tarjeta, .rg-modal__cuerpo > details { break-inside: avoid; margin-bottom: 1rem; }
-    .rg-modal__cuerpo > .rg-ancho { column-span: all; }
-    @media (max-width: 639px) { .rg-modal__cuerpo { padding: .75rem .75rem 2rem; column-width: auto; } }
+    .rg-modal__cuerpo { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: .7rem .9rem 1rem; display: flex; flex-direction: column; gap: .6rem; }
     /* Pantalla completa en columnas (HU-LIMS-38) */
     .rg-completo { background: #f1f5f9; }
     .rg-cuerpo { max-width: none; margin: 0; padding: 1rem 1.25rem 2rem; display: flex; flex-direction: column; gap: .9rem; }
@@ -138,11 +135,6 @@
     .rg-modal__barra h2 { font-size: .9rem; }
     .rg-modal__barra p { font-size: .68rem; }
     .rg-modal__barra .v-btn { min-height: 2.1rem; padding: 0 1rem; font-size: .82rem; }
-    .rg-modal__cuerpo { column-width: auto; column-count: 1; column-gap: .8rem; padding: .7rem .9rem 1rem; }
-    @media (min-width: 760px) { .rg-modal__cuerpo { column-count: 2; } }
-    @media (min-width: 1150px) { .rg-modal__cuerpo { column-count: 3; } }
-    @media (min-width: 1500px) { .rg-modal__cuerpo { column-count: 4; } }
-    .rg-modal__cuerpo > * { break-inside: avoid; margin-bottom: .8rem; }
     .rg-modal .v-tarjeta, .rg-modal .v-tarjeta { border-radius: .85rem; }
     .rg-modal .v-tarjeta__cab { padding: .55rem .75rem .1rem; gap: .5rem; }
     .rg-modal .v-tarjeta__cuerpo { padding: .4rem .75rem .7rem; }
@@ -229,10 +221,116 @@
     .rg-requisitos { padding: .5rem .75rem; }
     .rg-req { font-size: .72rem; padding: .2rem .55rem; }
     .rg-completo .rs-barra { padding-top: .5rem; padding-bottom: .5rem; }
+
+    /* Formulario por secciones, sin scroll en PC (HU-LIMS-41) */
+    .rg-marco { flex: 1; min-height: 0; display: grid; grid-template-columns: 12.5rem minmax(0, 1fr); gap: .8rem; }
+    .rg-rail { display: flex; flex-direction: column; gap: .4rem; align-self: start; background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; padding: .5rem; }
+    .rg-rail__b { display: grid; grid-template-columns: 1.6rem 1fr; align-items: center; gap: .1rem .5rem; text-align: left; padding: .55rem .5rem; border-radius: .7rem; border: 1px solid transparent; color: #475569; font-weight: 700; font-size: .8rem; cursor: pointer; background: transparent; }
+    .rg-rail__b:hover { background: #f1f5f9; }
+    .rg-rail__b.activa { background: linear-gradient(135deg, #2563eb, #1e40af); color: #fff; box-shadow: 0 8px 18px -10px rgba(37, 99, 235, .8); }
+    .rg-rail__n { width: 1.5rem; height: 1.5rem; border-radius: 99px; background: #e2e8f0; color: #334155; font-size: .72rem; font-weight: 800; display: flex; align-items: center; justify-content: center; grid-row: span 2; }
+    .rg-rail__b.activa .rg-rail__n { background: rgba(255, 255, 255, .22); color: #fff; }
+    .rg-rail__b em { font-style: normal; font-size: .66rem; font-weight: 600; opacity: .75; }
+    .rg-rail__nota { font-size: .66rem; color: #94a3b8; padding: .3rem .4rem 0; border-top: 1px solid #f1f5f9; margin-top: .2rem; }
+    .rg-secs { min-height: 0; min-width: 0; display: flex; }
+    .rg-sec { display: none; flex: 1; min-width: 0; min-height: 0; overflow-y: auto; overflow-x: hidden; gap: .8rem; align-items: start; align-content: start; grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr)); }
+    .rg-sec.activa { display: grid; }
+    .rg-sec[data-sec="medidas"] { grid-template-columns: minmax(0, 2.1fr) minmax(0, 1fr); }
+    .rg-sec > * { min-width: 0; }
+    .rg-sec > [data-cambios] { grid-column: 1 / -1; }
+    .rg-dos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; }
+    .rg-col { min-width: 0; }
+    .rg-g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .rg-fijos { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .rg-modal [data-preliminar] { padding: .6rem .7rem; border-radius: .9rem; }
+    .rg-modal [data-preliminar] .text-4xl { font-size: 1.7rem; line-height: 1.1; }
+    .rg-modal [data-preliminar] .py-3 { padding-top: .35rem; padding-bottom: .35rem; }
+    .rg-modal input, .rg-modal select, .rg-modal textarea { max-width: 100%; min-width: 0; }
+    @media (max-width: 1099px) {
+        .rg-sec[data-sec="medidas"] { grid-template-columns: minmax(0, 1fr); }
+        .rg-g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .rg-fijos { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 899px) {
+        .rg-modal__cuerpo { display: block; overflow-y: auto; overflow-x: hidden; padding: .6rem .6rem 1.5rem; }
+        .rg-marco { display: block; }
+        .rg-rail { display: none; }
+        .rg-secs { display: block; }
+        .rg-sec, .rg-sec.activa { display: grid; grid-template-columns: minmax(0, 1fr) !important; overflow: visible; margin-bottom: .7rem; }
+        .rg-dos { grid-template-columns: minmax(0, 1fr); }
+        .rg-sesion-barra { margin-bottom: .6rem; }
+        .rg-modal .grid-cols-2:not(.rg-keep) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 479px) { .rg-g4 { grid-template-columns: minmax(0, 1fr); } .rg-modal .v-campo[data-unidad]::after { right: .4rem; } }
+    /* Con las secciones sobra espacio: controles un poco más grandes (PC y tablet ancha) */
+    @media (min-width: 900px) {
+        .rg-modal .v-campo input, .rg-modal .v-campo select, .rg-modal .v-campo textarea { padding: .42rem .65rem; font-size: .88rem; min-height: 2.3rem; }
+        .rg-modal .v-etiqueta { font-size: .72rem; margin-bottom: .2rem; }
+        .rg-modal .v-tarjeta__cab h2 { font-size: .95rem; } .rg-modal .v-tarjeta__cab p { font-size: .72rem; }
+        .rg-modal .v-tarjeta__cab { padding: .75rem .9rem .2rem; } .rg-modal .v-tarjeta__cuerpo { padding: .6rem .9rem .9rem; }
+        .rg-modal .v-opcion { font-size: .82rem; }
+        .rg-modal .text-sm, .rg-modal fieldset .py-1\.5 { font-size: .84rem !important; }
+        .rg-modal .v-paso { width: 1.5rem; height: 1.5rem; font-size: .75rem; }
+    }
+    /* Sesión: modal grande */
+    .rg-mini__caja--ancha { width: min(96vw, 90rem); height: min(92vh, 62rem); max-height: none; display: flex; flex-direction: column; padding: 1.1rem 1.4rem; overflow: hidden; }
+    .rg-mini__caja--ancha .rg-mini__cab h3 { font-size: 1.15rem; }
+    .rg-mini__caja--ancha .rg-mini__cab p { font-size: .85rem; }
+    .rg-mini__caja--ancha .rg-sesion-grid { flex: 1; min-height: 0; overflow-y: auto; grid-template-columns: minmax(0, .8fr) minmax(0, 1.1fr) minmax(0, 1.2fr); gap: 1.6rem; align-content: start; padding-right: .2rem; }
+    .rg-mini__caja--ancha .rg-sesion-grid h4 { font-size: .74rem; margin-bottom: .6rem; }
+    .rg-mini__caja--ancha .v-etiqueta { font-size: .76rem; margin-bottom: .2rem; }
+    .rg-modal .rg-mini__caja--ancha .v-campo input, .rg-modal .rg-mini__caja--ancha .v-campo select { min-height: 2.6rem; font-size: .95rem; padding: .4rem .7rem; }
+    .rg-modal .rg-mini__caja--ancha .v-opcion { font-size: .85rem; }
+    .rg-modal .rg-mini__caja--ancha .v-opcion input { width: 1.1rem; height: 1.1rem; }
+    .rg-mini__caja--ancha .rg-eq-lista { display: grid; grid-template-columns: minmax(0, 1fr); gap: .7rem; }
+    .rg-mini__caja--ancha .rg-equipo { gap: .5rem; }
+    .rg-mini__caja--ancha .rg-mas { width: 2.6rem; min-height: 2.6rem; font-size: 1.5rem; border-radius: .7rem; border-width: 2px; }
+    .rg-mini__caja--ancha .rg-comp__equipo { font-size: .72rem; margin-top: .6rem; }
+    .rg-mini__caja--ancha .rg-comp__fila { font-size: .85rem; padding: .35rem 0; align-items: center; }
+    .rg-mini__caja--ancha .rg-mini__pie { margin-top: .9rem; padding-top: .7rem; border-top: 1px solid #f1f5f9; }
+    .rg-mini__caja--ancha .rg-mini__pie p { font-size: .8rem; }
+    .rg-mini__caja--ancha .rg-mini__pie .v-btn { min-height: 2.6rem; font-size: .95rem; padding: 0 1.4rem; }
+    @media (max-width: 1099px) { .rg-mini__caja--ancha .rg-sesion-grid { grid-template-columns: minmax(0, 1fr); gap: 1.2rem; } }
+    @media (max-width: 639px) { .rg-mini__caja--ancha { width: 100vw; height: 100dvh; border-radius: 0; padding: .8rem; } .rg-mini:has(.rg-mini__caja--ancha) { padding: 0; } }
+    /* Hoja de resumen tipo FOR-009 */
+    .hf { background: #fff; border: 1px solid #cbd5e1; border-radius: .9rem; overflow: hidden; font-size: .78rem; color: #0f172a; }
+    .hf__cab { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; padding: .8rem 1rem; border-bottom: 2px solid #0f172a; flex-wrap: wrap; }
+    .hf__marca { font-size: .62rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #2563eb; }
+    .hf__titulo { font-size: 1rem; font-weight: 800; letter-spacing: .01em; line-height: 1.2; }
+    .hf__sub { font-size: .72rem; color: #475569; margin-top: .1rem; }
+    .hf__reg { text-align: right; font-size: .68rem; color: #475569; }
+    .hf__reg b { display: block; font-family: ui-monospace, Menlo, monospace; font-size: .92rem; color: #0f172a; }
+    .hf__prog { height: .22rem; background: #e2e8f0; } .hf__prog > i { display: block; height: 100%; background: #16a34a; transition: width .3s; }
+    .hf__fila { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); border-bottom: 1px solid #cbd5e1; }
+    .hf__celda { padding: .35rem .7rem; border-right: 1px solid #e2e8f0; min-width: 0; }
+    .hf__celda:last-child { border-right: 0; }
+    .hf__celda span, .hf__t span { display: block; font-size: .56rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #64748b; }
+    .hf__celda b { display: block; font-family: ui-monospace, Menlo, monospace; font-size: .8rem; overflow-wrap: anywhere; }
+    .hf__celda b[data-vacio], .hf__t td[data-vacio] { color: #cbd5e1; font-weight: 500; }
+    .hf__cuerpo { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+    @media (max-width: 1279px) { .hf__cuerpo { grid-template-columns: minmax(0, 1fr); } }
+    .hf__izq { border-right: 1px solid #cbd5e1; min-width: 0; }
+    @media (max-width: 1279px) { .hf__izq { border-right: 0; border-bottom: 1px solid #cbd5e1; } }
+    .hf__h { background: #f1f5f9; border-bottom: 1px solid #cbd5e1; padding: .3rem .7rem; font-size: .62rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #334155; }
+    .hf__t { width: 100%; border-collapse: collapse; }
+    .hf__t th { text-align: left; font-weight: 600; color: #475569; padding: .22rem .7rem; border-bottom: 1px solid #f1f5f9; width: 52%; font-size: .74rem; }
+    .hf__t td { font-weight: 700; padding: .22rem .7rem; border-bottom: 1px solid #f1f5f9; font-family: ui-monospace, Menlo, monospace; font-size: .76rem; overflow-wrap: anywhere; }
+    .hf__der > section { border-bottom: 1px solid #e2e8f0; } .hf__der > section:last-child { border-bottom: 0; }
+    .hf__lista { padding: .3rem .7rem .5rem; display: grid; gap: .12rem; }
+    .hf__li { display: flex; gap: .45rem; align-items: baseline; font-size: .75rem; color: #334155; }
+    .hf__li i { font-style: normal; width: 1rem; text-align: center; color: #94a3b8; flex-shrink: 0; }
+    .hf__li[data-ok] i { color: #16a34a; font-weight: 800; } .hf__li[data-ok] { color: #0f172a; font-weight: 600; }
+    .hf__li b { margin-left: auto; font-family: ui-monospace, Menlo, monospace; font-weight: 700; padding-left: .5rem; text-align: right; }
+    .hf__res { display: flex; gap: 1.2rem; padding: .5rem .7rem .6rem; align-items: baseline; flex-wrap: wrap; }
+    .hf__res b { font-family: ui-monospace, Menlo, monospace; font-size: 1.5rem; } .hf__res small { color: #64748b; font-size: .7rem; }
+    .hf__firmas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; padding: 1rem .7rem .5rem; text-align: center; font-size: .62rem; color: #64748b; }
+    .hf__firmas div { border-top: 1px solid #94a3b8; padding-top: .2rem; min-height: 1.6rem; } .hf__firmas b { display: block; color: #0f172a; font-size: .66rem; }
+    .rg-resumen__vacio { margin-bottom: .6rem; }
 </style>
 {% endblock %}
 
 {% block content %}
+{{ hoja_estatica|json_script:"hoja-estatica" }}
 <div class="rs-completo rg-completo" data-registro-compresion role="dialog" aria-modal="true" aria-labelledby="rg-titulo"
      data-es-compresion="{% if es_compresion %}1{% else %}0{% endif %}"
      data-sesion="{% if sesion or sesion_ensayo %}1{% else %}0{% endif %}"
@@ -401,6 +499,15 @@
             </div>
             <div class="rg-modal__cuerpo">
         {% include "proyectos/_sesion_en_registro.html" %}
+        <div class="rg-marco">
+            <nav class="rg-rail" aria-label="Secciones del formulario">
+                <button type="button" class="rg-rail__b activa" data-ir-sec="cliente"><span class="rg-rail__n">1</span><span class="rg-rail__t">Cliente y muestra</span><em data-rail-cuenta="cliente"></em></button>
+                <button type="button" class="rg-rail__b" data-ir-sec="medidas"><span class="rg-rail__n">2</span><span class="rg-rail__t">Medidas y carga</span><em data-rail-cuenta="medidas"></em></button>
+                <button type="button" class="rg-rail__b" data-ir-sec="rotura"><span class="rg-rail__n">3</span><span class="rg-rail__t">{% if es_compresion %}Rotura y cierre{% else %}Resultados y cierre{% endif %}</span><em data-rail-cuenta="rotura"></em></button>
+                <p class="rg-rail__nota">Se guarda solo al salir de cada campo.</p>
+            </nav>
+            <div class="rg-secs">
+        <section class="rg-sec activa" data-sec="cliente">
         <div class="v-tarjeta" data-datos-cliente>
             <div class="v-tarjeta__cab">
                 <span class="v-paso">1</span>
@@ -420,7 +527,7 @@
                 <dt class="text-slate-500">Edad</dt><dd class="font-semibold text-slate-800">{% if muestra.edad_ensayo_dias is not None %}{{ muestra.edad_ensayo_dias }} días{% else %}—{% endif %}</dd>
             </dl>
             {% else %}
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-2 gap-3 rg-g4">
                 {% for campo in form_cliente %}
                 <label class="v-campo block {% if campo.name == 'elemento_estructural' %}col-span-2{% endif %}">
                     <span class="v-etiqueta">{{ campo.label }}</span>
@@ -432,12 +539,15 @@
             </div>
         </div>
 
+        </section>
+        <section class="rg-sec" data-sec="medidas">
         <div class="v-tarjeta" data-medidas data-fc="{{ muestra.fc_diseno|default_if_none:''|stringformat:'s' }}">
             <div class="v-tarjeta__cab">
                 <span class="v-paso">2</span>
                 <div><h2>Medidas y masa</h2><p>Con el vernier y la balanza de la sesión, antes de llevarla a la prensa. Usa coma o punto decimal.</p></div>
             </div>
-            <div class="v-tarjeta__cuerpo space-y-3">
+            <div class="v-tarjeta__cuerpo rg-dos">
+            <div class="rg-col space-y-3">
             <label class="v-campo block">
                 <span class="v-etiqueta">Fecha de ensayo</span>
                 <input type="date" name="fecha_ensayo" id="fecha_ensayo"
@@ -457,6 +567,8 @@
                 </label>
                 {% endif %}{% endfor %}
             </div>
+            </div>
+            <div class="rg-col space-y-3">
             <fieldset class="v-campo block" data-verificaciones>
                 <legend class="v-etiqueta">Verificaciones</legend>
                 {% with vd=ensayo.verificacion_diametro %}
@@ -486,6 +598,7 @@
                        {% if solo_lectura %}disabled{% endif %}
                        class="w-full mt-1">
             </fieldset>
+            </div>
             </div>
         </div>
 
@@ -529,6 +642,8 @@
             </div>
         </div>
 
+        </section>
+        <section class="rg-sec" data-sec="rotura">
         <div class="v-tarjeta" data-paso-rotura>
             <div class="v-tarjeta__cab">
                 <span class="v-paso">4</span>
@@ -607,7 +722,9 @@
             </ul>
         </details>
         {% endif %}
-
+        </section>
+            </div>
+        </div>
             </div>
         </div>
     </form>
@@ -809,7 +926,7 @@
 
     function subir(slot, blob) {
         const marco = slot.querySelector('[data-marco]');
-        marco.dataset.ok = marco.dataset.estado === 'ok' ? '1' : '';
+        marco.dataset.ok = marco.dataset.estado === 'ok' ? '1' : (marco.dataset.ok || '');
         marco.dataset.estado = 'subiendo';
         slot.querySelector('[data-error]').classList.add('hidden');
         slot.querySelector('[data-reintentar]').classList.add('hidden');
@@ -857,6 +974,10 @@
             fillColor: '#fff', imageSmoothingQuality: 'high',
         });
         const slot = slotActual;
+        // El recuadro queda «subiendo» YA: si no, la cola (varias fotos a la vez) elegiría el mismo recuadro otra vez.
+        const marcoUsar = slot.querySelector('[data-marco]');
+        marcoUsar.dataset.ok = marcoUsar.dataset.estado === 'ok' ? '1' : (marcoUsar.dataset.ok || '');
+        marcoUsar.dataset.estado = 'subiendo';
         cerrarModal();
         if (!canvas) { mostrarError(slot, 'No se pudo recortar la foto.', false); return; }
         canvas.toBlob(function (blob) { subir(slot, blob); }, 'image/jpeg', 0.88);
@@ -1080,6 +1201,7 @@
                   botonSesion.disabled = false;
                   if (!res.ok) { caja.textContent = (res.errores || ['No se pudo abrir la sesión.']).join(' · '); caja.classList.remove('hidden'); return; }
                   sesionAbierta = true;
+                  if (res.datos) HOJA.sesion = res.datos;
                   const tarjeta = document.querySelector('[data-sesion-card]');
                   tarjeta.querySelector('[data-sesion-resumen]').textContent = res.resumen + ' Sesión abierta: este ensayo la usa al terminar.';
                   const abrirBtn = tarjeta.querySelector('[data-abrir-minimodal="sesion"]');
@@ -1227,122 +1349,210 @@
             return c.closest('label') ? c.closest('label').textContent.trim() : c.value;
         });
     }
-    function gruposResumen() {
-        const g = [];
-        const fcUnidad = valorDe('muestra-fc_unidad');
-        g.push({ t: 'Cliente y probeta', filas: [
-            ['Código de cliente', codigoClienteOficial],
-            ['ID de laboratorio', raiz.dataset.codigoLab || ''],
-            ['ID de la muestra (del cliente)', valorDe('muestra-codigo_cliente')],
-            ['Elemento estructural', valorDe('muestra-elemento_estructural')],
-            ["f'c de diseño", valorDe('muestra-fc_diseno') ? valorDe('muestra-fc_diseno') + ' ' + (fcUnidad || 'kg/cm²') : ''],
-            ['Fabricación', fechaLegible(valorDe('muestra-fecha_fabricacion'))],
-            ['Edad (días)', valorDe('muestra-edad_ensayo_dias')],
-        ] });
-        const sesionTxt = document.querySelector('[data-sesion-resumen]');
-        g.push({ t: 'Condiciones y equipos', filas: [['Sesión', sesionAbierta && sesionTxt ? sesionTxt.textContent.replace(/Sesión abierta:.*$/, '').trim() : '']] });
-        const medidas = Array.from(document.querySelectorAll('[data-medida]')).map(function (i) {
-            const et = i.closest('label').querySelector('span').textContent.trim();
-            return [et, i.value.trim()];
-        });
-        g.push({ t: 'Medidas y carga', filas: [['Fecha de ensayo', fechaLegible(valorDe('fecha_ensayo'))]].concat(medidas) });
-        const verif = marcados('verif_perpendicularidad').concat([]);
-        const vd = document.querySelector('[data-verif-diametro]');
-        g.push({ t: 'Rotura y verificaciones', filas: [
-            ['Tipo de fractura', valorDe('tipo_fractura')],
-            ['Diámetro (≤ 2 %)', vd && vd.textContent.trim() !== '—' ? vd.textContent.trim() : ''],
-            ['Perpendicularidad', marcados('verif_perpendicularidad').join(', ')],
-            ['Planitud', marcados('verif_planitud').join(', ')],
-            ['Defectos', marcados('tipos_defecto').concat(valorDe('defectos') ? [valorDe('defectos')] : []).join(' · ')],
-            ['Video del ensayo', document.querySelector('[data-video-estado] a') ? 'Subido' : (document.querySelector('[name="video_grabado"]:checked') ? 'Marcado, sin archivo' : '')],
-        ] });
-        if (esCompresion) {
-            const r = function (k) { const e = document.querySelector('[data-r="' + k + '"]'); return e ? e.textContent.trim() : ''; };
-            g.push({ t: 'Resultado preliminar', filas: [
-                ['Resistencia', r('kgcm2') && r('kgcm2') !== '—' ? r('kgcm2') + ' kg/cm² · ' + r('mpa') + ' MPa' : ''],
-                ["% de f'c", r('porcentaje') && r('porcentaje') !== '—' ? r('porcentaje') + ' %' : ''],
-            ] });
-        }
-        const datos = Array.from(document.querySelectorAll('[data-dato]')).map(function (i) {
-            const v = i.tagName === 'SELECT' ? (i.value ? i.selectedOptions[0].text.trim() : '') : i.value.trim();
-            return [i.dataset.etiqueta, v];
-        });
-        const notas = document.getElementById('resumen');
-        if (notas) datos.push(['Resumen o notas', notas.value.trim()]);
-        datos.push(['Observaciones', valorDe('observaciones')]);
-        g.push({ t: 'Resultados del servicio', filas: datos });
-        return g;
-    }
-    function hayDatos() {
-        return gruposResumen().some(function (gr) {
-            return gr.filas.some(function (f) { return f[1] && !(gr.t === 'Cliente y probeta' && (f[0] === 'Código de cliente' || f[0] === 'ID de laboratorio')) && !(f[0] === 'Fecha de ensayo'); });
-        });
-    }
-    const COLORES = {
-        'Cliente y probeta': '#3b82f6', 'Condiciones y equipos': '#8b5cf6', 'Medidas y carga': '#0ea5e9',
-        'Rotura y verificaciones': '#f59e0b', 'Resultado preliminar': '#10b981', 'Resultados del servicio': '#ec4899',
-    };
+    const HOJA = (function () {
+        try { return JSON.parse(document.getElementById('hoja-estatica').textContent) || {}; } catch (e) { return {}; }
+    })();
     function elemento(tag, clase, texto) {
         const e = document.createElement(tag);
         if (clase) e.className = clase;
         if (texto != null) e.textContent = texto;
         return e;
     }
+    function marcadosEtiqueta(nombre) {
+        return Array.from(document.querySelectorAll('[name="' + nombre + '"]:checked')).map(function (c) {
+            return c.closest('label') ? c.closest('label').textContent.trim() : c.value;
+        });
+    }
+    function textoR(k) {
+        const e = document.querySelector('[data-r="' + k + '"]');
+        const t = e ? e.textContent.trim() : '';
+        return t === '—' ? '' : t;
+    }
+    // Lo que se ve de la hoja: [etiqueta, valor] por fila, en el orden del formato en papel.
+    function filasHoja() {
+        const fcUnidad = valorDe('muestra-fc_unidad');
+        const fc = valorDe('muestra-fc_diseno');
+        const filas = [
+            ['Testigo / muestra N.º', HOJA.testigo != null ? String(HOJA.testigo) : ''],
+            ['ID del laboratorio', raiz.dataset.codigoLab || ''],
+            ['ID del cliente (muestra)', valorDe('muestra-codigo_cliente')],
+            ['Elemento estructural', valorDe('muestra-elemento_estructural')],
+            ["f'c de diseño", fc ? fc + ' ' + (fcUnidad || 'kg/cm²') : ''],
+            ['Fecha de fabricación', fechaLegible(valorDe('muestra-fecha_fabricacion'))],
+            ['Fecha de recepción', HOJA.recepcion || ''],
+            ['Fecha de ensayo', fechaLegible(valorDe('fecha_ensayo'))],
+            ['Edad (días)', valorDe('muestra-edad_ensayo_dias')],
+        ];
+        const vd = document.querySelector('[data-verif-diametro]');
+        const vdTxt = vd && vd.textContent.trim() !== '—' ? vd.textContent.trim() : '';
+        const perp = marcadosEtiqueta('verif_perpendicularidad').join(', ');
+        const plan = marcadosEtiqueta('verif_planitud').join(', ');
+        Array.from(document.querySelectorAll('[data-medida]')).forEach(function (i) {
+            const lab = i.closest('label');
+            const et = lab ? lab.querySelector('span').textContent.trim() : i.dataset.medida;
+            const id = (i.dataset.medida || '').toLowerCase();
+            if (/carga/.test(id)) {
+                filas.push(['Perpendicularidad', perp]);
+                filas.push(['Planitud', plan]);
+            }
+            filas.push([et, i.value.trim()]);
+            if (id === 'd2') filas.push(['Verificación del diámetro', vdTxt]);
+        });
+        filas.push(['Tipo de fractura', valorDe('tipo_fractura')]);
+        return filas;
+    }
+    function llenaFila(f) { return !!f[1]; }
+    function itemLista(texto, ok, valor) {
+        const li = elemento('div', 'hf__li');
+        if (ok) li.setAttribute('data-ok', '');
+        li.appendChild(elemento('i', '', ok ? '☑' : '☐'));
+        li.appendChild(elemento('span', '', texto));
+        if (valor) li.appendChild(elemento('b', '', valor));
+        return li;
+    }
+    function bloque(titulo) {
+        const sec = elemento('section');
+        sec.appendChild(elemento('div', 'hf__h', titulo));
+        return sec;
+    }
+    function hayDatos() {
+        return filasHoja().some(function (f) {
+            return f[1] && f[0] !== 'Fecha de ensayo' && f[0] !== 'ID del laboratorio' && f[0] !== 'Fecha de recepción' && f[0] !== 'Testigo / muestra N.º';
+        }) || Array.from(document.querySelectorAll('[data-dato], #resumen')).some(function (i) { return i.value && i.value.trim(); });
+    }
+    function celda(etq, valor) {
+        const c = elemento('div', 'hf__celda'); c.appendChild(elemento('span', '', etq));
+        const b = elemento('b', '', valor || '—'); if (!valor) b.setAttribute('data-vacio', ''); c.appendChild(b);
+        return c;
+    }
     function pintarResumen() {
         if (!resumenCuerpo) return;
         resumenCuerpo.textContent = '';
-        const grupos = gruposResumen();
-        const esFija = function (gr, f) { return gr.t === 'Cliente y probeta' && (f[0] === 'Código de cliente' || f[0] === 'ID de laboratorio'); };
-        let llenas = 0, total = 0;
-        grupos.forEach(function (gr) {
-            gr.filas.forEach(function (f) {
-                if (esFija(gr, f) || (!esCompresion && !f[1])) return;
-                total += 1; if (f[1]) llenas += 1;
-            });
+        const filas = filasHoja();
+        const ses = HOJA.sesion || null;
+        // Avance: filas propias del formato (sin las fijas) llenadas.
+        const fijas = ['Testigo / muestra N.º', 'ID del laboratorio', 'Fecha de recepción'];
+        const medibles = filas.filter(function (f) { return fijas.indexOf(f[0]) < 0; });
+        const extra = Array.from(document.querySelectorAll('[data-dato]'));
+        let total = medibles.length + extra.length, llenas = medibles.filter(llenaFila).length + extra.filter(function (i) { return i.value && i.value.trim(); }).length;
+        const hoja = elemento('div', 'hf');
+        // Cabecera
+        const cab = elemento('div', 'hf__cab');
+        const izq = elemento('div');
+        izq.appendChild(elemento('div', 'hf__marca', 'Grupo VICAF · Laboratorio de ensayos'));
+        izq.appendChild(elemento('div', 'hf__titulo', esCompresion ? 'Registro de ensayo de compresión de probetas' : 'Registro de ensayo · ' + (HOJA.ensayo || '')));
+        izq.appendChild(elemento('div', 'hf__sub', (HOJA.norma || '') + (esCompresion ? ' · Formato FOR-009' : '')));
+        const der = elemento('div', 'hf__reg'); der.appendChild(document.createTextNode('Registro N.º')); der.appendChild(elemento('b', '', HOJA.registro || '—'));
+        cab.appendChild(izq); cab.appendChild(der);
+        hoja.appendChild(cab);
+        const prog = elemento('div', 'hf__prog'); const pi = elemento('i'); pi.style.width = (total ? Math.round(llenas / total * 100) : 0) + '%'; prog.appendChild(pi); prog.title = llenas + ' de ' + total + ' datos'; hoja.appendChild(prog);
+        // Fila de datos del cliente y condiciones
+        const fila = elemento('div', 'hf__fila');
+        fila.appendChild(celda('Código de cliente', codigoClienteOficial));
+        fila.appendChild(celda('Temperatura inicial / final', ses ? ((ses.t_ini || '—') + ' / ' + (ses.t_fin || '—') + ' °C') : ''));
+        fila.appendChild(celda('Humedad rel. inicial / final', ses ? ((ses.hr_ini || '—') + ' / ' + (ses.hr_fin || '—') + ' %') : ''));
+        fila.appendChild(celda('Técnico', HOJA.tecnico || ''));
+        hoja.appendChild(fila);
+        // Cuerpo
+        const cuerpo = elemento('div', 'hf__cuerpo');
+        const colI = elemento('div', 'hf__izq');
+        colI.appendChild(elemento('div', 'hf__h', 'Resultados de ensayo'));
+        const tabla = elemento('table', 'hf__t'); const tb = elemento('tbody');
+        filas.forEach(function (f) {
+            if (!esCompresion && !f[1] && fijas.indexOf(f[0]) < 0 && f[0] !== 'Fecha de ensayo') return;
+            const tr = elemento('tr'); tr.appendChild(elemento('th', '', f[0]));
+            const td = elemento('td', '', f[1] || '—'); if (!f[1]) td.setAttribute('data-vacio', ''); tr.appendChild(td); tb.appendChild(tr);
         });
-        const r = function (k) { const e = document.querySelector('[data-r="' + k + '"]'); return e ? e.textContent.trim() : ''; };
-        const hero = elemento('div', 'rg-hero');
-        if (esCompresion && r('kgcm2') && r('kgcm2') !== '—') {
-            const d1 = elemento('div', 'rg-hero__dato'); d1.appendChild(elemento('small', '', 'Resistencia'));
-            const b1 = elemento('b', '', r('kgcm2')); d1.appendChild(b1); d1.appendChild(elemento('span', '', 'kg/cm²'));
-            const d2 = elemento('div', 'rg-hero__dato'); d2.appendChild(elemento('small', '', "% de f'c"));
-            d2.appendChild(elemento('b', '', r('porcentaje') && r('porcentaje') !== '—' ? r('porcentaje') + ' %' : '—'));
-            hero.appendChild(d1); hero.appendChild(d2);
-        } else {
-            const d1 = elemento('div', 'rg-hero__dato'); d1.appendChild(elemento('small', '', 'Datos registrados'));
-            d1.appendChild(elemento('b', '', String(llenas))); d1.appendChild(elemento('span', '', esCompresion ? 'de ' + total : 'campos'));
-            hero.appendChild(d1);
+        // Datos propios del servicio
+        extra.forEach(function (i) {
+            const v = i.tagName === 'SELECT' ? (i.value ? i.selectedOptions[0].text.trim() : '') : i.value.trim();
+            if (!v && !esCompresion) return;
+            const tr = elemento('tr'); tr.appendChild(elemento('th', '', i.dataset.etiqueta || ''));
+            const td = elemento('td', '', v || '—'); if (!v) td.setAttribute('data-vacio', ''); tr.appendChild(td); tb.appendChild(tr);
+        });
+        const notas = document.getElementById('resumen');
+        if (notas && notas.value.trim()) { const tr = elemento('tr'); tr.appendChild(elemento('th', '', 'Resumen o notas')); tr.appendChild(elemento('td', '', notas.value.trim())); tb.appendChild(tr); }
+        const obs = valorDe('observaciones');
+        if (obs) { const tr = elemento('tr'); tr.appendChild(elemento('th', '', 'Observaciones')); tr.appendChild(elemento('td', '', obs)); tb.appendChild(tr); }
+        tabla.appendChild(tb); colI.appendChild(tabla); cuerpo.appendChild(colI);
+        const colD = elemento('div', 'hf__der');
+        // Evidencia multimedia
+        const ev = bloque('Evidencia multimedia'); const evl = elemento('div', 'hf__lista');
+        [['antes', 'Fotos antes del ensayo'], ['durante', 'Fotos durante la carga'], ['despues', 'Fotos después (probeta rota)']].forEach(function (g) {
+            const caja = document.querySelector('[data-grupo-fotos="' + g[0] + '"]');
+            const marcos = caja ? caja.querySelectorAll('[data-marco]').length : 2;
+            const hechas = caja ? caja.querySelectorAll('[data-marco][data-estado="ok"]').length : 0;
+            evl.appendChild(itemLista(g[1], hechas > 0 && hechas === marcos, hechas + '/' + marcos));
+        });
+        const hayVideo = !!document.querySelector('[data-video-estado] a');
+        const marcaVideo = document.querySelector('[name="video_grabado"]:checked');
+        evl.appendChild(itemLista('Video del ensayo', hayVideo || !!marcaVideo, hayVideo ? 'Subido' : (marcaVideo ? 'Sin archivo' : '')));
+        ev.appendChild(evl); colD.appendChild(ev);
+        // Equipamiento
+        const eq = bloque('Equipamiento empleado'); const eql = elemento('div', 'hf__lista');
+        if (ses && ses.equipos && ses.equipos.length) ses.equipos.forEach(function (e) { eql.appendChild(itemLista(e.etiqueta, true, e.codigo)); });
+        else eql.appendChild(elemento('div', 'hf__li', esCompresion ? 'Se completa al abrir la sesión.' : '—'));
+        eq.appendChild(eql); colD.appendChild(eq);
+        // Defectos
+        const defs = Array.from(document.querySelectorAll('[name="tipos_defecto"]'));
+        if (defs.length) {
+            const df = bloque('Tipos de defecto'); const dfl = elemento('div', 'hf__lista');
+            defs.forEach(function (c) { dfl.appendChild(itemLista(c.closest('label').textContent.trim(), c.checked)); });
+            const otros = valorDe('defectos'); if (otros) dfl.appendChild(itemLista('Otros: ' + otros, true));
+            df.appendChild(dfl); colD.appendChild(df);
         }
-        const prog = elemento('div', 'rg-hero__progreso');
-        prog.appendChild(elemento('small', '', esCompresion ? llenas + ' de ' + total + ' datos' : 'Formulario'));
-        const barra = elemento('i'); const em = elemento('em'); em.style.width = (total ? Math.round(llenas / total * 100) : 0) + '%'; barra.appendChild(em); prog.appendChild(barra);
-        hero.appendChild(prog);
-        resumenCuerpo.appendChild(hero);
+        // Comprobación funcional
+        if (ses && ses.comprobacion && ses.comprobacion.length) {
+            const cp = bloque('Comprobación funcional de equipos'); const cpl = elemento('div', 'hf__lista');
+            const porEquipo = {};
+            ses.comprobacion.forEach(function (c) { (porEquipo[c.equipo] = porEquipo[c.equipo] || []).push(c); });
+            Object.keys(porEquipo).forEach(function (k) {
+                const items = porEquipo[k]; const ok = items.every(function (c) { return c.conforme; });
+                cpl.appendChild(itemLista(k, ok, ok ? 'Conforme' : 'Observado'));
+            });
+            cp.appendChild(cpl); colD.appendChild(cp);
+        }
+        // Resultado preliminar
+        if (esCompresion) {
+            const rp = bloque('Resultado preliminar'); const box = elemento('div', 'hf__res');
+            const k = textoR('kgcm2');
+            const a = elemento('div'); a.appendChild(elemento('small', '', 'Resistencia')); a.appendChild(document.createElement('br'));
+            a.appendChild(elemento('b', '', k ? k : '—')); a.appendChild(elemento('small', '', k ? ' kg/cm² · ' + textoR('mpa') + ' MPa' : ''));
+            const p = elemento('div'); p.appendChild(elemento('small', '', "% de f'c")); p.appendChild(document.createElement('br'));
+            p.appendChild(elemento('b', '', textoR('porcentaje') ? textoR('porcentaje') + ' %' : '—'));
+            box.appendChild(a); box.appendChild(p); rp.appendChild(box); colD.appendChild(rp);
+        }
+        // Firmas
+        const fr = elemento('section'); const firmas = elemento('div', 'hf__firmas');
+        [['Técnico', HOJA.tecnico || ''], ['Supervisor', ''], ['Jefe de laboratorio', '']].forEach(function (x) {
+            const d = elemento('div'); if (x[1]) d.appendChild(elemento('b', '', x[1])); d.appendChild(document.createTextNode(x[0])); firmas.appendChild(d);
+        });
+        fr.appendChild(firmas); colD.appendChild(fr);
+        cuerpo.appendChild(colD); hoja.appendChild(cuerpo);
         if (!hayDatos()) {
-            resumenCuerpo.appendChild(elemento('p', 'rg-resumen__vacio', 'Aún no hay datos. Pulsa «Llenar formulario»: lo que llenes se resume aquí, junto a las fotos.'));
+            resumenCuerpo.appendChild(elemento('p', 'rg-resumen__vacio', 'Aún no hay datos. Pulsa «Llenar formulario»: lo que llenes se ve aquí como en la hoja del laboratorio.'));
         }
-        grupos.forEach(function (gr) {
-            // En compresión se ve todo (para ver qué falta); en los demás solo lo llenado.
-            const filas = gr.filas.filter(function (f) { return esCompresion || f[1]; });
-            if (!filas.length) return;
-            const caja = elemento('div', 'rg-grupo');
-            caja.style.setProperty('--c', COLORES[gr.t] || '#3b82f6');
-            caja.appendChild(elemento('h3', '', gr.t));
-            const tiles = elemento('div', 'rg-tiles');
-            filas.forEach(function (f) {
-                const t = elemento('div', 'rg-tile');
-                if (!f[1]) t.setAttribute('data-vacio', '');
-                t.appendChild(elemento('span', '', f[0]));
-                t.appendChild(elemento('b', '', f[1] || '—'));
-                tiles.appendChild(t);
-            });
-            caja.appendChild(tiles);
-            resumenCuerpo.appendChild(caja);
-        });
+        resumenCuerpo.appendChild(hoja);
         document.querySelectorAll('[data-texto-abrir-formulario]').forEach(function (e) { e.textContent = hayDatos() ? 'Editar formulario' : 'Llenar formulario'; });
         const est = document.querySelector('[data-resumen-estado]');
         if (est) est.textContent = hayDatos() ? 'Lo llenado hasta ahora. Pulsa «Editar formulario» para completar o corregir.' : 'Se agregan aquí cuando pulses «Listo» en el formulario.';
     }
+    // Secciones del formulario (PC): una a la vez, sin scroll
+    function irSeccion(nombre) {
+        document.querySelectorAll('.rg-sec').forEach(function (e) { e.classList.toggle('activa', e.dataset.sec === nombre); });
+        document.querySelectorAll('[data-ir-sec]').forEach(function (b) { b.classList.toggle('activa', b.dataset.irSec === nombre); });
+    }
+    function cuentaRail() {
+        document.querySelectorAll('.rg-sec').forEach(function (sec) {
+            const campos = Array.from(sec.querySelectorAll('input:not([type=radio]):not([type=checkbox]):not([type=hidden]):not([type=file]), select, textarea'));
+            const llenos = campos.filter(function (c) { return c.value && c.value.trim(); }).length;
+            const e = document.querySelector('[data-rail-cuenta="' + sec.dataset.sec + '"]');
+            if (e) e.textContent = llenos + ' de ' + campos.length + ' campos';
+        });
+    }
+    document.querySelectorAll('[data-ir-sec]').forEach(function (b) { b.addEventListener('click', function () { irSeccion(b.dataset.irSec); }); });
+    if (modalForm) { modalForm.addEventListener('input', cuentaRail); modalForm.addEventListener('change', cuentaRail); }
+    cuentaRail();
     function antesCompletas() {
         return Array.from(document.querySelectorAll('[data-slot="antes"], [data-slot="antes_pizarra"]'))
             .every(function (sl) { return sl.querySelector('[data-marco]').dataset.estado === 'ok'; });

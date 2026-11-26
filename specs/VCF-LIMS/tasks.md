@@ -52,6 +52,7 @@
 | T93 | Registro a pantalla completa en columnas, sesión de ensayo integrada (apertura por AJAX), requisitos para terminar y fotos sin botones por recuadro | 176-180 | `proyectos/test_formulario_ensayo.py` + navegador | [x] |
 | T94 | Formulario FOR-009 en modal a pantalla completa (columnas), resumen en vivo junto a las fotos, código de cliente de la cotización como solo lectura | 181-185 | `proyectos/test_formulario_ensayo.py` (FormularioEnModalTests) + navegador 100 %, 1280 y móvil | [x] |
 | T95 | Registro por encima del sistema, formulario compacto en columnas, Guardar/Terminar bajo las fotos, video con casilla (`subir_video_ensayo`), alta rápida de equipos (`crear_equipo_ajax`), fotos tipo escáner, aviso de fotos de antes y resumen moderno; nginx admite 320 MB | 186-194 | `proyectos/test_formulario_ensayo.py` (VideoEquiposYDistribucionTests) + navegador 1600, tablet y móvil | [x] |
+| T96 | Formulario por secciones con menú lateral (sin scroll en PC, vertical en celular), resumen como hoja FOR-009 (`hoja_estatica`, `_datos_sesion`), fotos de a dos (carrera al cerrar el recorte) y modal de sesión grande | 195-199 | `proyectos/test_formulario_ensayo.py` (RegistroSeccionesTests) + navegador 1600, 1366, tablet y móvil | [x] |
 
 ## Historial
 
@@ -82,3 +83,4 @@
 | v22 | 2026-11-25 | Claude (DLF) | T93: registro a pantalla completa con la sesión integrada |
 | v23 | 2026-11-26 | Claude (DLF) | T94: formulario en modal y resumen junto a las fotos |
 | v24 | 2026-11-26 | Claude (DLF) | T95: modal sobre todo, video, equipos, escáner y resumen moderno |
+| v25 | 2026-11-26 | Claude (DLF) | T96: formulario por secciones, hoja de resumen y sesión grande |

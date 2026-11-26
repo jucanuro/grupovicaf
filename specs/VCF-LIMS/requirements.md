@@ -498,6 +498,10 @@ habilitar su subida; en la sesión, un «+» para registrar equipos sin cambiar 
 un escáner (en PC solo se cargan; en celular, cámara y galería) y, en celular y tablet, avisar antes del primer resultado que se
 tomen las 2 fotos de antes; el resumen debe verse moderno. HU-LIMS-40.
 
+Pedido del Gerente (2026-11-26, segunda vuelta): el resumen debe verse como la hoja en papel (tipo texto, formal y moderno); las fotos
+deben avanzar de a dos (antes, durante, después); el formulario aún hacía scroll y mostraba barra horizontal, por lo que se
+redistribuye por secciones; el modal de la sesión debe ser más grande con los «+» claros; y en celular solo scroll vertical. HU-LIMS-41.
+
 | ID | HU | Requisito (EARS) | Verificable | Origen |
 |---|---|---|---|---|
 | REQ-LIMS-186 | HU-LIMS-40 | EL SISTEMA DEBE mostrar el registro y su formulario en pantallas que cubran todo el sistema (por encima de la barra superior y el menú), con el formulario repartido en columnas según el ancho y tipografía y controles compactos, de modo que a 1600 px de ancho quepa sin scroll. | sí (navegador) | [Validado con usuario] |
@@ -509,6 +513,11 @@ tomen las 2 fotos de antes; el resumen debe verse moderno. HU-LIMS-40.
 | REQ-LIMS-192 | HU-LIMS-40 | DONDE el equipo sea PC, EL SISTEMA DEBE ofrecer solo «Cargar fotos» (varias, en orden); DONDE sea celular o tablet, EL SISTEMA DEBE ofrecer «Tomar foto» y «Elegir de la galería». | sí | [Validado con usuario] |
 | REQ-LIMS-193 | HU-LIMS-40 | DONDE sea celular o tablet y falten las 2 fotos de antes, EL SISTEMA DEBE avisar al abrir el formulario por primera vez que se tomen primero, permitiendo continuar sin ellas. | sí | [Validado con usuario] |
 | REQ-LIMS-194 | HU-LIMS-40 | EL SISTEMA DEBE mostrar el resumen de lo llenado con un encabezado de resistencia o de datos registrados con su avance y los datos en fichas de color por grupo. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-195 | HU-LIMS-41 | EL SISTEMA DEBE mostrar el formulario del registro en secciones (Cliente y muestra, Medidas y carga, Rotura y cierre) con un menú lateral y una sección visible a la vez, de modo que en PC no haya scroll ni barra horizontal. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-196 | HU-LIMS-41 | DONDE la pantalla sea celular o tablet angosta (< 900 px), EL SISTEMA DEBE apilar todas las secciones en una columna con solo scroll vertical y sin scroll lateral. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-197 | HU-LIMS-41 | EL SISTEMA DEBE mostrar el resumen como una hoja tipo FOR-009 en texto (encabezado con registro y método, código de cliente, T/HR inicial y final, tabla de resultados, evidencia multimedia, equipamiento, tipos de defecto, comprobación funcional, resultado preliminar y firmas), con «—» en lo no llenado. | sí (navegador) | [Validado con usuario] |
+| REQ-LIMS-198 | HU-LIMS-41 | CUANDO se carguen o tomen varias fotos, EL SISTEMA DEBE subir 2 de «antes», seguir con las 2 de «durante» y luego las 2 de «después», sin repetir un mismo recuadro. | sí | [Validado con usuario] |
+| REQ-LIMS-199 | HU-LIMS-41 | EL SISTEMA DEBE abrir la sesión de ensayo en un modal casi a pantalla completa, con cada equipo y su «+» en una fila de controles grandes. | sí (navegador) | [Validado con usuario] |
 
 ## 3. Trazabilidad HU → REQ
 
@@ -546,6 +555,7 @@ tomen las 2 fotos de antes; el resumen debe verse moderno. HU-LIMS-40.
 | HU-LIMS-38 | Registro en pantalla completa con la sesión integrada | REQ-LIMS-176 a 180 |
 | HU-LIMS-39 | Formulario en modal y resumen junto a las fotos | REQ-LIMS-181 a 185 |
 | HU-LIMS-40 | Modal sobre todo, video, equipos y fotos tipo escáner | REQ-LIMS-186 a 194 |
+| HU-LIMS-41 | Formulario por secciones, hoja de resumen FOR-009, fotos de a dos y sesión grande | REQ-LIMS-195 a 199 |
 
 ## 4. Preguntas abiertas
 
@@ -583,3 +593,4 @@ tomen las 2 fotos de antes; el resumen debe verse moderno. HU-LIMS-40.
 | v21 | 2026-11-25 | Claude (DLF) | Registro en pantalla completa con la sesión integrada y requisitos: REQ-LIMS-176 a 180 (HU-LIMS-38) |
 | v22 | 2026-11-26 | Claude (DLF) | Formulario en modal, resumen junto a las fotos y código de cliente de la cotización: REQ-LIMS-181 a 185 (HU-LIMS-39) |
 | v23 | 2026-11-26 | Claude (DLF) | Modal sobre todo el sistema, video, equipos con «+», fotos tipo escáner y resumen moderno: REQ-LIMS-186 a 194 (HU-LIMS-40) |
+| v24 | 2026-11-26 | Claude (DLF) | Formulario por secciones, hoja de resumen tipo FOR-009, fotos de a dos y sesión grande: REQ-LIMS-195 a 199 (HU-LIMS-41) |

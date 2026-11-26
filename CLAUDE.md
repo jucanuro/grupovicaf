@@ -190,6 +190,13 @@ Antes de esto el formulario iba en columnas, la sesión de ensayo integrada (`_s
 («Repetir esta foto» usa el asistente). Ya no se sube hoja de cálculo; el
 campo `hoja_calculo` y su descarga solo sirven a ensayos viejos.
 
+**Formulario por secciones y hoja de resumen (HU-LIMS-41).** El formulario del registro ya no usa columnas CSS (causaban scroll
+horizontal): `.rg-marco` = menú lateral `.rg-rail` (`[data-ir-sec]`) + secciones `.rg-sec[data-sec=cliente|medidas|rotura]`, una visible
+a la vez en PC; bajo 900 px se apilan todas (solo scroll vertical). El resumen de la pantalla es una hoja tipo FOR-009 armada en JS
+(`pintarResumen`) con los datos fijos de `hoja_estatica` (`json_script`, de `views_compresion.py`; la sesión sale de `_datos_sesion`,
+que también devuelve el AJAX de `abrir_sesion_ensayo`). Las fotos de un lote van de a una por recuadro: en el recorte se marca el
+recuadro «subiendo» antes de cerrar el modal para que la cola no repita el mismo. El modal de la sesión ocupa casi toda la pantalla.
+
 **Registro compacto, video y equipos (HU-LIMS-40).** La pantalla del registro cuelga del `<body>` (JS la reubica) para quedar por
 encima de todo el sistema; el formulario va en columnas CSS compactas dentro del modal. Guardar/Terminar viven bajo las fotos con
 `form="form-registro"`. El video (`ResultadoEnsayo.video_archivo`, 300 MB, carpeta privada) se sube por XHR a
