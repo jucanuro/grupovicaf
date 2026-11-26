@@ -10,7 +10,7 @@
     {% for grupo in grupos %}
     <p class="lateral__seccion">{% if grupo.grouper %}Mi correo{% else %}Compartidos{% endif %}</p>
     {% for cuenta in grupo.list %}
-    <details class="grupo-cuenta" {% if not cuenta_actual or cuenta_actual.pk == cuenta.pk %}open{% endif %} data-cuenta="{{ cuenta.slug }}">
+    <details class="grupo-cuenta" {% if cuenta_actual.pk == cuenta.pk or grupo.grouper and forloop.first %}open{% endif %} data-cuenta="{{ cuenta.slug }}">
         <summary class="grupo-cuenta__titulo">
             <span class="grupo-cuenta__nombre" title="{{ cuenta.direccion }}">{{ cuenta.nombre }}<small class="mono">{{ cuenta.direccion }}</small></span>
             {% if cuenta.no_leidos %}<span class="contador" aria-label="{{ cuenta.no_leidos }} sin leer">{{ cuenta.no_leidos }}</span>{% endif %}
@@ -40,10 +40,10 @@
     {% empty %}
     <p class="lateral__nota">Aún no tienes cuentas de correo asignadas.</p>
     {% endfor %}
-    <section class="mini-cal" data-mini-cal aria-label="Calendario">
+    <section class="mini-cal" data-mini-cal data-url="{% url_calendario_lab %}" aria-label="Calendario">
         <div class="mini-cal__cabeza">
             <button type="button" class="mini-cal__flecha" data-mc-ant aria-label="Mes anterior">‹</button>
-            <strong class="mini-cal__mes" data-mc-titulo aria-live="polite"></strong>
+            <a class="mini-cal__mes" data-mc-titulo href="{% url_calendario_lab %}" title="Abrir el calendario de actividades"></a>
             <button type="button" class="mini-cal__flecha" data-mc-sig aria-label="Mes siguiente">›</button>
         </div>
         <div class="mini-cal__dias" data-mc-dias role="grid"></div>

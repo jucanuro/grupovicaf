@@ -428,6 +428,9 @@
         datesSet: alCambiarFechas,
     });
     calendar.render();
+    // Enlace desde el correo (?fecha=AAAA-MM-DD): abre ese día.
+    const fechaPedida = new URLSearchParams(window.location.search).get('fecha');
+    if (fechaPedida && /^\d{4}-\d{2}-\d{2}$/.test(fechaPedida)) calendar.changeView('timeGridDay', fechaPedida);
 
     // ---------- barra superior ----------
     function alCambiarFechas(arg) {

@@ -6,6 +6,7 @@
     var titulo = raiz.querySelector('[data-mc-titulo]');
     var dias = raiz.querySelector('[data-mc-dias]');
     var NOMBRES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    var base = raiz.getAttribute('data-url') || '';
     var hoy = new Date();
     var visto = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
 
@@ -22,8 +23,10 @@
         var inicio = new Date(visto.getFullYear(), visto.getMonth(), 1 - desfase);
         for (var i = 0; i < 42; i++) {
             var f = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + i);
-            var c = document.createElement('span');
+            var c = document.createElement('a');
             c.className = 'mini-cal__dia';
+            c.href = base + '?fecha=' + f.getFullYear() + '-' + ('0' + (f.getMonth() + 1)).slice(-2) + '-' + ('0' + f.getDate()).slice(-2);
+            c.title = 'Ver este día en el calendario';
             if (f.getMonth() !== visto.getMonth()) { c.className += ' mini-cal__dia--fuera'; }
             if (f.getDay() === 0 || f.getDay() === 6) { c.className += ' mini-cal__dia--finde'; }
             if (f.toDateString() === hoy.toDateString()) { c.className += ' mini-cal__dia--hoy'; c.setAttribute('aria-current', 'date'); }

@@ -11,3 +11,25 @@ class IconoCalendarioTests(BasePlataforma):
         respuesta = self.client.get(ruta('bandeja'), HTTP_HOST=HOST)
         self.assertContains(respuesta, 'aria-label="Calendario de actividades"')
         self.assertContains(respuesta, '/actividades/calendario/')
+
+
+@override_settings(ROOT_URLCONF='grupovicaf.urls_lab', SITE_ROLE='lab')
+class CalendarioLateralTests(BasePlataforma):
+    def test_el_calendario_lateral_enlaza_al_calendario_del_lims(self):
+        self.entrar(self.gestor)
+        respuesta = self.client.get(ruta('bandeja'), HTTP_HOST=HOST)
+        self.assertContains(respuesta, 'data-mini-cal data-url="')
+        self.assertContains(respuesta, 'href="http')  # el título del mini calendario lleva al LIMS
+
+    def test_solo_la_cuenta_personal_viene_desplegada(self):
+        from .models import AccesoCuenta
+        self.lab.personal = True
+        self.lab.save(update_fields=['personal'])
+        AccesoCuenta.objects.create(usuario=self.gestor, cuenta=self.lab, rol=AccesoCuenta.GESTIONA)
+        self.entrar(self.gestor)
+        html = self.client.get(ruta('bandeja'), HTTP_HOST=HOST).content.decode()
+        bloques = html.split('<details class="grupo-cuenta"')[1:]
+        abiertas = [b for b in bloques if b.lstrip().startswith('open')]
+        self.assertEqual(len(bloques), 2)
+        self.assertEqual(len(abiertas), 1)
+        self.assertIn('data-cuenta="laboratorio"', abiertas[0].split('>')[0])
