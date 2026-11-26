@@ -10,7 +10,7 @@ from django.test import SimpleTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from pypdf import PdfReader
-from io import BytesIO
+from io import BytesIO, StringIO
 
 from proyectos.informe_editor import (
     BLOQUE_FIRMAS, DocumentoInvalido, bloques_faltantes, bloques_usados, render_documento, validar_contenido,
@@ -194,6 +194,19 @@ class EditorInformeTests(CompresionBase):
             texto = ''.join(p.extract_text() for p in PdfReader(BytesIO(f.read())).pages)
         self.assertIn(informe.codigo_informe, texto)
         self.assertIn(self.mia.muestra.codigo_laboratorio, texto)
+        # Diseño oficial: carátula FOR-064, hoja FOR-039 y QR de validación.
+        self.assertIn('VCF-LAB-FOR-064', texto)
+        self.assertIn('VCF-LAB-FOR-039', texto)
+        self.assertIn('Verifica el documento online', borrador.html_emitido)
+        self.assertIn('alt="QR de validación del informe"', borrador.html_emitido)
+
+        # El comando pasa los informes ya emitidos al diseño actual y regenera su PDF.
+        from django.core.management import call_command
+        borrador.html_emitido = '<p>informe viejo</p>'
+        borrador.save(update_fields=['html_emitido'])
+        call_command('regenerar_informes_diseno', '--aplicar', stdout=StringIO())
+        borrador.refresh_from_db()
+        self.assertIn('VCF-LAB-FOR-064', borrador.html_emitido)
 
     def test_vista_previa_y_restaurar_version(self):
         self.aprobar_todo()

@@ -1,8 +1,10 @@
-{# Cabecera de los formatos del laboratorio: logo, título, sello INACAL, código del formato y código del informe. #}
-<table class="fmt-cab"><tr>
-  <td class="fmt-cab__logo">{% if datos.logo %}<img src="{{ datos.logo }}" alt="Grupo VICAF">{% endif %}</td>
-  <td class="fmt-cab__tit"><b>{{ titulo }}</b>{% if subtitulo %}<span>{{ subtitulo }}</span>{% endif %}</td>
-  <td class="fmt-cab__inacal">{% if datos.inacal %}<img src="{{ datos.inacal }}" alt="INACAL">{% else %}<div><b>INACAL</b><small>DA · Perú</small><small>Laboratorio de Ensayo Acreditado</small><small>Registro N° {{ datos.acreditacion }}</small></div>{% endif %}</td>
-</tr></table>
-<p class="fmt-doc">Código: {{ formato.codigo }} &nbsp;|&nbsp; Fecha: {{ formato.fecha }} &nbsp;|&nbsp; Versión: {{ formato.version }} &nbsp;|&nbsp; Aprobación: {{ formato.aprobacion }} &nbsp;|&nbsp; Página: {{ pagina }}</p>
-<table class="fmt-codigo"><tr><td class="fmt-codigo__v"></td><td class="fmt-codigo__t">CÓDIGO DE INFORME :</td><td class="fmt-codigo__c">{% if datos.informe %}{{ datos.informe.codigo_informe }}{% else %}Se asigna al emitir{% endif %}</td></tr></table>
+{# Cabecera de los formatos del laboratorio (igual al informe en papel). Variables: titulo, subtitulo, formato, pagina, oscuro. #}
+<table class="fc">
+  <tr>
+    <td class="fc-logo" rowspan="2">{% if datos.logo %}<img src="{{ datos.logo }}" alt="Grupo VICAF SAC">{% endif %}</td>
+    <td class="fc-tit{% if oscuro %} fc-tit--oscuro{% endif %}">{{ titulo }}</td>
+    <td class="fc-inacal" rowspan="2">{% if datos.img.inacal %}<img src="{{ datos.img.inacal }}" alt="INACAL - DA Perú. Laboratorio de Ensayo Acreditado. Registro N° LE-230">{% endif %}</td>
+  </tr>
+  <tr><td class="fc-sub">{{ subtitulo }}</td></tr>
+  <tr><td class="fc-doc" colspan="3"><b>Código:</b> {{ formato.codigo }} &nbsp;|&nbsp; <b>Fecha:</b> {{ formato.fecha }} &nbsp;|&nbsp; <b>Versión:</b> {{ formato.version }} &nbsp;|&nbsp; <b>Aprobación:</b> {{ formato.aprobacion }} &nbsp;|&nbsp; <b>Página:</b> {{ pagina }}</td></tr>
+</table>

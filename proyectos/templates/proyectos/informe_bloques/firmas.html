@@ -1,12 +1,14 @@
 <div class="bloque firmas fmt fmt-firmas">
-  <div class="qr">{% if datos.qr %}<p><b><i>Verifica el documento online:</i></b></p><img src="{{ datos.qr }}" alt="QR de validación"><p class="qr-nota">Valide este informe escaneando el código QR.</p>{% endif %}</div>
-  <div class="firma">
-    <p class="firma-t"><b>INFORME AUTORIZADO POR:</b></p>
+<table class="cv-firma"><tr>
+  <td class="cv-firma__qr">{% if datos.qr %}<p class="cv-verifica">Verifica el documento online:</p><div class="cv-qr"><img src="{{ datos.qr }}" alt="QR de validación del informe"></div>{% elif datos.modo != 'pdf' %}<p class="cv-verifica">Verifica el documento online:</p><div class="cv-qr cv-qr--vacio">El QR se pone al emitir</div>{% endif %}</td>
+  <td class="cv-firma__f">
+    <p class="cv-autoriza">INFORME AUTORIZADO POR:</p>
     {% if datos.firma %}
-      {% if datos.firma.imagen %}<img src="{{ datos.firma.imagen }}" alt="Firma">{% endif %}
-      <div class="linea"><b>GRUPO VICAF SAC</b><br>{{ datos.firma.nombre }}<br>{{ datos.firma.cargo }}</div>
+      {% if datos.firma.imagen %}<img class="cv-firma__img" src="{{ datos.firma.imagen }}" alt="Firma">{% else %}<div class="cv-firma__esp"></div>{% endif %}
+      <div class="cv-firma__pie"><b>GRUPO VICAF SAC</b><br><b>{{ datos.firma.nombre }}</b><br>{{ datos.firma.cargo }}</div>
     {% else %}
-      <div class="linea pendiente">Firma de quien emite el informe</div>
+      <div class="cv-firma__esp"></div><div class="cv-firma__pie pendiente">Firma de quien emite el informe</div>
     {% endif %}
-  </div>
+  </td>
+</tr></table>
 </div>

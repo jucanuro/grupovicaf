@@ -1,110 +1,108 @@
-{% with d=linea.detalle e=linea.ensayo m=linea.muestra %}
+{% with d=linea.detalle e=linea.ensayo m=linea.muestra v=linea.v amb=linea.amb %}
 {% if linea.es_compresion and e %}
 <div class="bloque fmt fmt-probeta">
-{% include "proyectos/informe_bloques/_formato_cab.html" with titulo="RESISTENCIA A LA COMPRESIÓN DE ESPECÍMENES CILÍNDRICOS DE CONCRETO" subtitulo="Standard Test Method for Compressive Strength of Cylindrical Concrete Specimens ("|add:d.norma|add:")" formato=datos.formato_probeta pagina=linea.pagina %}
+{% include "proyectos/informe_bloques/_formato_cab.html" with titulo="RESISTENCIA A LA COMPRESIÓN DE ESPECÍMENES CILÍNDRICOS DE CONCRETO" subtitulo="Standard Test Method for Compressive Strength of Cylindrical Concrete Specimens ("|add:d.norma|add:")" formato=datos.formato_probeta pagina=linea.pagina oscuro=True %}
 
-<p class="fmt-sec">I. DATOS DEL CLIENTE</p>
-<table class="fmt-tabla fmt-dc">
-  <tr><th style="width:11%">Cliente</th><td style="width:40%">{{ datos.cliente.razon_social }}</td><th rowspan="1" style="width:17%">Código de Informe</th><td class="fmt-naranja">{% if datos.informe %}{{ datos.informe.codigo_informe }}{% else %}-{% endif %}</td></tr>
-  <tr><th>Proyecto (**)</th><td>{{ datos.proyecto }}</td><th>Condiciones Ambientales</th><td class="c"><b>Inicial &nbsp;&nbsp;&nbsp;&nbsp; Final</b></td></tr>
-  <tr><th>Ubicación (**)</th><td>{{ datos.ubicacion }}</td><th>Temperatura (T°):</th><td class="c">{% if linea.sesion %}{{ linea.sesion.temperatura_inicial|floatformat:2 }} °C &nbsp;&nbsp; {% if linea.sesion.temperatura_final is not None %}{{ linea.sesion.temperatura_final|floatformat:2 }} °C{% else %}-{% endif %}{% else %}-{% endif %}</td></tr>
-  <tr><td colspan="2" style="border:0"></td><th>Humedad Relativa (HR):</th><td class="c">{% if linea.sesion %}{{ linea.sesion.humedad_inicial|floatformat:2 }} % &nbsp;&nbsp; {% if linea.sesion.humedad_final is not None %}{{ linea.sesion.humedad_final|floatformat:2 }} %{% else %}-{% endif %}{% else %}-{% endif %}</td></tr>
+<p class="pr-sec">I. DATOS DEL CLIENTE</p>
+<table class="pr-t pr-dc">
+  <colgroup><col style="width:13%"><col style="width:2%"><col style="width:39%"><col style="width:26%"><col style="width:10%"><col style="width:10%"></colgroup>
+  <tr><th>Cliente</th><td class="c">:</td><td>{{ datos.cliente.razon_social }}</td><th>Código de Informe</th><td class="c">:</td><td class="pr-naranja">{% if datos.informe %}{{ datos.informe.codigo_informe }}{% else %}-{% endif %}</td></tr>
+  <tr><th rowspan="2">Proyecto (**)</th><td class="c" rowspan="2">:</td><td rowspan="2">{{ datos.proyecto }}</td><th>Condiciones Ambientales</th><th class="c">Inicial</th><th class="c">Final</th></tr>
+  <tr><th>Temperatura (T°):</th><td class="c">{% if amb %}{{ amb.t_ini }} &nbsp;°C{% else %}-{% endif %}</td><td class="c">{% if amb %}{{ amb.t_fin }} &nbsp;°C{% else %}-{% endif %}</td></tr>
+  <tr><th>Ubicación (**)</th><td class="c">:</td><td>{{ datos.ubicacion }}</td><th>Humedad Relativa (HR):</th><td class="c">{% if amb %}{{ amb.hr_ini }} &nbsp;%{% else %}-{% endif %}</td><td class="c">{% if amb %}{{ amb.hr_fin }} &nbsp;%{% else %}-{% endif %}</td></tr>
 </table>
 
-<p class="fmt-sec">II. IDENTIFICACIÓN DE LA MUESTRA ENSAYADA</p>
-<table class="fmt-tabla">
-  <tr><th>Tipo de Muestra</th><th>Elemento Estructural (*)</th><th>Resistencia de Diseño f'c (*)</th><th>ID de Cliente (*)</th><th>ID de Laboratorio</th></tr>
-  <tr><td class="c">{{ m.tipo_probeta|default:"-" }}</td><td class="c">{{ m.elemento_estructural|default:"-" }}</td><td class="c">{% if m.fc_diseno %}{{ m.fc_diseno|floatformat:0 }} kg/cm²{% else %}-{% endif %}</td><td class="c">{{ m.codigo_cliente|default:"-" }}</td><td class="c">{{ m.codigo_laboratorio }}</td></tr>
+<p class="pr-sec">II. IDENTIFICACIÓN DE LA MUESTRA ENSAYADA</p>
+<table class="pr-t pr-id">
+  <tr><th>Tipo de Muestra</th><th>Elemento Estructural (*)</th><th>Resistencia de Diseño<br>f'c (*)</th><th>ID de Cliente (*)</th><th>ID de Laboratorio</th></tr>
+  <tr><td>{{ m.tipo_probeta|default:"-" }}</td><td>{{ m.elemento_estructural|default:"-" }}</td><td>{% if m.fc_diseno %}{{ m.fc_diseno|floatformat:0 }} kg/cm²{% else %}-{% endif %}</td><td>{{ m.codigo_cliente|default:"-" }}</td><td>{{ m.codigo_laboratorio }}</td></tr>
 </table>
 
-<p class="fmt-sec">III. LÍNEA DE TIEMPO DEL SERVICIO</p>
-<table class="fmt-tabla">
+<p class="pr-sec">III. LÍNEA DE TIEMPO DEL SERVICIO</p>
+<table class="pr-t pr-tl">
   <tr><th>Fabricación de Ítems de Ensayo (*)</th><th>Recepción de Ítems de Ensayo</th><th>Ejecución del Ensayo(s)</th><th>Emisión de Informe</th></tr>
-  <tr><td class="c">{{ m.fecha_fabricacion|date:"Y-m-d"|default:"-" }}</td><td class="c">{{ datos.recepcion|date:"Y-m-d"|default:"-" }}</td><td class="c">{{ e.fecha_ensayo|date:"Y-m-d"|default:"-" }}</td><td class="c">{{ datos.fecha_emision|date:"Y-m-d"|default:"-" }}</td></tr>
+  <tr><td>{{ m.fecha_fabricacion|date:"Y-m-d"|default:"-" }}</td><td>{{ datos.recepcion|date:"Y-m-d"|default:"-" }}</td><td>{{ e.fecha_ensayo|date:"Y-m-d"|default:"-" }}</td><td>{{ datos.fecha_emision|date:"Y-m-d"|default:"-" }}</td></tr>
 </table>
 
-<p class="fmt-sec">IV. EJECUCIÓN DEL MÉTODO</p>
-<table class="fmt-ejec"><tr>
- <td class="fmt-ejec__izq">
-  <table class="fmt-tabla fmt-datos">
-   <tr><th colspan="4" class="fmt-sub">DATOS DEL CILINDRO A ENSAYAR</th></tr>
-   <tr><td>Muestra No.</td><td class="c">--</td><td colspan="2" class="c"><b>{{ linea.n|stringformat:"02d" }}</b></td></tr>
-   <tr><td rowspan="2">Edad de la muestra (*)</td><td class="c">días</td><td colspan="2" class="c">{% if e.edad_dias is not None %}{{ e.edad_dias }}{% else %}-{% endif %}</td></tr>
-   <tr><td class="c">horas</td><td colspan="2" class="c">-</td></tr>
-   <tr><td>Masa</td><td class="c">g</td><td colspan="2" class="c">{{ e.masa_g|default_if_none:"-" }}</td></tr>
-   <tr><td rowspan="2">Diámetro</td><td class="c">mm</td><td class="c">D1 =</td><td class="c">{{ e.d1|default_if_none:"-" }}</td></tr>
-   <tr><td class="c">mm</td><td class="c">D2 =</td><td class="c">{{ e.d2|default_if_none:"-" }}</td></tr>
-   <tr><td rowspan="3">Longitud</td><td class="c">mm</td><td class="c">L1 =</td><td class="c">{{ e.l1|default_if_none:"-" }}</td></tr>
-   <tr><td class="c">mm</td><td class="c">L2 =</td><td class="c">{{ e.l2|default_if_none:"-" }}</td></tr>
-   <tr><td class="c">mm</td><td class="c">L3 =</td><td class="c">{{ e.l3|default_if_none:"-" }}</td></tr>
-   <tr><th colspan="4" class="fmt-sub">RESULTADOS DE ENSAYO</th></tr>
-   <tr><td>Diámetro promedio</td><td class="c">mm</td><td colspan="2" class="c">{{ e.diametro_prom|default_if_none:"-" }}</td></tr>
-   <tr><td>Longitud promedio</td><td class="c">mm</td><td colspan="2" class="c">{{ e.longitud_prom|default_if_none:"-" }}</td></tr>
-   <tr><td>Área de la sección transversal</td><td class="c">mm²</td><td colspan="2" class="c">{{ e.area|default_if_none:"-" }}</td></tr>
-   <tr><td>Relación L/D</td><td class="c">--</td><td colspan="2" class="c">{{ e.relacion_ld|default_if_none:"-" }}</td></tr>
-   <tr><td>Factor</td><td class="c">--</td><td colspan="2" class="c">{{ e.factor|default_if_none:"-" }}</td></tr>
-   <tr><td>Carga Máxima Registrada</td><td class="c">kN</td><td colspan="2" class="c">{{ e.carga_kn|default_if_none:"-" }}</td></tr>
-   <tr><td><b>Resistencia a la compresión</b></td><td class="c"><b>MPa</b></td><td colspan="2" class="c"><b>{{ e.resistencia_mpa|default_if_none:"-" }}</b></td></tr>
-   <tr><td><b>Resistencia a la compresión</b></td><td class="c"><b>kg/cm²</b></td><td colspan="2" class="c"><b>{{ e.resistencia_kgcm2|default_if_none:"-" }}</b></td></tr>
-   <tr><td>Incertidumbre Expandida</td><td class="c">kg/cm²</td><td colspan="2" class="c">-</td></tr>
-   <tr><td><b>Porcentaje obtenido</b></td><td class="c"><b>%</b></td><td colspan="2" class="c"><b>{{ e.porcentaje|default_if_none:"-" }}</b></td></tr>
-   <tr><td>Tipo de fractura</td><td class="c">--</td><td colspan="2" class="c">{% if e.tipo_fractura %}TIPO {{ e.tipo_fractura }}{% else %}-{% endif %}</td></tr>
-   <tr><td>Densidad</td><td class="c">kg/m³</td><td colspan="2" class="c">{{ e.densidad|default_if_none:"-" }}</td></tr>
-  </table>
- </td>
- <td class="fmt-ejec__der">
-  <table class="fmt-tabla fmt-fotos">
-   <tr><th class="fmt-sub">REGISTRO FOTOGRÁFICO</th></tr>
-   <tr><td class="c"><b>Carga Máxima Registrada</b><br>{% if linea.foto_carga %}<img class="fmt-carga" src="{{ linea.foto_carga.src }}" alt="Lectura de carga">{% else %}<span class="pendiente">Sin foto</span>{% endif %}</td></tr>
-   <tr><td class="fmt-pares"><table><tr><td class="c"><b>Muestra antes del Ensayo</b></td><td class="c"><b>Muestra después del Ensayo</b></td></tr>
-     <tr><td class="c">{% for f in linea.fotos_antes %}<img src="{{ f.src }}" alt="{{ f.etiqueta }}">{% empty %}<span class="pendiente">Sin foto</span>{% endfor %}</td>
-         <td class="c">{% for f in linea.fotos_despues %}<img src="{{ f.src }}" alt="{{ f.etiqueta }}">{% empty %}<span class="pendiente">Sin foto</span>{% endfor %}</td></tr></table></td></tr>
-  </table>
-  <table class="fmt-tabla fmt-defectos">
-   <tr><td><b>Defectos del Espécimen Ensayado :</b><br>{{ e.defectos_texto|default:"-" }}</td></tr>
-   <tr><td><b>EJECUTADO POR</b> &nbsp;:&nbsp; {% if linea.ejecutor %}Téc. {{ linea.ejecutor }}{% else %}-{% endif %}</td></tr>
-  </table>
- </td>
-</tr></table>
-
-<p class="fmt-sec">ESQUEMA DE FRACTURAS TÍPICAS (ASTM C39/C39M-26)</p>
-<table class="fmt-fract"><tr>
-{% for n, texto in datos.fracturas %}<td{% if e.tipo_fractura == n %} class="fmt-fract--on"{% endif %}><svg viewBox="0 0 40 56" width="34" height="46" aria-hidden="true">{% include "proyectos/informe_bloques/_fractura.svg" with n=n %}</svg><b>TIPO {{ n }}</b><span>{{ texto }}</span></td>{% endfor %}
-</tr></table>
-
-<p class="fmt-sec">OBSERVACIONES</p>
-<p class="fmt-obs">{{ e.observaciones|default:"-" }}</p>
-<p class="fmt-nota-t">(*) Los datos indicados han sido proporcionados por el Cliente.</p>
-<p class="fmt-sec">IDENTIFICACIÓN DEL EQUIPAMIENTO EMPLEADO</p>
-<table class="fmt-equipos">
- {% for nombre, codigo in linea.equipos %}{% if forloop.counter0|divisibleby:2 %}<tr>{% endif %}<th>ID {{ nombre }}</th><td>:</td><td>{{ codigo }}</td>{% if not forloop.counter0|divisibleby:2 or forloop.last %}{% if forloop.last and forloop.counter0|divisibleby:2 %}<th></th><td></td><td></td>{% endif %}</tr>{% endif %}{% empty %}<tr><td colspan="6" class="c">-</td></tr>{% endfor %}
+<p class="pr-sec">IV. EJECUCIÓN DEL MÉTODO</p>
+<table class="pr-t pr-ej">
+  <colgroup><col style="width:24.5%"><col style="width:10%"><col style="width:11.5%"><col style="width:24%"><col style="width:3%"><col style="width:27%"></colgroup>
+  <tr><th colspan="3" class="c">DATOS DEL CILINDRO A ENSAYAR</th><th colspan="3" class="c">REGISTRO FOTOGRÁFICO</th></tr>
+  <tr><td>Muestra No.</td><td class="c">--</td><td class="c"><b>{{ linea.n|stringformat:"02d" }}</b></td><td colspan="3" class="c"><b>Carga Máxima Registrada</b></td></tr>
+  <tr><td rowspan="2">Edad de la muestra (*)</td><td class="c">días</td><td class="c">{% if e.edad_dias is not None %}{{ e.edad_dias }}{% else %}-{% endif %}</td>
+      <td colspan="3" rowspan="4" class="c pr-carga">{% if linea.foto_carga %}<img src="{{ linea.foto_carga.src }}" alt="Carga máxima registrada">{% endif %}</td></tr>
+  <tr><td class="c">horas</td><td class="c">-</td></tr>
+  <tr><td>Masa</td><td class="c">g</td><td class="c">{{ v.masa }}</td></tr>
+  <tr><td rowspan="2">Diámetro</td><td class="c">mm</td><td class="c">D1 &nbsp;= &nbsp;{{ v.d1 }}</td></tr>
+  <tr><td class="c">mm</td><td class="c">D2 &nbsp;= &nbsp;{{ v.d2 }}</td><th colspan="2" class="c">Muestra antes del Ensayo</th><th class="c">Muestra después del Ensayo</th></tr>
+  <tr><td rowspan="3">Longitud</td><td class="c">mm</td><td class="c">L1 &nbsp;= &nbsp;{{ v.l1 }}</td>
+      <td colspan="2" rowspan="10" class="c pr-fotos">{% for f in linea.fotos_antes %}<img src="{{ f.src }}" alt="{{ f.etiqueta }}">{% endfor %}</td>
+      <td rowspan="10" class="c pr-fotos">{% for f in linea.fotos_despues %}<img src="{{ f.src }}" alt="{{ f.etiqueta }}">{% endfor %}</td></tr>
+  <tr><td class="c">mm</td><td class="c">L2 &nbsp;= &nbsp;{{ v.l2 }}</td></tr>
+  <tr><td class="c">mm</td><td class="c">L3 &nbsp;= &nbsp;{{ v.l3 }}</td></tr>
+  <tr><th colspan="3" class="c">RESULTADOS DE ENSAYO</th></tr>
+  <tr><td>Diámetro promedio</td><td class="c">mm</td><td class="c">{{ v.diametro }}</td></tr>
+  <tr><td>Longitud promedio</td><td class="c">mm</td><td class="c">{{ v.longitud }}</td></tr>
+  <tr><td>Área de la sección transversal</td><td class="c">mm²</td><td class="c">{{ v.area }}</td></tr>
+  <tr><td>Relación L/D</td><td class="c">--</td><td class="c">{{ v.ld }}</td></tr>
+  <tr><td>Factor</td><td class="c">--</td><td class="c">{{ v.factor }}</td></tr>
+  <tr><td>Carga Máxima Registrada</td><td class="c">kN</td><td class="c">{{ v.carga }}</td></tr>
+  <tr><td><b>Resistencia a la compresión</b></td><td class="c"><b>MPa</b></td><td class="c"><b>{{ v.mpa }}</b></td><td colspan="3"><b>Defectos del Espécimen Ensayado :</b></td></tr>
+  <tr><td><b>Resistencia a la compresión</b></td><td class="c"><b>kg/cm²</b></td><td class="c"><b>{{ v.kgcm2 }}</b></td><td colspan="3" rowspan="4" class="pr-def">{{ e.defectos_texto|default:"-" }}</td></tr>
+  <tr><td>Incertidumbre Expandida</td><td class="c">kg/cm²</td><td class="c">-</td></tr>
+  <tr><td><b>Porcentaje obtenido</b></td><td class="c"><b>%</b></td><td class="c"><b>{{ v.porcentaje }}</b></td></tr>
+  <tr><td>Tipo de fractura</td><td class="c">--</td><td class="c">{% if e.tipo_fractura %}TIPO {{ e.tipo_fractura }}{% else %}-{% endif %}</td></tr>
+  <tr><td>Densidad</td><td class="c">kg/m³</td><td class="c">{{ v.densidad }}</td><th class="c">EJECUTADO POR</th><td class="c">:</td><td class="c">{% if linea.ejecutor %}Téc. {{ linea.ejecutor }}{% else %}-{% endif %}</td></tr>
 </table>
 
-<div class="fmt-autoriza">
-  <p><b>AUTORIZADO POR :</b></p>
-  {% if datos.firma %}{% if datos.firma.imagen %}<img src="{{ datos.firma.imagen }}" alt="Firma">{% endif %}<div class="linea"><b>GRUPO VICAF SAC</b><br>{{ datos.firma.nombre }}<br>{{ datos.firma.cargo }}</div>{% else %}<div class="linea pendiente">Firma de quien emite el informe</div>{% endif %}
+<table class="pr-t pr-fract">
+  <tr><th colspan="6" class="pr-th-izq">ESQUEMA DE FRACTURAS TÍPICAS (ASTM C39/C39M-26)</th></tr>
+  <tr>{% for n, texto in datos.fracturas %}<td class="c">{% for img in datos.img.fracturas %}{% if forloop.counter == n and img %}<img src="{{ img }}" alt="Fractura tipo {{ n }}">{% endif %}{% endfor %}<b>TIPO {{ n }}</b><span>{{ texto }}</span></td>{% endfor %}</tr>
+  <tr><th colspan="6" class="pr-th-izq">OBSERVACIONES</th></tr>
+  <tr><td colspan="6">{{ e.observaciones|default:"-" }}</td></tr>
+  <tr><td colspan="6">(*) Los datos indicados han sido proporcionados por el Cliente.</td></tr>
+  <tr><th colspan="6" class="pr-th-izq">IDENTIFICACIÓN DEL EQUIPAMIENTO EMPLEADO</th></tr>
+</table>
+<table class="pr-t pr-eq">
+  <colgroup><col style="width:21%"><col style="width:4%"><col style="width:25%"><col style="width:21%"><col style="width:4%"><col style="width:25%"></colgroup>
+  {% for nombre, codigo in linea.equipos_formato %}{% if forloop.counter0|divisibleby:2 %}<tr>{% endif %}<th>ID {{ nombre }}</th><td class="c">:</td><td class="c">{{ codigo }}</td>{% if not forloop.counter0|divisibleby:2 or forloop.last %}</tr>{% endif %}{% empty %}<tr><td colspan="6" class="c">-</td></tr>{% endfor %}
+</table>
+
+<div class="pr-autoriza">
+  <p>AUTORIZADO POR :</p>
+  {% if datos.firma %}{% if datos.firma.imagen %}<img src="{{ datos.firma.imagen }}" alt="Firma">{% else %}<div class="cv-firma__esp"></div>{% endif %}<div class="cv-firma__pie"><b>GRUPO VICAF SAC</b><br><b>{{ datos.firma.nombre }}</b><br>{{ datos.firma.cargo }}</div>{% else %}<div class="cv-firma__esp"></div><div class="cv-firma__pie pendiente">Firma de quien emite el informe</div>{% endif %}
 </div>
 </div>
 {% else %}
 <div class="bloque fmt fmt-probeta fmt-general">
-{% include "proyectos/informe_bloques/_formato_cab.html" with titulo=d.descripcion_ensayo|default:d.norma subtitulo=d.norma formato=datos.formato_probeta pagina=linea.pagina %}
-<p class="fmt-sec">IDENTIFICACIÓN DE LA MUESTRA ENSAYADA</p>
-<table class="fmt-tabla">
-  <tr><th>ID de Laboratorio</th><th>ID de Cliente (*)</th><th>Ensayo</th><th>Norma / Método</th><th>Fecha de ensayo</th></tr>
-  <tr><td class="c">{{ m.codigo_laboratorio }}</td><td class="c">{{ m.codigo_cliente|default:"-" }}</td><td class="c">{{ d.descripcion_ensayo|default:"-" }}</td><td class="c">{{ d.norma }}{% if d.metodo %} · {{ d.metodo }}{% endif %}</td><td class="c">{{ e.fecha_ensayo|date:"Y-m-d"|default:"-" }}</td></tr>
+{% include "proyectos/informe_bloques/_formato_cab.html" with titulo=d.descripcion_ensayo|default:d.norma|upper subtitulo=d.norma formato=datos.formato_probeta pagina=linea.pagina oscuro=True %}
+<p class="pr-sec">I. DATOS DEL CLIENTE</p>
+<table class="pr-t pr-dc">
+  <colgroup><col style="width:13%"><col style="width:2%"><col style="width:45%"><col style="width:20%"><col style="width:2%"><col style="width:18%"></colgroup>
+  <tr><th>Cliente</th><td class="c">:</td><td>{{ datos.cliente.razon_social }}</td><th>Código de Informe</th><td class="c">:</td><td class="pr-naranja">{% if datos.informe %}{{ datos.informe.codigo_informe }}{% else %}-{% endif %}</td></tr>
+  <tr><th>Proyecto (**)</th><td class="c">:</td><td>{{ datos.proyecto }}</td><th>Ubicación (**)</th><td class="c">:</td><td>{{ datos.ubicacion }}</td></tr>
 </table>
-<p class="fmt-sec">RESULTADOS</p>
+<p class="pr-sec">II. IDENTIFICACIÓN DE LA MUESTRA ENSAYADA</p>
+<table class="pr-t pr-id">
+  <tr><th>ID de Laboratorio</th><th>ID de Cliente (*)</th><th>Ensayo</th><th>Norma / Método</th><th>Ejecución del Ensayo</th></tr>
+  <tr><td>{{ m.codigo_laboratorio }}</td><td>{{ m.codigo_cliente|default:"-" }}</td><td>{{ d.descripcion_ensayo|default:"-" }}</td><td>{{ d.norma }}{% if d.metodo %} · {{ d.metodo }}{% endif %}</td><td>{{ e.fecha_ensayo|date:"Y-m-d"|default:"-" }}</td></tr>
+</table>
+<p class="pr-sec">III. RESULTADOS</p>
 {% if e and e.filas_formulario %}
-<table class="fmt-tabla fmt-kv2" data-datos-formulario>
-  {% for grupo, etiqueta, texto in e.filas_formulario %}<tr><th>{{ etiqueta }}</th><td>{{ texto|default:"-" }}</td></tr>{% endfor %}
+<table class="pr-t pr-res" data-datos-formulario>
+  {% for grupo, etiqueta, texto in e.filas_formulario %}<tr><th>{{ etiqueta }}</th><td class="c">{{ texto|default:"-" }}</td></tr>{% endfor %}
 </table>
-{% if e.resumen %}<p class="resumen">{{ e.resumen }}</p>{% endif %}
-{% elif e %}<p class="resumen">{{ e.resumen|default:"Sin resumen." }}</p>{% else %}<p class="bloque--vacio">Sin resultados registrados.</p>{% endif %}
-{% if e.observaciones %}<p class="fmt-sec">OBSERVACIONES</p><p class="fmt-obs">{{ e.observaciones }}</p>{% endif %}
-{% if linea.fotos %}<p class="fmt-sec">REGISTRO FOTOGRÁFICO</p><div class="fotos">{% for f in linea.fotos %}<figure><img src="{{ f.src }}" alt="{{ f.etiqueta }}"><figcaption>{{ f.etiqueta }}</figcaption></figure>{% endfor %}</div>{% endif %}
-<div class="fmt-autoriza">
-  <p><b>AUTORIZADO POR :</b></p>
-  {% if datos.firma %}{% if datos.firma.imagen %}<img src="{{ datos.firma.imagen }}" alt="Firma">{% endif %}<div class="linea"><b>GRUPO VICAF SAC</b><br>{{ datos.firma.nombre }}<br>{{ datos.firma.cargo }}</div>{% else %}<div class="linea pendiente">Firma de quien emite el informe</div>{% endif %}
+{% if e.resumen %}<p class="resumen pr-texto">{{ e.resumen }}</p>{% endif %}
+{% elif e %}<p class="resumen pr-texto">{{ e.resumen|default:"Sin resumen." }}</p>{% else %}<p class="bloque--vacio">Sin resultados registrados.</p>{% endif %}
+{% if linea.fotos %}<p class="pr-sec">IV. REGISTRO FOTOGRÁFICO</p><table class="pr-t pr-galeria"><tr>{% for f in linea.fotos %}<td class="c"><img src="{{ f.src }}" alt="{{ f.etiqueta }}"><span>{{ f.etiqueta }}</span></td>{% if forloop.counter|divisibleby:3 and not forloop.last %}</tr><tr>{% endif %}{% endfor %}</tr></table>{% endif %}
+<table class="pr-t pr-fract">
+  <tr><th class="pr-th-izq">OBSERVACIONES</th></tr>
+  <tr><td>{{ e.observaciones|default:"-" }}</td></tr>
+  <tr><td>(*) Los datos indicados han sido proporcionados por el Cliente.</td></tr>
+</table>
+<div class="pr-autoriza">
+  <p>AUTORIZADO POR :</p>
+  {% if datos.firma %}{% if datos.firma.imagen %}<img src="{{ datos.firma.imagen }}" alt="Firma">{% else %}<div class="cv-firma__esp"></div>{% endif %}<div class="cv-firma__pie"><b>GRUPO VICAF SAC</b><br><b>{{ datos.firma.nombre }}</b><br>{{ datos.firma.cargo }}</div>{% else %}<div class="cv-firma__esp"></div><div class="cv-firma__pie pendiente">Firma de quien emite el informe</div>{% endif %}
 </div>
 </div>
 {% endif %}

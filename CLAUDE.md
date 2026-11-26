@@ -194,8 +194,7 @@ campo `hoja_calculo` y su descarga solo sirven a ensayos viejos.
 (secciones 1–5), `notas` = secciones 6–7, `firmas` = QR + «Informe autorizado por», y `resultados` = una hoja FOR-039 por ensayo con su registro
 fotográfico, esquema de fracturas, equipamiento y firma (`informe_bloques/`, estilos `.fmt-*` en `informe_hoja.css`, cabecera común en
 `_formato_cab.html`; el bloque `fotos` quedó incluido en `resultados`). `documento_inicial` arma carátula + notas + firma y luego una hoja por línea;
-los borradores viejos siguen funcionando. El sello de INACAL se toma de `static/img/inacal.png` si existe. `html_informe` regenera el QR si su archivo falta. Los informes ya
-emitidos no se rehacen (su HTML está congelado). «Revisión de resultados» tiene solo «Por revisar» y «Sin firmar» (`?vista=sin_firmar`); lo emitido
+los borradores viejos siguen funcionando. El sello de INACAL, la marca de agua y los dibujos de fracturas salen del informe oficial (`static/img/informe/`); el pie (con «Fin del Informe» en la última hoja) usa elementos `running()` y páginas con nombre (`caratula`/`probeta`). `regenerar_informes_diseno [--aplicar] [--codigo]` pasa los informes ya emitidos y los borradores al diseño actual y regenera el PDF (omite los que tienen bloques editados y los subidos a mano). `html_informe` regenera el QR si su archivo falta. «Revisión de resultados» tiene solo «Por revisar» y «Sin firmar» (`?vista=sin_firmar`); lo emitido
 se ve en «Informes» (`informes_lista.css`), que ya no tiene emisión manual (se eliminó `gestionar_informe`).
 
 **Revisión por ensayo con marcas (HU-LIMS-45).** Quien tiene `informes.aprobar` abre un ensayo terminado en `/proyectos/resultados/<id>/revisar/`

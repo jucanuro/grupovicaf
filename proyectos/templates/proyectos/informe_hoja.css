@@ -45,54 +45,86 @@
 .hoja .firmas .qr { width: 34%; }
 .hoja .firmas .qr img { width: 72pt; height: 72pt; }
 
-/* ===== Formatos del laboratorio (VCF-LAB-FOR-064 / FOR-039) ===== */
-.hoja .fmt { font-family: Arial, "DejaVu Sans", sans-serif; font-size: 7.6pt; line-height: 1.25; color: #111; }
+/* ===== Formatos del laboratorio: copia del informe oficial (VCF-LAB-FOR-064 y FOR-039) ===== */
+.hoja .fmt { font-family: "Liberation Sans", Arial, Helvetica, sans-serif; font-size: 6.5pt; line-height: 1.2; color: #000; }
 .hoja .fmt table { border-collapse: collapse; width: 100%; margin: 0; }
-.hoja .fmt td, .hoja .fmt th { border: 0.5pt solid #9aa5b1; padding: 1.6pt 3pt; vertical-align: middle; font-size: 7.4pt; }
-.hoja .fmt th { background: #f1f4f8; text-align: left; font-weight: 700; }
+.hoja .fmt td, .hoja .fmt th { border: 0; padding: 0; vertical-align: middle; font-size: inherit; background: transparent; text-align: left; }
+.hoja .fmt p { margin: 0; }
 .hoja .fmt .c { text-align: center; }
-.hoja .fmt-probeta { break-before: page; page-break-before: always; }
-.hoja .fmt-caratula { break-before: auto; }
-.hoja .fmt-cab { border: 0.75pt solid #6b7a8c !important; margin-bottom: 0 !important; }
-.hoja .fmt-cab td { border: 0 !important; padding: 3pt 5pt !important; }
-.hoja .fmt-cab__logo { width: 24%; } .hoja .fmt-cab__logo img { height: 30pt; }
-.hoja .fmt-cab__tit { text-align: center; } .hoja .fmt-cab__tit b { display: block; font-size: 9.4pt; color: #0b1f3a; line-height: 1.2; }
-.hoja .fmt-cab__tit span { display: block; font-size: 7.6pt; font-weight: 700; margin-top: 3pt; }
-.hoja .fmt-cab__inacal { width: 22%; text-align: center; } .hoja .fmt-cab__inacal img { height: 34pt; }
-.hoja .fmt-cab__inacal div { border: 0.75pt solid #7c3aa0; border-radius: 4pt; padding: 2pt 3pt; color: #5b2a86; }
-.hoja .fmt-cab__inacal b { display: block; font-size: 10pt; } .hoja .fmt-cab__inacal small { display: block; font-size: 5.6pt; }
-.hoja .fmt-doc { border: 0.75pt solid #6b7a8c; border-top: 0; margin: 0 !important; padding: 2pt 4pt; text-align: center; font-size: 6.6pt; font-weight: 700; }
-.hoja .fmt-codigo { margin-top: 3pt !important; } .hoja .fmt-codigo td { border: 0 !important; padding: 2pt 3pt !important; }
-.hoja .fmt-codigo__v { width: 52%; } .hoja .fmt-codigo__t { text-align: right; font-weight: 700; font-size: 7.4pt !important; width: 20%; }
-.hoja .fmt-codigo__c, .hoja .fmt-naranja { background: #f5a31a !important; color: #fff; font-weight: 700; text-align: center; font-size: 8pt !important; border: 0.5pt solid #d98a0b !important; }
-.hoja .fmt-sec { margin: 3.2pt 0 1.5pt !important; padding: 1.6pt 4pt; background: #eef2f8; color: #1f3b66; font-weight: 700; font-size: 7.6pt; border-bottom: 0.75pt solid #9db0cc; }
-.hoja .fmt-dos > tbody > tr > td { border: 0 !important; vertical-align: top; width: 50%; padding: 0 3pt 0 0 !important; }
-.hoja .fmt-kv th { background: transparent; border: 0; width: 28%; padding: 1.6pt 2pt; } .hoja .fmt-kv td { border: 0; padding: 1.6pt 2pt; } .hoja .fmt-kv td:nth-child(2) { width: 3%; }
-.hoja .fmt-tiempo th { background: #f1f4f8; width: 28%; } .hoja .fmt-tiempo td { text-align: center; width: 22%; }
-.hoja .fmt-tabla th { text-align: center; } .hoja .fmt-tabla-t { text-align: center; font-weight: 700; margin: 3pt 0 1pt !important; font-size: 7.4pt; }
-.hoja .fmt-lista { margin: 2pt 0 2pt 0; padding-left: 12pt; font-size: 7.4pt; list-style: disc; } .hoja .fmt-lista li { margin: 0 0 1pt; }
-.hoja .fmt-nota-t { font-size: 6.8pt; margin: 2pt 0 !important; font-weight: 700; }
-.hoja .fmt-notas { margin-top: 2pt; } .hoja .fmt-notas__cols td { border: 0 !important; vertical-align: bottom; padding: 0 !important; } .hoja .fmt-nc1 { width: 66%; } .hoja .fmt-nc2 { width: 34%; padding-left: 6pt !important; }
-.hoja .fmt-notas__cols ul { margin: 2pt 0; padding-left: 9pt; list-style: disc; font-size: 6.6pt; line-height: 1.25; }
-.hoja .fmt-reemplazo th { font-size: 6.4pt !important; } .hoja .fmt-anexos { font-size: 6.8pt; }
-.hoja .fmt-firmas { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 8pt !important; }
-.hoja .fmt-firmas .qr { text-align: left; width: 40%; } .hoja .fmt-firmas .qr p { margin: 0; font-size: 7pt; } .hoja .fmt-firmas .qr img { width: 92pt; height: 92pt; display: block; margin: 2pt 0; }
-.hoja .fmt-firmas .qr-nota { font-size: 6pt !important; color: #475569; }
-.hoja .fmt-firmas .firma { width: 46%; text-align: center; } .hoja .fmt-firmas .firma img { height: 44pt; } .hoja .fmt-firmas .firma-t { font-size: 7.4pt; margin: 0 0 2pt; }
-.hoja .fmt-firmas .linea { border-top: 0; font-size: 7pt; }
-.hoja .fmt-dc td, .hoja .fmt-dc th { padding: 1pt 3pt !important; } .hoja .fmt-dc th { width: 13%; } .hoja .fmt-dc td { width: 37%; }
-.hoja .fmt-ejec > tbody > tr > td { border: 0 !important; vertical-align: top; padding: 0 !important; }
-.hoja .fmt-ejec__izq { width: 54%; padding-right: 4pt !important; } .hoja .fmt-ejec__der { width: 46%; }
-.hoja .fmt-sub { background: #eef2f8 !important; text-align: center; color: #1f3b66; font-size: 7.4pt !important; }
-.hoja .fmt-datos td { font-size: 7pt; padding: 0.5pt 3pt; }
-.hoja .fmt-fotos td { padding: 2pt; } .hoja .fmt-carga { height: 38pt; width: auto; margin-top: 2pt; }
-.hoja .fmt-pares table td { border: 0 !important; width: 50%; padding: 1pt !important; } .hoja .fmt-pares img { height: 60pt; width: auto; max-width: 100%; margin: 1pt; border: 0.5pt solid #9aa5b1; display: block; margin-left: auto; margin-right: auto; }
-.hoja .fmt-defectos { margin-top: 3pt !important; } .hoja .fmt-defectos td { padding: 3pt 4pt; }
-.hoja .fmt .fmt-fract { table-layout: fixed; width: 100% !important; } .hoja .fmt-fract svg { width: 26px; height: 36px; } .hoja .fmt-fract td { border: 0 !important; text-align: center; vertical-align: top; width: 16.6%; font-size: 5.4pt; padding: 1pt 2pt !important; } .hoja .fmt-fract b { display: block; font-size: 6.4pt; } .hoja .fmt-fract span { display: block; line-height: 1.15; }
-.hoja .fmt-fract--on { background: #fff3d6; outline: 0.75pt solid #f5a31a; }
-.hoja .fmt-obs { margin: 2pt 0 !important; font-size: 7.4pt; min-height: 10pt; }
-.hoja .fmt-equipos th { background: transparent; border: 0; border-bottom: 0.5pt solid #cbd5e1; width: 19%; white-space: nowrap; font-size: 7pt; } .hoja .fmt-equipos td { border: 0; border-bottom: 0.5pt solid #cbd5e1; font-size: 7pt; }
-.hoja .fmt-autoriza { text-align: right; margin-top: 3pt; padding-right: 8pt; break-inside: avoid; } .hoja .fmt-autoriza p { margin: 0; font-size: 7.4pt; } .hoja .fmt-autoriza img { height: 32pt; } .hoja .fmt-autoriza .linea { display: inline-block; text-align: center; font-size: 6.8pt; border: 0; }
-.hoja .fmt-kv2 th { text-align: left; width: 40%; }
-.hoja .fmt-general .fotos { display: block; } .hoja .fmt-general .fotos figure { display: inline-block; width: 32%; vertical-align: top; margin: 0 0.5% 4pt; text-align: center; } .hoja .fmt-general .fotos img { height: 90pt; width: 100%; object-fit: contain; display: block; } .hoja .fmt-general .fotos figcaption { font-size: 6.4pt; }
-.hoja .fmt, .hoja .fmt-probeta { orphans: 3; widows: 3; }
+.hoja .fmt-probeta { break-before: page; page-break-before: always; font-size: 6pt; page: probeta; }
+.hoja .fmt-caratula, .hoja .fmt-notas, .hoja .fmt-firmas { page: caratula; }
+
+/* Cabecera común */
+.hoja .fc { border: 0.75pt solid #000; }
+.hoja .fc td { border: 0.75pt solid #000; }
+.hoja .fc-logo { width: 106pt; text-align: center !important; padding: 2pt !important; } .hoja .fc-logo img { width: 96pt; height: auto; }
+.hoja .fc-inacal { width: 106pt; text-align: center !important; padding: 1pt !important; } .hoja .fc-inacal img { width: 70pt; height: auto; }
+.hoja .fc-tit { text-align: center !important; font-weight: 700; font-size: 8.9pt; line-height: 1.2; padding: 3pt 10pt !important; }
+.hoja .fc-tit--oscuro { background: #243776 !important; color: #fff; font-size: 7.4pt; padding: 6pt 8pt !important; }
+.hoja .fc-sub { text-align: center !important; font-weight: 700; font-size: 7pt; padding: 3pt 30pt !important; }
+.hoja .fmt-caratula .fc-sub { font-size: 8.4pt; padding: 5pt !important; }
+.hoja .fc-doc { text-align: center !important; font-size: 6.5pt; padding: 1.8pt 4pt !important; }
+.hoja .fmt-probeta .fc-doc { font-size: 6pt; }
+
+/* ---- Carátula FOR-064 ---- */
+.hoja .cv-codigo { margin-top: 4pt !important; } .hoja .cv-codigo td { padding: 2pt 4pt !important; font-weight: 700; color: #253776; }
+.hoja .cv-codigo__vacio { width: 59%; } .hoja .cv-codigo__t { background: #f1f1f1 !important; text-align: center !important; width: 21%; }
+.hoja .cv-codigo__c { background: #f6a21c !important; text-align: center !important; }
+.hoja .cv-sec { background: #f1f1f1 !important; color: #253776; font-weight: 700; padding: 3pt 9pt !important; }
+.hoja .cv-sec--full { margin-top: 5pt !important; }
+.hoja .cv-12 { margin-top: 4pt !important; } .hoja .cv-12 > tbody > tr > td { vertical-align: top; } .hoja .cv-12 > tbody > tr > td:first-child { width: 58%; }
+.hoja .cv-gap { width: 3%; }
+.hoja .cv-kv th { font-weight: 700; padding: 2.7pt 2pt 2.7pt 9pt !important; width: 27%; vertical-align: top; }
+.hoja .cv-kv td { padding: 2.7pt 2pt !important; vertical-align: top; } .hoja .cv-dp { width: 4%; font-weight: 700; }
+.hoja .cv-proy th, .hoja .cv-proy td { padding-left: 0 !important; width: auto; }
+.hoja .cv-tiempo { margin-top: 6pt !important; } .hoja .cv-tiempo > tbody > tr > td { vertical-align: top; width: 48.5%; padding: 0 0 0 20pt !important; }
+.hoja .cv-tiempo > tbody > tr > td.cv-gap { width: 3%; padding: 0 !important; }
+.hoja .cv-t th, .hoja .cv-t td { border: 0.6pt dashed #a6a6a6 !important; padding: 2.4pt 6pt !important; }
+.hoja .cv-t th { font-weight: 700; width: 62%; } .hoja .cv-t td { text-align: center; }
+.hoja .cv-guion { padding: 2pt 9pt 1pt !important; }
+.hoja .cv-tabla-t { text-align: center; font-weight: 700; margin: 5pt 0 3pt !important; } .hoja .cv-tabla-t--sep { margin-top: 8pt !important; }
+.hoja .cv-tabla { width: 96% !important; margin: 0 auto !important; }
+.hoja .cv-tabla th, .hoja .cv-tabla td { border: 0.6pt dashed #a6a6a6 !important; text-align: center; padding: 2.6pt 3pt !important; }
+.hoja .cv-tabla th { font-weight: 700; padding: 4pt 3pt !important; } .hoja .cv-tabla--metodos th { background: #f1f1f1 !important; }
+.hoja .cv-izq { text-align: left !important; padding-left: 6pt !important; }
+.hoja .cv-notas-t { margin: 2pt 0 0 !important; }
+.hoja .cv-notas td { vertical-align: top; font-size: 5.6pt; line-height: 1.32; } .hoja .cv-notas__i { width: 49%; padding: 3pt 0 0 9pt !important; } .hoja .cv-notas__d { width: 48%; padding-top: 3pt !important; }
+.hoja .cv-notas p { margin: 0 0 0.6pt !important; } .hoja .cv-notas__ult { margin-top: 6pt !important; }
+.hoja .cv-reemplazo { margin-top: 6pt !important; font-size: 6.5pt; } .hoja .cv-reemplazo th, .hoja .cv-reemplazo td { border: 0.6pt dashed #a6a6a6 !important; padding: 3.4pt 4pt !important; text-align: center; }
+.hoja .cv-reemplazo th { background: #f1f1f1 !important; font-weight: 400; width: 62%; } .hoja .cv-reemplazo td { font-weight: 700; }
+.hoja .cv-firma { margin-top: 5pt !important; break-inside: avoid; page-break-inside: avoid; } .hoja .cv-firma td { vertical-align: top; }
+.hoja .cv-firma__qr { width: 50%; padding-left: 20pt !important; }
+.hoja .cv-verifica { color: #253776; font-weight: 700; font-style: italic; margin-bottom: 6pt !important; }
+.hoja .cv-qr { width: 72pt; height: 72pt; margin-left: 130pt; border: 0.6pt dashed #bebebe; padding: 3pt; } .hoja .cv-qr img { width: 100%; height: 100%; display: block; }
+.hoja .cv-qr--vacio { display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 6pt; text-align: center; }
+.hoja .cv-firma__f { text-align: center; } .hoja .cv-autoriza { font-weight: 700; margin-bottom: 2pt !important; }
+.hoja .cv-firma__img { height: 44pt; width: auto; } .hoja .cv-firma__esp { height: 40pt; }
+.hoja .cv-firma__pie { font-size: 6pt; line-height: 1.25; border-top: 0.6pt dashed #a6a6a6; display: inline-block; padding-top: 1pt; min-width: 120pt; text-align: center; }
+
+/* ---- Hoja de ensayo FOR-039 ---- */
+.hoja .pr-sec { color: #253776; font-weight: 700; margin: 3.5pt 0 1.5pt !important; padding-left: 9pt; }
+.hoja .pr-t th, .hoja .pr-t td { border: 0.6pt dashed #a6a6a6 !important; padding: 3pt 5pt !important; }
+.hoja .pr-t th { background: #f1f1f1 !important; font-weight: 700; }
+.hoja .pr-naranja { background: #f6a21c !important; color: #253776; font-weight: 700; text-align: center !important; }
+.hoja .pr-dc td, .hoja .pr-dc th { padding: 3pt 5pt !important; }
+.hoja .pr-dc td:nth-child(3) { padding-left: 10pt !important; }
+.hoja .pr-id th, .hoja .pr-id td, .hoja .pr-tl th, .hoja .pr-tl td { text-align: center; }
+.hoja .pr-id td { padding: 7pt 4pt !important; }
+.hoja .pr-ej td, .hoja .pr-ej th { padding: 2.1pt 5pt !important; }
+.hoja .pr-carga img { width: 112pt; height: 44pt; object-fit: cover; }
+.hoja .pr-fotos { vertical-align: middle !important; padding: 2pt !important; } .hoja .pr-fotos img { height: 92pt; width: auto; max-width: 48%; margin: 0 1pt; object-fit: cover; }
+.hoja .pr-def { vertical-align: top !important; }
+.hoja .pr-fract { margin-top: 3pt !important; }
+.hoja .pr-th-izq { text-align: left !important; padding-left: 9pt !important; }
+.hoja .pr-fract td.c { vertical-align: top; font-size: 4.5pt; line-height: 1.2; width: 16.6%; padding: 4pt 3pt !important; }
+.hoja .pr-fract td.c img { height: 26pt; width: auto; display: block; margin: 0 auto 2pt; }
+.hoja .pr-fract td.c b { display: block; font-size: 4.6pt; } .hoja .pr-fract td.c span { display: block; }
+.hoja .pr-eq th, .hoja .pr-eq td { padding: 2.4pt 9pt !important; } .hoja .pr-eq th { background: #f1f1f1 !important; }
+.hoja .pr-autoriza { text-align: right; margin: 4pt 22pt 0 0; break-inside: avoid; page-break-inside: avoid; }
+.hoja .pr-autoriza p { font-weight: 700; margin-right: 18pt !important; } .hoja .pr-autoriza img { height: 38pt; width: auto; }
+.hoja .pr-autoriza .cv-firma__pie { text-align: center; }
+.hoja .pr-res th { width: 55%; } .hoja .pr-texto { margin: 3pt 9pt !important; white-space: pre-line; }
+.hoja .pr-galeria td { width: 33.3%; vertical-align: top; } .hoja .pr-galeria img { height: 90pt; width: auto; max-width: 100%; display: block; margin: 0 auto 2pt; } .hoja .pr-galeria span { font-size: 5.5pt; }
+.hoja .pr-t th, .hoja .pr-t td { padding-top: 2.4pt !important; padding-bottom: 2.4pt !important; }
+.hoja .pr-ej td, .hoja .pr-ej th { padding-top: 2.1pt !important; padding-bottom: 2.1pt !important; }
+.hoja .pr-id td { padding-top: 7pt !important; padding-bottom: 7pt !important; }

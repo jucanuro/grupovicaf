@@ -8,6 +8,7 @@ Los «bloques de datos» (carátula, resultados, fotos, equipos, firmas) solo
 guardan su tipo y su referencia; su contenido se dibuja siempre desde lo
 registrado, así el informe no puede contradecir los resultados.
 """
+import re
 from pathlib import Path
 
 from django.conf import settings
@@ -19,7 +20,7 @@ from django.utils.html import escape
 from .informe_compresion import (
     ANEXOS, FORMATO_CARATULA, FORMATO_PROBETA, FRACTURAS, NOTAS, NOTAS_ITEMS, _negocio, _uri, lineas_resultados,
 )
-from .models import FotoEnsayo, Proyecto, ResultadoEnsayo, SesionEnsayo
+from .models import Equipo, FotoEnsayo, Proyecto, ResultadoEnsayo, SesionEnsayo
 
 # --- Bloques de datos ---------------------------------------------------------
 
@@ -49,6 +50,18 @@ ETIQUETAS_EQUIPO = {'prensa': 'Prensa', 'balanza': 'Balanza', 'vernier': 'Vernie
 
 MODO_WEB = 'web'
 MODO_PDF = 'pdf'
+
+
+def _num(valor, decimales=2, miles=False):
+    """Número como en el formato del laboratorio: coma decimal y espacio de miles («8 171,30»)."""
+    if valor is None or valor == '':
+        return '-'
+    try:
+        texto = f"{float(valor):,.{decimales}f}"
+    except (TypeError, ValueError):
+        return str(valor)
+    texto = texto.replace(',', ' ' if miles else '').replace('.', ',')
+    return texto
 
 
 def clave_bloque(tipo, ref=''):
@@ -293,6 +306,26 @@ def datos_informe(solicitud, modo=MODO_WEB, informe=None, firmante=None, lineas=
             for f in e.fotos.all():
                 src = _uri(f.imagen) if modo == MODO_PDF else reverse('proyectos:foto_compresion', args=[f.pk])
                 fotos_por_tipo.setdefault(f.tipo, {'src': src, 'etiqueta': f.get_tipo_display()})
+        if e is not None:
+            por_linea[str(d.pk)]['v'] = {
+                'masa': _num(e.masa_g, 0, True), 'd1': _num(e.d1), 'd2': _num(e.d2),
+                'l1': _num(e.l1), 'l2': _num(e.l2), 'l3': _num(e.l3),
+                'diametro': _num(e.diametro_prom), 'longitud': _num(e.longitud_prom),
+                'area': _num(e.area, 2, True), 'ld': _num(e.relacion_ld), 'factor': _num(e.factor),
+                'carga': _num(e.carga_kn), 'mpa': _num(e.resistencia_mpa, 1), 'kgcm2': _num(e.resistencia_kgcm2, 1),
+                'porcentaje': _num(e.porcentaje, 0), 'densidad': _num(e.densidad, 0, True),
+            }
+        if sesion is not None:
+            por_linea[str(d.pk)]['amb'] = {
+                't_ini': _num(sesion.temperatura_inicial), 't_fin': _num(sesion.temperatura_final),
+                'hr_ini': _num(sesion.humedad_inicial), 'hr_fin': _num(sesion.humedad_final),
+            }
+            # Equipamiento del formato FOR-039, en su orden: Prensa, Balanza, Vernier, Termohigrómetro, Cuña, Escuadra.
+            nombres = dict(Equipo.TIPOS)
+            por_linea[str(d.pk)]['equipos_formato'] = [
+                (nombres.get(tipo, campo), getattr(sesion, campo).codigo if getattr(sesion, campo, None) else '-')
+                for campo, tipo in SesionEnsayo.EQUIPOS
+            ]
         por_linea[str(d.pk)].update({
             'foto_carga': fotos_por_tipo.get(FotoEnsayo.TIPO_CARGA),
             'fotos_antes': [fotos_por_tipo[t] for t in (FotoEnsayo.TIPO_ANTES, FotoEnsayo.TIPO_ANTES_PIZARRA) if t in fotos_por_tipo],
@@ -333,6 +366,7 @@ def datos_informe(solicitud, modo=MODO_WEB, informe=None, firmante=None, lineas=
             ),
         }
     ahora = timezone.localdate()
+    calle = re.sub(r'(?<!N°) (\d+)$', r' N° \1', negocio.direccion_calle) if negocio else ''
     emision = timezone.localtime(informe.fecha_emision).date() if informe else None
     return {
         'formato_caratula': FORMATO_CARATULA,
@@ -340,7 +374,8 @@ def datos_informe(solicitud, modo=MODO_WEB, informe=None, firmante=None, lineas=
         'fecha_emision': emision,
         'fecha_solicitud': solicitud.fecha_solicitud,
         'negocio': {
-            'direccion': (f"{negocio.direccion_calle} - {negocio.direccion_localidad} - Perú" if negocio
+            # Como en el informe en papel: «Jr. Los Topacios N° 440 - Cajamarca - Perú».
+            'direccion': (f"{calle} - {negocio.direccion_localidad} - Perú" if negocio
                           else "Jr. Los Topacios N° 440 - Cajamarca - Perú"),
             'telefono': (negocio.telefono if negocio else '+51 964 326 364'),
             'correo': (negocio.correo if negocio else 'informes@grupovicaf.com'),
@@ -366,6 +401,7 @@ def datos_informe(solicitud, modo=MODO_WEB, informe=None, firmante=None, lineas=
             'correo': cotizacion.correo_contacto or cliente.correo_contacto or '-',
             'celular': getattr(cliente, 'celular_contacto', '') or '-',
             'cargo': getattr(cliente, 'cargo_contacto', '') or '-',
+            'web': getattr(cliente, 'sitio_web', '') or '-',
         },
         'proyecto': (proyecto.nombre_proyecto if proyecto else '') or cotizacion.proyecto_asociado or '-',
         'ubicacion': getattr(recepcion, 'ubicacion_informe', '') or '-',
@@ -376,6 +412,11 @@ def datos_informe(solicitud, modo=MODO_WEB, informe=None, firmante=None, lineas=
         'firma': firma,
         'metodos': [{'nombre': n, 'norma': norma, 'cantidad': c} for (n, norma), c in metodos.items()],
         'hay_compresion': any(v['es_compresion'] for v in por_linea.values()),
+        # Sección 6 del formato: dos columnas de notas; la 7 (anexos) lleva solo la última línea.
+        'notas_izq': [n.format(direccion=direccion) for n in NOTAS[:6]],
+        'notas_der': list(ANEXOS[:4]) + [n.format(direccion=direccion) for n in NOTAS[6:]],
+        'anexos_final': list(ANEXOS[4:]),
+        'img': {},
         'notas_items': NOTAS_ITEMS,
         'notas': [n.format(direccion=direccion) for n in NOTAS],
         'anexos': ANEXOS,
@@ -491,6 +532,17 @@ def html_informe(borrador, modo=MODO_WEB, informe=None, firmante=None):
     solicitud = borrador.solicitud
     datos = datos_informe(solicitud, modo, informe=informe, firmante=firmante)
     estaticos = Path(settings.BASE_DIR) / 'static' / 'img'
+
+    def imagen(nombre):
+        ruta = estaticos / nombre
+        if not ruta.exists():
+            return ''
+        return ruta.as_uri() if modo == MODO_PDF else settings.STATIC_URL + 'img/' + nombre
+    datos['img'] = {
+        'inacal': imagen('informe/inacal_le230.png'),
+        'marca': imagen('informe/marca_agua.png'),
+        'fracturas': [imagen(f'informe/fractura_{n}.png') for n in range(1, 7)],
+    }
     if modo == MODO_PDF:
         datos['logo'] = (estaticos / 'LogoF.png').as_uri()
         # El sello de INACAL se usa si se coloca en static/img/inacal.png; si no, va un recuadro de texto.

@@ -4,26 +4,37 @@
 <meta charset="utf-8">
 <title>{% if informe %}{{ informe.codigo_informe }}{% else %}Vista previa · {{ datos.solicitud.codigo_solicitud }}{% endif %}</title>
 <style>
-@page { size: A4; margin: 9mm 9mm 17mm 9mm;
-        @bottom-center { content: "{{ datos.negocio.localidad }} - {{ datos.negocio.localidad }} - Perú | {{ datos.negocio.direccion }} | {{ datos.negocio.telefono }} | {{ datos.negocio.correo }}"; font-size: 6pt; color: #333; }
-        @bottom-right { content: "Página " counter(page) " de " counter(pages); font-size: 6.5pt; color: #333; } }
+/* Hojas A4 como el informe oficial: marca de agua, pie con la dirección y «Página X de Y». */
+@page { size: A4; margin: 10mm 11mm 16mm 11mm;
+        {% if datos.img.marca %}background: url("{{ datos.img.marca }}") no-repeat; background-position: 110pt 259pt; background-size: 375pt 324pt;{% endif %}
+        @bottom-center { content: element(pieProbeta); }
+        @bottom-right { content: "Página " counter(page) " de " counter(pages); font: 6.5pt "Liberation Sans", Arial, sans-serif; vertical-align: middle; } }
+@page caratula { @bottom-center { content: element(pieCaratula); } }
+@page probeta { @bottom-center { content: element(pieProbeta); } }
+.pie { position: running(pieProbeta); text-align: center; font: 6.5pt "Liberation Sans", Arial, sans-serif; line-height: 1.35; }
+.pie--caratula { position: running(pieCaratula); }
+.pie__fin { display: inline-block; margin-bottom: 5pt; }
 * { box-sizing: border-box; }
 body { margin: 0; {% if modo == 'web' %}background: #e2e8f0; padding: 24px 0;{% endif %} }
-{% if modo == 'web' %}.pagina { background: #fff; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 9mm; box-shadow: 0 10px 30px rgba(15,23,42,.18); }
+{% if modo == 'web' %}.pagina { background: #fff; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 10mm 11mm; box-shadow: 0 10px 30px rgba(15,23,42,.18); }
+.pie { display: none; }
 .aviso-previa { width: 210mm; margin: 0 auto 12px; font: 600 13px system-ui, sans-serif; color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 8px 12px; }
+.hoja .fmt-probeta { margin-top: 18mm; border-top: 1px dashed #cbd5e1; padding-top: 10mm; }
 @media (max-width: 820px) { .pagina, .aviso-previa { width: auto; margin: 0 8px; padding: 18px 14px; } }{% endif %}
-.cab { display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5pt solid #0b3a6e; padding-bottom: 4pt; margin-bottom: 6pt; }
-.cab img { height: 30pt; }
-.fin { text-align: center; font: 700 8pt "DejaVu Sans", Arial, sans-serif; letter-spacing: 1pt; margin-top: 6pt; break-before: avoid; page-break-before: avoid; }
-.cab .acred { text-align: right; font: 700 7.5pt "DejaVu Sans", Arial, sans-serif; color: #0b3a6e; max-width: 70%; }
+.fin { text-align: center; font: 700 6.5pt "Liberation Sans", Arial, sans-serif; margin-top: 6pt; break-before: avoid; page-break-before: avoid; }
 {% include "proyectos/informe_hoja.css" %}
 </style>
 </head>
 <body>
+<div class="pie pie--caratula"><b>{{ negocio.nombre|default:"GRUPO VICAF SAC"|upper }}.</b><br>{{ datos.negocio.direccion }} | {{ datos.negocio.telefono }} | {{ datos.negocio.correo }}</div>
+<div class="pie">{{ datos.negocio.localidad }} - {{ datos.negocio.localidad }} - Perú<br>{{ datos.negocio.direccion }} | {{ datos.negocio.telefono }} | {{ datos.negocio.correo }}</div>
 {% if modo == 'web' %}<div class="aviso-previa">Vista previa del borrador. El código, la firma y el QR se ponen al emitir.</div>{% endif %}
 <div class="pagina">
   <div class="hoja">{{ cuerpo|safe }}</div>
-  <p class="fin">&gt; &gt; &gt; &gt; &gt; Fin del Informe &lt; &lt; &lt; &lt; &lt;</p>
+  {% if modo == 'web' %}<p class="fin">&gt; &gt; &gt; &gt; &gt; Fin del Informe &lt; &lt; &lt; &lt; &lt;</p>{% endif %}
 </div>
+{# «Fin del Informe» va sobre el pie de la última hoja, como en el informe en papel. #}
+{% if datos.lineas %}<div class="pie"><b class="pie__fin">&gt; &gt; &gt; &gt; &gt; Fin del Informe &lt; &lt; &lt; &lt; &lt;</b><br>{{ datos.negocio.localidad }} - {{ datos.negocio.localidad }} - Perú<br>{{ datos.negocio.direccion }} | {{ datos.negocio.telefono }} | {{ datos.negocio.correo }}</div>
+{% else %}<div class="pie pie--caratula"><b class="pie__fin">&gt; &gt; &gt; &gt; &gt; Fin del Informe &lt; &lt; &lt; &lt; &lt;</b><br><b>{{ negocio.nombre|default:"GRUPO VICAF SAC"|upper }}.</b><br>{{ datos.negocio.direccion }} | {{ datos.negocio.telefono }} | {{ datos.negocio.correo }}</div>{% endif %}
 </body>
 </html>

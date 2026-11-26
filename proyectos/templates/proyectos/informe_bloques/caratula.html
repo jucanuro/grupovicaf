@@ -1,48 +1,58 @@
 <div class="bloque fmt fmt-caratula">
-{% include "proyectos/informe_bloques/_formato_cab.html" with titulo="LABORATORIO DE ENSAYO ACREDITADO POR EL ORGANISMO DE ACREDITACIÓN INACAL - DA CON REGISTRO N° LE - 230" subtitulo="INFORME DE ENSAYOS" formato=datos.formato_caratula pagina="01 de 01" %}
+{% include "proyectos/informe_bloques/_formato_cab.html" with titulo="LABORATORIO DE ENSAYO ACREDITADO POR EL ORGANISMO DE ACREDITACIÓN INACAL - DA CON REGISTRO Nº LE - 230" subtitulo="INFORME DE ENSAYOS" formato=datos.formato_caratula pagina="01 de 01" %}
 
-<table class="fmt-dos"><tr>
-  <td>
-    <p class="fmt-sec">1. INFORMACIÓN DEL CLIENTE (*)</p>
-    <table class="fmt-kv">
-      <tr><th>Razón Social</th><td>:</td><td>{{ datos.cliente.razon_social }}</td></tr>
-      <tr><th>RUC</th><td>:</td><td>{{ datos.cliente.ruc }}</td></tr>
-      <tr><th>Dirección</th><td>:</td><td>{{ datos.cliente.direccion }}</td></tr>
-      <tr><th>Contacto</th><td>:</td><td>{{ datos.cliente.contacto }}</td></tr>
-      <tr><th>Cargo</th><td>:</td><td>{{ datos.cliente.cargo }}</td></tr>
-      <tr><th>Celular</th><td>:</td><td>{{ datos.cliente.celular }}</td></tr>
-      <tr><th>e-mail</th><td>:</td><td>{{ datos.cliente.correo }}</td></tr>
+<table class="cv-codigo"><tr><td class="cv-codigo__vacio"></td><td class="cv-codigo__t">CÓDIGO DE INFORME :</td><td class="cv-codigo__c">{% if datos.informe %}{{ datos.informe.codigo_informe }}{% else %}Se asigna al emitir{% endif %}</td></tr></table>
+
+<table class="cv-12">
+  <tr><td class="cv-sec">1. INFORMACIÓN DEL CLIENTE (*)</td><td class="cv-gap"></td><td class="cv-sec">2. INFORMACIÓN DEL PROYECTO (*)</td></tr>
+  <tr><td>
+    <table class="cv-kv">
+      <tr><th>Razón Social</th><td class="cv-dp">:</td><td>{{ datos.cliente.razon_social }}</td></tr>
+      <tr><th>RUC</th><td class="cv-dp">:</td><td>{{ datos.cliente.ruc }}</td></tr>
+      <tr><th>Dirección</th><td class="cv-dp">:</td><td>{{ datos.cliente.direccion }}</td></tr>
+      <tr><th>Página web</th><td class="cv-dp">:</td><td>{{ datos.cliente.web }}</td></tr>
+      <tr><th>Contacto</th><td class="cv-dp">:</td><td>{{ datos.cliente.contacto }}</td></tr>
+      <tr><th>Cargo</th><td class="cv-dp">:</td><td>{{ datos.cliente.cargo }}</td></tr>
+      <tr><th>Celular</th><td class="cv-dp">:</td><td>{{ datos.cliente.celular }}</td></tr>
+      <tr><th>e-mail</th><td class="cv-dp">:</td><td>{{ datos.cliente.correo }}</td></tr>
     </table>
-  </td>
-  <td>
-    <p class="fmt-sec">2. INFORMACIÓN DEL PROYECTO (*)</p>
-    <table class="fmt-kv">
-      <tr><th>Proyecto</th><td>:</td><td>{{ datos.proyecto }}</td></tr>
-      <tr><th>Ubicación</th><td>:</td><td>{{ datos.ubicacion }}</td></tr>
-      <tr><th>Solicitud de ensayo</th><td>:</td><td>{{ datos.solicitud.codigo_solicitud }}</td></tr>
+  </td><td class="cv-gap"></td><td>
+    <table class="cv-kv cv-proy">
+      <tr><th>Proyecto &nbsp; :</th></tr>
+      <tr><td>{{ datos.proyecto }}</td></tr>
+      <tr><td>&nbsp;</td></tr><tr><td>&nbsp;</td></tr><tr><td>&nbsp;</td></tr><tr><td>&nbsp;</td></tr>
+      <tr><th>Ubicación &nbsp; :</th></tr>
+      <tr><td>{{ datos.ubicacion }}</td></tr>
     </table>
-  </td>
+  </td></tr>
+</table>
+
+<p class="cv-sec cv-sec--full">3. LÍNEA DE TIEMPO DEL SERVICIO</p>
+<table class="cv-tiempo"><tr>
+  <td><table class="cv-t">
+    <tr><th>Fecha Solicitada de Ensayo(s) (*)</th><td>{{ datos.fecha_solicitud|date:"Y-m-d"|default:"-" }}</td></tr>
+    <tr><th>Fecha de Ejecución de Ensayo(s)</th><td>{% for f in datos.fechas_ensayo %}{{ f|date:"Y-m-d" }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</td></tr>
+  </table></td>
+  <td class="cv-gap"></td>
+  <td><table class="cv-t">
+    <tr><th>Recepción de Ítems de Ensayo</th><td>{{ datos.recepcion|date:"Y-m-d"|default:"-" }}</td></tr>
+    <tr><th>Emisión de Informe</th><td>{{ datos.fecha_emision|date:"Y-m-d"|default:"-" }}</td></tr>
+  </table></td>
 </tr></table>
 
-<p class="fmt-sec">3. LÍNEA DE TIEMPO DEL SERVICIO</p>
-<table class="fmt-tiempo">
-  <tr><th>Fecha Solicitada de Ensayo(s) (*)</th><td>{{ datos.fecha_solicitud|date:"Y-m-d"|default:"-" }}</td><th>Recepción de Ítems de Ensayo</th><td>{{ datos.recepcion|date:"Y-m-d"|default:"-" }}</td></tr>
-  <tr><th>Fecha de Ejecución del Ensayo(s)</th><td>{% for f in datos.fechas_ensayo %}{{ f|date:"Y-m-d" }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</td><th>Emisión de Informe</th><td>{{ datos.fecha_emision|date:"Y-m-d"|default:"Se asigna al emitir" }}</td></tr>
+<p class="cv-sec cv-sec--full">4. INFORMACIÓN DE ÍTEMS DE ENSAYO</p>
+{% for n in datos.notas_items %}<p class="cv-guion">- {{ n }}</p>{% endfor %}
+<p class="cv-tabla-t">Tabla No.01. ÍTEMS DE ENSAYO</p>
+<table class="cv-tabla">
+  <tr><th style="width:8%">ÍTEM</th><th style="width:15%">ID (LABORATORIO)</th><th>ID (CLIENTE) (*)</th><th style="width:12%">RESIST. DE DISEÑO (kg/cm²) (*)</th><th style="width:11%">FECHA DE FABRICACIÓN (*)</th><th style="width:12%">MATERIAL</th><th style="width:15%">TIPO DE MUESTRA</th></tr>
+  {% for i in datos.items %}<tr><td>{{ i.n }}</td><td>{{ i.lab }}</td><td>{{ i.cliente }}</td><td>{% if i.fc %}{{ i.fc|floatformat:0 }}{% else %}-{% endif %}</td><td>{{ i.fabricacion|date:"Y-m-d"|default:"-" }}</td><td>{{ i.material }}</td><td>{{ i.tipo }}</td></tr>{% endfor %}
 </table>
+<p class="cv-notas-t"><b>Notas:</b> -</p>
 
-<p class="fmt-sec">4. INFORMACIÓN DE ÍTEMS DE ENSAYO</p>
-<ul class="fmt-lista">{% for n in datos.notas_items %}<li>{{ n }}</li>{% endfor %}</ul>
-<p class="fmt-tabla-t">Tabla No.01. ÍTEMS DE ENSAYO</p>
-<table class="fmt-tabla">
-  <tr><th>ÍTEM</th><th>ID (LABORATORIO)</th><th>ID (CLIENTE) (*)</th><th>RESIST. DE DISEÑO (kg/cm²) (*)</th><th>FECHA DE FABRICACIÓN (*)</th><th>MATERIAL</th><th>TIPO DE MUESTRA</th></tr>
-  {% for i in datos.items %}<tr><td class="c">{{ i.n }}</td><td class="c">{{ i.lab }}</td><td class="c">{{ i.cliente }}</td><td class="c">{% if i.fc %}{{ i.fc|floatformat:0 }}{% else %}-{% endif %}</td><td class="c">{{ i.fabricacion|date:"Y-m-d"|default:"-" }}</td><td class="c">{{ i.material }}</td><td class="c">{{ i.tipo }}</td></tr>{% endfor %}
-</table>
-<p class="fmt-nota-t">Notas: -</p>
-
-<p class="fmt-sec">5. MÉTODOS DE ENSAYO EJECUTADOS</p>
-<p class="fmt-tabla-t">Tabla No.02. ENSAYOS EJECUTADOS</p>
-<table class="fmt-tabla">
-  <tr><th>MÉTODO DE ENSAYO</th><th style="width:28%">NORMA</th><th style="width:12%">CANTIDAD</th></tr>
-  {% for m in datos.metodos %}<tr><td>{{ m.nombre }}</td><td class="c">{{ m.norma }}</td><td class="c">{{ m.cantidad|stringformat:"02d" }}</td></tr>{% endfor %}
+<p class="cv-sec cv-sec--full">5. MÉTODOS DE ENSAYO EJECUTADOS</p>
+<p class="cv-tabla-t cv-tabla-t--sep">Tabla No.02. ENSAYOS EJECUTADOS</p>
+<table class="cv-tabla cv-tabla--metodos">
+  <tr><th>MÉTODO DE ENSAYO</th><th style="width:18%">NORMA</th><th style="width:11%">CANTIDAD</th></tr>
+  {% for m in datos.metodos %}<tr><td class="cv-izq">{{ m.nombre }}</td><td>{{ m.norma }}</td><td>{{ m.cantidad|stringformat:"02d" }}</td></tr>{% endfor %}
 </table>
 </div>
