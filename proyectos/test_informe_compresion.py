@@ -103,6 +103,63 @@ class InformeCompresionTests(CompresionBase):
         self.assertContains(self.client.get(self.url_registro(self.mia)), 'está borrosa')
         self.assertContains(self.client.get(reverse('proyectos:mis_ensayos_compresion')), 'Devuelta')
 
+    def test_el_revisor_abre_el_ensayo_terminado_en_la_pantalla_de_revision(self):
+        self.terminar(self.mia, self.user_tec)
+        self.client.force_login(self.user_jefe)
+        r = self.client.get(reverse('proyectos:revisar_ensayo', args=[self.mia.pk]))
+        self.assertEqual(r.status_code, 200)
+        for marca in ('data-modo-revision="1"', 'data-form-devolver', 'data-marcar-foto="antes"', 'id="marcas-revision"'):
+            self.assertContains(r, marca)
+        self.assertTrue(r.context['puede_devolver'])
+        # Solo lectura: no acepta cambios por esta ruta.
+        self.assertEqual(self.client.post(reverse('proyectos:revisar_ensayo', args=[self.mia.pk])).status_code, 405)
+        # El técnico no entra a la revisión.
+        self.client.force_login(self.user_tec)
+        self.assertEqual(self.client.get(reverse('proyectos:revisar_ensayo', args=[self.mia.pk])).status_code, 403)
+
+    def test_devolver_con_marcas_las_guarda_y_el_tecnico_las_ve_en_rojo(self):
+        import json
+        self.terminar(self.mia, self.user_tec)
+        self.client.force_login(self.user_jefe)
+        marcas = {'d1': 'No coincide con la foto', 'foto:carga': ''}
+        r = self.client.post(reverse('proyectos:marcar_revision', args=[self.mia.pk]), {'marcas': json.dumps(marcas)})
+        self.assertEqual(r.json(), {'ok': True, 'n': 2})
+        # Sin comentario escrito, las marcas bastan para devolver.
+        self.client.post(self.url, {'accion': 'devolver', 'detalle_id': self.mia.pk, 'observacion': '',
+                                    'marcas': json.dumps(marcas)})
+        e = ResultadoEnsayo.objects.get(detalle=self.mia)
+        self.assertEqual(e.estado, ResultadoEnsayo.ESTADO_BORRADOR)
+        self.assertEqual(e.marcas_revision, marcas)
+        self.assertIn('2 datos marcados', e.observacion_revision)
+        self.client.force_login(self.user_tec)
+        r = self.client.get(self.url_registro(self.mia))
+        self.assertContains(r, '2 datos marcados en rojo')
+        self.assertEqual(r.context['marcas_revision'], marcas)
+        # Al volver a terminar, las marcas se limpian.
+        self.abrir_sesion()
+        self.client.post(self.url_registro(self.mia), {
+            'accion': 'terminar', 'fecha_ensayo': (date.today() - timedelta(days=1)).isoformat(),
+            **TerminarTests.MEDIDAS_P1,
+        })
+        e.refresh_from_db()
+        self.assertTrue(e.terminado)
+        self.assertEqual(e.marcas_revision, {})
+
+    def test_la_lista_de_terminados_lleva_al_revisor_a_la_revision(self):
+        self.terminar(self.mia, self.user_tec)
+        url_rev = reverse('proyectos:revisar_ensayo', args=[self.mia.pk])
+        self.client.force_login(self.user_jefe)
+        # El jefe no ve ensayos ajenos en «Mis resultados» salvo que vea todos; con permiso de aprobar y de ver todos sí.
+        from trabajadores.models import TrabajadorProfile  # noqa: F401
+        r = self.client.get(reverse('proyectos:revision_compresion', args=[self.mia.solicitud_id]))
+        self.assertContains(r, url_rev)
+        self.assertContains(r, 'data-revisar')
+
+    def test_no_se_marca_un_ensayo_que_no_esta_terminado(self):
+        self.client.force_login(self.user_jefe)
+        r = self.client.post(reverse('proyectos:marcar_revision', args=[self.mia.pk]), {'marcas': '{"d1": ""}'})
+        self.assertEqual(r.status_code, 409)
+
     @patch('proyectos.views_informe_editor.generar_informe_editor')
     def test_aprobar_lleva_al_editor_y_emitir_pide_el_pdf(self, tarea):
         self.terminar_todas()
@@ -354,3 +411,4 @@ class FlujoResultadosTests(CompresionBase):
         )
         self.assertEqual(ResultadoEnsayo.objects.filter(estado=ResultadoEnsayo.ESTADO_APROBADO).count(), 3)
         self.assertFalse(InformeFinal.objects.filter(solicitud=self.solicitud).exists())
+

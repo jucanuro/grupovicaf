@@ -6,6 +6,7 @@ observación o aprueba. Al aprobar se crea el InformeFinal de la solicitud
 (DP-LIMS-14 A: uno por solicitud) y Celery arma el PDF. DP-LIMS-17 queda
 pendiente: el QR sigue llevando a la página pública con solo datos.
 """
+import json
 from datetime import date
 
 from django.contrib import messages
@@ -126,9 +127,38 @@ def revision_compresion(request, solicitud_id):
     })
 
 
+def _leer_marcas(texto):
+    """Marcas {clave: comentario} que mandó la pantalla de revisión; lo inválido se descarta."""
+    try:
+        datos = json.loads(texto or '{}')
+    except ValueError:
+        return {}
+    if not isinstance(datos, dict):
+        return {}
+    return {str(k)[:80]: str(v or '')[:300] for k, v in list(datos.items())[:80]}
+
+
+@login_required
+@permiso_requerido(PERMISO_APROBAR)
+def marcar_revision(request, detalle_id):
+    """Guarda las marcas del revisor (campos o fotos incorrectos) sin devolver aún el ensayo."""
+    from django.http import JsonResponse
+    from .models import DetalleSolicitudEnsayo
+    if request.method != 'POST':
+        return JsonResponse({'ok': False}, status=405)
+    detalle = get_object_or_404(DetalleSolicitudEnsayo.objects.select_related('resultado'), pk=detalle_id)
+    ensayo = getattr(detalle, 'resultado', None)
+    if ensayo is None or ensayo.estado != ResultadoEnsayo.ESTADO_TERMINADO:
+        return JsonResponse({'ok': False, 'error': 'Solo se marca un ensayo terminado y aún no aprobado.'}, status=409)
+    ensayo.marcas_revision = _leer_marcas(request.POST.get('marcas'))
+    ensayo.save(update_fields=['marcas_revision', 'actualizado_en'])
+    return JsonResponse({'ok': True, 'n': len(ensayo.marcas_revision)})
+
+
 def _devolver(request, solicitud, lineas):
     detalle_id = request.POST.get('detalle_id')
     observacion = (request.POST.get('observacion') or '').strip()
+    marcas = _leer_marcas(request.POST.get('marcas'))
     url = redirect('proyectos:revision_compresion', solicitud_id=solicitud.pk)
     detalle = next((d for d in lineas if str(d.pk) == detalle_id), None)
     ensayo = getattr(detalle, 'resultado', None) if detalle else None
@@ -139,13 +169,16 @@ def _devolver(request, solicitud, lineas):
     if perfil is not None and ensayo.tecnico_id == perfil.pk:
         messages.error(request, "No puedes revisar un ensayo que ejecutaste tú.")
         return url
+    if not observacion and marcas:
+        observacion = f"Corregir {len(marcas)} dato{'s' if len(marcas) != 1 else ''} marcado{'s' if len(marcas) != 1 else ''} en rojo."
     if not observacion:
-        messages.error(request, "Escribe la observación para el técnico.")
+        messages.error(request, "Marca lo que está mal o escribe la observación para el técnico.")
         return url
     ensayo.estado = ResultadoEnsayo.ESTADO_BORRADOR
     ensayo.terminado_en = None
     ensayo.observacion_revision = observacion[:2000]
-    ensayo.save(update_fields=['estado', 'terminado_en', 'observacion_revision', 'actualizado_en'])
+    ensayo.marcas_revision = marcas
+    ensayo.save(update_fields=['estado', 'terminado_en', 'observacion_revision', 'marcas_revision', 'actualizado_en'])
     solicitud.sincronizar_estado()
     messages.success(request, f"{detalle.muestra.codigo_laboratorio} devuelta al técnico.")
     return url

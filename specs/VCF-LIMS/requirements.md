@@ -524,6 +524,7 @@ redistribuye por secciones; el modal de la sesión debe ser más grande con los 
 | REQ-LIMS-203 | HU-LIMS-42 | EL SISTEMA DEBE mostrar en la lista de resultados, a pantalla completa, los ensayos en curso a la izquierda uno bajo otro y a la derecha los resultados por registrar agrupados y ordenados por fecha de entrega, marcando el atraso. | sí (navegador) | [Validado con usuario] |
 | HU-LIMS-43 | Lista de resultados en filas con pestañas separadas y sin formulario de datos de probetas | REQ-LIMS-206 a 208 |
 | HU-LIMS-44 | Solicitudes con avance en el botón, pestañas por etapa y ensayos ordenados | REQ-LIMS-209 a 212 |
+| HU-LIMS-45 | Revisión por ensayo con datos y fotos marcados en rojo | REQ-LIMS-213 a 217 |
 | REQ-LIMS-204 | HU-LIMS-42 | EL SISTEMA DEBE mostrar la lista de recepciones con filas compactas (fecha y hora juntas, cliente con inicial, proyecto y cotización, muestras) y botones de acción siempre visibles. | sí (navegador) | [Validado con usuario] |
 | REQ-LIMS-205 | HU-LIMS-42 | EL SISTEMA DEBE mostrar el detalle de la recepción con textos e iconos pequeños, datos de cliente, procedencia y responsable en una franja, y la tabla de muestras completa sin scroll horizontal. | sí (navegador) | [Validado con usuario] |
 | REQ-LIMS-206 | HU-LIMS-43 | EL SISTEMA DEBE mostrar los resultados de ensayo como una lista de filas, con las pestañas Pendientes y Terminados separadas, cada una con su conteo (y lo que falta), sin mezclar sus ensayos. | sí (navegador) | [Validado con usuario] |
@@ -533,6 +534,11 @@ redistribuye por secciones; el modal de la sesión debe ser más grande con los 
 | REQ-LIMS-210 | HU-LIMS-44 | MIENTRAS una solicitud esté en marcha y ningún ensayo esté registrado (terminado), EL SISTEMA DEBE mostrarla «Por registrar» con un botón verde «Registrar» (0 % siempre es «Por registrar»); CUANDO al menos un ensayo esté registrado, EL SISTEMA DEBE mostrarla «En proceso» con un botón ámbar y el porcentaje de ensayos terminados. | sí | [Validado con usuario] |
 | REQ-LIMS-211 | HU-LIMS-44 | EL SISTEMA DEBE ofrecer en la lista de solicitudes pestañas por etapa en el orden Por iniciar, Por registrar, En proceso, Terminados y Todas (al final), con su conteo, mostrando solo las que tengan solicitudes, y ordenar primero lo que falta registrar y lo que está en proceso, después lo por iniciar y al final lo terminado. | sí | [Validado con usuario] |
 | REQ-LIMS-212 | HU-LIMS-44 | EL SISTEMA DEBE listar en la pantalla de una solicitud primero los ensayos en proceso, luego los que faltan registrar y al final los terminados, con un resumen de cuántos hay de cada uno. | sí | [Validado con usuario] |
+| REQ-LIMS-213 | HU-LIMS-45 | EL SISTEMA DEBE abrir un ensayo terminado, para quien tiene el permiso de aprobar, en la misma pantalla del registro de solo lectura (hoja, fotos y formulario) con el estado «En revisión», desde la revisión de la solicitud y desde la lista de resultados terminados. | sí | [Propuesto] |
+| REQ-LIMS-214 | HU-LIMS-45 | CUANDO el revisor toque un dato de la hoja, el video, los defectos o una foto, EL SISTEMA DEBE marcarlo en rojo con un comentario opcional y guardar las marcas del ensayo. | sí (navegador) | [Propuesto] |
+| REQ-LIMS-215 | HU-LIMS-45 | CUANDO el revisor devuelva el ensayo, EL SISTEMA DEBE pasarlo a «en registro» con sus marcas y un comentario general (que se arma solo si no se escribió); SI quien revisa ejecutó el ensayo, ENTONCES EL SISTEMA NO DEBE permitir devolverlo. | sí | [Propuesto] |
+| REQ-LIMS-216 | HU-LIMS-45 | MIENTRAS el ensayo esté devuelto, EL SISTEMA DEBE mostrar al técnico el aviso con el número de datos marcados y pintar en rojo, con el comentario del revisor, cada dato marcado en la hoja, el formulario, el menú de secciones y las fotos; CUANDO el técnico vuelva a terminar el ensayo, EL SISTEMA DEBE limpiar las marcas. | sí | [Propuesto] |
+| REQ-LIMS-217 | HU-LIMS-45 | EL SISTEMA DEBE mantener la aprobación de resultados por solicitud en la pantalla de revisión, una vez que todos los ensayos estén terminados. | sí | [Validado con usuario] |
 
 ## 3. Trazabilidad HU → REQ
 
@@ -613,3 +619,4 @@ redistribuye por secciones; el modal de la sesión debe ser más grande con los 
 | v25 | 2026-11-26 | Claude (DLF) | Lista de resultados dividida y recepciones compactas: REQ-LIMS-203 a 205 (HU-LIMS-42) |
 | v26 | 2026-11-26 | Claude (DLF) | Lista de resultados en filas y sin formulario de datos de probetas: REQ-LIMS-206 a 208 (HU-LIMS-43) |
 | v27 | 2026-11-26 | Claude (DLF) | Solicitudes con avance, pestañas por etapa y ensayos ordenados: REQ-LIMS-209 a 212 (HU-LIMS-44) |
+| v28 | 2026-11-26 | Claude (DLF) | Revisión por ensayo con marcas en rojo: REQ-LIMS-213 a 217 (HU-LIMS-45) |

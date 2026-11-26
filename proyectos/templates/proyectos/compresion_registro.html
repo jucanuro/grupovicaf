@@ -273,6 +273,26 @@
         .rg-modal .v-paso { width: 1.5rem; height: 1.5rem; font-size: .75rem; }
     }
     .rg-ancho2 { grid-column: 1 / -1; }
+    /* Revisión: lo marcado en rojo (HU-LIMS-45) */
+    .hf-marcable { cursor: pointer; } .hf-marcable:hover { background: #fef2f2; outline: 1px dashed #fca5a5; }
+    .hf-mal, tr.hf-mal th, tr.hf-mal td { background: #fef2f2 !important; color: #b91c1c !important; }
+    tr.hf-mal th { border-left: 3px solid #dc2626; font-weight: 800; }
+    .hf-nota td { padding: 0 .7rem .35rem !important; background: #fef2f2; border-bottom: 1px solid #fecaca !important; font-family: inherit !important; }
+    .hf__nota { display: block; font-size: .72rem; color: #b91c1c; font-weight: 700; font-family: inherit; }
+    .hf__nota-in { width: 100%; font-size: .74rem; border: 1px solid #fca5a5; border-radius: .5rem; padding: .22rem .5rem; background: #fff; color: #7f1d1d; }
+    .rg-mal { outline: 2px solid #ef4444 !important; outline-offset: 2px; border-radius: .6rem; background: #fef2f2 !important; }
+    .rg-mal .v-etiqueta, .rg-mal legend { color: #b91c1c !important; }
+    .rg-mal input, .rg-mal select, .rg-mal textarea { border-color: #ef4444 !important; }
+    .rg-mal__nota { font-size: .72rem; color: #b91c1c; font-weight: 700; margin: .2rem 0 .4rem; }
+    .rg-marcar { margin-top: .3rem; font-size: .68rem; font-weight: 800; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: .5rem; padding: .15rem .55rem; cursor: pointer; }
+    .rg-marcar--on { background: #dc2626; color: #fff; border-color: #dc2626; }
+    .rg-revision { display: grid; gap: .5rem; }
+    .rg-revision textarea { width: 100%; font-size: .8rem; }
+    .rg-revbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: .8rem; align-items: center; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 1rem; padding: .7rem .9rem; }
+    .rg-revbar__txt b { display: flex; align-items: center; gap: .4rem; color: #6d28d9; font-size: .9rem; } .rg-revbar__txt span { font-size: .74rem; color: #6b7280; display: block; margin-top: .15rem; }
+    .rg-revision--barra { grid-template-columns: minmax(0, 1fr) auto; align-items: end; } .rg-revision--barra .rg-acciones__botones { display: flex; gap: .4rem; } .rg-revision--barra .rg-acciones__nota { grid-column: 1 / -1; }
+    @media (max-width: 899px) { .rg-revbar, .rg-revision--barra { grid-template-columns: minmax(0, 1fr); } }
+    .rg-rail__b--mal { border-color: #fecaca; background: #fef2f2; } .rg-rail__mal { font-style: normal; grid-column: 2; font-size: .64rem; font-weight: 800; color: #b91c1c; }
     /* Sesión: modal grande */
     .rg-mini__caja--ancha { width: min(96vw, 90rem); height: min(92vh, 62rem); max-height: none; display: flex; flex-direction: column; padding: 1.1rem 1.4rem; overflow: hidden; }
     .rg-mini__caja--ancha .rg-mini__cab h3 { font-size: 1.15rem; }
@@ -354,10 +374,13 @@
 
 {% block content %}
 {{ hoja_estatica|json_script:"hoja-estatica" }}
+{{ marcas_revision|json_script:"marcas-revision" }}
 <div class="rs-completo rg-completo" data-registro-compresion role="dialog" aria-modal="true" aria-labelledby="rg-titulo"
      data-es-compresion="{% if es_compresion %}1{% else %}0{% endif %}"
      data-sesion="{% if sesion or sesion_ensayo %}1{% else %}0{% endif %}"
      data-solo-lectura="{% if solo_lectura %}1{% else %}0{% endif %}"
+     data-modo-revision="{% if modo_revision %}1{% else %}0{% endif %}"
+     data-url-marcas="{{ revision_url_marcas }}"
      data-codigo-cliente="{{ codigo_cliente_oficial }}"
      data-codigo-lab="{{ detalle.muestra.codigo_laboratorio }}"
      data-subir-url="{% url 'proyectos:subir_foto_compresion' detalle.pk 'TIPO' %}"
@@ -367,7 +390,8 @@
     <header class="rs-barra">
         <div class="min-w-0">
             <h1 id="rg-titulo" class="font-mono">{{ detalle.muestra.codigo_laboratorio }}
-                {% if solo_lectura %}<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 align-middle ml-1 font-sans">{{ ensayo.get_estado_display }}</span>
+                {% if modo_revision %}<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 align-middle ml-1 font-sans">En revisión</span>
+                {% elif solo_lectura %}<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 align-middle ml-1 font-sans">{{ ensayo.get_estado_display }}</span>
                 {% else %}<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 align-middle ml-1 font-sans">En registro</span>{% endif %}
             </h1>
             <p>{{ detalle.descripcion_ensayo }} · {{ detalle.norma }} · Solicitud {{ detalle.solicitud.codigo_solicitud }} · entrega {{ detalle.fecha_entrega_programada|date:"d/m/Y" }}</p>
@@ -382,10 +406,33 @@
     <p class="text-xs text-slate-600">Ejecutado por {{ ensayo.tecnico.nombre_completo }} · {{ ensayo.terminado_en|date:"d/m/Y H:i" }}{% if ensayo.registrado_por %} · pasado al sistema por {{ ensayo.registrado_por.nombre_completo }}{% endif %}</p>
     {% endif %}
 
+    {% if modo_revision and puede_devolver %}
+    <section class="rg-revbar" data-barra-revision>
+        <div class="rg-revbar__txt"><b><i data-lucide="search-check" class="w-4 h-4"></i> Revisión del ensayo</b>
+            <span>Toca en la hoja cualquier dato, o «Marcar como mal» en una foto: se pinta en rojo y el técnico lo verá así al recibirlo devuelto.</span></div>
+                                                        <form method="post" action="{{ revision_url_devolver }}" class="rg-revision rg-revision--barra" data-form-devolver>
+                                {% csrf_token %}
+                                <input type="hidden" name="accion" value="devolver">
+                                <input type="hidden" name="detalle_id" value="{{ detalle.pk }}">
+                                <input type="hidden" name="marcas" value="{}" data-marcas-json>
+                                <label class="v-campo block">
+                                    <span class="v-etiqueta">Comentario general para el técnico (opcional si marcaste algo)</span>
+                                    <textarea name="observacion" rows="2" maxlength="2000" placeholder="Ej.: Revisa las medidas, no coinciden con las fotos."></textarea>
+                                </label>
+                                <div class="rg-acciones__botones">
+                                    <a href="{{ url_salida }}" class="v-btn v-btn--secundario v-btn--sm"><i data-lucide="check"></i> Todo correcto</a>
+                                    <button type="submit" class="v-btn v-btn--peligro v-btn--sm" data-devolver-ensayo><i data-lucide="undo-2"></i> Devolver (<span data-marcas-n>0</span>)</button>
+                                </div>
+                                <p class="rg-acciones__nota">«Todo correcto» vuelve a la revisión: allí apruebas los resultados de toda la solicitud.</p>
+                            </form>
+    </section>
+    {% endif %}
+
     {% if ensayo.observacion_revision and not solo_lectura %}
     <div class="rounded-xl px-4 py-3 text-sm bg-amber-50 text-amber-900 border border-amber-200" role="alert" data-observacion-revision>
-        <p class="font-bold">El revisor devolvió este ensayo</p>
+        <p class="font-bold">El revisor devolvió este ensayo{% if marcas_revision %} · {{ marcas_revision|length }} dato{{ marcas_revision|length|pluralize }} marcado{{ marcas_revision|length|pluralize }} en rojo{% endif %}</p>
         <p class="mt-0.5 whitespace-pre-line">{{ ensayo.observacion_revision }}</p>
+        {% if marcas_revision %}<p class="mt-1 text-xs text-amber-800">Corrige lo marcado en rojo (en la hoja, el formulario y las fotos) y vuelve a terminar el ensayo.</p>{% endif %}
     </div>
     {% endif %}
 
@@ -491,7 +538,15 @@
                 </div>
             </section>
                     <div class="rg-acciones" data-acciones>
-                        {% if solo_lectura %}
+                        {% if modo_revision %}
+                            <p class="rg-acciones__nota">Toca en la hoja, o en «Marcar como mal» de cada foto, lo que esté incorrecto: se pinta en rojo y el técnico lo verá así al recibirlo.</p>
+                            {% if puede_devolver %}
+                            <p class="rg-acciones__nota">El comentario y los botones para devolver están arriba, junto a los datos.</p>
+                            {% else %}
+                            <p class="rg-acciones__nota">No puedes devolver este ensayo: lo ejecutaste tú o ya no está pendiente de revisión.</p>
+                            <a href="{{ url_salida }}" class="v-btn v-btn--secundario v-btn--sm">Volver a la revisión</a>
+                            {% endif %}
+                        {% elif solo_lectura %}
                             {% if ve_todos and not ensayo.aprobado %}
                             <p class="rg-acciones__nota">Reabrir devuelve el ensayo al técnico para corregirlo.</p>
                             <button type="submit" form="form-registro" name="accion" value="reabrir" class="v-btn v-btn--secundario v-btn--sm"><i data-lucide="rotate-ccw"></i> Reabrir para corrección</button>

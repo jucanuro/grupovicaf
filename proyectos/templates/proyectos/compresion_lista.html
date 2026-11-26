@@ -80,14 +80,15 @@
             </h2>
             <div class="rl-filas">
             {% for d in grupo.list %}{% with e=d.resultado %}
-                <a href="{% url 'proyectos:registrar_compresion' d.pk %}" class="rr {% if d.en_curso %}rr--curso{% endif %} {% if e and e.terminado %}rr--ok{% endif %}"{% if d.en_curso %} data-continuar-enlace{% endif %}>
+                <a href="{{ d.url_abrir }}" class="rr {% if d.en_curso %}rr--curso{% endif %} {% if e and e.terminado %}rr--ok{% endif %}"{% if d.en_curso %} data-continuar-enlace{% endif %}>
                     <span class="rr__ico"><i data-lucide="{% if d.plantilla == 'compresion' %}hammer{% else %}flask-conical{% endif %}" class="w-4 h-4"></i></span>
                     <span class="rr__main"><b data-codigo>{{ d.muestra.codigo_laboratorio }}</b><span>{% if d.plantilla == 'compresion' %}Compresión de probeta{% else %}{{ d.descripcion_ensayo|default:d.norma }}{% endif %}</span></span>
                     <span class="rr__sol">{{ d.solicitud.codigo_solicitud }}<small>{{ d.norma }}</small></span>
                     <span class="rr__fecha"><small>Entrega</small>{{ d.fecha_entrega_programada|date:"d/m/Y" }}</span>
                     <span class="rr__fotos {% if d.n_fotos >= d.total_fotos %}rr__fotos--ok{% endif %}"><span class="rr__barra"><i style="width: {% widthratio d.n_fotos d.total_fotos 100 %}%"></i></span>{{ d.n_fotos }}/{{ d.total_fotos }} fotos</span>
                     <span class="rr__estado">
-                        {% if e and e.terminado %}<em class="rl-chip rl-chip--ok">Terminado</em>
+                        {% if d.por_revisar %}<em class="rl-chip rl-chip--morado" data-por-revisar>Por revisar</em>
+                        {% elif e and e.terminado %}<em class="rl-chip rl-chip--ok">{% if e.aprobado %}Aprobado{% else %}Terminado{% endif %}</em>
                         {% elif e and e.observacion_revision %}<em class="rl-chip rl-chip--amb">Devuelta</em>
                         {% elif d.en_curso %}<em class="rl-chip rl-chip--azul" data-en-curso>En curso · Continuar</em>
                         {% elif d.fecha_entrega_programada < hoy %}<em class="rl-chip rl-chip--rojo">Atrasado</em>

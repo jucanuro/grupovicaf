@@ -56,7 +56,7 @@
             {% with e=f.ensayo %}
             <tr class="border-t border-slate-100 align-top" data-fila="{{ f.detalle.muestra.codigo_laboratorio }}">
                 <td class="px-3 py-2">
-                    <a href="{% url 'proyectos:registrar_compresion' f.detalle.pk %}" class="font-mono font-bold text-slate-900 underline">{{ f.detalle.muestra.codigo_laboratorio }}</a>
+                    <a href="{% url 'proyectos:revisar_ensayo' f.detalle.pk %}" class="font-mono font-bold text-slate-900 underline" title="Revisar este ensayo">{{ f.detalle.muestra.codigo_laboratorio }}</a>
                     <p class="text-[11px] text-slate-500">{{ f.detalle.muestra.codigo_cliente|default:"" }}{% if e.tecnico %} · {{ e.tecnico.nombre_completo }}{% endif %}</p>
                 </td>
                 <td class="px-3 py-2 text-center">{{ e.fecha_ensayo|date:"d/m/Y"|default:"—" }}</td>
@@ -86,6 +86,7 @@
                     {% elif e.aprobado %}<span class="text-xs font-bold text-green-700">Aprobada</span>
                     {% elif e.terminado %}
                         <span class="text-xs font-bold text-violet-700">Terminada</span>
+                        <a href="{% url 'proyectos:revisar_ensayo' f.detalle.pk %}" class="v-btn v-btn--primario v-btn--sm mt-1" data-revisar><i data-lucide="search-check"></i> Revisar</a>
                         {% if not informe or informe.pdf_estado != 'listo' %}
                         <details class="mt-1">
                             <summary class="cursor-pointer text-xs font-semibold text-slate-700">Devolver</summary>
@@ -98,7 +99,7 @@
                             </form>
                         </details>
                         {% endif %}
-                    {% else %}<span class="text-xs text-amber-700 font-semibold">En registro{% if e.observacion_revision %} (devuelta){% endif %}</span>{% endif %}
+                    {% else %}<span class="text-xs text-amber-700 font-semibold">En registro{% if e.observacion_revision %} (devuelta{% if e.marcas_revision %} · {{ e.marcas_revision|length }} marcada{{ e.marcas_revision|length|pluralize }}{% endif %}){% endif %}</span>{% endif %}
                 </td>
             </tr>
             {% if f.cambios %}

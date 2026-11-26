@@ -21,6 +21,18 @@
     const HOJA = (function () {
         try { return JSON.parse(document.getElementById('hoja-estatica').textContent) || {}; } catch (e) { return {}; }
     })();
+    // Marcas del revisor (HU-LIMS-45): {clave: comentario}. El revisor las edita; el técnico las ve en rojo.
+    const revision = raiz.dataset.modoRevision === '1';
+    const marcas = (function () {
+        try { return JSON.parse(document.getElementById('marcas-revision').textContent) || {}; } catch (e) { return {}; }
+    })();
+    const CLAVES = {
+        'ID del cliente (muestra)': 'muestra-codigo_cliente', 'Elemento estructural': 'muestra-elemento_estructural',
+        "f'c de diseño": 'muestra-fc_diseno', 'Fecha de fabricación': 'muestra-fecha_fabricacion',
+        'Fecha de ensayo': 'fecha_ensayo', 'Edad (días)': 'muestra-edad_ensayo_dias',
+        'Perpendicularidad': 'verif_perpendicularidad', 'Planitud': 'verif_planitud', 'Tipo de fractura': 'tipo_fractura',
+    };
+    let temporizador = null;
     function elemento(tag, clase, texto) {
         const e = document.createElement(tag);
         if (clase) e.className = clase;
@@ -64,15 +76,116 @@
                 filas.push(['Perpendicularidad', perp]);
                 filas.push(['Planitud', plan]);
             }
-            filas.push([et, i.value.trim()]);
+            filas.push([et, i.value.trim(), i.dataset.medida]);
             if (id === 'd2') filas.push(['Verificación del diámetro', vdTxt]);
         });
         filas.push(['Tipo de fractura', valorDe('tipo_fractura')]);
         return filas;
     }
+    function estaMarcada(clave) { return !!clave && Object.prototype.hasOwnProperty.call(marcas, clave); }
+    function notaMarca(clave) {
+        // Revisor: caja para escribir qué está mal. Técnico: el comentario del revisor.
+        if (revision) {
+            const inp = elemento('input', 'hf__nota-in');
+            inp.type = 'text'; inp.maxLength = 300; inp.placeholder = '¿Qué está mal? (opcional)'; inp.value = marcas[clave] || '';
+            inp.addEventListener('click', function (e) { e.stopPropagation(); });
+            inp.addEventListener('input', function () { marcas[clave] = inp.value; sincronizarMarcas(false); });
+            return inp;
+        }
+        return elemento('span', 'hf__nota', marcas[clave] || 'Corregir este dato');
+    }
+    function alternarMarca(clave) {
+        if (estaMarcada(clave)) delete marcas[clave]; else marcas[clave] = '';
+        sincronizarMarcas(true);
+    }
+    // Marca visual (y clic del revisor) sobre un elemento de la hoja.
+    function hacerMarcable(el, clave) {
+        if (!clave) return;
+        if (estaMarcada(clave)) el.classList.add('hf-mal');
+        if (revision) {
+            el.classList.add('hf-marcable');
+            el.title = estaMarcada(clave) ? 'Quitar la marca' : 'Marcar como incorrecto';
+            el.addEventListener('click', function () { alternarMarca(clave); });
+        }
+    }
+    function filaTabla(tb, etiqueta, valor, clave, vacioOk) {
+        const tr = elemento('tr'); tr.appendChild(elemento('th', '', etiqueta));
+        const td = elemento('td', '', valor || '—'); if (!valor) td.setAttribute('data-vacio', ''); tr.appendChild(td);
+        hacerMarcable(tr, clave); tb.appendChild(tr);
+        if (clave && estaMarcada(clave)) {
+            const n = elemento('tr', 'hf-nota'); const c = elemento('td'); c.colSpan = 2; c.appendChild(notaMarca(clave)); n.appendChild(c); tb.appendChild(n);
+        }
+    }
+    function sincronizarMarcas(redibujar) {
+        const n = Object.keys(marcas).length;
+        document.querySelectorAll('[data-marcas-n]').forEach(function (e) { e.textContent = String(n); });
+        document.querySelectorAll('[data-marcas-json]').forEach(function (e) { e.value = JSON.stringify(marcas); });
+        document.querySelectorAll('[data-devolver-ensayo]').forEach(function (b) { b.disabled = false; });
+        if (redibujar) pintarResumen();
+        aplicarMarcasForm();
+        if (revision) {
+            clearTimeout(temporizador);
+            temporizador = setTimeout(guardarMarcas, 600);
+        }
+    }
+    function guardarMarcas() {
+        const url = raiz.dataset.urlMarcas;
+        const token = document.querySelector('[name="csrfmiddlewaretoken"]');
+        if (!url || !token) return;
+        const fd = new FormData(); fd.append('marcas', JSON.stringify(marcas)); fd.append('csrfmiddlewaretoken', token.value);
+        fetch(url, { method: 'POST', body: fd, credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } }).catch(function () {});
+    }
+    // Pinta en rojo, dentro del formulario y de las fotos, lo marcado (para el técnico y para el revisor).
+    function aplicarMarcasForm() {
+        document.querySelectorAll('.rg-mal').forEach(function (e) { e.classList.remove('rg-mal'); });
+        document.querySelectorAll('[data-nota-mal]').forEach(function (e) { e.remove(); });
+        Object.keys(marcas).forEach(function (clave) {
+            let caja = null;
+            if (clave.indexOf('foto:') === 0) {
+                const slot = document.querySelector('[data-slot="' + clave.slice(5) + '"]');
+                caja = slot ? slot.querySelector('[data-marco]') : null;
+            } else if (clave === 'tipos_defecto') {
+                caja = document.querySelector('[data-defectos]');
+            } else if (clave === 'video') {
+                caja = document.querySelector('[data-video]');
+            } else {
+                const campo = document.querySelector('[name="' + clave + '"]');
+                caja = campo ? (campo.closest('fieldset') || campo.closest('label') || campo.parentElement) : null;
+            }
+            if (!caja) return;
+            caja.classList.add('rg-mal');
+            if (marcas[clave] && !revision) {
+                const nota = elemento('p', 'rg-mal__nota', marcas[clave]); nota.setAttribute('data-nota-mal', '');
+                caja.insertAdjacentElement('afterend', nota);
+            }
+        });
+        // Menú lateral del formulario: avisa en rojo qué sección tiene datos marcados.
+        document.querySelectorAll('[data-ir-sec]').forEach(function (b) {
+            const sec = document.querySelector('.rg-sec[data-sec="' + b.dataset.irSec + '"]');
+            const n = sec ? sec.querySelectorAll('.rg-mal').length : 0;
+            b.classList.toggle('rg-rail__b--mal', n > 0);
+            let ins = b.querySelector('.rg-rail__mal');
+            if (n > 0) { if (!ins) { ins = elemento('i', 'rg-rail__mal'); b.appendChild(ins); } ins.textContent = n + ' por corregir'; }
+            else if (ins) ins.remove();
+        });
+        document.querySelectorAll('[data-marcar-foto]').forEach(function (b) {
+            const clave = 'foto:' + b.dataset.marcarFoto;
+            b.classList.toggle('rg-marcar--on', estaMarcada(clave));
+            b.textContent = estaMarcada(clave) ? 'Marcada: quitar' : 'Marcar como mal';
+        });
+    }
+    document.querySelectorAll('[data-marcar-foto]').forEach(function (b) {
+        b.addEventListener('click', function () { alternarMarca('foto:' + b.dataset.marcarFoto); });
+    });
     function llenaFila(f) { return !!f[1]; }
-    function itemLista(texto, ok, valor) {
+    function sincronizarMarcasInicial() {
+        document.querySelectorAll('[data-marcas-n]').forEach(function (e) { e.textContent = String(Object.keys(marcas).length); });
+        document.querySelectorAll('[data-marcas-json]').forEach(function (e) { e.value = JSON.stringify(marcas); });
+        aplicarMarcasForm();
+    }
+    function itemLista(texto, ok, valor, clave) {
         const li = elemento('div', 'hf__li');
+        hacerMarcable(li, clave);
         if (ok) li.setAttribute('data-ok', '');
         li.appendChild(elemento('i', '', ok ? '☑' : '☐'));
         li.appendChild(elemento('span', '', texto));
@@ -129,20 +242,18 @@
         const tabla = elemento('table', 'hf__t'); const tb = elemento('tbody');
         filas.forEach(function (f) {
             if (!esCompresion && !f[1] && fijas.indexOf(f[0]) < 0 && f[0] !== 'Fecha de ensayo') return;
-            const tr = elemento('tr'); tr.appendChild(elemento('th', '', f[0]));
-            const td = elemento('td', '', f[1] || '—'); if (!f[1]) td.setAttribute('data-vacio', ''); tr.appendChild(td); tb.appendChild(tr);
+            filaTabla(tb, f[0], f[1], f[2] || CLAVES[f[0]]);
         });
         // Datos propios del servicio
         extra.forEach(function (i) {
             const v = i.tagName === 'SELECT' ? (i.value ? i.selectedOptions[0].text.trim() : '') : i.value.trim();
             if (!v && !esCompresion) return;
-            const tr = elemento('tr'); tr.appendChild(elemento('th', '', i.dataset.etiqueta || ''));
-            const td = elemento('td', '', v || '—'); if (!v) td.setAttribute('data-vacio', ''); tr.appendChild(td); tb.appendChild(tr);
+            filaTabla(tb, i.dataset.etiqueta || '', v, i.name);
         });
         const notas = document.getElementById('resumen');
-        if (notas && notas.value.trim()) { const tr = elemento('tr'); tr.appendChild(elemento('th', '', 'Resumen o notas')); tr.appendChild(elemento('td', '', notas.value.trim())); tb.appendChild(tr); }
+        if (notas && notas.value.trim()) filaTabla(tb, 'Resumen o notas', notas.value.trim(), 'resumen');
         const obs = valorDe('observaciones');
-        if (obs) { const tr = elemento('tr'); tr.appendChild(elemento('th', '', 'Observaciones')); tr.appendChild(elemento('td', '', obs)); tb.appendChild(tr); }
+        if (obs) filaTabla(tb, 'Observaciones', obs, 'observaciones');
         tabla.appendChild(tb); colI.appendChild(tabla); cuerpo.appendChild(colI);
         const colD = elemento('div', 'hf__der');
         // Evidencia multimedia
@@ -151,11 +262,13 @@
             const caja = document.querySelector('[data-grupo-fotos="' + g[0] + '"]');
             const marcos = caja ? caja.querySelectorAll('[data-marco]').length : 2;
             const hechas = caja ? caja.querySelectorAll('[data-marco][data-estado="ok"]').length : 0;
-            evl.appendChild(itemLista(g[1], hechas > 0 && hechas === marcos, hechas + '/' + marcos));
+            const li = itemLista(g[1], hechas > 0 && hechas === marcos, hechas + '/' + marcos);
+            if (Object.keys(marcas).some(function (k) { return k.indexOf('foto:' + g[0]) === 0; })) li.classList.add('hf-mal');
+            evl.appendChild(li);
         });
         const hayVideo = !!document.querySelector('[data-video-estado] a');
         const marcaVideo = document.querySelector('[name="video_grabado"]:checked');
-        evl.appendChild(itemLista('Video del ensayo', hayVideo || !!marcaVideo, hayVideo ? 'Subido' : (marcaVideo ? 'Sin archivo' : '')));
+        evl.appendChild(itemLista('Video del ensayo', hayVideo || !!marcaVideo, hayVideo ? 'Subido' : (marcaVideo ? 'Sin archivo' : ''), 'video'));
         ev.appendChild(evl); colD.appendChild(ev);
         // Equipamiento
         const eq = bloque('Equipamiento empleado'); const eql = elemento('div', 'hf__lista');
@@ -165,7 +278,7 @@
         // Defectos
         const defs = Array.from(document.querySelectorAll('[name="tipos_defecto"]'));
         if (defs.length) {
-            const df = bloque('Tipos de defecto'); const dfl = elemento('div', 'hf__lista');
+            const df = bloque('Tipos de defecto'); hacerMarcable(df.firstChild, 'tipos_defecto'); const dfl = elemento('div', 'hf__lista');
             defs.forEach(function (c) { dfl.appendChild(itemLista(c.closest('label').textContent.trim(), c.checked)); });
             const otros = valorDe('defectos'); if (otros) dfl.appendChild(itemLista('Otros: ' + otros, true));
             df.appendChild(dfl); colD.appendChild(df);
@@ -204,7 +317,10 @@
         resumenCuerpo.appendChild(hoja);
         document.querySelectorAll('[data-texto-abrir-formulario]').forEach(function (e) { e.textContent = hayDatos() ? 'Editar formulario' : 'Llenar formulario'; });
         const est = document.querySelector('[data-resumen-estado]');
-        if (est) est.textContent = hayDatos() ? 'Lo llenado hasta ahora. Pulsa «Editar formulario» para completar o corregir.' : 'Se agregan aquí cuando pulses «Listo» en el formulario.';
+        if (est && revision) est.textContent = 'Toca un dato para marcarlo en rojo; vuelve a tocarlo para quitar la marca.';
+        else if (est) est.textContent = hayDatos() ? 'Lo llenado hasta ahora. Pulsa «Editar formulario» para completar o corregir.' : 'Se agregan aquí cuando pulses «Listo» en el formulario.';
+        aplicarMarcasForm();
     }
+    sincronizarMarcasInicial();
     window.HojaResumen = { pintar: pintarResumen, hayDatos: hayDatos, hoja: HOJA };
 })();

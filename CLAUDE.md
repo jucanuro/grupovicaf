@@ -190,6 +190,13 @@ Antes de esto el formulario iba en columnas, la sesión de ensayo integrada (`_s
 («Repetir esta foto» usa el asistente). Ya no se sube hoja de cálculo; el
 campo `hoja_calculo` y su descarga solo sirven a ensayos viejos.
 
+**Revisión por ensayo con marcas (HU-LIMS-45).** Quien tiene `informes.aprobar` abre un ensayo terminado en `/proyectos/resultados/<id>/revisar/`
+(`revisar_ensayo` → `_registrar(revision=True)`: la pantalla del registro en solo lectura, «En revisión»). En la hoja (`static/js/hoja_resumen.js`) toca un dato,
+el video, los defectos o, en el panel de fotos, «Marcar como mal»: queda en rojo con un comentario opcional y se guarda en
+`ResultadoEnsayo.marcas_revision` ({clave: comentario}; la clave es el `name` del campo o `foto:<tipo>`) por `marcar_revision`. «Devolver» (`_devolver`)
+pasa el ensayo a borrador con esas marcas; el técnico ve el aviso y los datos en rojo (hoja, formulario, menú de secciones, fotos) y al volver
+a terminar `_cerrar_linea` las limpia. La aprobación sigue siendo por solicitud en `revision_compresion`. Quien ejecutó el ensayo no puede devolverlo.
+
 **Solicitudes por etapa (HU-LIMS-44).** `lista_solicitudes` calcula la etapa de cada una (`_etapa_solicitud`): por iniciar (pendiente),
 por registrar (en marcha sin ningún `ResultadoEnsayo`), en proceso (con resultados) y terminados; pestañas con conteo (`?etapa=`), orden
 registrar → proceso → iniciar → terminados, botón verde «Registrar» o ámbar «En proceso · N %» (terminados / ensayos). La pantalla

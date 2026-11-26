@@ -56,6 +56,7 @@
 | T97 | Lista de resultados con en curso a la izquierda y por registrar por fecha a la derecha (`resultados_lista.css`), lista de recepciones y detalle de recepción compactos | 203-205 | `proyectos/test_compresion.py` + navegador 1850 y móvil | [x] |
 | T98 | Lista de resultados en filas con pestañas separadas y conteos; se elimina el formulario «Datos de probetas» (ubicación del proyecto pasa al registro) | 206-208 | `proyectos/test_autoguardado.py`, `test_compresion.py` + navegador 1850 y móvil | [x] |
 | T99 | Lista de solicitudes con conteo de ensayos, botón verde «Registrar» / ámbar «En proceso · %», pestañas por etapa y orden; pantalla de la solicitud con grupos | 209-212 | `proyectos/test_programa.py` + navegador 1850 y móvil | [x] |
+| T100 | Revisión por ensayo: `revisar_ensayo` (registro de solo lectura), `marcas_revision` (migración 0015), `marcar_revision`, devolver con marcas, marcas en rojo para el técnico; entradas desde la revisión y la lista de terminados | 213-217 | `proyectos/test_informe_compresion.py` + navegador 1850 | [x] |
 
 ## Historial
 
@@ -90,3 +91,4 @@
 | v26 | 2026-11-26 | Claude (DLF) | T97: lista de resultados dividida y recepciones compactas |
 | v27 | 2026-11-26 | Claude (DLF) | T98: lista de resultados en filas y sin datos de probetas |
 | v28 | 2026-11-26 | Claude (DLF) | T99: solicitudes con avance y pestañas por etapa |
+| v29 | 2026-11-26 | Claude (DLF) | T100: revisión por ensayo con marcas en rojo |

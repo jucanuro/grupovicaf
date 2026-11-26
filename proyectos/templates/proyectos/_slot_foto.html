@@ -13,6 +13,7 @@
         <div class="foto-cargando">Subiendo…</div>
     </div>
     <p class="text-[11px] text-red-600 mt-1 hidden" data-error></p>
+    {% if modo_revision %}<button type="button" class="rg-marcar" data-marcar-foto="{{ s.tipo }}">Marcar como mal</button>{% endif %}
     {% if not solo_lectura %}
     <button type="button" class="hidden mt-1.5 v-btn v-btn--peligro v-btn--sm v-btn--block" data-reintentar>Reintentar envío</button>
     <div class="mt-1 flex gap-3">

@@ -60,3 +60,5 @@
     .rl-tab { padding: .5rem .6rem; gap: .1rem .35rem; } .rl-tab__t { font-size: .8rem; } .rl-tab small { display: none; }
     .rr { padding: .5rem .6rem; } .rr__main span { white-space: normal; }
 }
+.rl-chip--morado { background: #ede9fe; color: #6d28d9; }
+.rr--ok:has([data-por-revisar]) { border-left-color: #7c3aed; }

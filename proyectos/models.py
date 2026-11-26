@@ -880,6 +880,9 @@ class ResultadoEnsayo(models.Model):
 
     # Revisión del supervisor (HU-LIMS-15).
     observacion_revision = models.TextField(blank=True, default='', verbose_name="Observación del revisor")
+    # Campos o fotos que el revisor marcó como incorrectos al devolver el ensayo: {clave: comentario}.
+    # Las claves son el nombre del campo del formulario («d1», «dato_humedad»…) o «foto:<tipo>».
+    marcas_revision = models.JSONField(default=dict, blank=True, verbose_name="Marcas del revisor")
     aprobado_por = models.ForeignKey(
         TrabajadorProfile, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='resultados_aprobados',

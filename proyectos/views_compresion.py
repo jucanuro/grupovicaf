@@ -27,7 +27,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
-from django.http import FileResponse, Http404, HttpResponseForbidden, JsonResponse
+from django.http import FileResponse, Http404, HttpResponseForbidden, HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -165,12 +165,20 @@ def mis_ensayos_compresion(request):
         detalles = detalles.exclude(terminado).order_by('fecha_entrega_programada', 'muestra__codigo_laboratorio')
 
     detalles = list(detalles.select_related('servicio_cotizado__servicio')[:200])
+    puede_revisar = trabajador_tiene_permiso(request.user, 'informes.aprobar')
+    perfil_actual = _perfil(request.user)
     for d in detalles:
         e = _ensayo_de(d)
         d.plantilla = e.plantilla if e else ResultadoEnsayo.plantilla_para(d)
         d.total_fotos = FotoEnsayo.total_requerido(d.plantilla)
         # «En curso»: ya hay algo guardado (también por el guardado automático) y falta terminar.
         d.en_curso = bool(e and not e.terminado and not e.observacion_revision)
+        # Quien aprueba abre un ensayo terminado en la pantalla de revisión (marcar y devolver), salvo el suyo.
+        d.por_revisar = bool(
+            puede_revisar and e and e.estado == ResultadoEnsayo.ESTADO_TERMINADO
+            and not (perfil_actual and e.tecnico_id == perfil_actual.pk))
+        d.url_abrir = (reverse('proyectos:revisar_ensayo', args=[d.pk]) if d.por_revisar
+                       else reverse('proyectos:registrar_compresion', args=[d.pk]))
         # Pendientes se agrupan por fecha de entrega; los terminados, por el día en que se terminaron.
         d.fecha_grupo = d.fecha_entrega_programada
         if vista == 'terminados' and e and e.terminado_en:
@@ -195,8 +203,31 @@ def mis_ensayos_compresion(request):
 @login_required
 @permiso_requerido(PERMISO_REGISTRAR)
 def registrar_ensayo_compresion(request, detalle_id):
-    detalle = _detalle_o_404(request.user, detalle_id)
+    return _registrar(request, detalle_id)
+
+
+@login_required
+@permiso_requerido('informes.aprobar')
+def revisar_ensayo(request, detalle_id):
+    """Revisión de un ensayo terminado (HU-LIMS-45): la misma pantalla del registro, de solo
+    lectura, donde el revisor marca en rojo lo que está mal para devolverlo al técnico."""
+    return _registrar(request, detalle_id, revision=True)
+
+
+def _registrar(request, detalle_id, revision=False):
+    if revision:
+        if request.method != 'GET':
+            return HttpResponseNotAllowed(['GET'])
+        detalle = get_object_or_404(
+            DetalleSolicitudEnsayo.objects.select_related(
+                'muestra', 'solicitud', 'tecnico_asignado', 'resultado', 'servicio_cotizado__servicio'),
+            pk=detalle_id,
+        )
+    else:
+        detalle = _detalle_o_404(request.user, detalle_id)
     ensayo = _ensayo_de(detalle)
+    if revision and ensayo is None:
+        raise Http404("El ensayo aún no tiene resultados.")
     ve_todos = ve_todos_los_ensayos(request.user)
     ejecutor = _ejecutor(request.user, detalle)
     a_nombre_de = ejecutor if ejecutor is not None and ejecutor != _perfil(request.user) else None
@@ -206,7 +237,11 @@ def registrar_ensayo_compresion(request, detalle_id):
     url_salida = (reverse('proyectos:resultados_solicitud', args=[detalle.solicitud_id]) if desde_solicitud
                   else reverse('proyectos:mis_ensayos_compresion'))
     salida_texto = f'Solicitud {detalle.solicitud.codigo_solicitud}' if desde_solicitud else 'Mis ensayos'
-    if desde_solicitud:
+    if revision:
+        url = reverse('proyectos:revisar_ensayo', args=[detalle.pk])
+        url_salida = reverse('proyectos:revision_compresion', args=[detalle.solicitud_id])
+        salida_texto = f'Revisión de {detalle.solicitud.codigo_solicitud}'
+    elif desde_solicitud:
         url += '?desde=solicitud'
     elif desde == 'programa':
         # Desde la hoja del programa del día (HU-LIMS-24): al terminar vuelve a ella.
@@ -383,7 +418,15 @@ def registrar_ensayo_compresion(request, detalle_id):
         'galeria': galeria,
         'min_fotos': FotoEnsayo.MIN_FOTOS_GENERAL,
         'max_fotos': FotoEnsayo.MAX_FOTOS_GENERAL,
-        'solo_lectura': bool(ensayo and ensayo.terminado),
+        'solo_lectura': bool(revision or (ensayo and ensayo.terminado)),
+        'modo_revision': revision,
+        # El revisor marca sobre un ensayo terminado; el técnico ve lo marcado al recibirlo devuelto.
+        'marcas_revision': (ensayo.marcas_revision or {}) if ensayo is not None else {},
+        'puede_devolver': bool(
+            revision and ensayo is not None and ensayo.estado == ResultadoEnsayo.ESTADO_TERMINADO
+            and not (_perfil(request.user) and ensayo.tecnico_id == _perfil(request.user).pk)),
+        'revision_url_marcas': reverse('proyectos:marcar_revision', args=[detalle.pk]),
+        'revision_url_devolver': reverse('proyectos:revision_compresion', args=[detalle.solicitud_id]),
         've_todos': ve_todos,
         'fecha_minima': _fecha_minima(detalle),
         'hoy': timezone.localdate(),
@@ -703,6 +746,7 @@ def _cerrar_linea(request, detalle, ensayo, sesion=None, ejecutor=None):
     ensayo.tecnico = ejecutor
     ensayo.registrado_por = propio if propio and propio != ejecutor else None
     ensayo.observacion_revision = ''
+    ensayo.marcas_revision = {}
     ensayo.save()
     DetalleSolicitudEnsayo.objects.filter(pk=detalle.pk).update(fecha_entrega_real=timezone.localdate())
     solicitud = detalle.solicitud
