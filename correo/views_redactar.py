@@ -127,14 +127,18 @@ def redactar(request):
             raise PermissionDenied('No gestionas ninguna cuenta de correo.')
         cuenta = exigir_cuenta(request.user, cuenta.slug, GESTIONA)
 
-    propias = set(CuentaCorreo.objects.values_list('direccion', flat=True))
+    # «Propia» es solo la cuenta desde la que se responde: los demás @grupovicaf.com (compañeros, otras
+    # cuentas) son destinatarios normales y deben salir en la respuesta.
+    propias = {cuenta.direccion.lower()}
     para, cc, asunto, in_reply_to, references, adjuntos = [], [], '', '', '', []
     if modo in ('responder', 'responder_todos'):
-        para = [{'nombre': original.de_nombre, 'correo': original.de}] if original.de not in propias else list(original.para)
+        # Un mensaje enviado por esta cuenta se responde a sus destinatarios; los demás, a quien lo escribió.
+        enviado_por_la_cuenta = original.de.lower() in propias
+        para = list(original.para) if enviado_por_la_cuenta else [{'nombre': original.de_nombre, 'correo': original.de}]
         if modo == 'responder_todos':
-            ya = {p['correo'] for p in para}
-            para += [p for p in original.para if p['correo'] not in propias and p['correo'] not in ya]
-            cc = [p for p in original.cc if p['correo'] not in propias]
+            ya = {p['correo'].lower() for p in para}
+            para += [p for p in original.para if p['correo'].lower() not in propias and p['correo'].lower() not in ya]
+            cc = [p for p in original.cc if p['correo'].lower() not in propias and p['correo'].lower() not in ya]
         asunto = f'RE: {normalizar_asunto(original.asunto)}'
         in_reply_to = original.message_id
         references = f'{original.references} {original.message_id}'.strip()
