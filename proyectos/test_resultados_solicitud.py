@@ -179,6 +179,7 @@ class FlujoRealCompresionTests(CompresionBase):
                  'data-slot="despues"', 'data-slot="despues_pizarra"',
                  'data-datos-cliente', 'data-medidas', 'data-paso-carga', 'name="carga_kn"', 'data-preliminar',
                  'data-paso-rotura', 'name="tipo_fractura"']
+        html = html[html.index('data-registro-compresion'):]  # sin el CSS de la cabecera
         posiciones = [html.index(x) for x in orden]
         self.assertEqual(posiciones, sorted(posiciones))
         self.assertIn('4. Durante el ensayo: lectura del equipo', html)
