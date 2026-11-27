@@ -1,5 +1,5 @@
 {% extends "base_vicafpro.html" %}
-{% load static %}
+{% load static l10n %}
 
 {% block content %}
 <style>
@@ -148,7 +148,7 @@
                             <i data-lucide="banknote" class="w-3 h-3 text-emerald-500"></i> Importe Liquidado (S/.)
                         </label>
                         <input type="number" step="0.01" name="monto_pagado" id="id_monto_pagado"
-                               value="{{ monto_pagado_value|default:cotizacion.monto_total|floatformat:2 }}" 
+                               value="{{ monto_pagado_value|default:cotizacion.monto_total|floatformat:2|unlocalize }}" 
                                class="input-engine font-mono text-indigo-600" required>
                         <div id="monto-error" class="hidden text-[9px] text-rose-600 font-bold uppercase tracking-wider mt-1"></div>
                         <div class="text-[9px] text-slate-400 font-medium mt-1">
@@ -264,7 +264,7 @@
             const montoError = document.getElementById('monto-error');
             const checkMonto = document.getElementById('check-monto');
             const montoValue = parseFloat(montoInput.value) || 0;
-            const cotizacionMonto = {{ cotizacion.monto_total|default:0 }};
+            const cotizacionMonto = {{ cotizacion.monto_total|default:0|unlocalize }};
             
             if (montoValue <= 0) {
                 montoError.textContent = 'Monto debe ser mayor a 0';
