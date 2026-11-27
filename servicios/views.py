@@ -1152,11 +1152,50 @@ def enviar_cotizacion_correo(request, pk):
     if borrador is None:
         messages.error(request, motivo)
         return redirect('servicios:lista_cotizaciones')
-    cotizacion.requiere_reenvio = False
-    if cotizacion.estado == 'Pendiente':
-        cotizacion.estado = 'Enviada'
-    cotizacion.save(update_fields=['estado', 'requiere_reenvio', 'fecha_actualizacion'])
     return redirect(envio.url_redactar(request, borrador))
+
+
+@login_required
+@permiso_requerido('cotizaciones.ver')
+def enviar_cotizacion(request, pk):
+    """Pantalla de envío de una cotización: correo (borrador con el cliente) o WhatsApp (mensaje listo)."""
+    from correo.permisos import puede_entrar_correo
+    from . import envio_cotizacion as envio
+    cotizacion = get_object_or_404(Cotizacion, pk=pk, es_plantilla=False)
+    correo_cliente, nombre = envio.destinatario(cotizacion)
+    telefono = ''.join(ch for ch in str(cotizacion.telefono_contacto or cotizacion.cliente.celular_contacto or '') if ch.isdigit())
+    if len(telefono) == 9:
+        telefono = '51' + telefono
+    saludo = f"Hola {nombre.split(' ')[0]}" if nombre else "Hola"
+    texto = (f"{saludo}, le saluda Grupo VICAF. Le compartimos la cotización {cotizacion.numero_oferta or 'S/N'}"
+             f"{' por ' + cotizacion.asunto_servicio if cotizacion.asunto_servicio else ''}. ¿Podemos coordinar?")
+    return render(request, 'servicios/enviar_cotizacion.html', {
+        'cotizacion': cotizacion,
+        'puede_correo': puede_entrar_correo(request.user),
+        'correo_cliente': correo_cliente,
+        'nombre': nombre,
+        'telefono': telefono,
+        'texto_whatsapp': texto,
+        'ya_enviada': cotizacion.estado == 'Enviada' and not cotizacion.requiere_reenvio,
+    })
+
+
+@login_required
+@permiso_requerido('cotizaciones.ver')
+@require_POST
+def registrar_cotizacion_whatsapp(request, pk):
+    """Deja registrado que la cotización se mandó por WhatsApp (el chat lo abre el navegador)."""
+    from django.http import JsonResponse
+    with transaction.atomic():
+        cotizacion = get_object_or_404(Cotizacion.objects.select_for_update(), pk=pk, es_plantilla=False)
+        if cotizacion.estado not in ('Pendiente', 'Enviada'):
+            return JsonResponse({'ok': False, 'error': 'La cotización ya no está pendiente de envío.'}, status=409)
+        cotizacion.canal_envio = 'whatsapp'
+        cotizacion.requiere_reenvio = False
+        if cotizacion.estado == 'Pendiente':
+            cotizacion.estado = 'Enviada'
+        cotizacion.save(update_fields=['canal_envio', 'requiere_reenvio', 'estado', 'fecha_actualizacion'])
+    return JsonResponse({'ok': True})
 
 
 @login_required

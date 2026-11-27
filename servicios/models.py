@@ -141,6 +141,9 @@ class Cotizacion(models.Model):
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='Pendiente', verbose_name="Estado")
     # True cuando se editó una cotización ya enviada: hay que volver a enviarla al cliente (HU-LIMS-50).
     requiere_reenvio = models.BooleanField(default=False, verbose_name="Requiere reenvío al cliente")
+    # Cómo y con qué borrador se envió (HU-LIMS-50): el borrador del correo; al salir, pasa a Enviada.
+    mensaje_envio = models.PositiveIntegerField(null=True, blank=True)
+    canal_envio = models.CharField(max_length=10, blank=True, default='', choices=[('correo', 'correo'), ('whatsapp', 'WhatsApp')])
 
     plazo_entrega_dias = models.IntegerField(default=30, verbose_name="Plazo de Entrega (Días)")
 

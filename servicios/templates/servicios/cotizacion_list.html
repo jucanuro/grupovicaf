@@ -268,10 +268,7 @@
                             <div class="cot-acciones">
 
                                 {% if cotizacion.estado == 'Pendiente' or cotizacion.estado == 'Enviada' and cotizacion.requiere_reenvio %}
-                                <form method="post" action="{% url 'servicios:enviar_cotizacion_correo' cotizacion.pk %}" class="inline">
-                                    {% csrf_token %}
-                                    <button type="submit" class="cot-btn cot-btn--env" title="Abrir el correo con el cliente y la cotización adjunta" aria-label="Enviar cotización {{ cotizacion.numero_oferta }} por correo"><i data-lucide="send" class="w-3.5 h-3.5"></i> Enviar</button>
-                                </form>
+                                <a href="{% url 'servicios:enviar_cotizacion' cotizacion.pk %}" class="cot-btn cot-btn--env" title="Enviar al cliente: correo o WhatsApp" aria-label="Enviar cotización {{ cotizacion.numero_oferta }} al cliente"><i data-lucide="send" class="w-3.5 h-3.5"></i> Enviar</a>
                                 {% endif %}
 
                                 {% if request.user.is_superuser and cotizacion.estado == 'Pendiente' or request.user.is_superuser and cotizacion.estado == 'Enviada' %}

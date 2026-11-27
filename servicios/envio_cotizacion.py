@@ -55,6 +55,8 @@ def crear_borrador(user, cotizacion):
         html=_cuerpo(cotizacion, nombre) + firma_por_defecto(user, cuenta, respuesta=False),
         leido=True, estado=Mensaje.BORRADOR, creado_por=user, message_id=nuevo_message_id(cuenta),
     )
+    cotizacion.mensaje_envio = borrador.pk
+    cotizacion.save(update_fields=['mensaje_envio'])
     transaction.on_commit(lambda: adjuntar_cotizacion.delay(borrador.pk, cotizacion.pk, user.pk))
     return borrador, ''
 

@@ -1,0 +1,72 @@
+{% extends "base_vicafpro.html" %}
+{% load static %}
+{% block title %}Enviar {{ cotizacion.numero_oferta }} | VICAF LIMS{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/enviar_informe.css' %}">{% endblock %}
+
+{% block content %}
+<div class="ei-pantalla">
+    <header class="ei-barra">
+        <div class="ei-barra__t">
+            <span class="ei-barra__ico"><i data-lucide="send" class="w-5 h-5"></i></span>
+            <div>
+                <h1>Enviar la cotización <b>{{ cotizacion.numero_oferta|default:"S/N" }}</b></h1>
+                <p>{{ cotizacion.cliente.razon_social }}{% if ya_enviada %} · <span class="ei-ya">Ya enviada al cliente</span>{% endif %}</p>
+            </div>
+        </div>
+        <a href="{% url 'servicios:lista_cotizaciones' %}" class="ei-cerrar" aria-label="Volver a cotizaciones"><i data-lucide="x" class="w-5 h-5"></i></a>
+    </header>
+
+    {% if messages %}{% for m in messages %}<p class="ei-msg ei-msg--{{ m.tags }}" role="status">{{ m }}</p>{% endfor %}{% endif %}
+
+    <div class="ei-cols">
+        <section class="ei-card ei-correo">
+            <div class="ei-cab"><span class="ei-cab__ico ei-cab__ico--azul"><i data-lucide="mail" class="w-5 h-5"></i></span>
+                <div><h2>Por correo</h2><p>Borrador en el correo de la empresa, con el PDF adjunto</p></div><em class="ei-rec">Recomendado</em></div>
+            {% if not puede_correo %}
+                <p class="ei-aviso ei-aviso--amb">No tienes acceso al módulo de correo. Usa WhatsApp.</p>
+            {% elif not correo_cliente %}
+                <p class="ei-aviso ei-aviso--amb">El cliente no tiene correo registrado: agrégalo en la cotización o en el cliente.</p>
+            {% else %}
+                <div class="ei-ruta">
+                    <div class="ei-paso"><span class="ei-paso__n">1</span><div><small>Para</small><span class="ei-chip"><i data-lucide="user-round" class="w-3.5 h-3.5"></i> {% if nombre %}{{ nombre }} &lt;{{ correo_cliente }}&gt;{% else %}{{ correo_cliente }}{% endif %}</span></div></div>
+                    <div class="ei-paso"><span class="ei-paso__n">2</span><div><small>Asunto</small><b>Cotización {{ cotizacion.numero_oferta|default:"S/N" }}{% if cotizacion.asunto_servicio %} · {{ cotizacion.asunto_servicio }}{% endif %}</b></div></div>
+                    <div class="ei-paso"><span class="ei-paso__n">3</span><div><small>Se adjunta</small><span class="ei-chip"><i data-lucide="paperclip" class="w-3.5 h-3.5"></i> Cotización PDF</span></div></div>
+                </div>
+                <form method="post" action="{% url 'servicios:enviar_cotizacion_correo' cotizacion.pk %}" class="ei-accion">{% csrf_token %}
+                    <p>Se abre el borrador en el correo para que lo revises y lo envíes. Recién cuando salga, la cotización queda como enviada.</p>
+                    <button type="submit" class="ei-principal"><i data-lucide="mail-open" class="w-4 h-4"></i> Abrir en el correo y revisar</button>
+                </form>
+            {% endif %}
+        </section>
+
+        <section class="ei-card ei-wa" data-canal="whatsapp">
+            <div class="ei-cab"><span class="ei-cab__ico ei-cab__ico--verde"><i data-lucide="message-circle" class="w-5 h-5"></i></span>
+                <div><h2>Por WhatsApp</h2><p>Mensaje listo para el chat del cliente</p></div></div>
+            <label class="ei-campo"><span>Celular del cliente</span><input type="tel" inputmode="tel" data-wa-telefono value="{{ telefono }}" placeholder="51999999999"></label>
+            <label class="ei-campo"><span>Mensaje</span><textarea rows="5" data-wa-texto>{{ texto_whatsapp }}</textarea></label>
+            <button type="button" class="ei-principal ei-principal--wa" data-wa-enviar data-url-registro="{% url 'servicios:registrar_cotizacion_whatsapp' cotizacion.pk %}"><i data-lucide="send" class="w-4 h-4"></i> Abrir WhatsApp</button>
+            <p class="ei-nota">WhatsApp no adjunta archivos desde aquí: envía el PDF desde el mismo chat (botón «PDF» de la lista). Al abrir el chat, la cotización queda registrada como enviada por WhatsApp.</p>
+            {% csrf_token %}
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    var btn = document.querySelector('[data-wa-enviar]');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+        var tel = (document.querySelector('[data-wa-telefono]').value || '').replace(/\D/g, '');
+        if (tel.length === 9) tel = '51' + tel;
+        var texto = document.querySelector('[data-wa-texto]').value;
+        window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(texto), '_blank', 'noopener');
+        var token = document.querySelector('[name=csrfmiddlewaretoken]');
+        var fd = new FormData(); if (token) fd.append('csrfmiddlewaretoken', token.value);
+        fetch(btn.dataset.urlRegistro, { method: 'POST', body: fd, credentials: 'same-origin' }).catch(function () {});
+    });
+    if (window.lucide) lucide.createIcons();
+})();
+</script>
+{% endblock %}

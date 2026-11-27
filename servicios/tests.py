@@ -294,11 +294,11 @@ class MarcarCotizacionTests(TestCase):
         html = self.client.get(reverse('servicios:lista_cotizaciones')).content.decode()
 
         # «Enviar» abre el correo con el cliente (Pendiente; una Enviada solo si se editó); Aceptada no lo ofrece.
-        self.assertIn(reverse('servicios:enviar_cotizacion_correo', args=[pendiente.pk]), html)
+        self.assertIn(reverse('servicios:enviar_cotizacion', args=[pendiente.pk]), html)
         self.assertIn(reverse('servicios:marcar_cotizacion_rechazada', args=[pendiente.pk]), html)
-        self.assertNotIn(reverse('servicios:enviar_cotizacion_correo', args=[enviada.pk]), html)  # ya enviada: no se reenvía sin cambios
+        self.assertNotIn(reverse('servicios:enviar_cotizacion', args=[enviada.pk]), html)  # ya enviada: no se reenvía sin cambios
         self.assertIn(reverse('servicios:marcar_cotizacion_rechazada', args=[enviada.pk]), html)
-        self.assertNotIn(reverse('servicios:enviar_cotizacion_correo', args=[aceptada.pk]), html)
+        self.assertNotIn(reverse('servicios:enviar_cotizacion', args=[aceptada.pk]), html)
         self.assertNotIn(reverse('servicios:marcar_cotizacion_rechazada', args=[aceptada.pk]), html)
 
 
@@ -329,12 +329,13 @@ class EnviarCotizacionCorreoTests(TestCase):
         self.assertEqual(r.status_code, 302)
         self.assertIn('/entrar/', r['Location'])
         borrador = Mensaje.objects.get(estado_envio=Mensaje.BORRADOR)
+        cot.refresh_from_db()
+        self.assertEqual(cot.mensaje_envio, borrador.pk)
+        self.assertEqual(cot.estado, 'Pendiente')  # abrir el borrador no cuenta como enviada
         self.assertEqual(borrador.para, [{'nombre': 'Ana Pérez', 'correo': 'ana@example.com'}])
         self.assertEqual(borrador.cuenta, self.cuenta)
         self.assertIn('T-900', borrador.asunto)
         adjuntar.delay.assert_called_once_with(borrador.pk, cot.pk, self.user.pk)
-        cot.refresh_from_db()
-        self.assertEqual(cot.estado, 'Enviada')
 
     def test_sin_correo_del_cliente_no_crea_borrador(self):
         from correo.models import Mensaje
@@ -351,16 +352,22 @@ class EnviarCotizacionCorreoTests(TestCase):
         self.client.force_login(self.user)
         url = reverse('servicios:lista_cotizaciones')
         html = self.client.get(url).content.decode()
-        self.assertNotIn(reverse('servicios:enviar_cotizacion_correo', args=[cot.pk]), html)
+        self.assertNotIn(reverse('servicios:enviar_cotizacion', args=[cot.pk]), html)
         Cotizacion.objects.filter(pk=cot.pk).update(requiere_reenvio=True)
         html = self.client.get(url).content.decode()
-        self.assertIn(reverse('servicios:enviar_cotizacion_correo', args=[cot.pk]), html)
-        # Al volver a enviarla, el botón desaparece otra vez.
+        self.assertIn(reverse('servicios:enviar_cotizacion', args=[cot.pk]), html)
+        # Al salir el correo (enviar_mensaje), la cotización queda enviada y el botón desaparece.
+        from correo.models import Mensaje
+        from correo.tasks import enviar_mensaje
         with patch('correo.tasks.adjuntar_cotizacion'):
             self.client.post(reverse('servicios:enviar_cotizacion_correo', args=[cot.pk]))
         cot.refresh_from_db()
+        Mensaje.objects.filter(pk=cot.mensaje_envio).update(estado_envio=Mensaje.EN_COLA)
+        with override_settings(CORREO_ENVIO='simulado'):
+            enviar_mensaje.apply(args=[cot.mensaje_envio])
+        cot.refresh_from_db()
         self.assertFalse(cot.requiere_reenvio)
-        self.assertEqual(cot.estado, 'Enviada')
+        self.assertEqual((cot.estado, cot.canal_envio), ('Enviada', 'correo'))
 
     def test_una_aceptada_no_se_envia(self):
         cot = self._cotizacion(estado='Aceptada')

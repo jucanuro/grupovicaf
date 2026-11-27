@@ -54,6 +54,14 @@ def enviar_mensaje(mensaje_id):
             InformeFinal.objects.filter(mensaje_envio=mensaje.pk).update(
                 estado_envio='enviado', fecha_envio=timezone.now(), canal_envio='correo',
             )
+            # Igual para una cotización: Pendiente pasa a Enviada cuando el correo sale de verdad (HU-LIMS-50).
+            from servicios.models import Cotizacion
+            for cot in Cotizacion.objects.filter(mensaje_envio=mensaje.pk, es_plantilla=False):
+                cot.canal_envio = 'correo'
+                cot.requiere_reenvio = False
+                if cot.estado == 'Pendiente':
+                    cot.estado = 'Enviada'
+                cot.save(update_fields=['canal_envio', 'requiere_reenvio', 'estado', 'fecha_actualizacion'])
         if reintentar:
             espera = 60 * mensaje.intentos
             transaction.on_commit(lambda: enviar_mensaje.apply_async((mensaje_id,), countdown=espera))

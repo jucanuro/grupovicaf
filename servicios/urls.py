@@ -35,6 +35,8 @@ urlpatterns = [
     path('cotizaciones/<int:pk>/aprobar/', views.aprobar_cotizacion, name='aprobar_cotizacion'),
     path('cotizaciones/<int:pk>/enviada/', views.marcar_cotizacion_enviada, name='marcar_cotizacion_enviada'),
     path('cotizaciones/<int:pk>/enviar-correo/', views.enviar_cotizacion_correo, name='enviar_cotizacion_correo'),
+    path('cotizaciones/<int:pk>/enviar/', views.enviar_cotizacion, name='enviar_cotizacion'),
+    path('cotizaciones/<int:pk>/enviar-whatsapp/', views.registrar_cotizacion_whatsapp, name='registrar_cotizacion_whatsapp'),
     path('cotizaciones/<int:pk>/rechazada/', views.marcar_cotizacion_rechazada, name='marcar_cotizacion_rechazada'),
 
     path('cotizaciones/<int:pk>/condiciones/json/', views.condiciones_cotizacion_json, name='condiciones_cotizacion_json'),
