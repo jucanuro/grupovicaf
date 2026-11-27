@@ -359,7 +359,12 @@
             const bloques = document.querySelectorAll('#approvalForm .grid > div');
             const aplicarInterno = () => {
                 const interno = internoInput.checked;
-                camposCliente.forEach((c) => { if (c) c.disabled = interno; });
+                camposCliente.forEach((c) => {
+                    if (!c) return;
+                    c.disabled = interno;
+                    c.required = !interno;
+                });
+                if (approvalForm) approvalForm.noValidate = interno;
                 bloques.forEach((b) => { b.style.opacity = interno ? '.45' : ''; });
                 validateForm();
             };
