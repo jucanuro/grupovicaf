@@ -242,22 +242,22 @@
                                 {{ cotizacion.numero_oferta|default:"S/N" }}
                             </span>
                         </td>
-                        <td class="py-2 px-4" data-label="Emisión">
+                        <td class="py-2 px-3 whitespace-nowrap" data-label="Emisión">
                             <div class="flex flex-col">
                                 <span class="text-[11px] font-bold text-slate-700">{{ cotizacion.fecha_generacion|date:"d/m/Y" }}</span>
                                 <span class="text-[9px] text-slate-400 uppercase">{{ cotizacion.fecha_generacion|date:"b" }}</span>
                             </div>
                         </td>
-                        <td class="py-2 px-3" data-label="Cliente">
+                        <td class="py-2 px-3 max-w-[13rem]" data-label="Cliente">
                             <p class="text-[12px] text-slate-800 tracking-tight leading-tight">{{ cotizacion.cliente.razon_social }}</p>
                         </td>
-                        <td class="py-2 px-4" data-label="Asunto">
-                            <p class="cot-asunto truncate max-w-[14rem]" title="{{ cotizacion.asunto_servicio|default:"" }}">{{ cotizacion.asunto_servicio|default:"---" }}</p>
+                        <td class="py-2 px-3" data-label="Asunto">
+                            <p class="cot-asunto truncate max-w-[11rem]" title="{{ cotizacion.asunto_servicio|default:"" }}">{{ cotizacion.asunto_servicio|default:"---" }}</p>
                         </td>
-                        <td class="py-2 px-4" data-label="Importe">
+                        <td class="py-2 px-3 whitespace-nowrap" data-label="Importe">
                             <span class="font-mono text-[11px] font-bold text-indigo-600">S/ {{ cotizacion.monto_total|floatformat:2 }}</span>
                         </td>
-                        <td class="py-2 px-4 text-center" data-label="Estado">
+                        <td class="py-2 px-3 text-center whitespace-nowrap" data-label="Estado">
                             <span class="status-pill status-{{ cotizacion.estado|lower }}">
                                 {{ cotizacion.get_estado_display }}
                             </span>
