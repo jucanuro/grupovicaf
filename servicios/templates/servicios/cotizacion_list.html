@@ -19,19 +19,33 @@
 
     /* Status Badges */
     .status-pill {
-        font-size: 8px;
-        font-weight: 800;
-        text-transform: uppercase;
-        padding: 2px 8px;
-        border-radius: 4px;
-        letter-spacing: 0.05em;
+        display: inline-flex; align-items: center; gap: .35rem; white-space: nowrap;
+        font-size: 9px; font-weight: 800; text-transform: uppercase;
+        padding: 3px 10px; border-radius: 999px; letter-spacing: .04em;
     }
+    .status-pill::before { content: ''; width: .4rem; height: .4rem; border-radius: 999px; background: currentColor; }
+    /* Acciones: siempre visibles, con texto corto y botones claros */
+    .cot-acciones { display: flex; justify-content: flex-end; align-items: center; gap: .35rem; flex-wrap: nowrap; }
+    .cot-btn { display: inline-flex; align-items: center; gap: .35rem; height: 2rem; padding: 0 .65rem; border-radius: .7rem; font-size: 10.5px; font-weight: 700; white-space: nowrap; border: 1px solid #e2e8f0; background: #fff; color: #334155; transition: all .12s; }
+    .cot-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 14px -10px rgba(15,23,42,.5); }
+    .cot-btn--ok { background: linear-gradient(135deg,#059669,#10b981); color:#fff; border-color: transparent; }
+    .cot-btn--env { background: linear-gradient(135deg,#0284c7,#0ea5e9); color:#fff; border-color: transparent; }
+    .cot-btn--rej { color:#be123c; border-color:#fecdd3; background:#fff1f2; }
+    .cot-btn--ico { width: 2rem; padding: 0; justify-content: center; }
+    .cot-btn--mute { color:#64748b; }
+    .cot-btn:disabled, .cot-btn--off { opacity: .45; cursor: not-allowed; }
+    .cot-cab { font-size: 9.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #64748b; }
+    .cot-fila td { padding-top: .55rem; padding-bottom: .55rem; }
+    .cot-num { font-family: ui-monospace, Menlo, monospace; font-size: 11px; font-weight: 800; color: #0f172a; }
+    .cot-cli { font-size: 11.5px; font-weight: 700; color: #1e293b; text-transform: uppercase; }
+    .cot-asunto { font-size: 11px; color: #94a3b8; }
     /* Mapeo de colores según tus nuevos estados */
     .status-pendiente { background-color: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
     .status-enviada { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
     .status-aceptada { background-color: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
     .status-rechazada { background-color: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
     .status-anulada { background-color: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+    .status-enviada::before { }
 
     /* Table cards para mobile */
     .responsive-table thead {
@@ -223,8 +237,8 @@
                 <tbody id="cotizaciones-table-body">
                     {% for cotizacion in cotizaciones %}
                     <tr class="group border-b border-slate-50 last:border-0 hover:bg-indigo-50 transition-colors">
-                        <td class="py-2 px-4" data-label="N° Oferta">
-                            <span class="font-mono text-[11px] font-extrabold text-slate-900 px-2 py-1 rounded">
+                        <td class="py-2 px-4 whitespace-nowrap" data-label="N° Oferta">
+                            <span class="cot-num whitespace-nowrap">
                                 {{ cotizacion.numero_oferta|default:"S/N" }}
                             </span>
                         </td>
@@ -249,49 +263,37 @@
                             </span>
                         </td>
                         <td class="py-2 px-4 text-right" data-label="Acciones">
-                            <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all">
-                                <a href="{% url 'servicios:ver_pdf_cotizacion' cotizacion.pk %}" target="_blank" class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Ver PDF">
-                                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
-                                </a>
+                            <div class="cot-acciones">
+                                <a href="{% url 'servicios:ver_pdf_cotizacion' cotizacion.pk %}" target="_blank" class="cot-btn cot-btn--ico cot-btn--mute" title="Ver PDF" aria-label="Ver PDF"><i data-lucide="file-text" class="w-3.5 h-3.5"></i></a>
 
-                                {% if cotizacion.estado == 'Pendiente' and request.user.is_superuser %}
-                                <a href="{% url 'servicios:aprobar_cotizacion' cotizacion.pk %}" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Aprobar">
-                                    <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-                                </a>
+                                {% if cotizacion.estado == 'Pendiente' %}
+                                    {% if cotizacion.puede_marcarse_enviada %}
+                                    <form method="post" action="{% url 'servicios:marcar_cotizacion_enviada' cotizacion.pk %}" class="inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="cot-btn cot-btn--env" title="Marcar como enviada al cliente" aria-label="Marcar como enviada {{ cotizacion.numero_oferta }}"><i data-lucide="send" class="w-3.5 h-3.5"></i> Enviar</button>
+                                    </form>
+                                    {% endif %}
                                 {% endif %}
 
-                                {% if cotizacion.puede_marcarse_enviada %}
-                                <form method="post" action="{% url 'servicios:marcar_cotizacion_enviada' cotizacion.pk %}" class="inline">
-                                    {% csrf_token %}
-                                    <button type="submit" class="p-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-all" title="Marcar como enviada" aria-label="Marcar como enviada {{ cotizacion.numero_oferta }}">
-                                        <i data-lucide="send" class="w-3.5 h-3.5"></i>
-                                    </button>
-                                </form>
+                                {% if request.user.is_superuser and cotizacion.estado == 'Pendiente' or request.user.is_superuser and cotizacion.estado == 'Enviada' %}
+                                <a href="{% url 'servicios:aprobar_cotizacion' cotizacion.pk %}" class="cot-btn cot-btn--ok" title="Registrar la aprobación del cliente (voucher y documento firmado)" aria-label="Aprobar cotización {{ cotizacion.numero_oferta }}"><i data-lucide="badge-check" class="w-3.5 h-3.5"></i> Aprobar</a>
                                 {% endif %}
 
                                 {% if cotizacion.puede_marcarse_rechazada %}
                                 <form method="post" action="{% url 'servicios:marcar_cotizacion_rechazada' cotizacion.pk %}" class="inline"
                                       onsubmit="return confirm('¿Marcar la cotización {{ cotizacion.numero_oferta|escapejs }} como rechazada?');">
                                     {% csrf_token %}
-                                    <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Marcar como rechazada" aria-label="Marcar como rechazada {{ cotizacion.numero_oferta }}">
-                                        <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
-                                    </button>
+                                    <button type="submit" class="cot-btn cot-btn--rej cot-btn--ico" title="Marcar como rechazada" aria-label="Marcar como rechazada {{ cotizacion.numero_oferta }}"><i data-lucide="x-circle" class="w-3.5 h-3.5"></i></button>
                                 </form>
                                 {% endif %}
 
                                 {% if cotizacion.estado != 'Aceptada' %}
-                                <a href="{% url 'servicios:editar_cotizacion' cotizacion.pk %}" class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" title="Editar">
-                                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                                </a>
+                                <a href="{% url 'servicios:editar_cotizacion' cotizacion.pk %}" class="cot-btn cot-btn--ico" title="Editar" aria-label="Editar"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></a>
                                 {% else %}
-                                <span class="p-1.5 text-slate-300 bg-slate-100 rounded-lg cursor-not-allowed" title="Cotización aprobada: no se puede editar">
-                                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                                </span>
+                                <span class="cot-btn cot-btn--ico cot-btn--off" title="Cotización aprobada: no se puede editar"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></span>
                                 {% endif %}
 
-                                <a href="{% url 'servicios:eliminar_cotizacion' cotizacion.pk %}" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Eliminar">
-                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                                </a>
+                                <a href="{% url 'servicios:eliminar_cotizacion' cotizacion.pk %}" class="cot-btn cot-btn--ico cot-btn--mute" title="Eliminar" aria-label="Eliminar"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></a>
                             </div>
                         </td>
                     </tr>
