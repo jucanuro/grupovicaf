@@ -33,6 +33,8 @@
     .cot-btn--rej { color:#be123c; border-color:#fecdd3; background:#fff1f2; }
     .cot-btn--ico { width: 1.75rem; padding: 0; justify-content: center; }
     .cot-btn--mute { color:#64748b; }
+    .cot-btn--pdf { color:#dc2626; background:#fef2f2; border-color:#fecaca; }
+    .cot-sep { width:1px; height:1.25rem; background:#e2e8f0; margin:0 .2rem; }
     .cot-btn:disabled, .cot-btn--off { opacity: .45; cursor: not-allowed; }
     .cot-cab { font-size: 9.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #64748b; }
     .cot-fila td { padding-top: .45rem; padding-bottom: .45rem; }
@@ -264,7 +266,6 @@
                         </td>
                         <td class="py-2 px-2 text-right" data-label="Acciones">
                             <div class="cot-acciones">
-                                <a href="{% url 'servicios:ver_pdf_cotizacion' cotizacion.pk %}" target="_blank" class="cot-btn cot-btn--ico cot-btn--mute" title="Ver PDF" aria-label="Ver PDF"><i data-lucide="file-text" class="w-3.5 h-3.5"></i></a>
 
                                 {% if cotizacion.estado == 'Pendiente' or cotizacion.estado == 'Enviada' %}
                                 <form method="post" action="{% url 'servicios:enviar_cotizacion_correo' cotizacion.pk %}" class="inline">
@@ -284,6 +285,9 @@
                                     <button type="submit" class="cot-btn cot-btn--rej cot-btn--ico" title="Marcar como rechazada" aria-label="Marcar como rechazada {{ cotizacion.numero_oferta }}"><i data-lucide="x-circle" class="w-3.5 h-3.5"></i></button>
                                 </form>
                                 {% endif %}
+
+                                <span class="cot-sep" aria-hidden="true"></span>
+                                <a href="{% url 'servicios:ver_pdf_cotizacion' cotizacion.pk %}" target="_blank" class="cot-btn cot-btn--ico cot-btn--pdf" title="Ver PDF" aria-label="Ver PDF"><i data-lucide="file-text" class="w-3.5 h-3.5"></i></a>
 
                                 {% if cotizacion.estado != 'Aceptada' %}
                                 <a href="{% url 'servicios:editar_cotizacion' cotizacion.pk %}" class="cot-btn cot-btn--ico" title="Editar" aria-label="Editar"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></a>
