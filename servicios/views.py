@@ -1155,12 +1155,41 @@ def enviar_cotizacion_correo(request, pk):
     return redirect(envio.url_redactar(request, borrador))
 
 
+def _qr_cotizacion(cotizacion):
+    from . import qr as envio_qr
+    return envio_qr.qr_data_uri(envio_qr.url_verificacion(cotizacion)) if cotizacion.numero_oferta else ''
+
+
+def verificar_cotizacion(request, numero):
+    """Verificación pública del QR de la cotización: solo confirma el número y la fecha de emisión."""
+    from django.http import Http404
+    from django.http import HttpResponse
+    cotizacion = Cotizacion.objects.filter(numero_oferta=numero, es_plantilla=False).only(
+        'numero_oferta', 'fecha_generacion').first()
+    if cotizacion is None:
+        raise Http404('Cotización no encontrada.')
+    html = (
+        '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Verificación de cotización</title>'
+        '<style>body{font-family:Arial,sans-serif;background:#f1f5f9;margin:0;display:grid;place-items:center;min-height:100vh}'
+        '.c{background:#fff;border-radius:14px;padding:28px 32px;max-width:420px;box-shadow:0 10px 30px rgba(15,23,42,.12);text-align:center}'
+        '.ok{color:#15803d;font-weight:700;font-size:15px}.n{font-family:monospace;font-size:20px;font-weight:800;margin:10px 0}'
+        '.f{color:#475569;font-size:13px}</style></head><body><div class="c">'
+        '<p class="ok">Cotización auténtica</p>'
+        f'<p class="n">{numero}</p>'
+        f'<p class="f">Emitida el {cotizacion.fecha_generacion:%d/%m/%Y} por Grupo VICAF SAC.</p>'
+        '</div></body></html>'
+    )
+    return HttpResponse(html)
+
+
 @login_required
 @permiso_requerido('cotizaciones.ver')
 def enviar_cotizacion(request, pk):
     """Pantalla de envío de una cotización: correo (borrador con el cliente) o WhatsApp (mensaje listo)."""
     from correo.permisos import puede_entrar_correo
     from . import envio_cotizacion as envio
+    from . import qr as envio_qr
     cotizacion = get_object_or_404(Cotizacion, pk=pk, es_plantilla=False)
     correo_cliente, nombre = envio.destinatario(cotizacion)
     telefono = ''.join(ch for ch in str(cotizacion.telefono_contacto or cotizacion.cliente.celular_contacto or '') if ch.isdigit())
@@ -1177,6 +1206,8 @@ def enviar_cotizacion(request, pk):
         'telefono': telefono,
         'texto_whatsapp': texto,
         'ya_enviada': cotizacion.estado == 'Enviada' and not cotizacion.requiere_reenvio,
+        'qr': _qr_cotizacion(cotizacion),
+        'url_verificacion': envio_qr.url_verificacion(cotizacion) if cotizacion.numero_oferta else '',
     })
 
 

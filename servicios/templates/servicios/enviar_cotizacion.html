@@ -4,12 +4,12 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'css/enviar_informe.css' %}">{% endblock %}
 
 {% block content %}
-<div class="ei-pantalla">
+<div class="ei-pantalla" data-enviar-cotizacion>
     <header class="ei-barra">
         <div class="ei-barra__t">
             <span class="ei-barra__ico"><i data-lucide="send" class="w-5 h-5"></i></span>
             <div>
-                <h1>Enviar la cotización <b>{{ cotizacion.numero_oferta|default:"S/N" }}</b></h1>
+                <h1>Enviar al cliente <b>{{ cotizacion.numero_oferta|default:"S/N" }}</b></h1>
                 <p>{{ cotizacion.cliente.razon_social }}{% if ya_enviada %} · <span class="ei-ya">Ya enviada al cliente</span>{% endif %}</p>
             </div>
         </div>
@@ -19,6 +19,19 @@
     {% if messages %}{% for m in messages %}<p class="ei-msg ei-msg--{{ m.tags }}" role="status">{{ m }}</p>{% endfor %}{% endif %}
 
     <div class="ei-cols">
+        <section class="ei-card ei-informe">
+            <p class="ei-eti">Cotización</p>
+            <div class="ei-doc">
+                <span class="ei-doc__ico"><i data-lucide="file-text" class="w-6 h-6"></i></span>
+                <div><b>{{ cotizacion.numero_oferta|default:"S/N" }}.pdf</b><small>Emitida el {{ cotizacion.fecha_generacion|date:"d/m/Y" }}</small></div>
+            </div>
+            <div class="ei-botones">
+                <a href="{% url 'servicios:ver_pdf_cotizacion' cotizacion.pk %}" target="_blank" rel="noopener" class="ei-b"><i data-lucide="eye" class="w-4 h-4"></i> Ver PDF</a>
+                <a href="{% url 'servicios:ver_pdf_cotizacion' cotizacion.pk %}" download class="ei-b"><i data-lucide="download" class="w-4 h-4"></i> Descargar</a>
+            </div>
+            {% if qr %}<div class="ei-qr"><img src="{{ qr }}" alt="QR de verificación" width="96" height="96"><p>El QR de la cotización y este enlace confirman que el documento es auténtico:<br><a href="{{ url_verificacion }}" target="_blank" rel="noopener">{{ url_verificacion }}</a></p></div>{% endif %}
+        </section>
+
         <section class="ei-card ei-correo">
             <div class="ei-cab"><span class="ei-cab__ico ei-cab__ico--azul"><i data-lucide="mail" class="w-5 h-5"></i></span>
                 <div><h2>Por correo</h2><p>Borrador en el correo de la empresa, con el PDF adjunto</p></div><em class="ei-rec">Recomendado</em></div>
@@ -30,7 +43,7 @@
                 <div class="ei-ruta">
                     <div class="ei-paso"><span class="ei-paso__n">1</span><div><small>Para</small><span class="ei-chip"><i data-lucide="user-round" class="w-3.5 h-3.5"></i> {% if nombre %}{{ nombre }} &lt;{{ correo_cliente }}&gt;{% else %}{{ correo_cliente }}{% endif %}</span></div></div>
                     <div class="ei-paso"><span class="ei-paso__n">2</span><div><small>Asunto</small><b>Cotización {{ cotizacion.numero_oferta|default:"S/N" }}{% if cotizacion.asunto_servicio %} · {{ cotizacion.asunto_servicio }}{% endif %}</b></div></div>
-                    <div class="ei-paso"><span class="ei-paso__n">3</span><div><small>Se adjunta</small><span class="ei-chip"><i data-lucide="paperclip" class="w-3.5 h-3.5"></i> Cotización PDF</span></div></div>
+                    <div class="ei-paso"><span class="ei-paso__n">3</span><div><small>Se adjunta</small><span class="ei-chip"><i data-lucide="paperclip" class="w-3.5 h-3.5"></i> {{ cotizacion.numero_oferta|default:"S/N" }}.pdf</span></div></div>
                 </div>
                 <form method="post" action="{% url 'servicios:enviar_cotizacion_correo' cotizacion.pk %}" class="ei-accion">{% csrf_token %}
                     <p>Se abre el borrador en el correo para que lo revises y lo envíes. Recién cuando salga, la cotización queda como enviada.</p>
@@ -45,7 +58,7 @@
             <label class="ei-campo"><span>Celular del cliente</span><input type="tel" inputmode="tel" data-wa-telefono value="{{ telefono }}" placeholder="51999999999"></label>
             <label class="ei-campo"><span>Mensaje</span><textarea rows="5" data-wa-texto>{{ texto_whatsapp }}</textarea></label>
             <button type="button" class="ei-principal ei-principal--wa" data-wa-enviar data-url-registro="{% url 'servicios:registrar_cotizacion_whatsapp' cotizacion.pk %}"><i data-lucide="send" class="w-4 h-4"></i> Abrir WhatsApp</button>
-            <p class="ei-nota">WhatsApp no adjunta archivos desde aquí: envía el PDF desde el mismo chat (botón «PDF» de la lista). Al abrir el chat, la cotización queda registrada como enviada por WhatsApp.</p>
+            <p class="ei-nota">WhatsApp no adjunta el PDF desde aquí: mándalo desde el mismo chat con «Descargar». Al abrir el chat, la cotización queda registrada como enviada por WhatsApp.</p>
             {% csrf_token %}
         </section>
     </div>

@@ -241,6 +241,16 @@ azul #253776, gris #F2F2F2, naranja #F6A31C.
         </td>
     </tr>
 </table>
+{% if qr %}
+<div class="verifica">
+    <img class="verifica__qr" src="{{ qr }}" alt="QR de verificación de la cotización">
+    <p><b>Verifica esta cotización</b><br>Escanea el código QR para confirmar que el documento es auténtico.</p>
+</div>
+{% endif %}
 
+<style>
+.verifica { margin: 0.4cm 0 0 0.5cm; display: flex; align-items: center; gap: 0.4cm; font-size: 7.5pt; }
+.verifica__qr { width: 2.3cm; height: 2.3cm; }
+</style>
 </body>
 </html>

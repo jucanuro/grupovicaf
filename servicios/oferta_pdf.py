@@ -216,6 +216,7 @@ def contexto(cotizacion, reemplazar):
         'igv_porcentaje': int((tasa * 100).quantize(Decimal('1'))),
         'total': soles(total),
         'notas': notas,
+        'qr': _qr_de(cotizacion),
         'secciones': secciones,
         'n_contactos': ultimo + 1,
         'n_datos': ultimo + 2,
@@ -226,6 +227,13 @@ def contexto(cotizacion, reemplazar):
                                     ('firma', 'firma_jefa_laboratorio.png'))
         },
     }
+
+
+def _qr_de(cotizacion):
+    if not cotizacion.numero_oferta:
+        return ''
+    from .qr import qr_data_uri, url_verificacion
+    return qr_data_uri(url_verificacion(cotizacion))
 
 
 def generar_pdf(cotizacion, reemplazar):

@@ -369,6 +369,19 @@ class EnviarCotizacionCorreoTests(TestCase):
         self.assertFalse(cot.requiere_reenvio)
         self.assertEqual((cot.estado, cot.canal_envio), ('Enviada', 'correo'))
 
+    def test_la_verificacion_publica_solo_confirma_numero_y_fecha(self):
+        cot = self._cotizacion(estado='Pendiente')
+        Cotizacion.objects.filter(pk=cot.pk).update(monto_total=Decimal('999.99'))
+        self.client.logout()
+        r = self.client.get(reverse('servicios:verificar_cotizacion', args=['T-900']))
+        self.assertEqual(r.status_code, 200)
+        html = r.content.decode()
+        self.assertIn('T-900', html)
+        self.assertIn('noindex', html)
+        for dato_privado in ('999', 'Cliente Correo SAC', 'ana@example.com', '20123456781'):
+            self.assertNotIn(dato_privado, html)
+        self.assertEqual(self.client.get(reverse('servicios:verificar_cotizacion', args=['NO-EXISTE'])).status_code, 404)
+
     def test_una_aceptada_no_se_envia(self):
         cot = self._cotizacion(estado='Aceptada')
         self.client.force_login(self.user)
