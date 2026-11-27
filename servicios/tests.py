@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -292,9 +293,63 @@ class MarcarCotizacionTests(TestCase):
 
         html = self.client.get(reverse('servicios:lista_cotizaciones')).content.decode()
 
-        self.assertIn(reverse('servicios:marcar_cotizacion_enviada', args=[pendiente.pk]), html)
+        # «Enviar» abre el correo con el cliente (Pendiente y Enviada); Aceptada no lo ofrece.
+        self.assertIn(reverse('servicios:enviar_cotizacion_correo', args=[pendiente.pk]), html)
         self.assertIn(reverse('servicios:marcar_cotizacion_rechazada', args=[pendiente.pk]), html)
-        self.assertNotIn(reverse('servicios:marcar_cotizacion_enviada', args=[enviada.pk]), html)
+        self.assertIn(reverse('servicios:enviar_cotizacion_correo', args=[enviada.pk]), html)
         self.assertIn(reverse('servicios:marcar_cotizacion_rechazada', args=[enviada.pk]), html)
-        self.assertNotIn(reverse('servicios:marcar_cotizacion_enviada', args=[aceptada.pk]), html)
+        self.assertNotIn(reverse('servicios:enviar_cotizacion_correo', args=[aceptada.pk]), html)
         self.assertNotIn(reverse('servicios:marcar_cotizacion_rechazada', args=[aceptada.pk]), html)
+
+
+class EnviarCotizacionCorreoTests(TestCase):
+    """«Enviar» abre el correo con el cliente como destinatario y la cotización adjunta."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from correo.models import AccesoCuenta, CuentaCorreo
+        cls.cliente = Cliente.objects.create(ruc='20123456781', razon_social='Cliente Correo SAC')
+        rol = rol_con_permisos('Comercial correo', 'cotizaciones.ver', 'correo.ver')
+        cls.user, _ = crear_trabajador('comercial.correo', rol)
+        cls.cuenta = CuentaCorreo.objects.create(direccion='ventas@vicaf.pe', nombre='Ventas VICAF', slug='ventas-cot')
+        AccesoCuenta.objects.create(usuario=cls.user, cuenta=cls.cuenta, rol=AccesoCuenta.GESTIONA)
+
+    def _cotizacion(self, estado='Pendiente', correo='ana@example.com'):
+        return Cotizacion.objects.create(
+            cliente=self.cliente, numero_oferta='T-900', estado=estado, asunto_servicio='Ensayos de concreto',
+            persona_contacto='Ana Pérez', correo_contacto=correo, telefono_contacto='999999999',
+        )
+
+    def test_crea_borrador_para_el_cliente_y_lleva_al_correo(self):
+        from correo.models import Mensaje
+        cot = self._cotizacion()
+        self.client.force_login(self.user)
+        with patch('correo.tasks.adjuntar_cotizacion') as adjuntar, self.captureOnCommitCallbacks(execute=True):
+            r = self.client.post(reverse('servicios:enviar_cotizacion_correo', args=[cot.pk]))
+        self.assertEqual(r.status_code, 302)
+        self.assertIn('/entrar/', r['Location'])
+        borrador = Mensaje.objects.get(estado_envio=Mensaje.BORRADOR)
+        self.assertEqual(borrador.para, [{'nombre': 'Ana Pérez', 'correo': 'ana@example.com'}])
+        self.assertEqual(borrador.cuenta, self.cuenta)
+        self.assertIn('T-900', borrador.asunto)
+        adjuntar.delay.assert_called_once_with(borrador.pk, cot.pk, self.user.pk)
+        cot.refresh_from_db()
+        self.assertEqual(cot.estado, 'Enviada')
+
+    def test_sin_correo_del_cliente_no_crea_borrador(self):
+        from correo.models import Mensaje
+        cot = self._cotizacion(correo='')
+        type(cot.cliente).objects.filter(pk=cot.cliente_id).update(correo_contacto='')
+        self.client.force_login(self.user)
+        self.client.post(reverse('servicios:enviar_cotizacion_correo', args=[cot.pk]), follow=True)
+        self.assertFalse(Mensaje.objects.filter(estado_envio=Mensaje.BORRADOR).exists())
+        cot.refresh_from_db()
+        self.assertEqual(cot.estado, 'Pendiente')
+
+    def test_una_aceptada_no_se_envia(self):
+        cot = self._cotizacion(estado='Aceptada')
+        self.client.force_login(self.user)
+        r = self.client.post(reverse('servicios:enviar_cotizacion_correo', args=[cot.pk]))
+        self.assertEqual(r.status_code, 302)
+        cot.refresh_from_db()
+        self.assertEqual(cot.estado, 'Aceptada')

@@ -1135,6 +1135,30 @@ def marcar_cotizacion_enviada(request, pk):
 @login_required
 @permiso_requerido('cotizaciones.ver')
 @require_POST
+def enviar_cotizacion_correo(request, pk):
+    """«Enviar»: abre el correo con el destinatario del cliente, el asunto y el PDF ya adjunto."""
+    from correo.permisos import puede_entrar_correo
+    from . import envio_cotizacion as envio
+    cotizacion = get_object_or_404(Cotizacion, pk=pk, es_plantilla=False)
+    if cotizacion.estado not in ('Pendiente', 'Enviada'):
+        messages.error(request, f'La cotización {cotizacion.numero_oferta} está {cotizacion.get_estado_display().lower()}.')
+        return redirect('servicios:lista_cotizaciones')
+    if not puede_entrar_correo(request.user):
+        messages.error(request, 'No tienes acceso al módulo de correo para enviar la cotización.')
+        return redirect('servicios:lista_cotizaciones')
+    borrador, motivo = envio.crear_borrador(request.user, cotizacion)
+    if borrador is None:
+        messages.error(request, motivo)
+        return redirect('servicios:lista_cotizaciones')
+    if cotizacion.estado == 'Pendiente':
+        cotizacion.estado = 'Enviada'
+        cotizacion.save(update_fields=['estado', 'fecha_actualizacion'])
+    return redirect(envio.url_redactar(request, borrador))
+
+
+@login_required
+@permiso_requerido('cotizaciones.ver')
+@require_POST
 def marcar_cotizacion_rechazada(request, pk):
     """REQ-LIMS-23: Pendiente o Enviada → Rechazada."""
     return _marcar_cotizacion(request, pk, 'Rechazada', 'rechazada')

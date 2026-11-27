@@ -25,17 +25,17 @@
     }
     .status-pill::before { content: ''; width: .4rem; height: .4rem; border-radius: 999px; background: currentColor; }
     /* Acciones: siempre visibles, con texto corto y botones claros */
-    .cot-acciones { display: flex; justify-content: flex-end; align-items: center; gap: .35rem; flex-wrap: nowrap; }
-    .cot-btn { display: inline-flex; align-items: center; gap: .35rem; height: 2rem; padding: 0 .65rem; border-radius: .7rem; font-size: 10.5px; font-weight: 700; white-space: nowrap; border: 1px solid #e2e8f0; background: #fff; color: #334155; transition: all .12s; }
+    .cot-acciones { display: flex; justify-content: flex-end; align-items: center; gap: .25rem; flex-wrap: nowrap; }
+    .cot-btn { display: inline-flex; align-items: center; gap: .3rem; height: 1.75rem; padding: 0 .5rem; border-radius: .6rem; font-size: 10px; font-weight: 700; white-space: nowrap; border: 1px solid #e2e8f0; background: #fff; color: #334155; transition: all .12s; }
     .cot-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 14px -10px rgba(15,23,42,.5); }
     .cot-btn--ok { background: linear-gradient(135deg,#059669,#10b981); color:#fff; border-color: transparent; }
     .cot-btn--env { background: linear-gradient(135deg,#0284c7,#0ea5e9); color:#fff; border-color: transparent; }
     .cot-btn--rej { color:#be123c; border-color:#fecdd3; background:#fff1f2; }
-    .cot-btn--ico { width: 2rem; padding: 0; justify-content: center; }
+    .cot-btn--ico { width: 1.75rem; padding: 0; justify-content: center; }
     .cot-btn--mute { color:#64748b; }
     .cot-btn:disabled, .cot-btn--off { opacity: .45; cursor: not-allowed; }
     .cot-cab { font-size: 9.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #64748b; }
-    .cot-fila td { padding-top: .55rem; padding-bottom: .55rem; }
+    .cot-fila td { padding-top: .45rem; padding-bottom: .45rem; }
     .cot-num { font-family: ui-monospace, Menlo, monospace; font-size: 11px; font-weight: 800; color: #0f172a; }
     .cot-cli { font-size: 11.5px; font-weight: 700; color: #1e293b; text-transform: uppercase; }
     .cot-asunto { font-size: 11px; color: #94a3b8; }
@@ -248,11 +248,11 @@
                                 <span class="text-[9px] text-slate-400 uppercase">{{ cotizacion.fecha_generacion|date:"b" }}</span>
                             </div>
                         </td>
-                        <td class="py-2 px-4" data-label="Cliente">
+                        <td class="py-2 px-3" data-label="Cliente">
                             <p class="text-[12px] text-slate-800 tracking-tight leading-tight">{{ cotizacion.cliente.razon_social }}</p>
                         </td>
                         <td class="py-2 px-4" data-label="Asunto">
-                            <p class="text-[12px] text-slate-400 font-medium truncate max-w-xs">{{ cotizacion.asunto_servicio|default:"---" }}</p>
+                            <p class="cot-asunto truncate max-w-[14rem]" title="{{ cotizacion.asunto_servicio|default:"" }}">{{ cotizacion.asunto_servicio|default:"---" }}</p>
                         </td>
                         <td class="py-2 px-4" data-label="Importe">
                             <span class="font-mono text-[11px] font-bold text-indigo-600">S/ {{ cotizacion.monto_total|floatformat:2 }}</span>
@@ -262,17 +262,15 @@
                                 {{ cotizacion.get_estado_display }}
                             </span>
                         </td>
-                        <td class="py-2 px-4 text-right" data-label="Acciones">
+                        <td class="py-2 px-2 text-right" data-label="Acciones">
                             <div class="cot-acciones">
                                 <a href="{% url 'servicios:ver_pdf_cotizacion' cotizacion.pk %}" target="_blank" class="cot-btn cot-btn--ico cot-btn--mute" title="Ver PDF" aria-label="Ver PDF"><i data-lucide="file-text" class="w-3.5 h-3.5"></i></a>
 
-                                {% if cotizacion.estado == 'Pendiente' %}
-                                    {% if cotizacion.puede_marcarse_enviada %}
-                                    <form method="post" action="{% url 'servicios:marcar_cotizacion_enviada' cotizacion.pk %}" class="inline">
-                                        {% csrf_token %}
-                                        <button type="submit" class="cot-btn cot-btn--env" title="Marcar como enviada al cliente" aria-label="Marcar como enviada {{ cotizacion.numero_oferta }}"><i data-lucide="send" class="w-3.5 h-3.5"></i> Enviar</button>
-                                    </form>
-                                    {% endif %}
+                                {% if cotizacion.estado == 'Pendiente' or cotizacion.estado == 'Enviada' %}
+                                <form method="post" action="{% url 'servicios:enviar_cotizacion_correo' cotizacion.pk %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="cot-btn cot-btn--env" title="Abrir el correo con el cliente y la cotización adjunta" aria-label="Enviar cotización {{ cotizacion.numero_oferta }} por correo"><i data-lucide="send" class="w-3.5 h-3.5"></i> Enviar</button>
+                                </form>
                                 {% endif %}
 
                                 {% if request.user.is_superuser and cotizacion.estado == 'Pendiente' or request.user.is_superuser and cotizacion.estado == 'Enviada' %}
