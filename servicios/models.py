@@ -139,6 +139,8 @@ class Cotizacion(models.Model):
         ('Anulada', 'Anulada'),
     ]
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='Pendiente', verbose_name="Estado")
+    # True cuando se editó una cotización ya enviada: hay que volver a enviarla al cliente (HU-LIMS-50).
+    requiere_reenvio = models.BooleanField(default=False, verbose_name="Requiere reenvío al cliente")
 
     plazo_entrega_dias = models.IntegerField(default=30, verbose_name="Plazo de Entrega (Días)")
 

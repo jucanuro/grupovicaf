@@ -293,10 +293,10 @@ class MarcarCotizacionTests(TestCase):
 
         html = self.client.get(reverse('servicios:lista_cotizaciones')).content.decode()
 
-        # «Enviar» abre el correo con el cliente (Pendiente y Enviada); Aceptada no lo ofrece.
+        # «Enviar» abre el correo con el cliente (Pendiente; una Enviada solo si se editó); Aceptada no lo ofrece.
         self.assertIn(reverse('servicios:enviar_cotizacion_correo', args=[pendiente.pk]), html)
         self.assertIn(reverse('servicios:marcar_cotizacion_rechazada', args=[pendiente.pk]), html)
-        self.assertIn(reverse('servicios:enviar_cotizacion_correo', args=[enviada.pk]), html)
+        self.assertNotIn(reverse('servicios:enviar_cotizacion_correo', args=[enviada.pk]), html)  # ya enviada: no se reenvía sin cambios
         self.assertIn(reverse('servicios:marcar_cotizacion_rechazada', args=[enviada.pk]), html)
         self.assertNotIn(reverse('servicios:enviar_cotizacion_correo', args=[aceptada.pk]), html)
         self.assertNotIn(reverse('servicios:marcar_cotizacion_rechazada', args=[aceptada.pk]), html)
@@ -345,6 +345,22 @@ class EnviarCotizacionCorreoTests(TestCase):
         self.assertFalse(Mensaje.objects.filter(estado_envio=Mensaje.BORRADOR).exists())
         cot.refresh_from_db()
         self.assertEqual(cot.estado, 'Pendiente')
+
+    def test_enviar_vuelve_a_aparecer_solo_si_se_edito_una_enviada(self):
+        cot = self._cotizacion(estado='Enviada')
+        self.client.force_login(self.user)
+        url = reverse('servicios:lista_cotizaciones')
+        html = self.client.get(url).content.decode()
+        self.assertNotIn(reverse('servicios:enviar_cotizacion_correo', args=[cot.pk]), html)
+        Cotizacion.objects.filter(pk=cot.pk).update(requiere_reenvio=True)
+        html = self.client.get(url).content.decode()
+        self.assertIn(reverse('servicios:enviar_cotizacion_correo', args=[cot.pk]), html)
+        # Al volver a enviarla, el botón desaparece otra vez.
+        with patch('correo.tasks.adjuntar_cotizacion'):
+            self.client.post(reverse('servicios:enviar_cotizacion_correo', args=[cot.pk]))
+        cot.refresh_from_db()
+        self.assertFalse(cot.requiere_reenvio)
+        self.assertEqual(cot.estado, 'Enviada')
 
     def test_una_aceptada_no_se_envia(self):
         cot = self._cotizacion(estado='Aceptada')

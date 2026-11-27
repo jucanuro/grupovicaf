@@ -787,6 +787,8 @@ def crear_editar_cotizacion(request, pk=None):
                         "Revisá el precio de los ítems agregados."
                     )
 
+                if is_editing and cotizacion.estado == 'Enviada':
+                    cotizacion.requiere_reenvio = True  # el cliente ya tiene una versión anterior
                 cotizacion.save()
 
                 if condiciones_data:
@@ -1150,9 +1152,10 @@ def enviar_cotizacion_correo(request, pk):
     if borrador is None:
         messages.error(request, motivo)
         return redirect('servicios:lista_cotizaciones')
+    cotizacion.requiere_reenvio = False
     if cotizacion.estado == 'Pendiente':
         cotizacion.estado = 'Enviada'
-        cotizacion.save(update_fields=['estado', 'fecha_actualizacion'])
+    cotizacion.save(update_fields=['estado', 'requiere_reenvio', 'fecha_actualizacion'])
     return redirect(envio.url_redactar(request, borrador))
 
 
