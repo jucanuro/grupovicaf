@@ -1,5 +1,6 @@
 from unittest.mock import patch
 from decimal import Decimal
+from servicios.models import Voucher
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
@@ -381,6 +382,29 @@ class EnviarCotizacionCorreoTests(TestCase):
         for dato_privado in ('999', 'Cliente Correo SAC', 'ana@example.com', '20123456781'):
             self.assertNotIn(dato_privado, html)
         self.assertEqual(self.client.get(reverse('servicios:verificar_cotizacion', args=['NO-EXISTE'])).status_code, 404)
+
+    def test_aprobacion_interna_no_pide_voucher_ni_oferta_firmada(self):
+        from proyectos.models import Proyecto
+        cot = self._cotizacion(estado='Pendiente')
+        self.user.is_superuser = True
+        self.user.save(update_fields=['is_superuser'])
+        self.client.force_login(self.user)
+        r = self.client.post(reverse('servicios:aprobar_cotizacion', args=[cot.pk]), {'usuario_interno': '1'})
+        self.assertEqual(r.status_code, 302)
+        cot.refresh_from_db()
+        self.assertEqual(cot.estado, 'Aceptada')
+        self.assertTrue(Proyecto.objects.filter(cotizacion=cot, codigo_voucher='INTERNO').exists())
+        self.assertFalse(Voucher.objects.filter(cotizacion=cot).exists())
+
+    def test_cliente_sin_voucher_no_aprueba_y_no_ve_el_check_interno(self):
+        cot = self._cotizacion(estado='Pendiente')
+        self.client.force_login(self.user)  # sin superusuario ni permiso interno
+        html = self.client.get(reverse('servicios:aprobar_cotizacion', args=[cot.pk])).content.decode()
+        self.assertNotIn('id="id_usuario_interno"', html)
+        r = self.client.post(reverse('servicios:aprobar_cotizacion', args=[cot.pk]), {'usuario_interno': '1'})
+        self.assertEqual(r.status_code, 200)  # faltan voucher y documento: se vuelve a pedir
+        cot.refresh_from_db()
+        self.assertEqual(cot.estado, 'Pendiente')
 
     def test_una_aceptada_no_se_envia(self):
         cot = self._cotizacion(estado='Aceptada')

@@ -120,6 +120,16 @@
             <form method="post" enctype="multipart/form-data" id="approvalForm" class="space-y-8">
                 {% csrf_token %}
 
+                {% if puede_interno %}
+                <label class="flex items-start gap-3 rounded-2xl border-2 border-indigo-200 bg-indigo-50/60 p-4 cursor-pointer" data-interno-caja>
+                    <input type="checkbox" name="usuario_interno" value="1" id="id_usuario_interno" class="mt-1 w-4 h-4 accent-indigo-600">
+                    <span>
+                        <span class="block text-[12px] font-black uppercase tracking-wider text-indigo-900">Usuario interno</span>
+                        <span class="block text-[11px] text-indigo-800/80">Aprobación de administración o gerencia: no pide voucher ni oferta firmada por el cliente.</span>
+                    </span>
+                </label>
+                {% endif %}
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
                     
                     <div class="space-y-2 w-full"> 
@@ -220,6 +230,7 @@
         if (typeof lucide !== 'undefined') lucide.createIcons();
         
         const approvalForm = document.getElementById('approvalForm');
+        const internoInputRef = () => document.getElementById('id_usuario_interno');
         const submitBtn = document.getElementById('submitBtn');
         const codigoInput = document.getElementById('id_codigo_voucher');
         const montoInput = document.getElementById('id_monto_pagado');
@@ -229,6 +240,10 @@
         // Validación en tiempo real
         function validateForm() {
             let isValid = true;
+            if (internoInputRef() && internoInputRef().checked) {
+                if (submitBtn) submitBtn.disabled = false;
+                return true;
+            }
             
             // Validar código voucher
             const codigoError = document.getElementById('codigo-error');
@@ -337,6 +352,21 @@
             });
         }
         
+        // Usuario interno: se desactivan los datos del cliente y se aprueba directo (HU-LIMS-51).
+        const internoInput = document.getElementById('id_usuario_interno');
+        if (internoInput) {
+            const camposCliente = [codigoInput, montoInput, voucherInput, documentoInput];
+            const bloques = document.querySelectorAll('#approvalForm .grid > div');
+            const aplicarInterno = () => {
+                const interno = internoInput.checked;
+                camposCliente.forEach((c) => { if (c) c.disabled = interno; });
+                bloques.forEach((b) => { b.style.opacity = interno ? '.45' : ''; });
+                validateForm();
+            };
+            internoInput.addEventListener('change', aplicarInterno);
+            aplicarInterno();
+        }
+
         // Inicializar validación
         validateForm();
     });

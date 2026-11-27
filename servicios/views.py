@@ -1237,6 +1237,13 @@ def marcar_cotizacion_rechazada(request, pk):
     return _marcar_cotizacion(request, pk, 'Rechazada', 'rechazada')
 
 
+def puede_aprobar_interno(user):
+    """Aprobación interna sin voucher: administración (superusuario) o quien tenga el permiso de aprobación interna."""
+    if not user.is_authenticated:
+        return False
+    return user.is_superuser or trabajador_tiene_permiso(user, 'cotizaciones.aprobar_interna')
+
+
 @login_required
 @transaction.atomic 
 def aprobar_cotizacion(request, pk):
@@ -1246,13 +1253,16 @@ def aprobar_cotizacion(request, pk):
         messages.warning(request, f'La cotización {cotizacion.numero_oferta} ya fue aprobada anteriormente.')
         return redirect('proyectos:lista_proyectos_pendientes')
 
+    puede_interno = puede_aprobar_interno(request.user)
     if request.method == 'POST':
+        # Usuario interno (gerencia/administración): aprueba sin voucher ni oferta firmada del cliente (HU-LIMS-51).
+        interno = puede_interno and request.POST.get('usuario_interno') == '1'
         codigo_voucher = request.POST.get('codigo_voucher', '').strip()
         monto_pagado_str = request.POST.get('monto_pagado', '0').strip()
         imagen_voucher = request.FILES.get('imagen_voucher')
         documento_firmado_cliente = request.FILES.get('documento_firmado_cliente')
         
-        # Validaciones adicionales
+        # Validaciones adicionales (solo para aprobación del cliente)
         errores = []
         
         if not codigo_voucher or len(codigo_voucher) < 3:
@@ -1291,11 +1301,17 @@ def aprobar_cotizacion(request, pk):
             if hasattr(documento_firmado_cliente, 'content_type') and documento_firmado_cliente.content_type != 'application/pdf':
                 errores.append('El documento firmado debe ser un archivo PDF.')
         
+        if interno:
+            errores = []
+            codigo_voucher = codigo_voucher or 'INTERNO'
+            monto_pagado = cotizacion.monto_total
         if errores:
             return render(request, 'servicios/aprobar_cotizacion.html', {
                 'cotizacion': cotizacion,
+                'puede_interno': puede_interno,
                 'error': ' '.join(errores),
                 'codigo_voucher_value': codigo_voucher,
+                'puede_interno': puede_interno,
                 'monto_pagado_value': monto_pagado_str,
             })
 
@@ -1306,16 +1322,18 @@ def aprobar_cotizacion(request, pk):
                     'cotizacion': cotizacion,
                     'error': 'Esta cotización ya tiene un voucher registrado.',
                     'codigo_voucher_value': codigo_voucher,
+                'puede_interno': puede_interno,
                     'monto_pagado_value': monto_pagado_str,
                 })
             
-            voucher = Voucher.objects.create(
-                cotizacion=cotizacion,
-                codigo=codigo_voucher,
-                monto_pagado=monto_pagado, 
-                imagen=imagen_voucher,
-                documento_firmado=documento_firmado_cliente 
-            )
+            if not interno:
+                Voucher.objects.create(
+                    cotizacion=cotizacion,
+                    codigo=codigo_voucher,
+                    monto_pagado=monto_pagado,
+                    imagen=imagen_voucher,
+                    documento_firmado=documento_firmado_cliente
+                )
             
             cotizacion.estado = 'Aceptada'
             cotizacion.save()
@@ -1336,7 +1354,7 @@ def aprobar_cotizacion(request, pk):
                     'estado': 'PENDIENTE',
                     'descripcion_proyecto': f"Proyecto generado automáticamente desde cotización {cotizacion.numero_oferta}.",
                     'monto_cotizacion': cotizacion.monto_total,
-                    'codigo_voucher': voucher.codigo,
+                    'codigo_voucher': codigo_voucher,
                     'numero_muestras': total_muestras,
                 }
             )
@@ -1354,10 +1372,11 @@ def aprobar_cotizacion(request, pk):
                 'cotizacion': cotizacion,
                 'error': f'Ocurrió un error al procesar la aprobación: {str(e)}',
                 'codigo_voucher_value': codigo_voucher,
+                'puede_interno': puede_interno,
                 'monto_pagado_value': monto_pagado_str,
             })
     
-    return render(request, 'servicios/aprobar_cotizacion.html', {'cotizacion': cotizacion})
+    return render(request, 'servicios/aprobar_cotizacion.html', {'cotizacion': cotizacion, 'puede_interno': puede_interno})
 
 @login_required
 @permiso_requerido('servicios.ver')
