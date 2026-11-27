@@ -287,7 +287,7 @@
                                 {% endif %}
 
                                 <span class="cot-sep" aria-hidden="true"></span>
-                                <a href="{% url 'servicios:ver_pdf_cotizacion' cotizacion.pk %}" target="_blank" class="cot-btn cot-btn--ico cot-btn--pdf" title="Ver PDF" aria-label="Ver PDF"><i data-lucide="file-text" class="w-3.5 h-3.5"></i></a>
+                                <a href="{% url 'servicios:ver_pdf_cotizacion' cotizacion.pk %}" target="_blank" rel="noopener" class="cot-btn cot-btn--ico cot-btn--pdf" title="Ver PDF" aria-label="Ver PDF"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 2h8l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" fill="#dc2626"/><path d="M14 2v5h5" fill="#fecaca"/><text x="12" y="16.5" text-anchor="middle" font-size="5.6" font-weight="800" font-family="Arial, sans-serif" fill="#fff">PDF</text></svg></a>
 
                                 {% if cotizacion.estado != 'Aceptada' %}
                                 <a href="{% url 'servicios:editar_cotizacion' cotizacion.pk %}" class="cot-btn cot-btn--ico" title="Editar" aria-label="Editar"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></a>
